@@ -1,17 +1,14 @@
 use std::{
-    sync::{Arc, RwLock},
+    sync::Arc,
     time::{Duration, Instant},
 };
 
 use derive_more::Constructor;
 use oc_root::INDIVIDUAL_TICK_INTERVAL_US;
-use oc_world::World;
-use thiserror::Error;
 
 use crate::{
-    index::Indexes,
     individual::{effect::Apply, move_::Move},
-    perf::Perf,
+    state::State,
 };
 
 mod effect;
@@ -20,13 +17,11 @@ mod move_;
 #[derive(Constructor)]
 pub struct Processor {
     i: usize,
-    perf: Arc<Perf>,
-    world: Arc<RwLock<World>>,
-    indexes: Arc<RwLock<Indexes>>,
+    state: Arc<State>,
 }
 
 impl Processor {
-    pub fn run(self) -> Result<(), ProcessError> {
+    pub fn run(self) {
         let mut last = Instant::now();
 
         loop {
@@ -42,14 +37,8 @@ impl Processor {
                 Apply::from(&self).apply(effects);
             }
 
-            self.perf.incr();
+            self.state.perf.incr();
             last = Instant::now();
         }
     }
-}
-
-#[derive(Debug, Error)]
-pub enum ProcessError {
-    #[error("Poisoned world lock")]
-    PoisonedWorldLock,
 }

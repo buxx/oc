@@ -1,41 +1,40 @@
-use std::sync::RwLockWriteGuard;
+use std::sync::Arc;
 
 use derive_more::Constructor;
 use oc_individual::behavior::Behavior;
 use oc_utils::d2::Xy;
-use oc_world::World;
 
-use crate::{index::Indexes, individual::Processor};
+use crate::{individual::Processor, state::State};
 
 pub enum Effect {
     Update(Xy, Behavior),
 }
 
 #[derive(Constructor)]
-pub struct Apply<'a> {
+pub struct Apply {
     i: usize,
-    world: RwLockWriteGuard<'a, World>,
-    indexes: RwLockWriteGuard<'a, Indexes>,
+    state: Arc<State>,
 }
 
-impl<'a> From<&'a Processor> for Apply<'a> {
-    fn from(value: &'a Processor) -> Self {
+impl From<&Processor> for Apply {
+    fn from(value: &Processor) -> Self {
         let i = value.i;
-        let world = value.world.write().unwrap();
-        let indexes = value.indexes.write().unwrap();
+        let state = value.state.clone();
 
-        Self { i, world, indexes }
+        Self { i, state }
     }
 }
 
-impl<'a> Apply<'a> {
+impl Apply {
     pub fn apply(&mut self, effects: Vec<Effect>) {
-        let individual = self.world.individual_mut(self.i);
+        let mut world = self.state.world_mut();
+        let mut indexes = self.state.indexes_mut();
+        let individual = world.individual_mut(self.i);
 
         for effect in effects {
             match effect {
                 Effect::Update(xy, behavior) => {
-                    self.indexes.update_xy_individual(individual.xy, xy, self.i);
+                    indexes.update_xy_individual(individual.xy, xy, self.i);
                     individual.xy = xy;
 
                     individual.behavior = behavior;

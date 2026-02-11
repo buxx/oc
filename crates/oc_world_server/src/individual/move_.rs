@@ -1,36 +1,34 @@
-use std::sync::{Arc, RwLock, RwLockReadGuard};
+use std::sync::Arc;
 
 use derive_more::Constructor;
 use oc_individual::behavior::Behavior;
 use oc_root::WORLD_HEIGHT;
 use oc_utils::d2::Xy;
-use oc_world::World;
 
 use crate::{
-    index::Indexes,
     individual::{Processor, effect::Effect},
+    state::State,
 };
 
 #[derive(Constructor)]
-pub struct Move<'a> {
+pub struct Move {
     i: usize,
-    world: RwLockReadGuard<'a, World>,
-    indexes: RwLockReadGuard<'a, Indexes>,
+    state: Arc<State>,
 }
 
-impl<'a> From<&'a Processor> for Move<'a> {
-    fn from(value: &'a Processor) -> Self {
+impl From<&Processor> for Move {
+    fn from(value: &Processor) -> Self {
         let i = value.i;
-        let world = value.world.read().unwrap();
-        let indexes = value.indexes.read().unwrap();
+        let state = value.state.clone();
 
-        Self { i, world, indexes }
+        Self { i, state }
     }
 }
 
-impl<'a> Move<'a> {
+impl Move {
     pub fn read(&self) -> Vec<Effect> {
-        let individual = self.world.individual(self.i);
+        let world = self.state.world();
+        let individual = world.individual(self.i);
         let (x, y): (usize, usize) = individual.xy.into();
 
         let (next_position, next_behavior) = match individual.behavior {

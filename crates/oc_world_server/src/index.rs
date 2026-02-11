@@ -20,7 +20,7 @@ impl Indexes {
 
     pub fn update_xy_individual(&mut self, before: Xy, now: Xy, i: usize) {
         let before_tile_index = XyIndex::from(before).0;
-        let now_tile_index = XyIndex::from(before).0;
+        let now_tile_index = XyIndex::from(now).0;
 
         self.xy_individuals[before_tile_index].retain(|i_| i_ != &i);
         self.xy_individuals[now_tile_index].push(now_tile_index);
