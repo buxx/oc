@@ -11,3 +11,4 @@ oc_individual = { path = "../oc_individual" }
 derive_more = { workspace = true, features = ["constructor"] }
 thiserror.workspace = true
 rayon.workspace = true
+rustc-hash.workspace = true

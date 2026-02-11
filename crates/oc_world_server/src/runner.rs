@@ -9,7 +9,7 @@ use oc_world::World;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
 
-use crate::{individual, perf::Perf};
+use crate::{index::Indexes, individual, perf::Perf};
 
 #[derive(Constructor)]
 pub struct Runner {
@@ -20,6 +20,7 @@ impl Runner {
     pub fn run(self) -> Result<(), RunError> {
         let Self { world } = self;
 
+        let indexes = Arc::new(RwLock::new(Indexes::new(&world)));
         let perf = Arc::new(Perf::default());
         let world = Arc::new(RwLock::new(world));
 
@@ -27,7 +28,8 @@ impl Runner {
         (0..INDIVIDUALS_COUNT).into_par_iter().for_each(|i| {
             let perf = perf.clone();
             let world = world.clone();
-            std::thread::spawn(move || individual::Processor::new(i, perf, world).run());
+            let indexes = indexes.clone();
+            std::thread::spawn(move || individual::Processor::new(i, perf, world, indexes).run());
         });
 
         // Perf display

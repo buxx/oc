@@ -16,6 +16,10 @@ impl World {
         self.tiles.get(XyIndex::from(xy).0)
     }
 
+    pub fn individuals(&self) -> &[Individual; INDIVIDUALS_COUNT] {
+        &self.individuals
+    }
+
     pub fn individual(&self, i: usize) -> &Individual {
         &self.individuals[i]
     }

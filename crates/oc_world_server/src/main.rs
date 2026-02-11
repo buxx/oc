@@ -5,6 +5,7 @@ use oc_world::{World, tile::Tile};
 
 use crate::runner::Runner;
 
+mod index;
 mod individual;
 mod perf;
 mod runner;

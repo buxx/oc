@@ -8,7 +8,11 @@ use oc_root::INDIVIDUAL_TICK_INTERVAL_US;
 use oc_world::World;
 use thiserror::Error;
 
-use crate::{individual::move_::Move, perf::Perf};
+use crate::{
+    index::Indexes,
+    individual::{effect::Apply, move_::Move},
+    perf::Perf,
+};
 
 mod effect;
 mod move_;
@@ -18,6 +22,7 @@ pub struct Processor {
     i: usize,
     perf: Arc<Perf>,
     world: Arc<RwLock<World>>,
+    indexes: Arc<RwLock<Indexes>>,
 }
 
 impl Processor {
@@ -29,20 +34,12 @@ impl Processor {
             let wait = INDIVIDUAL_TICK_INTERVAL_US - elapsed;
             std::thread::sleep(Duration::from_micros(wait));
 
-            let world = self
-                .world
-                .read()
-                .map_err(|_| ProcessError::PoisonedWorldLock)?;
             let mut effects = vec![];
 
-            effects.extend(Move::from(&self).read(world));
+            effects.extend(Move::from(&self).read());
 
             if !effects.is_empty() {
-                let world = self
-                    .world
-                    .write()
-                    .map_err(|_| ProcessError::PoisonedWorldLock)?;
-                effect::apply(self.i, world, effects);
+                Apply::from(&self).apply(effects);
             }
 
             self.perf.incr();

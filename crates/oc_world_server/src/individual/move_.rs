@@ -7,30 +7,30 @@ use oc_utils::d2::Xy;
 use oc_world::World;
 
 use crate::{
+    index::Indexes,
     individual::{Processor, effect::Effect},
-    perf::Perf,
 };
 
 #[derive(Constructor)]
-pub struct Move {
+pub struct Move<'a> {
     i: usize,
-    perf: Arc<Perf>,
-    world: Arc<RwLock<World>>,
+    world: RwLockReadGuard<'a, World>,
+    indexes: RwLockReadGuard<'a, Indexes>,
 }
 
-impl From<&Processor> for Move {
-    fn from(value: &Processor) -> Self {
-        Self {
-            i: value.i,
-            perf: value.perf.clone(),
-            world: value.world.clone(),
-        }
+impl<'a> From<&'a Processor> for Move<'a> {
+    fn from(value: &'a Processor) -> Self {
+        let i = value.i;
+        let world = value.world.read().unwrap();
+        let indexes = value.indexes.read().unwrap();
+
+        Self { i, world, indexes }
     }
 }
 
-impl Move {
-    pub fn read(&self, world: RwLockReadGuard<World>) -> Vec<Effect> {
-        let individual = world.individual(self.i);
+impl<'a> Move<'a> {
+    pub fn read(&self) -> Vec<Effect> {
+        let individual = self.world.individual(self.i);
         let (x, y): (usize, usize) = individual.xy.into();
 
         let (next_position, next_behavior) = match individual.behavior {
