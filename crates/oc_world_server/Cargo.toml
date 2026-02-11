@@ -1,0 +1,13 @@
+[package]
+name = "oc_world_server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+oc_root = { path = "../oc_root" }
+oc_utils = { path = "../oc_utils" }
+oc_world = { path = "../oc_world" }
+oc_individual = { path = "../oc_individual" }
+derive_more = { workspace = true, features = ["constructor"] }
+thiserror.workspace = true
+rayon.workspace = true

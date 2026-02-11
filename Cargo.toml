@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.dependencies]
+bevy = "0.18"
+derive_more = "2.1"
+thiserror = "2.0"
+rayon = "1.11"
