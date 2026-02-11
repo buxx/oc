@@ -23,12 +23,14 @@ impl Runner {
         let perf = Arc::new(Perf::default());
         let world = Arc::new(RwLock::new(world));
 
+        // Individuals processors
         (0..INDIVIDUALS_COUNT).into_par_iter().for_each(|i| {
             let perf = perf.clone();
             let world = world.clone();
             std::thread::spawn(move || individual::Processor::new(i, perf, world).run());
         });
 
+        // Perf display
         loop {
             std::thread::sleep(Duration::from_secs(1));
 
