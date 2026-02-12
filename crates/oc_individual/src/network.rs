@@ -4,6 +4,6 @@ use crate::{IndividualIndex, Update};
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub enum IndividualMessage {
+pub enum Individual {
     Effect(IndividualIndex, Update),
 }

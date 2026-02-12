@@ -22,6 +22,6 @@ pub fn write(update: &Update, i: IndividualIndex, state: &Arc<State>, network: &
         }
     }
 
-    let msg = oc_individual::network::IndividualMessage::Effect(i, update.clone());
-    network.broadcast(msg.into());
+    let msg = oc_individual::network::Individual::Effect(i, update.clone());
+    // network.send(msg.into());
 }

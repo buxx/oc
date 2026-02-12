@@ -1,14 +1,21 @@
-use oc_individual::network::IndividualMessage;
+use oc_individual::network::Individual;
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub enum ServerToClientMessage {
-    Individual(IndividualMessage),
+pub enum ToClient {
+    Hello,
+    Individual(Individual),
 }
 
-impl From<IndividualMessage> for ServerToClientMessage {
-    fn from(value: IndividualMessage) -> Self {
-        ServerToClientMessage::Individual(value)
+impl From<Individual> for ToClient {
+    fn from(value: Individual) -> Self {
+        ToClient::Individual(value)
     }
+}
+
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum ToServer {
+    Hello,
 }
