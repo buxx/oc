@@ -1,3 +1,4 @@
+use oc_individual::IndividualIndex;
 use oc_root::TILES_COUNT;
 use oc_utils::d2::{Xy, XyIndex};
 use oc_world::World;
@@ -18,11 +19,11 @@ impl Indexes {
         Self { xy_individuals }
     }
 
-    pub fn update_xy_individual(&mut self, before: Xy, now: Xy, i: usize) {
+    pub fn update_individual_xy(&mut self, i: IndividualIndex, before: Xy, now: Xy) {
         let before_tile_index = XyIndex::from(before).0;
         let now_tile_index = XyIndex::from(now).0;
 
-        self.xy_individuals[before_tile_index].retain(|i_| i_ != &i);
+        self.xy_individuals[before_tile_index].retain(|i_| i_ != &(i.0 as usize));
         self.xy_individuals[now_tile_index].push(now_tile_index);
     }
 }

@@ -4,20 +4,19 @@ use std::{
 };
 
 use derive_more::Constructor;
+use oc_individual::IndividualIndex;
 use oc_root::INDIVIDUAL_TICK_INTERVAL_US;
 
-use crate::{
-    individual::{effect::Apply, move_::Move},
-    state::State,
-};
+use crate::{individual::move_::Move, network::Network, state::State};
 
-mod effect;
 mod move_;
+mod update;
 
 #[derive(Constructor)]
 pub struct Processor {
-    i: usize,
+    i: IndividualIndex,
     state: Arc<State>,
+    network: Arc<Network>,
 }
 
 impl Processor {
@@ -29,13 +28,13 @@ impl Processor {
             let wait = INDIVIDUAL_TICK_INTERVAL_US - elapsed;
             std::thread::sleep(Duration::from_micros(wait));
 
-            let mut effects = vec![];
+            let mut updates = vec![];
 
-            effects.extend(Move::from(&self).read());
+            updates.extend(Move::from(&self).read());
 
-            if !effects.is_empty() {
-                Apply::from(&self).apply(effects);
-            }
+            updates.iter().for_each(|update| {
+                update::write(update, self.i, &self.state, &self.network);
+            });
 
             self.state.perf.incr();
             last = Instant::now();

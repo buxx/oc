@@ -1,10 +1,8 @@
 [package]
-name = "oc_utils"
+name = "oc_network"
 version = "0.1.0"
 edition = "2024"
 
-[features]
-
 [dependencies]
-oc_root = { path = "../oc_root" }
+oc_individual = { path = "../oc_individual" }
 rkyv.workspace = true

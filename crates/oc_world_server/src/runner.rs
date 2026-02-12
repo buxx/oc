@@ -5,22 +5,25 @@ use oc_root::INDIVIDUALS_COUNT;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
 
-use crate::{individual, state::State};
+use crate::{individual, network::Network, state::State};
 
 #[derive(Constructor)]
 pub struct Runner {
     state: State,
+    network: Network,
 }
 
 impl Runner {
     pub fn run(self) -> Result<(), RunError> {
-        let Self { state } = self;
+        let Self { state, network } = self;
         let state = Arc::new(state);
+        let network = Arc::new(network);
 
         // Individuals processors
         (0..INDIVIDUALS_COUNT).into_par_iter().for_each(|i| {
             let state = state.clone();
-            std::thread::spawn(move || individual::Processor::new(i, state).run());
+            let network = network.clone();
+            std::thread::spawn(move || individual::Processor::new(i.into(), state, network).run());
         });
 
         // Perf display

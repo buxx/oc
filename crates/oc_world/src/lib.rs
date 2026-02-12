@@ -1,5 +1,5 @@
 use derive_more::Constructor;
-use oc_individual::Individual;
+use oc_individual::{Individual, IndividualIndex};
 use oc_root::{INDIVIDUALS_COUNT, TILES_COUNT};
 use oc_utils::d2::{Xy, XyIndex};
 
@@ -20,11 +20,11 @@ impl World {
         &self.individuals
     }
 
-    pub fn individual(&self, i: usize) -> &Individual {
-        &self.individuals[i]
+    pub fn individual(&self, i: IndividualIndex) -> &Individual {
+        &self.individuals[i.0 as usize]
     }
 
-    pub fn individual_mut(&mut self, i: usize) -> &mut Individual {
-        &mut self.individuals[i]
+    pub fn individual_mut(&mut self, i: IndividualIndex) -> &mut Individual {
+        &mut self.individuals[i.0 as usize]
     }
 }

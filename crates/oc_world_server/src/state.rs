@@ -28,7 +28,6 @@ impl State {
         self.world.read().expect("Assum lock")
     }
 
-    // TODO: centralize updates (to reflect, update indexes, etc)
     pub fn world_mut(&self) -> RwLockWriteGuard<'_, World> {
         self.world.write().expect("Assum lock")
     }
@@ -37,7 +36,6 @@ impl State {
         self.indexes.read().expect("Assum lock")
     }
 
-    // TODO: centralize updates (to reflect, update indexes, etc)
     pub fn indexes_mut(&self) -> RwLockWriteGuard<'_, Indexes> {
         self.indexes.write().expect("Assum lock")
     }
