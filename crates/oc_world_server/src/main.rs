@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use oc_individual::{Individual, behavior::Behavior};
-use oc_root::TILES_COUNT;
+use oc_root::{INDIVIDUALS_COUNT, TILES_COUNT};
 use oc_utils::d2::{Xy, XyIndex};
 use oc_world::{World, tile::Tile};
 
@@ -13,13 +15,14 @@ mod runner;
 mod state;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let tiles = [Tile::ShortGrass; TILES_COUNT];
-    let individuals =
-        std::array::from_fn(|i| Individual::new(Xy::from(XyIndex(i)), Behavior::MovingSouth));
+    let tiles = vec![Tile::ShortGrass; TILES_COUNT];
+    let individuals = (0..INDIVIDUALS_COUNT)
+        .map(|i| Individual::new(Xy::from(XyIndex(i)), Behavior::MovingSouth))
+        .collect();
     let world = World::new(tiles, individuals);
 
-    let state = State::new(world);
-    let network = Network::new();
+    let state = Arc::new(State::new(world));
+    let network = Arc::new(Network::new());
 
     Runner::new(state, network).run()?;
     Ok(())

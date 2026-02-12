@@ -14,3 +14,4 @@ thiserror.workspace = true
 rayon.workspace = true
 rustc-hash.workspace = true
 rkyv.workspace = true
+num_cpus.workspace = true

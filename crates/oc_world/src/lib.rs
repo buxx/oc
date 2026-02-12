@@ -1,14 +1,13 @@
 use derive_more::Constructor;
 use oc_individual::{Individual, IndividualIndex};
-use oc_root::{INDIVIDUALS_COUNT, TILES_COUNT};
 use oc_utils::d2::{Xy, XyIndex};
 
 pub mod tile;
 
 #[derive(Constructor)]
 pub struct World {
-    tiles: [tile::Tile; TILES_COUNT],
-    individuals: [Individual; INDIVIDUALS_COUNT],
+    tiles: Vec<tile::Tile>,
+    individuals: Vec<Individual>,
 }
 
 impl World {
@@ -16,7 +15,7 @@ impl World {
         self.tiles.get(XyIndex::from(xy).0)
     }
 
-    pub fn individuals(&self) -> &[Individual; INDIVIDUALS_COUNT] {
+    pub fn individuals(&self) -> &Vec<Individual> {
         &self.individuals
     }
 
