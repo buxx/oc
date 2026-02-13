@@ -1,38 +1,23 @@
 use std::net::SocketAddr;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
-use derive_more::Constructor;
 use message_io::network::{Endpoint, NetEvent, Transport};
 use message_io::node::{self};
-use oc_network::ArchivedToClient;
 use oc_network::{ArchivedToServer, ToClient, ToServer};
 use rkyv::api::low::deserialize;
 use rkyv::rancor::Error;
+use rkyv::util::AlignedVec;
 
-#[derive(Constructor)]
-pub struct Network {
-    output: Sender<(Endpoint, ToClient)>,
+pub fn listen(host: SocketAddr) -> (Receiver<Event>, Sender<(Endpoint, ToClient)>) {
+    let (input_tx, input_rx) = channel();
+    let (output_tx, output_rx) = channel();
+
+    std::thread::spawn(move || listen_(host, input_tx, output_rx));
+
+    (input_rx, output_tx)
 }
 
-impl Network {
-    pub fn listen(host: SocketAddr) -> (Self, Receiver<Event>) {
-        let (input_tx, input_rx) = channel();
-        let (output_tx, output_rx) = channel();
-
-        std::thread::spawn(move || listen(host, input_tx, output_rx));
-
-        (Self { output: output_tx }, input_rx)
-    }
-
-    // TODO (broadcast according to who should receive this message; zone looked at, etc.)
-    pub fn send(&self, endpoints: Vec<Endpoint>, message: ToClient) {
-        for endpoint in endpoints {
-            self.output.send((endpoint, message.clone())).unwrap(); // TODO
-        }
-    }
-}
-
-pub fn listen(host: SocketAddr, input: Sender<Event>, output: Receiver<(Endpoint, ToClient)>) {
+fn listen_(host: SocketAddr, input: Sender<Event>, output: Receiver<(Endpoint, ToClient)>) {
     tracing::info!("Start listening on {}", host);
     let (handler, listener) = node::split::<()>();
 
@@ -48,10 +33,12 @@ pub fn listen(host: SocketAddr, input: Sender<Event>, output: Receiver<(Endpoint
                 tracing::debug!("Client connected from {}", endpoint.addr());
                 input.send(Event::Connected(endpoint)).unwrap(); // TODO
             }
-            NetEvent::Message(endpoint, bytes) => {
+            NetEvent::Message(endpoint, bytes_) => {
+                let mut bytes: AlignedVec = rkyv::util::AlignedVec::with_capacity(bytes_.len());
+                bytes.extend_from_slice(bytes_);
                 let message = rkyv::access::<ArchivedToServer, Error>(&bytes[..]).unwrap(); // TODO
                 let message = deserialize::<ToServer, Error>(message).unwrap(); // TODO
-                tracing::trace!(name="network-received", endpoint = ?endpoint, message = ?message);
+                tracing::trace!(name="network-message-received", endpoint = ?endpoint, message = ?message);
                 input.send(Event::Message(endpoint, message)).unwrap(); // TODO
             }
             NetEvent::Disconnected(endpoint) => {
@@ -62,6 +49,7 @@ pub fn listen(host: SocketAddr, input: Sender<Event>, output: Receiver<(Endpoint
     });
 
     while let Ok((endpoint, message)) = output.recv() {
+        tracing::trace!(name="network-message-send", endpoint = ?endpoint, message = ?message);
         let bytes = rkyv::to_bytes::<Error>(&message).unwrap(); // TODO
         handler.network().send(endpoint, &bytes);
     }

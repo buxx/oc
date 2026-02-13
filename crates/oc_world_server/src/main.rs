@@ -1,20 +1,20 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use clap::Parser;
+use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::{Individual, behavior::Behavior};
-use oc_network::ToClient;
 use oc_root::{INDIVIDUALS_COUNT, TILES_COUNT};
-use oc_utils::d2::{Xy, XyIndex};
 use oc_world::{World, tile::Tile};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-use crate::{network::Network, runner::Runner, state::State};
+use crate::{runner::Runner, state::State};
 
 mod index;
 mod individual;
 mod network;
 mod perf;
+mod routing;
 mod runner;
 mod state;
 
@@ -37,33 +37,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     let tiles = vec![Tile::ShortGrass; TILES_COUNT];
-    let individuals = (0..INDIVIDUALS_COUNT)
-        .map(|i| Individual::new(Xy::from(XyIndex(i)), Behavior::MovingSouth))
-        .collect();
+    let individuals = individuals();
     let world = World::new(tiles, individuals);
 
+    let (input, output) = network::listen(args.host);
     let state = Arc::new(State::new(world));
-    let (network, input) = Network::listen(args.host);
-    let network = Arc::new(network);
-
-    {
-        let network = network.clone();
-        std::thread::spawn(move || {
-            while let Ok(message) = input.recv() {
-                tracing::info!("DEBUG Message received");
-                match message {
-                    network::Event::Connected(endpoint) => {}
-                    network::Event::Disconnected(endpoint) => {}
-                    network::Event::Message(endpoint, to_server) => {
-                        network.send(vec![endpoint], ToClient::Hello);
-                    }
-                }
-            }
-        });
-    }
 
     // Blocking server logic
-    Runner::new(state, network).run()?;
+    Runner::new(state, output).run(input)?;
 
     Ok(())
+}
+
+fn individuals() -> Vec<Individual> {
+    (0..INDIVIDUALS_COUNT)
+        .map(|i| Individual::new(TileXy::from(WorldTileIndex(i)), Behavior::MovingSouth))
+        .collect()
 }

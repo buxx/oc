@@ -14,3 +14,6 @@ message-io = "0.19"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 clap = { version = "4.5", features = ["derive"] }
+
+# tests
+rstest = "0.26"

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use derive_more::Constructor;
+use oc_geo::tile::TileXy;
 use oc_individual::{IndividualIndex, Update, behavior::Behavior};
 use oc_root::WORLD_HEIGHT;
 use oc_utils::d2::Xy;
@@ -33,20 +34,20 @@ impl Move {
                 if x == 0 {
                     (individual.xy, Behavior::MovingSouth)
                 } else {
-                    (Xy(x - 1, y), Behavior::MovingNorth)
+                    (TileXy(Xy(x - 1, y)), Behavior::MovingNorth)
                 }
             }
             Behavior::MovingSouth => {
                 if x == WORLD_HEIGHT as u64 - 1 {
                     (individual.xy, Behavior::MovingNorth)
                 } else {
-                    (Xy(x + 1, y), Behavior::MovingSouth)
+                    (TileXy(Xy(x + 1, y)), Behavior::MovingSouth)
                 }
             }
         };
 
         vec![
-            Update::UpdateXy(next_xy),
+            Update::UpdatePosition(next_xy),
             Update::UpdateBehavior(next_behavior),
         ]
     }

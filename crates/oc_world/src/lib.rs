@@ -1,6 +1,6 @@
 use derive_more::Constructor;
+use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::{Individual, IndividualIndex};
-use oc_utils::d2::{Xy, XyIndex};
 
 pub mod tile;
 
@@ -11,8 +11,8 @@ pub struct World {
 }
 
 impl World {
-    pub fn tile(&self, xy: Xy) -> Option<&tile::Tile> {
-        self.tiles.get(XyIndex::from(xy).0)
+    pub fn tile(&self, xy: TileXy) -> Option<&tile::Tile> {
+        self.tiles.get(WorldTileIndex::from(xy).0)
     }
 
     pub fn individuals(&self) -> &Vec<Individual> {

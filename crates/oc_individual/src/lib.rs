@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use derive_more::Constructor;
-use oc_utils::d2::Xy;
+use oc_geo::tile::TileXy;
 use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::behavior::Behavior;
@@ -16,14 +16,14 @@ pub struct IndividualIndex(pub u64);
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Individual {
-    pub xy: Xy,
+    pub xy: TileXy,
     pub behavior: Behavior,
 }
 
 #[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Update {
-    UpdateXy(Xy),
+    UpdatePosition(TileXy),
     UpdateBehavior(Behavior),
 }
 

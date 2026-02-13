@@ -230,7 +230,9 @@ use std::time::Duration;
 use clap::Parser;
 use message_io::network::{NetEvent, Transport};
 use message_io::node::{self, NodeEvent};
+use oc_geo::tile::TileXy;
 use oc_network::{ArchivedToClient, ToClient, ToServer};
+use oc_utils::d2::Xy;
 use rkyv::api::low::deserialize;
 use rkyv::rancor::Error;
 use rkyv::util::AlignedVec;
@@ -285,10 +287,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     loop {
-        std::thread::sleep(Duration::from_secs(1));
-        let bytes = rkyv::to_bytes::<Error>(&ToServer::Hello).unwrap(); // TODO
+        let message = ToServer::Listen(TileXy(Xy(0, 0)), TileXy(Xy(10_000, 10_000)));
+        let bytes = rkyv::to_bytes::<Error>(&message).unwrap(); // TODO
         handler.network().send(server, &bytes);
+        std::thread::sleep(Duration::from_secs(10));
     }
-
-    Ok(())
 }

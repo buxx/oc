@@ -20,6 +20,8 @@ edition = "2024"
 
 [dependencies]
 oc_network = { path = "../oc_network" }
+oc_utils = { path = "../oc_utils" }
+oc_geo = { path = "../oc_geo" }
 # bevy.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
