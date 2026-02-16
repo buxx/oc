@@ -15,7 +15,7 @@ impl World {
         self.tiles.get(WorldTileIndex::from(xy).0)
     }
 
-    pub fn individuals(&self) -> &Vec<Individual> {
+    pub fn individuals(&self) -> &[Individual] {
         &self.individuals
     }
 

@@ -35,8 +35,11 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
                 let from_region_xy: RegionXy = from.into();
                 let to_region_xy: RegionXy = to.into();
 
-                for x in (from_region_xy.0.0)..=(to_region_xy.0.0) {
-                    for y in (from_region_xy.0.1)..=(to_region_xy.0.1) {
+                let (from_region_x, from_region_y) = (from_region_xy.0.0, from_region_xy.0.1);
+                let (to_region_x, to_region_y) = (to_region_xy.0.0, to_region_xy.0.1);
+
+                for x in from_region_x..=to_region_x {
+                    for y in from_region_y..=to_region_y {
                         let region: WorldRegionIndex = RegionXy(Xy(x, y)).into();
                         tracing::trace!(name = "listeners-listen-region", region = ?region);
                         self.regions[region.0].push(endpoint.clone())
@@ -80,16 +83,15 @@ pub enum Listen {
 #[cfg(test)]
 mod tests {
     use oc_root::{WORLD_HEIGHT, WORLD_WIDTH};
-    use rstest::rstest;
 
     use super::*;
 
-    #[rstest]
+    #[test]
     fn test_listen_area() {
         // Given
         let mut listener = Listeners::new();
         let from = TileXy(Xy(0, 0));
-        let to = TileXy(Xy(WORLD_WIDTH as u64, WORLD_HEIGHT as u64)); // Whole map is listened
+        let to = TileXy(Xy(WORLD_WIDTH as u64 - 1, WORLD_HEIGHT as u64 - 1)); // Whole map is listened
         let filter = Listen::Area(from, to);
 
         // When

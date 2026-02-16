@@ -1,4 +1,4 @@
-use oc_root::WORLD_WIDTH;
+use oc_root::{GEO_PIXELS_PER_TILE, WORLD_WIDTH};
 use oc_utils::d2::Xy;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -34,6 +34,15 @@ impl From<WorldTileIndex> for Xy {
 impl From<TileXy> for WorldTileIndex {
     fn from(TileXy(Xy(x, y)): TileXy) -> Self {
         Self(y as usize * WORLD_WIDTH + x as usize)
+    }
+}
+
+impl From<[f32; 2]> for TileXy {
+    fn from(value: [f32; 2]) -> Self {
+        Self(Xy(
+            value[0] as u64 / GEO_PIXELS_PER_TILE,
+            value[1] as u64 / GEO_PIXELS_PER_TILE,
+        ))
     }
 }
 

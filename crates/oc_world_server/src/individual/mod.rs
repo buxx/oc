@@ -8,7 +8,8 @@ use oc_network::ToClient;
 use crate::{individual::move_::Move, state::State};
 
 mod move_;
-mod update;
+pub mod physics;
+pub mod update;
 
 #[derive(Constructor)]
 pub struct Processor {
@@ -18,12 +19,12 @@ pub struct Processor {
 }
 
 impl Processor {
-    pub fn run(self) {
+    pub fn step(self) {
         let mut updates = vec![];
 
         updates.extend(Move::from(&self).read());
 
-        updates.iter().for_each(|update| {
+        updates.into_iter().for_each(|update| {
             update::write(update, self.i, &self.state, &self.output);
         });
     }

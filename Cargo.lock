@@ -83,6 +83,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bresenham"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfc1116225f66d2ea341a26503f83a6b1205070a6f7199ce1f1550ead91f6fd7"
+
+[[package]]
 name = "bumpalo"
 version = "3.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -705,6 +711,7 @@ version = "0.1.0"
 dependencies = [
  "derive_more",
  "oc_geo",
+ "oc_physics",
  "oc_root",
  "oc_utils",
  "rkyv",
@@ -716,6 +723,17 @@ version = "0.1.0"
 dependencies = [
  "oc_geo",
  "oc_individual",
+ "rkyv",
+]
+
+[[package]]
+name = "oc_physics"
+version = "0.1.0"
+dependencies = [
+ "bresenham",
+ "derive_more",
+ "oc_root",
+ "oc_utils",
  "rkyv",
 ]
 
@@ -738,6 +756,7 @@ dependencies = [
  "derive_more",
  "oc_geo",
  "oc_individual",
+ "oc_physics",
  "oc_root",
  "oc_utils",
  "rkyv",
@@ -755,6 +774,7 @@ dependencies = [
  "oc_geo",
  "oc_individual",
  "oc_network",
+ "oc_physics",
  "oc_root",
  "oc_utils",
  "oc_world",

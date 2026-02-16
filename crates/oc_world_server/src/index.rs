@@ -13,8 +13,13 @@ pub struct Indexes {
 
 impl Indexes {
     pub fn new(world: &World) -> Self {
+        println!("1 ({TILES_COUNT})");
+        let x: Vec<Vec<usize>> = vec![vec![]; TILES_COUNT];
+        println!("1 ({TILES_COUNT})");
         let mut xy_individuals = vec![vec![]; TILES_COUNT];
+        println!("2");
         let mut regions_individuals = vec![vec![]; REGIONS_COUNT];
+        println!("3");
 
         for (i, individual) in world.individuals().iter().enumerate() {
             let tile: WorldTileIndex = individual.xy.into();

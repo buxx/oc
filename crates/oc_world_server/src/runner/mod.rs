@@ -9,11 +9,11 @@ use std::{
 use derive_more::Constructor;
 use message_io::network::Endpoint;
 use oc_network::ToClient;
-use oc_root::{INDIVIDUAL_TICK_INTERVAL_US, INDIVIDUALS_COUNT};
+use oc_root::{INDIVIDUAL_TICK_INTERVAL_US, INDIVIDUALS_COUNT, PHYSICS_TICK_INTERVAL_US};
 use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 use thiserror::Error;
 
-use crate::{individual, network::Event, runner::input::Dealer, state::State};
+use crate::{individual, network::Event, physics, runner::input::Dealer, state::State};
 
 mod input;
 
@@ -26,13 +26,43 @@ pub struct Runner {
 impl Runner {
     pub fn run(&self, input: Receiver<Event>) -> Result<(), RunError> {
         self.listen_input(input);
+        self.start_physics();
         self.start_individuals();
         self.track_perfs();
 
         Ok(())
     }
 
+    fn start_physics(&self) {
+        let cpus = num_cpus::get();
+        let state = self.state.clone();
+        let output = self.output.clone();
+
+        (0..cpus).for_each(|i| {
+            let state = state.clone();
+            let output = output.clone();
+
+            std::thread::spawn(move || {
+                let mut last = Instant::now();
+
+                loop {
+                    let elapsed = last.elapsed().as_micros() as u64;
+                    let wait = PHYSICS_TICK_INTERVAL_US - elapsed;
+                    std::thread::sleep(Duration::from_micros(wait));
+
+                    let state = state.clone();
+                    let output = output.clone();
+                    physics::Processor::new(cpus, state, output).step(i);
+
+                    last = Instant::now();
+                }
+            });
+        });
+    }
+
     fn start_individuals(&self) {
+        tracing::debug!("Start individuals threads");
+
         let cpus = num_cpus::get();
         let state = self.state.clone();
         let output = self.output.clone();
@@ -55,11 +85,13 @@ impl Runner {
                         std::thread::sleep(Duration::from_micros(wait));
 
                         for i in &indexes {
+                            tracing::trace!(name = "runner-individual", i = ?i);
+
                             let state = state.clone();
                             let output = output.clone();
                             state.perf.incr();
 
-                            individual::Processor::new((*i).into(), state, output).run();
+                            individual::Processor::new((*i).into(), state, output).step();
                         }
 
                         last = Instant::now();

@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use derive_more::Constructor;
-use oc_geo::tile::TileXy;
 use oc_individual::{IndividualIndex, Update, behavior::Behavior};
+use oc_physics::{Force, MetersSeconds};
 use oc_root::WORLD_HEIGHT;
-use oc_utils::d2::Xy;
 
 use crate::{individual::Processor, state::State};
 
@@ -27,28 +26,45 @@ impl Move {
     pub fn read(&self) -> Vec<Update> {
         let world = self.state.world();
         let individual = world.individual(self.i);
-        let (x, y): (u64, u64) = individual.xy.into();
+        let (x, _): (u64, u64) = individual.xy.into();
 
-        let (next_xy, next_behavior) = match individual.behavior {
+        let (pulse, behavior) = match individual.behavior {
             Behavior::MovingNorth => {
                 if x == 0 {
-                    (individual.xy, Behavior::MovingSouth)
+                    (
+                        Some(Force::Translation([1.0, 0.0], MetersSeconds(0.5))),
+                        Some(Behavior::MovingSouth),
+                    )
                 } else {
-                    (TileXy(Xy(x - 1, y)), Behavior::MovingNorth)
+                    (None, None)
                 }
             }
             Behavior::MovingSouth => {
                 if x == WORLD_HEIGHT as u64 - 1 {
-                    (individual.xy, Behavior::MovingNorth)
+                    (
+                        Some(Force::Translation([-1.0, 0.0], MetersSeconds(0.5))),
+                        Some(Behavior::MovingNorth),
+                    )
                 } else {
-                    (TileXy(Xy(x + 1, y)), Behavior::MovingSouth)
+                    (None, None)
                 }
             }
+            Behavior::Idle => (
+                Some(Force::Translation([1.0, 0.0], MetersSeconds(0.5))),
+                Some(Behavior::MovingSouth),
+            ),
         };
 
-        vec![
-            Update::UpdatePosition(next_xy),
-            Update::UpdateBehavior(next_behavior),
-        ]
+        let mut updates = vec![];
+
+        if let Some(pulse) = pulse {
+            updates.push(Update::PushForce(pulse));
+        }
+
+        if let Some(behavior) = behavior {
+            updates.push(Update::UpdateBehavior(behavior));
+        }
+
+        updates
     }
 }

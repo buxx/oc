@@ -7,7 +7,7 @@ use oc_network::ToClient;
 use crate::{routing::Listening, state::State};
 
 pub fn write(
-    update: &Update,
+    update: Update,
     i: IndividualIndex,
     state: &Arc<State>,
     output: &Sender<(Endpoint, ToClient)>,
@@ -17,21 +17,33 @@ pub fn write(
         let mut indexes = state.indexes_mut();
         let individual = world.individual_mut(i);
 
-        match update {
-            Update::UpdatePosition(xy) => {
+        match update.clone() {
+            Update::UpdatePosition(position) => {
+                individual.position = position;
+                Listening::TileXy(vec![individual.xy])
+            }
+            Update::UpdateXy(xy) => {
                 let before = individual.xy;
-                individual.xy = *xy;
-                indexes.update_individual_xy(i, before, *xy);
-                Listening::TileXy(vec![before, *xy])
+                individual.xy = xy;
+                indexes.update_individual_xy(i, before, xy);
+                Listening::TileXy(vec![before, xy])
             }
             Update::UpdateBehavior(behavior) => {
                 individual.behavior = behavior.clone();
                 Listening::TileXy(vec![individual.xy])
             }
+            Update::PushForce(force) => {
+                individual.forces.push(force);
+                Listening::TileXy(vec![individual.xy])
+            }
+            Update::RemoveForce(force) => {
+                individual.forces.retain(|f| f != &force);
+                Listening::TileXy(vec![individual.xy])
+            }
         }
     };
 
-    let message = network::Individual::Effect(i, update.clone());
+    let message = network::Individual::Effect(i, update);
     let msg: ToClient = message.into();
 
     state

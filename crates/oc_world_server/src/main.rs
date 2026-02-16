@@ -3,7 +3,7 @@ use std::{net::SocketAddr, sync::Arc};
 use clap::Parser;
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::{Individual, behavior::Behavior};
-use oc_root::{INDIVIDUALS_COUNT, TILES_COUNT};
+use oc_root::{GEO_PIXELS_PER_TILE, INDIVIDUALS_COUNT, TILES_COUNT};
 use oc_world::{World, tile::Tile};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
@@ -14,6 +14,7 @@ mod index;
 mod individual;
 mod network;
 mod perf;
+mod physics;
 mod routing;
 mod runner;
 mod state;
@@ -51,6 +52,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn individuals() -> Vec<Individual> {
     (0..INDIVIDUALS_COUNT)
-        .map(|i| Individual::new(TileXy::from(WorldTileIndex(i)), Behavior::MovingSouth))
+        .map(|i| {
+            let xy = TileXy::from(WorldTileIndex(i));
+            let position = [
+                ((xy.0.0 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
+                ((xy.0.1 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
+            ];
+            Individual::new(position, xy, Behavior::Idle, vec![])
+        })
         .collect()
 }
