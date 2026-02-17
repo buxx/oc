@@ -7,6 +7,6 @@ pub enum Tile {
 
 impl Material for Tile {
     fn material(&self) -> Materials {
-        Materials::Solid
+        Materials::Traversable
     }
 }

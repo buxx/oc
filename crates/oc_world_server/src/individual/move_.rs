@@ -32,7 +32,7 @@ impl Move {
             Behavior::MovingNorth => {
                 if x == 0 {
                     (
-                        Some(Force::Translation([1.0, 0.0], MetersSeconds(0.5))),
+                        Some(Force::Translation([0.0, 1.0], MetersSeconds(0.5))),
                         Some(Behavior::MovingSouth),
                     )
                 } else {
@@ -42,7 +42,7 @@ impl Move {
             Behavior::MovingSouth => {
                 if x == WORLD_HEIGHT as u64 - 1 {
                     (
-                        Some(Force::Translation([-1.0, 0.0], MetersSeconds(0.5))),
+                        Some(Force::Translation([0.0, -1.0], MetersSeconds(0.5))),
                         Some(Behavior::MovingNorth),
                     )
                 } else {
@@ -50,11 +50,12 @@ impl Move {
                 }
             }
             Behavior::Idle => (
-                Some(Force::Translation([1.0, 0.0], MetersSeconds(0.5))),
+                Some(Force::Translation([0.0, 1.0], MetersSeconds(0.5))),
                 Some(Behavior::MovingSouth),
             ),
         };
 
+        tracing::trace!(name="indididual-move", i=?self.i, pulse=?pulse, behavior=?behavior);
         let mut updates = vec![];
 
         if let Some(pulse) = pulse {

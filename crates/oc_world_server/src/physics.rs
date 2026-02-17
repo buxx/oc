@@ -35,11 +35,13 @@ impl Processor {
             chunk
                 .into_iter()
                 .map(|(i, individual)| {
+                    let i = IndividualIndex(*i as u64);
                     let laws = Laws::default();
-                    let (new_position, new_forces) = oc_physics::step(&laws, individual, tiles);
+                    let (new_position, forces) = oc_physics::step(&laws, individual, tiles);
+                    tracing::trace!(name="physics-individual", i=?i, new_position=?new_position, forces=?forces);
                     let updates =
-                        individual::physics::changes(individual, &new_position, &new_forces);
-                    (IndividualIndex(*i as u64), updates)
+                        individual::physics::changes(i, individual, &new_position, &forces);
+                    (i, updates)
                 })
                 .collect::<Vec<_>>()
         };

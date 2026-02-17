@@ -87,6 +87,7 @@ where
 {
     let mut position = object.position().clone();
     let mut forces = vec![];
+    tracing::trace!(name="physics-step-start", p=?position, forces=?object.forces());
 
     'forces: for force in object.forces() {
         match force {
@@ -104,18 +105,21 @@ where
                     if step_tile != curent_tile {
                         let Some(tile) = tiles(step_tile) else {
                             // No tile means outside map
+                            tracing::trace!(name="physics-step-translation-no-tile", p=?position, xy=?step_tile);
                             continue 'forces;
                         };
 
                         // Move is finished if its a solid
                         if tile.material().is_solid() {
                             // Do not keep this force by stoping this iteration
+                            tracing::trace!(name="physics-step-translation-solid", p=?position, xy=?step_tile);
                             continue 'forces;
                         }
                     }
 
                     curent_tile = step_tile;
                     position = [step_x, step_y];
+                    tracing::trace!(name="physics-step-translation-updated", p=?position, xy=?step_tile);
                 }
             }
         }

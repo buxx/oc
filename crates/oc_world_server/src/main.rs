@@ -24,6 +24,9 @@ mod state;
 pub struct Args {
     #[clap(default_value = "0.0.0.0:6589")]
     pub host: SocketAddr,
+
+    #[clap(long, action)]
+    pub print_ticks: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -45,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = Arc::new(State::new(world));
 
     // Blocking server logic
-    Runner::new(state, output).run(input)?;
+    Runner::new(state, output, args.print_ticks).run(input)?;
 
     Ok(())
 }

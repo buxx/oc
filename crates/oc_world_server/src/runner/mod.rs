@@ -21,6 +21,7 @@ mod input;
 pub struct Runner {
     state: Arc<State>,
     output: Sender<(Endpoint, ToClient)>,
+    print_ticks: bool,
 }
 
 impl Runner {
@@ -103,7 +104,11 @@ impl Runner {
     fn track_perfs(&self) {
         loop {
             std::thread::sleep(Duration::from_secs(1));
-            println!("{} tick/s", self.state.perf.ticks());
+
+            if self.print_ticks {
+                println!("{} tick/s", self.state.perf.ticks());
+            }
+
             self.state.perf.reset();
         }
     }

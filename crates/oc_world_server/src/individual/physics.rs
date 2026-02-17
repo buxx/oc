@@ -1,8 +1,13 @@
 use oc_geo::tile::TileXy;
-use oc_individual::{Individual, Update};
+use oc_individual::{Individual, IndividualIndex, Update};
 use oc_physics::{Force, Physic};
 
-pub fn changes(individual: &Individual, position: &[f32; 2], forces: &Vec<Force>) -> Vec<Update> {
+pub fn changes(
+    i: IndividualIndex,
+    individual: &Individual,
+    position: &[f32; 2],
+    forces: &Vec<Force>,
+) -> Vec<Update> {
     let mut updates = vec![];
 
     if individual.position() != position {
@@ -25,6 +30,8 @@ pub fn changes(individual: &Individual, position: &[f32; 2], forces: &Vec<Force>
             updates.push(Update::PushForce(force.clone()));
         }
     }
+
+    tracing::trace!(name="physics-individual-updates", i=?i, updates=?updates);
 
     updates
 }
