@@ -225,71 +225,30 @@
 // }
 
 use std::net::SocketAddr;
-use std::time::Duration;
 
+use bevy::prelude::*;
 use clap::Parser;
-use message_io::network::{NetEvent, Transport};
-use message_io::node::{self, NodeEvent};
-use oc_geo::tile::TileXy;
-use oc_network::{ArchivedToClient, ToClient, ToServer};
-use oc_utils::d2::Xy;
-use rkyv::api::low::deserialize;
-use rkyv::rancor::Error;
-use rkyv::util::AlignedVec;
-use tracing::level_filters::LevelFilter;
-use tracing_subscriber::EnvFilter;
 
+use crate::network::NetworkPlugin;
+
+mod logging;
 mod network;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct Args {
-    #[clap(default_value = "0.0.0.0:6589")]
-    pub server: SocketAddr,
+    #[clap()]
+    pub server: Option<SocketAddr>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    tracing_subscriber::fmt()
-        .with_target(false)
-        .with_env_filter(
-            EnvFilter::builder()
-                .with_default_directive(LevelFilter::INFO.into())
-                .from_env()?,
-        )
-        .init();
+    logging::setup_logging()?;
 
-    let host = args.server;
-    let (handler, listener) = node::split::<()>();
-    let (server, _) = handler
-        .network()
-        .connect(Transport::FramedTcp, host)
-        .unwrap();
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .add_plugins(NetworkPlugin::default())
+        .run();
 
-    std::thread::spawn(move || {
-        listener.for_each(move |event| match event {
-            NodeEvent::Network(event) => match event {
-                NetEvent::Connected(_endpoint, _ok) => {
-                    tracing::info!("Connected to server ({host})");
-                }
-                NetEvent::Accepted(_, _) => unreachable!(),
-                NetEvent::Message(_, bytes_) => {
-                    let mut bytes: AlignedVec = rkyv::util::AlignedVec::with_capacity(bytes_.len());
-                    bytes.extend_from_slice(bytes_);
-                    let message = rkyv::access::<ArchivedToClient, Error>(&bytes).unwrap(); // TODO
-                    let message = deserialize::<ToClient, Error>(message).unwrap(); // TODO
-                    tracing::trace!(name="network-received", message = ?message);
-                }
-                NetEvent::Disconnected(_endpoint) => (),
-            },
-            NodeEvent::Signal(_signal) => {}
-        });
-    });
-
-    loop {
-        let message = ToServer::Listen(TileXy(Xy(0, 0)), TileXy(Xy(10_000, 10_000)));
-        let bytes = rkyv::to_bytes::<Error>(&message).unwrap(); // TODO
-        handler.network().send(server, &bytes);
-        std::thread::sleep(Duration::from_secs(10));
-    }
+    Ok(())
 }
