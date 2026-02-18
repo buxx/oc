@@ -1,18 +1,26 @@
 use bevy::prelude::*;
-use oc_individual::network::Individual;
+use oc_individual::network;
+use oc_individual::{Individual, IndividualIndex};
 use oc_network::ToClient;
 
 use crate::ingame::state::State;
 use crate::network::input::ToClientEvent;
 
-pub fn on_to_client(to_client: On<ToClientEvent>, state: ResMut<State>) {
-    // FIXME BS NOW
+#[derive(Debug, Event)]
+pub struct InsertIndividualEvent(pub IndividualIndex, pub Individual);
+
+#[derive(Debug, Event)]
+pub struct UpdateIndividualEvent(pub IndividualIndex, pub oc_individual::Update);
+
+pub fn on_to_client(to_client: On<ToClientEvent>, mut commands: Commands, state: ResMut<State>) {
     match &to_client.0 {
         ToClient::Individual(message) => match message {
-            Individual::Insert(i, individual) => {
-                todo!()
+            network::Individual::Insert(i, individual) => {
+                commands.trigger(InsertIndividualEvent(*i, individual.clone()));
             }
-            Individual::Update(i, update) => todo!(),
+            network::Individual::Update(i, update) => {
+                commands.trigger(UpdateIndividualEvent(*i, update.clone()));
+            }
         },
     }
 }

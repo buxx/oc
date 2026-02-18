@@ -17,7 +17,7 @@ impl Indexes {
         let mut regions_individuals = vec![vec![]; REGIONS_COUNT];
 
         for (i, individual) in world.individuals().iter().enumerate() {
-            let tile: WorldTileIndex = individual.xy.into();
+            let tile: WorldTileIndex = individual.tile.into();
             let region: WorldRegionIndex = tile.into();
 
             xy_individuals[tile.0].push(i.into());

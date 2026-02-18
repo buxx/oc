@@ -14,7 +14,7 @@ use crate::behavior::Behavior;
 pub mod behavior;
 pub mod network;
 
-#[derive(Archive, Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Constructor)]
+#[derive(Archive, Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq, Constructor, Hash)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndividualIndex(pub u64);
 
@@ -22,16 +22,7 @@ pub struct IndividualIndex(pub u64);
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Individual {
     pub position: [f32; 2],
-    pub xy: TileXy,
-    pub behavior: Behavior,
-    pub forces: Vec<Force>,
-}
-
-#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct IndividualPublic {
-    pub position: [f32; 2],
-    pub xy: TileXy,
+    pub tile: TileXy,
     pub behavior: Behavior,
     pub forces: Vec<Force>,
 }
@@ -68,7 +59,7 @@ impl From<u64> for IndividualIndex {
 
 impl Individual {
     pub fn tile(&self) -> &TileXy {
-        &self.xy
+        &self.tile
     }
 }
 
@@ -78,7 +69,7 @@ impl Physic for &Individual {
     }
 
     fn xy(&self) -> &Xy {
-        &self.xy.0
+        &self.tile.0
     }
 
     fn forces(&self) -> &Vec<Force> {
@@ -89,16 +80,5 @@ impl Physic for &Individual {
 impl Material for &Individual {
     fn material(&self) -> Materials {
         Materials::Traversable
-    }
-}
-
-impl From<Individual> for IndividualPublic {
-    fn from(value: Individual) -> Self {
-        Self {
-            position: value.position,
-            xy: value.xy,
-            behavior: value.behavior,
-            forces: value.forces,
-        }
     }
 }

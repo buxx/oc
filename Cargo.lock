@@ -3993,6 +3993,7 @@ dependencies = [
  "oc_geo",
  "oc_individual",
  "oc_network",
+ "oc_physics",
  "oc_utils",
  "rkyv",
  "rustc-hash 2.1.1",

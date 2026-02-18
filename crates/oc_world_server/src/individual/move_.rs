@@ -26,7 +26,7 @@ impl Move {
     pub fn read(&self) -> Vec<Update> {
         let world = self.state.world();
         let individual = world.individual(self.i);
-        let (x, _): (u64, u64) = individual.xy.into();
+        let (x, _): (u64, u64) = individual.tile.into();
 
         let (pulse, behavior) = match individual.behavior {
             Behavior::MovingNorth => {

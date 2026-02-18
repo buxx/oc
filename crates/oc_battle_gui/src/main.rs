@@ -8,6 +8,7 @@ use crate::{
     network::NetworkPlugin, states::AppState,
 };
 
+mod entity;
 mod error;
 mod home;
 mod ingame;
