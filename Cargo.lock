@@ -3991,9 +3991,11 @@ dependencies = [
  "clap",
  "message-io",
  "oc_geo",
+ "oc_individual",
  "oc_network",
  "oc_utils",
  "rkyv",
+ "rustc-hash 2.1.1",
  "tracing",
  "tracing-subscriber",
 ]
@@ -4052,6 +4054,7 @@ version = "0.1.0"
 dependencies = [
  "oc_root",
  "rkyv",
+ "tracing",
 ]
 
 [[package]]

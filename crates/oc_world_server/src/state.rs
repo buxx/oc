@@ -36,7 +36,7 @@ impl State {
         self.world.write().expect("Assume lock")
     }
 
-    pub fn _indexes(&self) -> RwLockReadGuard<'_, Indexes> {
+    pub fn indexes(&self) -> RwLockReadGuard<'_, Indexes> {
         self.indexes.read().expect("Assume lock")
     }
 

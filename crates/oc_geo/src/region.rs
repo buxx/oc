@@ -14,7 +14,7 @@ impl From<RegionXy> for (u64, u64) {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WorldRegionIndex(pub usize);
 
 impl From<WorldRegionIndex> for RegionXy {

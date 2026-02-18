@@ -1,8 +1,7 @@
 use std::sync::mpsc::Sender;
 
 use bevy::prelude::*;
-
-use crate::error::OkOrLogError;
+use oc_utils::error::OkOrLogError;
 
 #[derive(Resource, Default)]
 pub struct ToServerSender(pub Option<Sender<oc_network::ToServer>>);

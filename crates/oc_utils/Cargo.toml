@@ -8,3 +8,4 @@ edition = "2024"
 [dependencies]
 oc_root = { path = "../oc_root" }
 rkyv.workspace = true
+tracing.workspace = true

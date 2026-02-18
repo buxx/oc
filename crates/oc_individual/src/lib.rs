@@ -18,9 +18,18 @@ pub mod network;
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndividualIndex(pub u64);
 
-#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor)]
+#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Individual {
+    pub position: [f32; 2],
+    pub xy: TileXy,
+    pub behavior: Behavior,
+    pub forces: Vec<Force>,
+}
+
+#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct IndividualPublic {
     pub position: [f32; 2],
     pub xy: TileXy,
     pub behavior: Behavior,
@@ -80,5 +89,16 @@ impl Physic for &Individual {
 impl Material for &Individual {
     fn material(&self) -> Materials {
         Materials::Traversable
+    }
+}
+
+impl From<Individual> for IndividualPublic {
+    fn from(value: Individual) -> Self {
+        Self {
+            position: value.position,
+            xy: value.xy,
+            behavior: value.behavior,
+            forces: value.forces,
+        }
     }
 }

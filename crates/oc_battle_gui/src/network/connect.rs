@@ -16,6 +16,14 @@ pub struct Connect(pub SocketAddr);
 #[derive(Event)]
 pub struct Connected(pub SocketAddr);
 
+// TODO: manage reconnection
+#[derive(Event)]
+pub struct Disconnected(pub SocketAddr);
+
+// TODO: display it in gui
+#[derive(Event)]
+pub struct FailedToConnect(pub SocketAddr);
+
 pub fn on_connect(
     event: On<Connect>,
     mut to_server: ResMut<ToServerSender>,

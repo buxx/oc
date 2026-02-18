@@ -4,19 +4,24 @@ use oc_geo::{
 };
 use oc_root::REGIONS_COUNT;
 use oc_utils::d2::Xy;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::hash::Hash;
 
 pub struct Listeners<T: Clone + PartialEq + Hash + std::cmp::Eq> {
+    // All endpoints currently listening something (aka all clients)
     all: Vec<T>,
-    regions: Vec<Vec<T>>,
+    // Endpoints listening specifics regions (level 1 vector is all regions vector)
+    regions_listeners: Vec<Vec<T>>,
+    // Which regions listen
+    listeners_regions: FxHashMap<T, Vec<WorldRegionIndex>>,
 }
 
 impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
     pub fn new() -> Self {
         Self {
             all: vec![],
-            regions: vec![vec![]; REGIONS_COUNT],
+            regions_listeners: vec![vec![]; REGIONS_COUNT],
+            listeners_regions: FxHashMap::default(),
         }
     }
 
@@ -24,9 +29,15 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
         self.all.push(endpoint)
     }
 
+    // TODO: test me
     pub fn remove(&mut self, endpoint: T) {
         self.all.retain(|endpoint_| endpoint_ != &endpoint);
-        // TODO: remove from .regions
+        if let Some(regions) = self.listeners_regions.get(&endpoint) {
+            for region in regions {
+                self.regions_listeners.remove(region.0);
+            }
+            self.listeners_regions.remove(&endpoint);
+        }
     }
 
     pub fn listen(&mut self, endpoint: T, filter: Listen) {
@@ -42,7 +53,11 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
                     for y in from_region_y..=to_region_y {
                         let region: WorldRegionIndex = RegionXy(Xy(x, y)).into();
                         tracing::trace!(name = "listeners-listen-region", region = ?region);
-                        self.regions[region.0].push(endpoint.clone())
+                        self.regions_listeners[region.0].push(endpoint.clone());
+                        self.listeners_regions
+                            .entry(endpoint.clone())
+                            .or_default()
+                            .push(region);
                     }
                 }
             }
@@ -55,7 +70,7 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
                 .into_iter()
                 .map(|tile| {
                     let region: WorldRegionIndex = tile.into();
-                    self.regions[region.0].clone()
+                    self.regions_listeners[region.0].clone()
                 })
                 .collect::<Vec<_>>()
                 .into_iter()
@@ -64,9 +79,19 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
         }
     }
 
+    pub fn listener_regions(&self, listener: &T) -> &Vec<WorldRegionIndex> {
+        static EMPTY: Vec<WorldRegionIndex> = vec![];
+        self.listeners_regions.get(listener).unwrap_or(&EMPTY)
+    }
+
     #[cfg(test)]
-    pub fn regions(&self) -> &[Vec<T>] {
-        &self.regions
+    pub fn regions_listeners(&self) -> &[Vec<T>] {
+        &self.regions_listeners
+    }
+
+    #[cfg(test)]
+    pub fn listeners_regions(&self) -> &FxHashMap<T, Vec<WorldRegionIndex>> {
+        &self.listeners_regions
     }
 }
 
@@ -99,6 +124,8 @@ mod tests {
 
         // Then
         let expected = vec![vec![()]; REGIONS_COUNT]; // All region is listened
-        assert_eq!(listener.regions(), expected)
+        assert_eq!(listener.regions_listeners(), expected);
+        let expected = (0..REGIONS_COUNT).map(WorldRegionIndex).collect();
+        assert_eq!(listener.listeners_regions().get(&()), Some(&expected));
     }
 }

@@ -4,14 +4,15 @@ use std::{
 };
 
 use bevy::prelude::*;
-use oc_geo::tile::TileXy;
 use oc_network::ToClient;
-use oc_utils::d2::Xy;
 
-use crate::network::{connect::Connected, output::ToServer};
+use crate::network::connect::{Connected, Disconnected, FailedToConnect};
 
 #[derive(Debug, Event)]
 pub struct NetWorkMessageEvent(pub NetworkMessage);
+
+#[derive(Debug, Event)]
+pub struct ToClientEvent(pub ToClient);
 
 #[derive(Resource, Default)]
 pub struct NetworkMessageReceiver(pub Option<Arc<Mutex<Receiver<NetworkMessage>>>>);
@@ -20,7 +21,7 @@ pub struct NetworkMessageReceiver(pub Option<Arc<Mutex<Receiver<NetworkMessage>>
 pub enum NetworkMessage {
     Connected(SocketAddr),
     FailToConnect(SocketAddr),
-    Disconnected, // TODO: manage reconnection
+    Disconnected(SocketAddr),
     Message(ToClient),
 }
 
@@ -39,22 +40,16 @@ pub fn network_message_router(mut commands: Commands, messages: Res<NetworkMessa
 pub fn on_network_message(message: On<NetWorkMessageEvent>, mut commands: Commands) {
     match &message.0 {
         NetworkMessage::FailToConnect(host) => {
-            dbg!(host);
+            commands.trigger(FailedToConnect(host.clone()));
         }
         NetworkMessage::Connected(host) => {
-            dbg!(host);
-            commands.trigger(ToServer(oc_network::ToServer::Listen(
-                TileXy(Xy(0, 0)),
-                TileXy(Xy(10, 10)),
-            )));
-
             commands.trigger(Connected(host.clone()));
         }
-        NetworkMessage::Disconnected => {
-            dbg!("disconnected");
+        NetworkMessage::Disconnected(host) => {
+            commands.trigger(Disconnected(host.clone()));
         }
         NetworkMessage::Message(message) => {
-            dbg!(message);
+            commands.trigger(ToClientEvent(message.clone()));
         }
     }
 }

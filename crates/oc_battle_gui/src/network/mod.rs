@@ -13,19 +13,14 @@ use message_io::{
     node::NodeListener,
 };
 use oc_network::{ArchivedToClient, ToClient, ToServer};
+use oc_utils::{error::OkOrLogError, unwrap_or_log};
 use rkyv::{api::low::deserialize, rancor::Error, util::AlignedVec};
 
-use crate::{
-    error::OkOrLogError,
-    network::{
-        connect::{on_connect, on_connected},
-        input::{NetworkMessageReceiver, on_network_message},
-    },
+use crate::network::{
+    connect::{on_connect, on_connected},
+    input::{NetworkMessageReceiver, on_network_message},
 };
-use crate::{
-    network::{input::NetworkMessage, output::ToServerSender},
-    unwrap_or_log,
-};
+use crate::network::{input::NetworkMessage, output::ToServerSender};
 
 use state::State;
 
@@ -107,7 +102,9 @@ fn listen(
             }
             NetEvent::Disconnected(_endpoint) => {
                 tracing::info!("Disconnected from server ({host})");
-                input.send(NetworkMessage::Disconnected).ok_or_log();
+                input
+                    .send(NetworkMessage::Disconnected(host.clone()))
+                    .ok_or_log();
             }
         },
         NodeEvent::Signal(_signal) => {}

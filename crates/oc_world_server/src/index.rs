@@ -43,4 +43,8 @@ impl Indexes {
         self.xy_individuals[now_tile.0].push(i);
         self.regions_individuals[now_region.0].push(i);
     }
+
+    pub fn region_individuals(&self, region: WorldRegionIndex) -> &Vec<IndividualIndex> {
+        &self.regions_individuals[region.0]
+    }
 }

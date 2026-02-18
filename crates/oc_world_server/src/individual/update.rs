@@ -43,7 +43,7 @@ pub fn write(
         }
     };
 
-    let message = network::Individual::Effect(i, update);
+    let message = network::Individual::Update(i, update);
     let msg: ToClient = message.into();
 
     state
