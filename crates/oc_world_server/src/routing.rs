@@ -43,6 +43,8 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
     pub fn listen(&mut self, endpoint: T, filter: Listen) {
         match filter {
             Listen::Area(from, to) => {
+                let from = from.resize();
+                let to = to.resize();
                 let from_region_xy: RegionXy = from.into();
                 let to_region_xy: RegionXy = to.into();
 

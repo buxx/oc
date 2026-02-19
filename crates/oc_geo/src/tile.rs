@@ -1,10 +1,19 @@
-use oc_root::{GEO_PIXELS_PER_TILE, WORLD_WIDTH};
+use oc_root::{GEO_PIXELS_PER_TILE, WORLD_HEIGHT, WORLD_WIDTH};
 use oc_utils::d2::Xy;
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct TileXy(pub Xy);
+
+impl TileXy {
+    pub fn resize(&self) -> Self {
+        Self(Xy(
+            self.0.0.max(0).min(WORLD_WIDTH as u64 - 1),
+            self.0.1.max(0).min(WORLD_HEIGHT as u64 - 1),
+        ))
+    }
+}
 
 impl From<TileXy> for (u64, u64) {
     fn from(value: TileXy) -> Self {
