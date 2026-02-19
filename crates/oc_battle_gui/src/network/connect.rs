@@ -45,7 +45,6 @@ pub fn on_connected(
     mut network_state: ResMut<State>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
-    tracing::info!("Connected on {}", connected.0);
     network_state.connected = Some(connected.0.clone());
     *app_state = NextState::Pending(AppState::InGame);
 }

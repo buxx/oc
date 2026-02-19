@@ -121,7 +121,7 @@ impl Runner {
             while let Ok(message) = input.recv() {
                 match message {
                     Event::Connected(endpoint) => state.listeners_mut().push(endpoint),
-                    Event::Disconnected(endpoint) => state.listeners_mut().remove(endpoint),
+                    Event::Disconnected(endpoint) => state.listeners_mut().remove(&endpoint),
                     Event::Message(endpoint, message) => {
                         Dealer::new(&state, &output, endpoint).deal(message);
                     }

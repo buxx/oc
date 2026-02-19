@@ -30,13 +30,13 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
     }
 
     // TODO: test me
-    pub fn remove(&mut self, endpoint: T) {
-        self.all.retain(|endpoint_| endpoint_ != &endpoint);
-        if let Some(regions) = self.listeners_regions.get(&endpoint) {
+    pub fn remove(&mut self, listener: &T) {
+        self.all.retain(|endpoint_| endpoint_ != listener);
+        if let Some(regions) = self.listeners_regions.get(listener) {
             for region in regions {
-                self.regions_listeners.remove(region.0);
+                self.regions_listeners[region.0].retain(|l| l != listener);
             }
-            self.listeners_regions.remove(&endpoint);
+            self.listeners_regions.remove(&listener);
         }
     }
 
