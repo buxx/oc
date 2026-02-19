@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite_render::Wireframe2dPlugin};
 use clap::Parser;
 
 use crate::{
@@ -14,6 +14,7 @@ mod home;
 mod ingame;
 mod loading;
 mod network;
+mod setup;
 mod states;
 
 #[derive(Parser, Debug, Clone)]
@@ -29,6 +30,7 @@ pub struct Args(pub Args_);
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(Wireframe2dPlugin::default())
         .add_plugins(ErrorPlugin)
         .add_plugins(NetworkPlugin)
         .add_plugins(HomePlugin)
@@ -36,6 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_plugins(IngamePlugin)
         .insert_state(AppState::Home)
         .insert_resource(Args(Args_::parse()))
+        .add_systems(Startup, setup::setup)
         .run();
 
     Ok(())

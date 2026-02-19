@@ -9,6 +9,7 @@ use crate::{
 };
 use state::State;
 
+mod draw;
 mod individual;
 mod init;
 mod input;
