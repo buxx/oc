@@ -48,7 +48,7 @@ pub fn on_insert_individual(
             Tile(individual.1.tile),
             Behavior(individual.1.behavior),
             Forces(individual.1.forces.clone()),
-            Mesh2d(meshes.add(Circle::new(5.0))),
+            Mesh2d(meshes.add(Circle::new(2.5))),
             MeshMaterial2d(materials.add(Color::from(PURPLE))),
             Transform::from_xyz(
                 individual.1.position[0],
