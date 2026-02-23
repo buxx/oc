@@ -25,6 +25,7 @@ impl Plugin for CameraPlugin {
 #[derive(Debug, Default, Resource)]
 pub struct State {
     pub center: Option<Vec2>,
+    pub cursor: Option<Vec2>,
     pub regions: Option<Vec<Region>>,
 }
 
@@ -36,6 +37,7 @@ pub fn update(
     window: Single<&Window>,
     mut state: ResMut<State>,
 ) {
+    let cursor = window.cursor_position();
     let (camera, transform) = *camera;
     let width = window.resolution.width();
     let height = window.resolution.height();
@@ -43,7 +45,9 @@ pub fn update(
     let Ok(center) = camera.viewport_to_world_2d(transform, center) else {
         return;
     };
-    state.center = Some(center)
+
+    state.center = Some(center);
+    state.cursor = cursor;
 }
 
 // TODO: optimize by little lag before compute
