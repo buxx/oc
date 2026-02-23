@@ -14,28 +14,29 @@ impl From<RegionXy> for (u64, u64) {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct WorldRegionIndex(pub usize);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Archive, Deserialize, Serialize)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct WorldRegionIndex(pub u64);
 
 impl From<WorldRegionIndex> for RegionXy {
     fn from(WorldRegionIndex(i): WorldRegionIndex) -> Self {
-        let x = i % REGIONS_WIDTH;
-        let y = i / REGIONS_WIDTH;
+        let x = i % REGIONS_WIDTH as u64;
+        let y = i / REGIONS_WIDTH as u64;
         Self(Xy(x as u64, y as u64))
     }
 }
 
 impl From<WorldRegionIndex> for Xy {
     fn from(WorldRegionIndex(i): WorldRegionIndex) -> Self {
-        let x = i % REGIONS_WIDTH;
-        let y = i / REGIONS_WIDTH;
+        let x = i % REGIONS_WIDTH as u64;
+        let y = i / REGIONS_WIDTH as u64;
         Xy(x as u64, y as u64)
     }
 }
 
 impl From<RegionXy> for WorldRegionIndex {
     fn from(RegionXy(Xy(x, y)): RegionXy) -> Self {
-        Self(y as usize * REGIONS_WIDTH + x as usize)
+        Self(y * REGIONS_WIDTH as u64 + x)
     }
 }
 
@@ -70,14 +71,14 @@ mod tests {
     use super::*;
 
     #[rstest]
-    #[case(REGIONS_WIDTH as u64 - 1, 0, REGIONS_WIDTH - 1)]
-    #[case(REGIONS_WIDTH as u64, 0, REGIONS_WIDTH)]
-    #[case(REGIONS_WIDTH as u64, 1, REGIONS_WIDTH * 2)]
-    #[case(REGIONS_WIDTH as u64 + 1, 1, REGIONS_WIDTH * 2 + 1)]
+    #[case(REGIONS_WIDTH as u64 - 1, 0, REGIONS_WIDTH as u64 - 1)]
+    #[case(REGIONS_WIDTH as u64, 0, REGIONS_WIDTH as u64)]
+    #[case(REGIONS_WIDTH as u64, 1, REGIONS_WIDTH as u64 * 2)]
+    #[case(REGIONS_WIDTH as u64 + 1, 1, REGIONS_WIDTH as u64 * 2 + 1)]
     pub fn test_world_region_index_from_world_region_xy(
         #[case] x: u64,
         #[case] y: u64,
-        #[case] i: usize,
+        #[case] i: u64,
     ) {
         // When
         let index = WorldRegionIndex::from(RegionXy(Xy(x as u64, y)));
@@ -90,11 +91,11 @@ mod tests {
     #[case(0, 0, 0)] // Top left tile is de facto in first region
     #[case(REGION_WIDTH as u64, 0, 1)] // First tile in second region
     #[case(0, 1, 0)] // First tile in second world row is first region of world
-    #[case(0, REGION_HEIGHT as u64, REGIONS_WIDTH)]
+    #[case(0, REGION_HEIGHT as u64, REGIONS_WIDTH as u64)]
     pub fn test_world_region_index_from_world_tile_index(
         #[case] x: u64,
         #[case] y: u64,
-        #[case] i: usize,
+        #[case] i: u64,
     ) {
         // When
         let tile_index = WorldTileIndex::from(TileXy(Xy(x as u64, y)));

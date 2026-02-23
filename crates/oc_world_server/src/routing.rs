@@ -1,9 +1,5 @@
-use oc_geo::{
-    region::{RegionXy, WorldRegionIndex},
-    tile::TileXy,
-};
+use oc_geo::{region::WorldRegionIndex, tile::TileXy};
 use oc_root::REGIONS_COUNT;
-use oc_utils::d2::Xy;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::hash::Hash;
 
@@ -32,49 +28,24 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
     // TODO: test me
     pub fn remove(&mut self, listener: &T) {
         self.all.retain(|listener_| listener_ != listener);
-        self.forgot_regions(listener)
-    }
 
-    pub fn listen(&mut self, listener: T, filter: Listen) {
-        match filter {
-            Listen::Area(from, to) => {
-                let from = from.resize();
-                let to = to.resize();
-                let from_region_xy: RegionXy = from.into();
-                let to_region_xy: RegionXy = to.into();
-
-                let (from_region_x, from_region_y) = (from_region_xy.0.0, from_region_xy.0.1);
-                let (to_region_x, to_region_y) = (to_region_xy.0.0, to_region_xy.0.1);
-                let regions: Vec<WorldRegionIndex> = (from_region_x..=to_region_x)
-                    .flat_map(|x| {
-                        (from_region_y..=to_region_y).map(move |y| RegionXy(Xy(x, y)).into())
-                    })
-                    .collect();
-
-                self.forgot_regions(&listener);
-                self.listen_regions(listener, regions);
-            }
+        let regions = self.listener_regions(listener).clone();
+        for region in regions {
+            self.forgot_region(listener, region)
         }
     }
 
-    fn forgot_regions(&mut self, listener: &T) {
-        if let Some(regions) = self.listeners_regions.get(listener) {
-            for region in regions {
-                self.regions_listeners[region.0].retain(|l| l != listener);
-            }
-            self.listeners_regions.remove(&listener);
-        }
+    pub fn listen_region(&mut self, listener: &T, region: WorldRegionIndex) {
+        tracing::trace!(name = "listeners-listen-region", region = ?region);
+        self.regions_listeners[region.0 as usize].push(listener.clone());
+        self.listeners_regions
+            .entry(listener.clone())
+            .or_default()
+            .push(region);
     }
 
-    fn listen_regions(&mut self, listener: T, regions: Vec<WorldRegionIndex>) {
-        regions.into_iter().for_each(|region| {
-            tracing::trace!(name = "listeners-listen-region", region = ?region);
-            self.regions_listeners[region.0].push(listener.clone());
-            self.listeners_regions
-                .entry(listener.clone())
-                .or_default()
-                .push(region);
-        });
+    pub fn forgot_region(&mut self, listener: &T, region: WorldRegionIndex) {
+        self.regions_listeners[region.0 as usize].retain(|l| l != listener);
     }
 
     pub fn find(&self, filter: Listening) -> FxHashSet<T> {
@@ -83,7 +54,7 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
                 .into_iter()
                 .map(|tile| {
                     let region: WorldRegionIndex = tile.into();
-                    self.regions_listeners[region.0].clone()
+                    self.regions_listeners[region.0 as usize].clone()
                 })
                 .collect::<Vec<_>>()
                 .into_iter()
@@ -97,15 +68,15 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
         self.listeners_regions.get(listener).unwrap_or(&EMPTY)
     }
 
-    #[cfg(test)]
-    pub fn regions_listeners(&self) -> &[Vec<T>] {
-        &self.regions_listeners
-    }
+    // #[cfg(test)]
+    // pub fn regions_listeners(&self) -> &[Vec<T>] {
+    //     &self.regions_listeners
+    // }
 
-    #[cfg(test)]
-    pub fn listeners_regions(&self) -> &FxHashMap<T, Vec<WorldRegionIndex>> {
-        &self.listeners_regions
-    }
+    // #[cfg(test)]
+    // pub fn listeners_regions(&self) -> &FxHashMap<T, Vec<WorldRegionIndex>> {
+    //     &self.listeners_regions
+    // }
 }
 
 #[derive(Debug, Clone)]
@@ -113,42 +84,42 @@ pub enum Listening {
     TileXy(Vec<TileXy>),
 }
 
-#[derive(Debug, Clone)]
-pub enum Listen {
-    Area(TileXy, TileXy),
-}
+// #[derive(Debug, Clone)]
+// pub enum Listen {
+//     Area(TileXy, TileXy),
+// }
 
-#[cfg(test)]
-mod tests {
-    use oc_root::{WORLD_HEIGHT, WORLD_WIDTH};
+// #[cfg(test)]
+// mod tests {
+//     use oc_root::{WORLD_HEIGHT, WORLD_WIDTH};
 
-    use super::*;
+//     use super::*;
 
-    #[test]
-    fn test_listen_area() {
-        // Given
-        let mut listener = Listeners::new();
-        let from = TileXy(Xy(0, 0));
-        let to = TileXy(Xy(WORLD_WIDTH as u64 - 1, WORLD_HEIGHT as u64 - 1)); // Whole map is listened
-        let filter = Listen::Area(from, to);
+//     #[test]
+//     fn test_listen_area() {
+//         // Given
+//         let mut listener = Listeners::new();
+//         let from = TileXy(Xy(0, 0));
+//         let to = TileXy(Xy(WORLD_WIDTH as u64 - 1, WORLD_HEIGHT as u64 - 1)); // Whole map is listened
+//         let filter = Listen::Area(from, to);
 
-        // When (listen all regions)
-        listener.listen((), filter);
+//         // When (listen all regions)
+//         listener.listen((), filter);
 
-        // Then (all regions listened in `regions_listeners` and `listeners_regions`)
-        let expected = vec![vec![()]; REGIONS_COUNT]; // All region is listened
-        assert_eq!(listener.regions_listeners(), expected);
-        let expected = (0..REGIONS_COUNT).map(WorldRegionIndex).collect();
-        assert_eq!(listener.listeners_regions().get(&()), Some(&expected));
+//         // Then (all regions listened in `regions_listeners` and `listeners_regions`)
+//         let expected = vec![vec![()]; REGIONS_COUNT]; // All region is listened
+//         assert_eq!(listener.regions_listeners(), expected);
+//         let expected = (0..REGIONS_COUNT).map(WorldRegionIndex).collect();
+//         assert_eq!(listener.listeners_regions().get(&()), Some(&expected));
 
-        // When (listen only first region)
-        let filter = Listen::Area(TileXy(Xy(0, 0)), TileXy(Xy(0, 0))); // No longer listen others
-        listener.listen((), filter);
+//         // When (listen only first region)
+//         let filter = Listen::Area(TileXy(Xy(0, 0)), TileXy(Xy(0, 0))); // No longer listen others
+//         listener.listen((), filter);
 
-        // Then (`regions_listeners` and `listeners_regions` no longer list previons regions)
-        let expected = vec![vec![()]];
-        assert_eq!(listener.regions_listeners(), expected);
-        let expected = Some(&vec![WorldRegionIndex(0)]);
-        assert_eq!(listener.listeners_regions().get(&()), expected);
-    }
-}
+//         // Then (`regions_listeners` and `listeners_regions` no longer list previons regions)
+//         let expected = vec![vec![()]];
+//         assert_eq!(listener.regions_listeners(), expected);
+//         let expected = Some(&vec![WorldRegionIndex(0)]);
+//         assert_eq!(listener.listeners_regions().get(&()), expected);
+//     }
+// }

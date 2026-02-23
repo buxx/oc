@@ -7,7 +7,7 @@ use rkyv::{Archive, Deserialize, Serialize};
 pub struct TileXy(pub Xy);
 
 impl TileXy {
-    pub fn resize(&self) -> Self {
+    pub fn clamped(&self) -> Self {
         Self(Xy(
             self.0.0.max(0).min(WORLD_WIDTH as u64 - 1),
             self.0.1.max(0).min(WORLD_HEIGHT as u64 - 1),

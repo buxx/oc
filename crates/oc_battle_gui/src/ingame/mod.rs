@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     ingame::{
+        camera::CameraPlugin,
         individual::{IndividualPlugin, on_insert_individual, on_update_individual},
         input::on_to_client,
     },
@@ -9,6 +10,7 @@ use crate::{
 };
 use state::State;
 
+mod camera;
 mod draw;
 mod individual;
 mod init;
@@ -20,6 +22,7 @@ pub struct IngamePlugin;
 impl Plugin for IngamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(IndividualPlugin)
+            .add_plugins(CameraPlugin)
             .init_resource::<State>()
             .add_observer(on_to_client)
             .add_observer(on_insert_individual)

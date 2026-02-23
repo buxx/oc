@@ -1,4 +1,4 @@
-use oc_geo::tile::TileXy;
+use oc_geo::region::WorldRegionIndex;
 use oc_individual::network::Individual;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -17,6 +17,7 @@ impl From<Individual> for ToClient {
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum ToServer {
-    Listen(TileXy, TileXy),
+    ListenRegion(WorldRegionIndex),
+    ForgotRegion(WorldRegionIndex),
     Refresh,
 }
