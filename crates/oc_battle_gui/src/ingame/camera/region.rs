@@ -6,52 +6,16 @@ use oc_geo::{
 use oc_network::ToServer;
 use oc_utils::d2::Xy;
 
-use crate::{network::output::ToServerEvent, states::AppState};
+use crate::network::output::ToServerEvent;
 
 pub const REGIONS_WIDTH: u64 = 11;
 pub const REGIONS_HEIGHT: u64 = 11;
 
-pub struct CameraPlugin;
-
-impl Plugin for CameraPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<State>().add_systems(
-            Update,
-            (update, update_regions).run_if(in_state(AppState::InGame)),
-        );
-    }
-}
-
-#[derive(Debug, Default, Resource)]
-pub struct State {
-    pub center: Option<Vec2>,
-    pub cursor: Option<Vec2>,
-    pub regions: Option<Vec<Region>>,
-}
-
 #[derive(Debug, Clone)]
 pub struct Region(pub WorldRegionIndex, pub bool);
 
-pub fn update(
-    camera: Single<(&Camera, &GlobalTransform)>,
-    window: Single<&Window>,
-    mut state: ResMut<State>,
-) {
-    let cursor = window.cursor_position();
-    let (camera, transform) = *camera;
-    let width = window.resolution.width();
-    let height = window.resolution.height();
-    let center = Vec2::new(width / 2., height / 2.);
-    let Ok(center) = camera.viewport_to_world_2d(transform, center) else {
-        return;
-    };
-
-    state.center = Some(center);
-    state.cursor = cursor;
-}
-
 // TODO: optimize by little lag before compute
-pub fn update_regions(mut commands: Commands, mut state: ResMut<State>) {
+pub fn update_regions(mut commands: Commands, mut state: ResMut<super::State>) {
     let Some(center) = state.center else { return };
     static EMPTY: Vec<Region> = vec![];
     let current = state.regions.as_ref().unwrap_or(&EMPTY);
