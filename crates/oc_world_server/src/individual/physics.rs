@@ -15,7 +15,7 @@ pub fn changes(
 
         let xy: TileXy = position.clone().into();
         if individual.tile() != &xy {
-            updates.push(Update::UpdateXy(xy));
+            updates.push(Update::UpdateTile(xy));
         }
     }
 

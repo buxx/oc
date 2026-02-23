@@ -6,7 +6,10 @@ use oc_geo::{
 use oc_network::ToServer;
 use oc_utils::d2::Xy;
 
-use crate::network::output::ToServerEvent;
+use crate::{
+    ingame::region::{ForgottenRegion, ListeningRegion},
+    network::output::ToServerEvent,
+};
 
 pub const REGIONS_WIDTH: u64 = 11;
 pub const REGIONS_HEIGHT: u64 = 11;
@@ -14,7 +17,8 @@ pub const REGIONS_HEIGHT: u64 = 11;
 #[derive(Debug, Clone)]
 pub struct Region(pub WorldRegionIndex, pub bool);
 
-// TODO: optimize by little lag before compute
+// FIXME BS NOW: despawn des invidivuals quand arrêt de suivis d'une region
+// FIXME BS NOW: quand individual change de region, il faut l'envoyer en entier au clients potentiels (qu'a ceux qui n'ecoutait pas la region de provenance ?)
 pub fn update_regions(mut commands: Commands, mut state: ResMut<super::State>) {
     let Some(center) = state.center else { return };
     static EMPTY: Vec<Region> = vec![];
@@ -45,10 +49,12 @@ pub fn update_regions(mut commands: Commands, mut state: ResMut<super::State>) {
 
     for new_ in &new {
         commands.trigger(ToServerEvent(ToServer::ListenRegion(new_.0)));
+        commands.trigger(ListeningRegion(new_.0));
     }
 
     for old_ in &old {
         commands.trigger(ToServerEvent(ToServer::ForgotRegion(*old_)));
+        commands.trigger(ForgottenRegion(*old_));
     }
 
     let now = vec![new, still].concat();

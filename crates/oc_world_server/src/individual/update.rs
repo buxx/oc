@@ -22,11 +22,17 @@ pub fn write(
                 individual.position = position;
                 Listening::TileXy(vec![individual.tile])
             }
-            Update::UpdateXy(xy) => {
+            Update::UpdateTile(xy) => {
                 let before = individual.tile;
                 individual.tile = xy;
                 indexes.update_individual_xy(i, before, xy);
                 Listening::TileXy(vec![before, xy])
+            }
+            Update::UpdateRegion(region) => {
+                let before = individual.region;
+                individual.region = region;
+                // FIXME BS NOW: send entire individual to listener (which are not listening old region)
+                todo!()
             }
             Update::UpdateBehavior(behavior) => {
                 individual.behavior = behavior.clone();

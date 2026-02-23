@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use derive_more::Constructor;
+use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::TileXy;
 use oc_physics::Force;
 use oc_physics::Physic;
@@ -22,7 +23,8 @@ pub struct IndividualIndex(pub u64);
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Individual {
     pub position: [f32; 2],
-    pub tile: TileXy,
+    pub tile: TileXy, // TODO: TileIndex ?
+    pub region: WorldRegionIndex,
     pub behavior: Behavior,
     pub forces: Vec<Force>,
 }
@@ -31,7 +33,8 @@ pub struct Individual {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Update {
     UpdatePosition([f32; 2]),
-    UpdateXy(TileXy),
+    UpdateTile(TileXy),
+    UpdateRegion(WorldRegionIndex),
     UpdateBehavior(Behavior),
     PushForce(Force),
     RemoveForce(Force),

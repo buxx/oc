@@ -15,6 +15,7 @@ mod draw;
 mod individual;
 mod init;
 mod input;
+mod region;
 mod state;
 
 pub struct IngamePlugin;
