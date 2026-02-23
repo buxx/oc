@@ -2,15 +2,21 @@ use bevy::prelude::*;
 
 use crate::{ingame::camera::region::Region, states::AppState};
 
+mod move_;
 mod region;
+
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<State>().add_systems(
-            Update,
-            (update, region::update_regions).run_if(in_state(AppState::InGame)),
-        );
+        app.init_resource::<State>()
+            .add_systems(
+                Update,
+                (update, region::update_regions)
+                    .run_if(in_state(AppState::InGame))
+                    .after(move_::move_),
+            )
+            .add_systems(Update, (move_::move_).run_if(in_state(AppState::InGame)));
     }
 }
 
@@ -21,7 +27,7 @@ pub struct State {
     pub regions: Option<Vec<Region>>,
 }
 
-pub fn update(
+fn update(
     camera: Single<(&Camera, &GlobalTransform)>,
     window: Single<&Window>,
     mut state: ResMut<State>,
@@ -35,6 +41,7 @@ pub fn update(
         return;
     };
 
+    //
     state.center = Some(center);
     state.cursor = cursor;
 }
