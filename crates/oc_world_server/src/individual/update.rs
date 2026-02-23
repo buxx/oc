@@ -20,13 +20,13 @@ pub fn write(
         match update.clone() {
             Update::UpdatePosition(position) => {
                 individual.position = position;
-                Listening::TileXy(vec![individual.tile])
+                Listening::Tile(vec![individual.tile])
             }
             Update::UpdateTile(xy) => {
                 let before = individual.tile;
                 individual.tile = xy;
                 indexes.update_individual_xy(i, before, xy);
-                Listening::TileXy(vec![before, xy])
+                Listening::Tile(vec![before, xy])
             }
             Update::UpdateRegion(region) => {
                 let before = individual.region;
@@ -36,15 +36,15 @@ pub fn write(
             }
             Update::UpdateBehavior(behavior) => {
                 individual.behavior = behavior.clone();
-                Listening::TileXy(vec![individual.tile])
+                Listening::Tile(vec![individual.tile])
             }
             Update::PushForce(force) => {
                 individual.forces.push(force);
-                Listening::TileXy(vec![individual.tile])
+                Listening::Tile(vec![individual.tile])
             }
             Update::RemoveForce(force) => {
                 individual.forces.retain(|f| f != &force);
-                Listening::TileXy(vec![individual.tile])
+                Listening::Tile(vec![individual.tile])
             }
         }
     };

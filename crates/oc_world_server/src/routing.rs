@@ -50,7 +50,7 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
 
     pub fn find(&self, filter: Listening) -> FxHashSet<T> {
         match filter {
-            Listening::TileXy(tiles) => tiles
+            Listening::Tile(tiles) => tiles
                 .into_iter()
                 .map(|tile| {
                     let region: WorldRegionIndex = tile.into();
@@ -81,7 +81,7 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
 
 #[derive(Debug, Clone)]
 pub enum Listening {
-    TileXy(Vec<TileXy>),
+    Tile(Vec<TileXy>),
 }
 
 // #[derive(Debug, Clone)]
