@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+#[cfg(feature = "debug")]
+use crate::ingame::region::debug;
 use crate::{
     ingame::{
         camera::CameraPlugin,
@@ -29,5 +31,9 @@ impl Plugin for IngamePlugin {
             .add_observer(on_insert_individual)
             .add_observer(on_update_individual)
             .add_systems(OnEnter(AppState::InGame), init::init);
+
+        #[cfg(feature = "debug")]
+        app.add_observer(debug::on_listening_region)
+            .add_observer(debug::on_forgotten_region);
     }
 }

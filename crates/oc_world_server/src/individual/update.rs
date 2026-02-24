@@ -31,8 +31,6 @@ pub fn write(
                 let before = individual.region;
                 individual.region = region;
                 indexes.update_individual_region(i, before, region);
-                // FIXME BS NOW: send entire individual to listener (which are not listening old region)
-                todo!()
             }
             Update::UpdateBehavior(behavior) => {
                 individual.behavior = behavior.clone();
