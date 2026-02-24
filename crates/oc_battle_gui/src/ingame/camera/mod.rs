@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::{ingame::camera::region::Region, states::AppState};
 
+mod map;
 mod move_;
 mod region;
 
@@ -17,13 +18,15 @@ pub enum Focus {
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<State>()
+            .add_observer(map::on_switch_to_world_map)
+            .add_observer(map::on_switch_to_battle_map)
             .add_systems(
                 Update,
                 (update, region::update_regions)
                     .run_if(in_state(AppState::InGame))
                     .after(move_::move_),
             )
-            .add_systems(Update, (move_::move_).run_if(in_state(AppState::InGame)));
+            .add_systems(Update, (move_::move_,).run_if(in_state(AppState::InGame)));
     }
 }
 
@@ -33,6 +36,8 @@ pub struct State {
     pub cursor: Option<Vec2>,
     pub regions: Option<Vec<Region>>,
     pub focus: Focus,
+    /// Previous camera translation before focus change
+    pub previously: Option<Vec3>,
 }
 
 fn update(
@@ -49,7 +54,6 @@ fn update(
         return;
     };
 
-    //
     state.center = Some(center);
     state.cursor = cursor;
 }

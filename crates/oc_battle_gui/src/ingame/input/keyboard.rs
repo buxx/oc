@@ -1,3 +1,4 @@
+use bevy::input::ButtonState;
 use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 
@@ -10,8 +11,8 @@ pub fn on_key_press(
     camera: Res<camera::State>,
 ) {
     for event in keyboard.read() {
-        match event.key_code {
-            KeyCode::F1 => match camera.focus {
+        match (event.state, event.key_code) {
+            (ButtonState::Released, KeyCode::F1) => match camera.focus {
                 camera::Focus::Battle => commands.trigger(SwitchToWorldMap),
                 camera::Focus::World => commands.trigger(SwitchToBattleMap),
             },
