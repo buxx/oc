@@ -2,9 +2,9 @@ use bevy::prelude::*;
 
 use crate::{ingame::camera::region::Region, states::AppState};
 
-mod map;
-mod move_;
-mod region;
+pub mod map;
+pub mod move_;
+pub mod region;
 
 pub struct CameraPlugin;
 
