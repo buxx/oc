@@ -1,4 +1,4 @@
-use oc_geo::{region::WorldRegionIndex, tile::TileXy};
+use oc_geo::region::WorldRegionIndex;
 use oc_root::REGIONS_COUNT;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::hash::Hash;
@@ -50,7 +50,7 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
 
     pub fn find(&self, filter: Listening) -> FxHashSet<T> {
         match filter {
-            Listening::Tile(tiles) => tiles
+            Listening::Regions(tiles) => tiles
                 .into_iter()
                 .map(|tile| {
                     let region: WorldRegionIndex = tile.into();
@@ -81,7 +81,7 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
 
 #[derive(Debug, Clone)]
 pub enum Listening {
-    Tile(Vec<TileXy>),
+    Regions(Vec<WorldRegionIndex>),
 }
 
 // #[derive(Debug, Clone)]

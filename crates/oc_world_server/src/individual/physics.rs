@@ -1,4 +1,4 @@
-use oc_geo::tile::TileXy;
+use oc_geo::{region::RegionXy, tile::TileXy};
 use oc_individual::{Individual, IndividualIndex, Update};
 use oc_physics::{Force, Physic};
 
@@ -13,9 +13,15 @@ pub fn changes(
     if individual.position() != position {
         updates.push(Update::UpdatePosition(*position));
 
-        let xy: TileXy = position.clone().into();
-        if individual.tile() != &xy {
-            updates.push(Update::UpdateTile(xy));
+        let tile: TileXy = position.clone().into();
+        let region: RegionXy = tile.into();
+
+        if individual.tile() != &tile {
+            updates.push(Update::UpdateTile(tile));
+        }
+
+        if individual.region() != &region {
+            updates.push(Update::UpdateRegion(region));
         }
     }
 

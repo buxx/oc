@@ -2,7 +2,7 @@ use std::{net::SocketAddr, sync::Arc};
 
 use clap::Parser;
 use oc_geo::{
-    region::WorldRegionIndex,
+    region::RegionXy,
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::{Individual, behavior::Behavior};
@@ -64,7 +64,7 @@ fn individuals() -> Vec<Individual> {
                 ((xy.0.0 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
                 ((xy.0.1 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
             ];
-            let region: WorldRegionIndex = xy.into();
+            let region: RegionXy = xy.into();
             Individual::new(position, xy, region, Behavior::Idle, vec![])
         })
         .collect()

@@ -20,7 +20,7 @@ pub struct UpdatePositionEvent(oc_individual::IndividualIndex, [f32; 2]);
 pub struct UpdateTileEvent(oc_individual::IndividualIndex, TileXy);
 
 #[derive(Debug, Event)]
-pub struct UpdateRegionEvent(oc_individual::IndividualIndex, WorldRegionIndex);
+pub struct UpdateRegionEvent(oc_individual::IndividualIndex, RegionXy);
 
 #[derive(Debug, Event)]
 pub struct UpdateBehaviorEvent(
@@ -222,7 +222,8 @@ fn on_forgotten_region(
     query: Query<(Entity, &Region, &IndividualIndex)>,
 ) {
     for (entity, region_, individual) in query {
-        if region_.0 == region.0 {
+        let region_: WorldRegionIndex = region_.0.into();
+        if region_ == region.0 {
             commands.entity(entity).despawn();
             state.individuals.remove(&individual.0);
         }
