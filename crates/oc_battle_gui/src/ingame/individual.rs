@@ -10,7 +10,7 @@ use crate::entity::physics::Forces;
 use crate::entity::world::Tile;
 use crate::entity::world::region::Region;
 use crate::ingame::draw::Z_INDIVIDUAL;
-use crate::ingame::input::{InsertIndividualEvent, UpdateIndividualEvent};
+use crate::ingame::input::individual::{InsertIndividualEvent, UpdateIndividualEvent};
 use crate::ingame::region::ForgottenRegion;
 use crate::ingame::state::State;
 

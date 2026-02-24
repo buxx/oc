@@ -7,6 +7,13 @@ mod region;
 
 pub struct CameraPlugin;
 
+#[derive(Debug, Default)]
+pub enum Focus {
+    #[default]
+    Battle,
+    World,
+}
+
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<State>()
@@ -25,6 +32,7 @@ pub struct State {
     pub center: Option<Vec2>,
     pub cursor: Option<Vec2>,
     pub regions: Option<Vec<Region>>,
+    pub focus: Focus,
 }
 
 fn update(
