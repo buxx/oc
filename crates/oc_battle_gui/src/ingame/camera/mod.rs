@@ -5,7 +5,7 @@ use crate::{
     states::{AppState, InGameState},
 };
 
-// TODO: cfg feature
+#[cfg(feature = "debug")]
 pub mod debug;
 pub mod map;
 pub mod move_;
@@ -25,15 +25,16 @@ impl Plugin for CameraPlugin {
         app.init_resource::<State>()
             .add_observer(map::on_switch_to_world_map)
             .add_observer(map::on_switch_to_battle_map)
+            .add_observer(region::on_update_regions)
             .add_systems(
                 Update,
-                (update, region::update_regions)
+                (update,)
                     .run_if(in_state(AppState::InGame))
                     .after(move_::move_battle),
             )
             .add_systems(
                 Update,
-                (move_::move_battle,)
+                (move_::move_battle, region::update_regions)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle)),
             )
@@ -44,7 +45,7 @@ impl Plugin for CameraPlugin {
                     .run_if(in_state(InGameState::World)),
             );
 
-        // TODO cfg feature
+        #[cfg(feature = "debug")]
         app.add_systems(OnEnter(AppState::InGame), debug::world::setup)
             .add_systems(
                 Update,

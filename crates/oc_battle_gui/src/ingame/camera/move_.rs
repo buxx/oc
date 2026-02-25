@@ -1,7 +1,6 @@
 use bevy::prelude::*;
-use oc_root::{GEO_PIXELS_PER_TILE, WORLD_HEIGHT, WORLD_WIDTH};
 
-use crate::ingame::{camera::map::window_cursor_to_world_map_point, draw};
+use crate::ingame::camera::{self, map::window_cursor_to_world_map_point, region::UpdateRegions};
 
 pub fn move_battle(
     mut camera: Single<&mut Transform, With<Camera2d>>,
@@ -20,11 +19,11 @@ pub fn move_battle(
     }
 }
 
-// TODO: in debug, display cursor position on the world
 pub fn move_in_world(
-    mut camera: Single<&mut Transform, With<Camera2d>>,
+    mut commands: Commands,
     window: Single<&Window>,
     buttons: Res<ButtonInput<MouseButton>>,
+    mut state: ResMut<camera::State>,
 ) {
     if buttons.just_released(MouseButton::Left) {
         let Some(cursor) = window.cursor_position() else {
@@ -32,6 +31,16 @@ pub fn move_in_world(
         };
 
         let point = window_cursor_to_world_map_point(cursor, window.size());
-        dbg!(point);
+        let center = Vec3::new(
+            point.x - window.width() / 2.,
+            point.y - window.height() / 2.,
+            0.,
+        );
+
+        tracing::debug!("change battle camera center for {center:?}");
+        state.previously = Some(center);
+
+        tracing::debug!("Request update region for {point:?}");
+        commands.trigger(UpdateRegions(point));
     }
 }

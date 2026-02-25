@@ -14,14 +14,26 @@ use crate::{
 pub const REGIONS_WIDTH: u64 = 11;
 pub const REGIONS_HEIGHT: u64 = 11;
 
+#[derive(Debug, Event)]
+pub struct UpdateRegions(pub Vec2);
+
 #[derive(Debug, Clone)]
 pub struct Region(pub WorldRegionIndex, pub bool);
 
-pub fn update_regions(mut commands: Commands, mut state: ResMut<super::State>) {
+pub fn update_regions(mut commands: Commands, state: ResMut<super::State>) {
     let Some(center) = state.center else { return };
+    commands.trigger(UpdateRegions(center));
+}
+
+pub fn on_update_regions(
+    point: On<UpdateRegions>,
+    mut commands: Commands,
+    mut state: ResMut<super::State>,
+) {
+    tracing::trace!(name="update-regions", point=?point);
     static EMPTY: Vec<Region> = vec![];
     let current = state.regions.as_ref().unwrap_or(&EMPTY);
-    let regions = regions(center);
+    let regions = regions(point.0);
 
     let new: Vec<Region> = regions
         .iter()
@@ -46,11 +58,13 @@ pub fn update_regions(mut commands: Commands, mut state: ResMut<super::State>) {
         .collect();
 
     for new_ in &new {
+        tracing::trace!(name="update-regions-new", region=?new_.0);
         commands.trigger(ToServerEvent(ToServer::ListenRegion(new_.0)));
         commands.trigger(ListeningRegion(new_.0));
     }
 
     for old_ in &old {
+        tracing::trace!(name="update-regions-old", region=?old_);
         commands.trigger(ToServerEvent(ToServer::ForgotRegion(*old_)));
         commands.trigger(ForgottenRegion(*old_));
     }
