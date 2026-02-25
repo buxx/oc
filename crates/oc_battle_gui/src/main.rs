@@ -5,8 +5,12 @@ use bevy::sprite_render::Wireframe2dPlugin;
 use clap::Parser;
 
 use crate::{
-    error::ErrorPlugin, home::HomePlugin, ingame::IngamePlugin, loading::LoadingPlugin,
-    network::NetworkPlugin, states::AppState,
+    error::ErrorPlugin,
+    home::HomePlugin,
+    ingame::IngamePlugin,
+    loading::LoadingPlugin,
+    network::NetworkPlugin,
+    states::{AppState, InGameState},
 };
 
 #[cfg(feature = "debug")]
@@ -44,6 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_plugins(LoadingPlugin)
         .add_plugins(IngamePlugin)
         .insert_state(AppState::Home)
+        .init_state::<InGameState>()
         .insert_resource(Args(Args_::parse()))
         .add_systems(Startup, setup::setup);
 

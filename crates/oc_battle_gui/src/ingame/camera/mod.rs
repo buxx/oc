@@ -1,7 +1,12 @@
 use bevy::prelude::*;
 
-use crate::{ingame::camera::region::Region, states::AppState};
+use crate::{
+    ingame::camera::region::Region,
+    states::{AppState, InGameState},
+};
 
+// TODO: cfg feature
+pub mod debug;
 pub mod map;
 pub mod move_;
 pub mod region;
@@ -24,9 +29,29 @@ impl Plugin for CameraPlugin {
                 Update,
                 (update, region::update_regions)
                     .run_if(in_state(AppState::InGame))
-                    .after(move_::move_),
+                    .after(move_::move_battle),
             )
-            .add_systems(Update, (move_::move_,).run_if(in_state(AppState::InGame)));
+            .add_systems(
+                Update,
+                (move_::move_battle,)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle)),
+            )
+            .add_systems(
+                Update,
+                (move_::move_in_world,)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::World)),
+            );
+
+        // TODO cfg feature
+        app.add_systems(OnEnter(AppState::InGame), debug::world::setup)
+            .add_systems(
+                Update,
+                debug::world::cursor
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::World)),
+            );
     }
 }
 

@@ -5,7 +5,10 @@ use oc_root::{GEO_PIXELS_PER_TILE, REGION_HEIGHT, REGION_WIDTH, WORLD_HEIGHT, WO
 use super::{ForgottenRegion, ListeningRegion};
 use crate::entity::world::region::RegionWireFrame;
 use crate::ingame::camera::map::{WORLD_MAP_X, WORLD_MAP_Y};
-use crate::ingame::draw::Z_REGION_WIREFRAME;
+use crate::ingame::draw;
+
+#[derive(Debug, Component)]
+pub struct RegionWireFrameDebug;
 
 pub fn on_listening_region(
     region: On<ListeningRegion>,
@@ -25,14 +28,14 @@ pub fn on_listening_region(
     let y = xy.0.1 as f32 * height + height / 2.;
     commands.spawn((
         RegionWireFrame(region.0.into()),
+        RegionWireFrameDebug,
         Mesh2d(meshes.add(rectangle)),
         MeshMaterial2d(materials.add(color)),
-        Transform::from_xyz(x, y, Z_REGION_WIREFRAME),
+        Transform::from_xyz(x, y, draw::Z_REGION_WIREFRAME),
     ));
 
     // World display
-    // TODO: choose adapt in width / height according to better choice to display entirely
-    let ratio = window.width() / (WORLD_WIDTH as f32 * GEO_PIXELS_PER_TILE as f32);
+    let ratio = draw::world::ratio(window.size());
     let width = REGION_WIDTH as f32 * GEO_PIXELS_PER_TILE as f32 * ratio;
     let height = REGION_HEIGHT as f32 * GEO_PIXELS_PER_TILE as f32 * ratio;
     let rectangle = Rectangle::new(width, height);
@@ -43,16 +46,17 @@ pub fn on_listening_region(
     let y = xy.0.1 as f32 * height + height / 2. + WORLD_MAP_Y;
     commands.spawn((
         RegionWireFrame(region.0.into()),
+        RegionWireFrameDebug,
         Mesh2d(meshes.add(rectangle)),
         MeshMaterial2d(materials.add(color)),
-        Transform::from_xyz(x, y, Z_REGION_WIREFRAME),
+        Transform::from_xyz(x, y, draw::Z_REGION_WIREFRAME),
     ));
 }
 
 pub fn on_forgotten_region(
     region: On<ForgottenRegion>,
     mut commands: Commands,
-    query: Query<(Entity, &RegionWireFrame)>,
+    query: Query<(Entity, &RegionWireFrame), With<RegionWireFrameDebug>>,
 ) {
     let region: RegionXy = region.0.into();
     for (entity, region_) in query {

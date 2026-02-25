@@ -7,3 +7,10 @@ pub enum AppState {
     Connecting,
     InGame,
 }
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
+pub enum InGameState {
+    #[default]
+    Battle,
+    World,
+}
