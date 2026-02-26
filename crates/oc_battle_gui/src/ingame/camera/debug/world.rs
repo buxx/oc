@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::ingame::{
     camera::map::{
-        WORLD_MAP_X, WORLD_MAP_Y, window_cursor_to_world_map_point,
+        WORLD_MAP_X, WORLD_MAP_Y, window_point_to_world_map_point,
         world_map_point_to_bevy_world_point,
     },
     draw,
@@ -30,7 +30,7 @@ pub fn cursor(window: Single<&Window>, mut cursor: Single<&mut Transform, With<W
     };
 
     // We do the compute in way then in opposite way to test code
-    let point = window_cursor_to_world_map_point(point, window.size());
+    let point = window_point_to_world_map_point(point, window.size());
     let point = world_map_point_to_bevy_world_point(point, window.size());
     // dbg!(point);
     // let ratio = draw::world::ratio(window.size());

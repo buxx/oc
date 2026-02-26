@@ -47,9 +47,9 @@ pub fn on_switch_to_battle_map(
     *ingame = NextState::Pending(InGameState::Battle);
 }
 
-pub fn window_cursor_to_world_map_point(point: Vec2, window: Vec2) -> Vec2 {
-    let cursor = Vec2::new(point.x, window.y - point.y);
-    let ratio = cursor / window;
+pub fn window_point_to_world_map_point(point: Vec2, window: Vec2) -> Vec2 {
+    let point = Vec2::new(point.x, window.y - point.y);
+    let ratio = point / window;
     ratio
         * Vec2::new(
             WORLD_WIDTH as f32 * GEO_PIXELS_PER_TILE as f32,

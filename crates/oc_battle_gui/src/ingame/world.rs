@@ -2,20 +2,26 @@ use bevy::prelude::*;
 
 use crate::{
     entity::world::VisibleBattleSquare,
-    ingame::camera::{
-        map::{WORLD_MAP_X, WORLD_MAP_Y},
-        move_::UpdateVisibleBattleSquare,
+    ingame::{
+        camera::{map::world_map_point_to_bevy_world_point, move_::UpdateVisibleBattleSquare},
+        draw,
     },
 };
 
 pub fn on_update_visible_battle_square(
-    _: On<UpdateVisibleBattleSquare>,
+    center: On<UpdateVisibleBattleSquare>,
+    window: Single<&Window>,
     square: Single<(&mut Transform, &mut Mesh2d), With<VisibleBattleSquare>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     let (mut transform, mut mesh) = square.into_inner();
+    let point = world_map_point_to_bevy_world_point(center.0, window.size());
+    let ratio = draw::world::ratio(window.size());
 
-    transform.translation.x = WORLD_MAP_X;
-    transform.translation.y = WORLD_MAP_Y;
-    mesh.0 = meshes.add(Rectangle::new(50.0, 50.0).to_ring(1.0));
+    transform.translation.x = point.x;
+    transform.translation.y = point.y;
+
+    let width = window.width() * ratio;
+    let height = window.height() * ratio;
+    mesh.0 = meshes.add(Rectangle::new(width, height).to_ring(1.0));
 }

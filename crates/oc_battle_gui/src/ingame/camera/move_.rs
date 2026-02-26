@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 
-use crate::ingame::camera::{self, map::window_cursor_to_world_map_point, region::UpdateRegions};
+use crate::ingame::camera::{self, map::window_point_to_world_map_point, region::UpdateRegions};
 
 #[derive(Debug, Event)]
 pub struct MovedBattleCamera;
 
 #[derive(Debug, Event)]
-pub struct UpdateVisibleBattleSquare;
+pub struct UpdateVisibleBattleSquare(pub Vec2); // The bevy world map point at center of the screen
 
 pub fn move_battle(
     mut commands: Commands,
@@ -44,7 +44,7 @@ pub fn on_moved_battle_camera(
         return;
     };
 
-    commands.trigger(UpdateVisibleBattleSquare);
+    commands.trigger(UpdateVisibleBattleSquare(center));
     commands.trigger(UpdateRegions(center));
 }
 
@@ -59,7 +59,7 @@ pub fn move_in_world(
             return;
         };
 
-        let point = window_cursor_to_world_map_point(cursor, window.size());
+        let point = window_point_to_world_map_point(cursor, window.size());
         let center = Vec3::new(
             point.x - window.width() / 2.,
             point.y - window.height() / 2.,
@@ -71,5 +71,6 @@ pub fn move_in_world(
 
         tracing::debug!("Request update region for {point:?}");
         commands.trigger(UpdateRegions(point));
+        commands.trigger(UpdateVisibleBattleSquare(point));
     }
 }
