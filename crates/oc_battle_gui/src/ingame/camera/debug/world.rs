@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 
 use crate::ingame::{
-    camera::map::{
-        WORLD_MAP_X, WORLD_MAP_Y, window_point_to_world_map_point,
-        world_map_point_to_bevy_world_point,
+    camera::map::{window_point_to_world_map_point, world_map_point_to_bevy_world_point},
+    draw::{
+        self,
+        world::{WORLD_MAP_X, WORLD_MAP_Y},
     },
-    draw,
 };
 
 #[derive(Debug, Component)]

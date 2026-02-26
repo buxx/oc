@@ -21,7 +21,6 @@ pub fn on_update_visible_battle_square(
     transform.translation.x = point.x;
     transform.translation.y = point.y;
 
-    let width = window.width() * ratio;
-    let height = window.height() * ratio;
-    mesh.0 = meshes.add(Rectangle::new(width, height).to_ring(1.0));
+    let size = window.size() * ratio;
+    mesh.0 = meshes.add(Rectangle::new(size.x, size.y).to_ring(1.0));
 }

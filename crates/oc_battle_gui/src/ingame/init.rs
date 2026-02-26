@@ -3,9 +3,9 @@ use oc_network::ToServer;
 
 use crate::{
     entity::world::VisibleBattleSquare,
-    ingame::{
-        camera::map::{WORLD_MAP_X, WORLD_MAP_Y},
-        draw,
+    ingame::draw::{
+        self,
+        world::{WORLD_MAP_X, WORLD_MAP_Y},
     },
     network::output::ToServerEvent,
 };

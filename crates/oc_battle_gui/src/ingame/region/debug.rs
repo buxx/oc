@@ -4,8 +4,8 @@ use oc_root::{GEO_PIXELS_PER_TILE, REGION_HEIGHT, REGION_WIDTH, WORLD_HEIGHT, WO
 
 use super::{ForgottenRegion, ListeningRegion};
 use crate::entity::world::region::RegionWireFrame;
-use crate::ingame::camera::map::{WORLD_MAP_X, WORLD_MAP_Y};
 use crate::ingame::draw;
+use crate::ingame::draw::world::{WORLD_MAP_X, WORLD_MAP_Y};
 
 #[derive(Debug, Component)]
 pub struct RegionWireFrameDebug;
@@ -36,8 +36,8 @@ pub fn on_listening_region(
 
     // World display
     let ratio = draw::world::ratio(window.size());
-    let width = REGION_WIDTH as f32 * GEO_PIXELS_PER_TILE as f32 * ratio;
-    let height = REGION_HEIGHT as f32 * GEO_PIXELS_PER_TILE as f32 * ratio;
+    let width = REGION_WIDTH as f32 * GEO_PIXELS_PER_TILE as f32 * ratio.x;
+    let height = REGION_HEIGHT as f32 * GEO_PIXELS_PER_TILE as f32 * ratio.y;
     let rectangle = Rectangle::new(width, height);
     let rectangle = rectangle.to_ring(1.0);
     let color = Color::srgba(255., 255., 0., 0.5);

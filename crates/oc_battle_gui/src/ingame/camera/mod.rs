@@ -5,7 +5,7 @@ use crate::{
     states::{AppState, InGameState},
 };
 
-#[cfg(feature = "debug")]
+// #[cfg(feature = "debug")]
 pub mod debug;
 pub mod map;
 pub mod move_;

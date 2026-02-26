@@ -4,13 +4,11 @@ use oc_root::{GEO_PIXELS_PER_TILE, WORLD_HEIGHT, WORLD_WIDTH};
 use crate::{
     ingame::{
         camera,
+        draw::world::{WORLD_MAP_X, WORLD_MAP_Y},
         input::map::{SwitchToBattleMap, SwitchToWorldMap},
     },
     states::InGameState,
 };
-
-pub const WORLD_MAP_X: f32 = -100_000.;
-pub const WORLD_MAP_Y: f32 = -100_000.;
 
 pub fn on_switch_to_world_map(
     _: On<SwitchToWorldMap>,
