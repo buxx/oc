@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    ingame::camera::region::Region,
+    ingame::camera::{move_::MovedBattleCamera, region::Region},
     states::{AppState, InGameState},
 };
 
@@ -26,6 +26,8 @@ impl Plugin for CameraPlugin {
             .add_observer(map::on_switch_to_world_map)
             .add_observer(map::on_switch_to_battle_map)
             .add_observer(region::on_update_regions)
+            .add_observer(move_::on_moved_battle_camera)
+            .add_systems(OnEnter(AppState::InGame), init)
             .add_systems(
                 Update,
                 (update,)
@@ -34,7 +36,7 @@ impl Plugin for CameraPlugin {
             )
             .add_systems(
                 Update,
-                (move_::move_battle, region::update_regions)
+                (move_::move_battle,)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle)),
             )
@@ -58,7 +60,6 @@ impl Plugin for CameraPlugin {
 
 #[derive(Debug, Default, Resource)]
 pub struct State {
-    pub center: Option<Vec2>,
     pub cursor: Option<Vec2>,
     pub regions: Option<Vec<Region>>,
     pub focus: Focus,
@@ -66,20 +67,10 @@ pub struct State {
     pub previously: Option<Vec3>,
 }
 
-fn update(
-    camera: Single<(&Camera, &GlobalTransform)>,
-    window: Single<&Window>,
-    mut state: ResMut<State>,
-) {
-    let cursor = window.cursor_position();
-    let (camera, transform) = *camera;
-    let width = window.resolution.width();
-    let height = window.resolution.height();
-    let center = Vec2::new(width / 2., height / 2.);
-    let Ok(center) = camera.viewport_to_world_2d(transform, center) else {
-        return;
-    };
+fn init(mut commands: Commands) {
+    commands.trigger(MovedBattleCamera)
+}
 
-    state.center = Some(center);
-    state.cursor = cursor;
+fn update(window: Single<&Window>, mut state: ResMut<State>) {
+    state.cursor = window.cursor_position();
 }

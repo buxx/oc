@@ -20,11 +20,6 @@ pub struct UpdateRegions(pub Vec2);
 #[derive(Debug, Clone)]
 pub struct Region(pub WorldRegionIndex, pub bool);
 
-pub fn update_regions(mut commands: Commands, state: ResMut<super::State>) {
-    let Some(center) = state.center else { return };
-    commands.trigger(UpdateRegions(center));
-}
-
 pub fn on_update_regions(
     point: On<UpdateRegions>,
     mut commands: Commands,

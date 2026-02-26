@@ -7,6 +7,7 @@ use crate::{
         camera::CameraPlugin,
         individual::{IndividualPlugin, on_insert_individual, on_update_individual},
         input::{client::on_to_client, keyboard::on_key_press},
+        world::on_update_visible_battle_square,
     },
     states::AppState,
 };
@@ -19,6 +20,7 @@ mod init;
 mod input;
 mod region;
 mod state;
+mod world;
 
 pub struct IngamePlugin;
 
@@ -30,7 +32,11 @@ impl Plugin for IngamePlugin {
             .add_observer(on_to_client)
             .add_observer(on_insert_individual)
             .add_observer(on_update_individual)
-            .add_systems(OnEnter(AppState::InGame), init::init)
+            .add_observer(on_update_visible_battle_square)
+            .add_systems(
+                OnEnter(AppState::InGame),
+                (init::refresh, init::spawn_visible_battle_square),
+            )
             .add_systems(Update, on_key_press.run_if(in_state(AppState::InGame)));
 
         #[cfg(feature = "debug")]
