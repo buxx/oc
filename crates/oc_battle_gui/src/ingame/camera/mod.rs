@@ -1,7 +1,10 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::WindowResized};
 
 use crate::{
-    ingame::camera::{move_::MovedBattleCamera, region::Region},
+    ingame::{
+        camera::{move_::MovedBattleCamera, region::Region},
+        input::map::SwitchToWorldMap,
+    },
     states::{AppState, InGameState},
 };
 
@@ -45,6 +48,12 @@ impl Plugin for CameraPlugin {
                 (move_::move_in_world,)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::World)),
+            )
+            .add_systems(
+                Update,
+                (on_resize_when_world,)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::World)),
             );
 
         #[cfg(feature = "debug")]
@@ -73,4 +82,11 @@ fn init(mut commands: Commands) {
 
 fn update(window: Single<&Window>, mut state: ResMut<State>) {
     state.cursor = window.cursor_position();
+}
+
+fn on_resize_when_world(mut commands: Commands, mut resize_reader: MessageReader<WindowResized>) {
+    for _ in resize_reader.read() {
+        // Ensure positionning on world elements is done with correct window size
+        commands.trigger(SwitchToWorldMap);
+    }
 }
