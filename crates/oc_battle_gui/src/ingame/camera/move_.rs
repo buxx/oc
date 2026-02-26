@@ -67,7 +67,7 @@ pub fn move_in_world(
         );
 
         tracing::debug!("change battle camera center for {center:?}");
-        state.previously = Some(center);
+        state.previously = Some(Vec3::new(point.x, point.y, 0.0));
 
         tracing::debug!("Request update region for {point:?}");
         commands.trigger(UpdateRegions(point));

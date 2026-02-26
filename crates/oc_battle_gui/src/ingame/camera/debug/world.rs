@@ -32,10 +32,7 @@ pub fn cursor(window: Single<&Window>, mut cursor: Single<&mut Transform, With<W
     // We do the compute in way then in opposite way to test code
     let point = window_point_to_world_map_point(point, window.size());
     let point = world_map_point_to_bevy_world_point(point, window.size());
-    // dbg!(point);
-    // let ratio = draw::world::ratio(window.size());
-    // let point = point * ratio;
-    // dbg!(point);
+
     cursor.translation.x = point.x;
     cursor.translation.y = point.y;
 }
