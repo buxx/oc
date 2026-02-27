@@ -7,7 +7,10 @@ use crate::{
         camera::CameraPlugin,
         individual::{IndividualPlugin, on_insert_individual, on_update_individual},
         input::{client::on_to_client, keyboard::on_key_press},
-        world::on_update_visible_battle_square,
+        world::{
+            on_despawn_world_map_background, on_spawn_visible_battle_square,
+            on_spawn_world_map_background, on_update_battle_square,
+        },
     },
     states::AppState,
 };
@@ -32,10 +35,13 @@ impl Plugin for IngamePlugin {
             .add_observer(on_to_client)
             .add_observer(on_insert_individual)
             .add_observer(on_update_individual)
-            .add_observer(on_update_visible_battle_square)
+            .add_observer(on_update_battle_square)
+            .add_observer(on_spawn_visible_battle_square)
+            .add_observer(on_spawn_world_map_background)
+            .add_observer(on_despawn_world_map_background)
             .add_systems(
                 OnEnter(AppState::InGame),
-                (init::refresh, init::spawn_visible_battle_square),
+                (init::refresh, init::spawn_world_map),
             )
             .add_systems(Update, on_key_press.run_if(in_state(AppState::InGame)));
 

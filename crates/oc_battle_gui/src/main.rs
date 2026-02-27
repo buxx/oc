@@ -40,17 +40,24 @@ pub struct Args(pub Args_);
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = App::new();
 
-    app.add_plugins(DefaultPlugins)
-        .add_plugins(Wireframe2dPlugin::default())
-        .add_plugins(ErrorPlugin)
-        .add_plugins(NetworkPlugin)
-        .add_plugins(HomePlugin)
-        .add_plugins(LoadingPlugin)
-        .add_plugins(IngamePlugin)
-        .insert_state(AppState::Home)
-        .init_state::<InGameState>()
-        .insert_resource(Args(Args_::parse()))
-        .add_systems(Startup, setup::setup);
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: "Open Combat".into(),
+            resolution: (800, 800).into(),
+            ..default()
+        }),
+        ..default()
+    }))
+    .add_plugins(Wireframe2dPlugin::default())
+    .add_plugins(ErrorPlugin)
+    .add_plugins(NetworkPlugin)
+    .add_plugins(HomePlugin)
+    .add_plugins(LoadingPlugin)
+    .add_plugins(IngamePlugin)
+    .insert_state(AppState::Home)
+    .init_state::<InGameState>()
+    .insert_resource(Args(Args_::parse()))
+    .add_systems(Startup, setup::setup);
 
     #[cfg(feature = "debug")]
     app.add_plugins(DebugPlugin);

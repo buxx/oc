@@ -1,13 +1,36 @@
 use bevy::prelude::*;
-use oc_root::{GEO_PIXELS_PER_TILE, WORLD_HEIGHT, WORLD_WIDTH};
+use oc_root::{WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS};
 
-pub const WORLD_MAP_X: f32 = -100_000.;
-pub const WORLD_MAP_Y: f32 = -100_000.;
+const WORLD_MAP_OFFSET_X: f32 = -100_000.;
+const WORLD_MAP_OFFSET_Y: f32 = -100_000.;
+const WORLD_MAP_WINDOW_PADDING: f32 = 10.0;
 
-pub fn ratio(window: Vec2) -> Vec2 {
-    // TODO: choose adapt in width / height according to better choice to display entirely
-    let ratio_x = window.x / (WORLD_WIDTH as f32 * GEO_PIXELS_PER_TILE as f32);
-    let ratio_y = window.y / (WORLD_HEIGHT as f32 * GEO_PIXELS_PER_TILE as f32);
+pub struct WorldMapDisplay {
+    pub start: Vec2,
+    pub size: Vec2,
+    pub center: Vec2,
+    pub z: f32,
+    pub padding: Vec2,
+    pub ratio: Vec2,
+}
 
-    Vec2::new(ratio_x, ratio_y)
+impl WorldMapDisplay {
+    pub fn from_env(window: Vec2) -> Self {
+        let start = Vec2::new(WORLD_MAP_OFFSET_X, WORLD_MAP_OFFSET_Y) + WORLD_MAP_WINDOW_PADDING;
+        let size = window - (WORLD_MAP_WINDOW_PADDING * 2.);
+        let center = start + (size / 2.);
+        let z = super::Z_WORLD_MAP_BACKGROUND;
+        let padding = Vec2::new(WORLD_MAP_WINDOW_PADDING, -WORLD_MAP_WINDOW_PADDING);
+        let world = Vec2::new(WORLD_WIDTH_PIXELS as f32, WORLD_HEIGHT_PIXELS as f32);
+        let ratio = size / world;
+
+        Self {
+            start,
+            size,
+            center,
+            z,
+            padding,
+            ratio,
+        }
+    }
 }

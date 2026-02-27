@@ -1,11 +1,14 @@
 use bevy::prelude::*;
 use oc_geo::region::{RegionXy, WorldRegionIndex};
-use oc_root::{GEO_PIXELS_PER_TILE, REGION_HEIGHT, REGION_WIDTH, WORLD_HEIGHT, WORLD_WIDTH};
+use oc_root::{
+    GEO_PIXELS_PER_TILE, REGION_HEIGHT, REGION_HEIGHT_PIXELS, REGION_WIDTH, REGION_WIDTH_PIXELS,
+    WORLD_HEIGHT, WORLD_WIDTH,
+};
 
 use super::{ForgottenRegion, ListeningRegion};
 use crate::entity::world::region::RegionWireFrame;
 use crate::ingame::draw;
-use crate::ingame::draw::world::{WORLD_MAP_X, WORLD_MAP_Y};
+use crate::ingame::draw::world::WorldMapDisplay;
 
 #[derive(Debug, Event)]
 pub struct SpawnRegionWireFrameDebug(pub WorldRegionIndex);
@@ -32,7 +35,7 @@ pub fn on_spawn_region_wire_frame_debug(
     let height = REGION_HEIGHT as f32 * GEO_PIXELS_PER_TILE as f32;
     let rectangle = Rectangle::new(width, height);
     let rectangle = rectangle.to_ring(1.0);
-    let color = Color::srgba(255., 255., 0., 0.5);
+    let color = Color::srgba(1., 1., 0., 0.5);
     let xy: RegionXy = region.0.into();
     let x = xy.0.0 as f32 * width + width / 2.;
     let y = xy.0.1 as f32 * height + height / 2.;
@@ -45,15 +48,15 @@ pub fn on_spawn_region_wire_frame_debug(
     ));
 
     // World display
-    let ratio = draw::world::ratio(window.size());
-    let width = REGION_WIDTH as f32 * GEO_PIXELS_PER_TILE as f32 * ratio.x;
-    let height = REGION_HEIGHT as f32 * GEO_PIXELS_PER_TILE as f32 * ratio.y;
+    let display = WorldMapDisplay::from_env(window.size());
+    let width = REGION_WIDTH_PIXELS as f32 * display.ratio.x;
+    let height = REGION_HEIGHT_PIXELS as f32 * display.ratio.y;
     let rectangle = Rectangle::new(width, height);
     let rectangle = rectangle.to_ring(1.0);
-    let color = Color::srgba(255., 255., 0., 0.5);
+    let color = Color::srgba(1., 1., 0., 0.5);
     let xy: RegionXy = region.0.into();
-    let x = (xy.0.0 as f32 * width + width / 2.) + WORLD_MAP_X;
-    let y = xy.0.1 as f32 * height + height / 2. + WORLD_MAP_Y;
+    let x = (xy.0.0 as f32 * width + width / 2.) + display.start.x;
+    let y = xy.0.1 as f32 * height + height / 2. + display.start.y;
     commands.spawn((
         RegionWireFrame(region.0.into()),
         RegionWireFrameDebug,

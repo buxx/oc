@@ -2,10 +2,7 @@ use bevy::prelude::*;
 
 use crate::ingame::{
     camera::map::{window_point_to_world_map_point, world_map_point_to_bevy_world_point},
-    draw::{
-        self,
-        world::{WORLD_MAP_X, WORLD_MAP_Y},
-    },
+    draw::{self, world::WorldMapDisplay},
 };
 
 #[derive(Debug, Component)]
@@ -15,12 +12,14 @@ pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    window: Single<&Window>,
 ) {
+    let display = WorldMapDisplay::from_env(window.size());
     commands.spawn((
         WorldCursor,
-        Transform::from_xyz(WORLD_MAP_X, WORLD_MAP_Y, draw::Z_WORLD_CURSOR),
+        Transform::from_xyz(display.start.x, display.start.y, draw::Z_WORLD_CURSOR),
         Mesh2d(meshes.add(Circle::new(4.0))),
-        MeshMaterial2d(materials.add(Color::srgb(0., 0., 255.))),
+        MeshMaterial2d(materials.add(Color::srgb(0., 0., 1.))),
     ));
 }
 

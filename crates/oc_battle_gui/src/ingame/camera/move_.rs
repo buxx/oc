@@ -48,7 +48,7 @@ pub fn on_moved_battle_camera(
     commands.trigger(UpdateRegions(center));
 }
 
-pub fn move_in_world(
+pub fn move_in_world_map(
     mut commands: Commands,
     window: Single<&Window>,
     buttons: Res<ButtonInput<MouseButton>>,
@@ -60,14 +60,17 @@ pub fn move_in_world(
         };
 
         let point = window_point_to_world_map_point(cursor, window.size());
+        println!("world point: {point:?}");
         let center = Vec3::new(
             point.x - window.width() / 2.,
             point.y - window.height() / 2.,
             0.,
         );
+        println!("previously: {center:?}");
 
         tracing::debug!("change battle camera center for {center:?}");
         state.previously = Some(Vec3::new(point.x, point.y, 0.0));
+        println!("previously: {point:?}");
 
         tracing::debug!("Request update region for {point:?}");
         commands.trigger(UpdateRegions(point));

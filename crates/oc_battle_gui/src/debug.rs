@@ -17,7 +17,7 @@ impl Plugin for DebugPlugin {
                     ..default()
                 },
                 // We can also change color of the overlay
-                text_color: Color::srgb(128.0, 128.0, 128.0),
+                text_color: Color::srgb(0.5, 0.5, 0.5),
                 // We can also set the refresh interval for the FPS counter
                 refresh_interval: core::time::Duration::from_millis(100),
                 enabled: true,

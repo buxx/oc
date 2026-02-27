@@ -1,5 +1,5 @@
-pub const WORLD_WIDTH: usize = 20_000;
-pub const WORLD_HEIGHT: usize = 20_000;
+pub const WORLD_WIDTH: usize = 5_000;
+pub const WORLD_HEIGHT: usize = 5_000;
 pub const REGION_WIDTH: usize = 1_000;
 pub const REGION_HEIGHT: usize = 1_000;
 
@@ -19,6 +19,11 @@ pub const GEO_PIXELS_PER_METERS: f32 = 10.;
 pub const GEO_PIXELS_PER_TILE: u64 = 5;
 pub const GEO_BRESENHAM_PRECISION: f32 = 100.;
 pub const GEO_BRESENHAM_STEP: usize = 250;
+
+pub const WORLD_WIDTH_PIXELS: u64 = WORLD_WIDTH as u64 * GEO_PIXELS_PER_TILE;
+pub const WORLD_HEIGHT_PIXELS: u64 = WORLD_HEIGHT as u64 * GEO_PIXELS_PER_TILE;
+pub const REGION_WIDTH_PIXELS: u64 = REGION_WIDTH as u64 * GEO_PIXELS_PER_TILE;
+pub const REGION_HEIGHT_PIXELS: u64 = REGION_HEIGHT as u64 * GEO_PIXELS_PER_TILE;
 
 const _: () = assert!(
     WORLD_WIDTH % REGION_WIDTH == 0,

@@ -1,10 +1,10 @@
 use bevy::prelude::*;
-use oc_root::{GEO_PIXELS_PER_TILE, WORLD_HEIGHT, WORLD_WIDTH};
+use oc_root::{WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS};
 
 use crate::{
     ingame::{
         camera,
-        draw::world::{WORLD_MAP_X, WORLD_MAP_Y},
+        draw::world::WorldMapDisplay,
         input::map::{SwitchToBattleMap, SwitchToWorldMap},
     },
     states::InGameState,
@@ -21,9 +21,10 @@ pub fn on_switch_to_world_map(
     mut ingame: ResMut<NextState<InGameState>>,
 ) {
     tracing::debug!("Switch to world map");
+    let display = WorldMapDisplay::from_env(window.size());
     state.focus = camera::Focus::World;
-    camera.translation.x = WORLD_MAP_X + (window.width() / 2.);
-    camera.translation.y = WORLD_MAP_Y + (window.height() / 2.);
+    camera.translation.x = display.center.x;
+    camera.translation.y = display.center.y;
     *ingame = NextState::Pending(InGameState::World);
 }
 
@@ -56,21 +57,16 @@ pub fn on_switch_to_battle_map(
 }
 
 pub fn window_point_to_world_map_point(point: Vec2, window: Vec2) -> Vec2 {
-    let point = Vec2::new(point.x, window.y - point.y);
-    let ratio = point / window;
-    ratio
-        * Vec2::new(
-            WORLD_WIDTH as f32 * GEO_PIXELS_PER_TILE as f32,
-            WORLD_HEIGHT as f32 * GEO_PIXELS_PER_TILE as f32,
-        )
+    let display = WorldMapDisplay::from_env(window);
+    let point = Vec2::new(point.x, display.size.y - point.y); // Invert y (as bevy y way)
+    let point = point - display.padding;
+    let ratio = point / display.size;
+    ratio * Vec2::new(WORLD_WIDTH_PIXELS as f32, WORLD_HEIGHT_PIXELS as f32)
 }
 
 pub fn world_map_point_to_bevy_world_point(point: Vec2, window: Vec2) -> Vec2 {
-    let ratio = point
-        / Vec2::new(
-            WORLD_WIDTH as f32 * GEO_PIXELS_PER_TILE as f32,
-            WORLD_HEIGHT as f32 * GEO_PIXELS_PER_TILE as f32,
-        );
-    let point = ratio * window;
-    Vec2::new(point.x + WORLD_MAP_X, point.y + WORLD_MAP_Y)
+    let display = WorldMapDisplay::from_env(window);
+    let ratio = point / Vec2::new(WORLD_WIDTH_PIXELS as f32, WORLD_HEIGHT_PIXELS as f32);
+    let point = ratio * display.size;
+    Vec2::new(point.x + display.start.x, point.y + display.start.y)
 }

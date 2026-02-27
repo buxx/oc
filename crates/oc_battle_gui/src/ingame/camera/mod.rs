@@ -8,6 +8,7 @@ use crate::{
             region::Region,
         },
         input::map::SwitchToWorldMap,
+        world::{DespawnWorldMapBackground, SpawnWorldMapBackground},
     },
     states::{AppState, InGameState},
 };
@@ -53,13 +54,13 @@ impl Plugin for CameraPlugin {
             )
             .add_systems(
                 Update,
-                (move_::move_in_world,)
+                (move_::move_in_world_map,)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::World)),
             )
             .add_systems(
                 Update,
-                (on_window_resize_world,)
+                (on_window_resize_world_map,)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::World)),
             );
@@ -92,7 +93,7 @@ fn update(window: Single<&Window>, mut state: ResMut<State>) {
     state.cursor = window.cursor_position();
 }
 
-fn on_window_resize_world(
+fn on_window_resize_world_map(
     mut commands: Commands,
     resize_reader: MessageReader<WindowResized>,
     state: ResMut<State>,
@@ -102,6 +103,8 @@ fn on_window_resize_world(
 
         // Ensure positionning on world elements is done with correct window size
         commands.trigger(SwitchToWorldMap);
+        commands.trigger(DespawnWorldMapBackground);
+        commands.trigger(SpawnWorldMapBackground);
 
         if let Some(center) = state.previously {
             commands.trigger(UpdateVisibleBattleSquare(Vec2::new(center.x, center.y)));
