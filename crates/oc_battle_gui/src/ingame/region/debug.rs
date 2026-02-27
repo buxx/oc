@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use oc_geo::region::RegionXy;
+use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_root::{GEO_PIXELS_PER_TILE, REGION_HEIGHT, REGION_WIDTH, WORLD_HEIGHT, WORLD_WIDTH};
 
 use super::{ForgottenRegion, ListeningRegion};
@@ -7,11 +7,21 @@ use crate::entity::world::region::RegionWireFrame;
 use crate::ingame::draw;
 use crate::ingame::draw::world::{WORLD_MAP_X, WORLD_MAP_Y};
 
+#[derive(Debug, Event)]
+pub struct SpawnRegionWireFrameDebug(pub WorldRegionIndex);
+
+#[derive(Debug, Event)]
+pub struct DespawnRegionWireFrameDebug(pub WorldRegionIndex);
+
 #[derive(Debug, Component)]
 pub struct RegionWireFrameDebug;
 
-pub fn on_listening_region(
-    region: On<ListeningRegion>,
+pub fn on_listening_region(region: On<ListeningRegion>, mut commands: Commands) {
+    commands.trigger(SpawnRegionWireFrameDebug(region.0));
+}
+
+pub fn on_spawn_region_wire_frame_debug(
+    region: On<SpawnRegionWireFrameDebug>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -53,8 +63,12 @@ pub fn on_listening_region(
     ));
 }
 
-pub fn on_forgotten_region(
-    region: On<ForgottenRegion>,
+pub fn on_forgotten_region(region: On<ForgottenRegion>, mut commands: Commands) {
+    commands.trigger(DespawnRegionWireFrameDebug(region.0));
+}
+
+pub fn on_despawn_region_wire_frame_debug(
+    region: On<DespawnRegionWireFrameDebug>,
     mut commands: Commands,
     query: Query<(Entity, &RegionWireFrame), With<RegionWireFrameDebug>>,
 ) {

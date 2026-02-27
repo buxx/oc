@@ -6,7 +6,7 @@ use crate::ingame::camera::{self, map::window_point_to_world_map_point, region::
 pub struct MovedBattleCamera;
 
 #[derive(Debug, Event)]
-pub struct UpdateVisibleBattleSquare(pub Vec2); // The bevy world map point at center of the screen
+pub struct UpdateVisibleBattleSquare(pub Vec2); // The bevy world map point correspnding to the center of the screen
 
 pub fn move_battle(
     mut commands: Commands,

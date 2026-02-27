@@ -31,7 +31,6 @@ pub fn cursor(window: Single<&Window>, mut cursor: Single<&mut Transform, With<W
 
     // We do the compute in way then in opposite way to test code
     let point = window_point_to_world_map_point(point, window.size());
-    tracing::info!("world map point: {point:?}");
     let point = world_map_point_to_bevy_world_point(point, window.size());
 
     cursor.translation.x = point.x;

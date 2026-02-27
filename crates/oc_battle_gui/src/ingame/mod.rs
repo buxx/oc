@@ -41,6 +41,8 @@ impl Plugin for IngamePlugin {
 
         #[cfg(feature = "debug")]
         app.add_observer(debug::on_listening_region)
-            .add_observer(debug::on_forgotten_region);
+            .add_observer(debug::on_spawn_region_wire_frame_debug)
+            .add_observer(debug::on_forgotten_region)
+            .add_observer(debug::on_despawn_region_wire_frame_debug);
     }
 }

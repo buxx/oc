@@ -2,13 +2,20 @@ use bevy::{prelude::*, window::WindowResized};
 
 use crate::{
     ingame::{
-        camera::{move_::MovedBattleCamera, region::Region},
+        camera::{
+            self,
+            move_::{MovedBattleCamera, UpdateVisibleBattleSquare},
+            region::Region,
+        },
         input::map::SwitchToWorldMap,
     },
     states::{AppState, InGameState},
 };
 
-// #[cfg(feature = "debug")]
+#[cfg(feature = "debug")]
+use crate::ingame::region::debug::{DespawnRegionWireFrameDebug, SpawnRegionWireFrameDebug};
+
+#[cfg(feature = "debug")]
 pub mod debug;
 pub mod map;
 pub mod move_;
@@ -27,6 +34,7 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<State>()
             .add_observer(map::on_switch_to_world_map)
+            .add_observer(map::on_save_current_window_center_as_battle_center)
             .add_observer(map::on_switch_to_battle_map)
             .add_observer(region::on_update_regions)
             .add_observer(move_::on_moved_battle_camera)
@@ -51,7 +59,7 @@ impl Plugin for CameraPlugin {
             )
             .add_systems(
                 Update,
-                (on_resize_when_world,)
+                (on_window_resize_world,)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::World)),
             );
@@ -84,9 +92,29 @@ fn update(window: Single<&Window>, mut state: ResMut<State>) {
     state.cursor = window.cursor_position();
 }
 
-fn on_resize_when_world(mut commands: Commands, mut resize_reader: MessageReader<WindowResized>) {
-    for _ in resize_reader.read() {
+fn on_window_resize_world(
+    mut commands: Commands,
+    resize_reader: MessageReader<WindowResized>,
+    state: ResMut<State>,
+) {
+    if !resize_reader.is_empty() {
+        tracing::debug!("Window resized");
+
         // Ensure positionning on world elements is done with correct window size
         commands.trigger(SwitchToWorldMap);
+
+        if let Some(center) = state.previously {
+            commands.trigger(UpdateVisibleBattleSquare(Vec2::new(center.x, center.y)));
+        }
+
+        #[cfg(feature = "debug")]
+        {
+            // Region wireframes on world map need to be sapwn again because depends on window size
+            static EMPTY: Vec<Region> = vec![];
+            for region in state.regions.as_ref().unwrap_or(&EMPTY) {
+                commands.trigger(DespawnRegionWireFrameDebug(region.0));
+                commands.trigger(SpawnRegionWireFrameDebug(region.0));
+            }
+        }
     }
 }

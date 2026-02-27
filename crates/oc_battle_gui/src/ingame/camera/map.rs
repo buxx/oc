@@ -10,6 +10,9 @@ use crate::{
     states::InGameState,
 };
 
+#[derive(Debug, Event)]
+pub struct SaveCurrentWindowCenterAsBattleCenter;
+
 pub fn on_switch_to_world_map(
     _: On<SwitchToWorldMap>,
     mut camera: Single<&mut Transform, With<Camera2d>>,
@@ -18,13 +21,20 @@ pub fn on_switch_to_world_map(
     mut ingame: ResMut<NextState<InGameState>>,
 ) {
     tracing::debug!("Switch to world map");
-    let previously = camera.translation;
-
-    state.previously = Some(previously);
     state.focus = camera::Focus::World;
     camera.translation.x = WORLD_MAP_X + (window.width() / 2.);
     camera.translation.y = WORLD_MAP_Y + (window.height() / 2.);
     *ingame = NextState::Pending(InGameState::World);
+}
+
+pub fn on_save_current_window_center_as_battle_center(
+    _: On<SaveCurrentWindowCenterAsBattleCenter>,
+    camera: Single<&mut Transform, With<Camera2d>>,
+    mut state: ResMut<camera::State>,
+) {
+    let point = camera.translation;
+    tracing::debug!("Save {point:?} as battle center");
+    state.previously = Some(point);
 }
 
 pub fn on_switch_to_battle_map(
