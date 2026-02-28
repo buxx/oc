@@ -4,6 +4,7 @@ use oc_individual::{Individual, IndividualIndex};
 
 use crate::meta::Meta;
 
+pub mod cache;
 pub mod load;
 pub mod map;
 pub mod meta;

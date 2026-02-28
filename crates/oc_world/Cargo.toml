@@ -11,12 +11,15 @@ oc_utils = { path = "../oc_utils" }
 oc_geo = { path = "../oc_geo" }
 oc_individual = { path = "../oc_individual" }
 oc_physics = { path = "../oc_physics" }
-
 derive_more = { workspace = true, features = ["constructor"] }
 rkyv.workspace = true
 thiserror.workspace = true
 image.workspace = true
 uuid.workspace = true
+rayon.workspace = true
+tracing.workspace = true
+toml.workspace = true
+serde.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true

@@ -2,16 +2,23 @@ use std::{io, path::PathBuf};
 
 use derive_more::Constructor;
 use oc_geo::{
-    region::RegionXy,
+    region::{RegionXy, WorldRegionIndex},
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::{Individual, behavior::Behavior};
 use oc_root::{
-    GEO_PIXELS_PER_TILE, INDIVIDUALS_COUNT, TILES_COUNT, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS,
+    GEO_PIXELS_PER_TILE, INDIVIDUALS_COUNT, REGIONS_COUNT, TILES_COUNT, WORLD_HEIGHT_PIXELS,
+    WORLD_WIDTH_PIXELS,
 };
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
 
-use crate::{World, meta::Meta, tile::Tile};
+use crate::{
+    World,
+    cache::{self, CacheRegionBackgroundError},
+    meta::{self, Meta},
+    tile::Tile,
+};
 
 #[derive(Debug, Constructor)]
 pub struct WorldLoader {
@@ -22,8 +29,7 @@ pub struct WorldLoader {
 impl WorldLoader {
     pub fn load(&self) -> Result<World, Error> {
         self.check()?;
-        let meta = self.meta()?;
-
+        let meta = Meta::from_file(&self.world_path.meta()).map_err(|e| MetaError::Load(e))?;
         self.cache(&meta)?;
 
         let tiles = vec![Tile::ShortGrass; TILES_COUNT];
@@ -75,14 +81,33 @@ impl WorldLoader {
         Ok(())
     }
 
-    fn meta(&self) -> Result<Meta, MetaError> {
-        todo!()
-    }
-
     fn cache(&self, meta: &Meta) -> Result<(), CacheError> {
-        // FIXME BS NOW: pour chaque region, get path normalisé region png
-        // si on a pas, on decoupe. le tout dans threads
-        todo!()
+        let cache = self.cache_path.clone();
+        let cache = cache.join(meta.folder_name());
+        let image = image::open(self.world_path.background())?;
+
+        std::fs::create_dir_all(&cache)?;
+
+        tracing::info!("Verify cache for regions ({})", cache.display());
+        (0..REGIONS_COUNT)
+            .into_par_iter()
+            .map(|i| {
+                let i = WorldRegionIndex(i as u64);
+                let cache = cache.join(i.background_file_name());
+
+                if !cache.exists() {
+                    let result = cache::cache_region_background(&cache, &image, i);
+                    if result.is_ok() {
+                        tracing::info!("Cache generated for region {}", i.0);
+                    }
+                    return result;
+                }
+
+                Ok(())
+            })
+            .collect::<Result<Vec<()>, CacheRegionBackgroundError>>()?;
+
+        Ok(())
     }
 }
 
@@ -107,11 +132,18 @@ pub enum MetaError {
     #[error("Is not a file")]
     NotAFile,
     #[error("Io: {0}")]
-    Io(#[from] io::Error),
+    Load(#[from] meta::LoadError),
 }
 
 #[derive(Debug, Error)]
-pub enum CacheError {}
+pub enum CacheError {
+    #[error("Io: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Image: {0}")]
+    Image(#[from] image::error::ImageError),
+    #[error("Region background: {0}")]
+    RegionBackground(#[from] CacheRegionBackgroundError),
+}
 
 #[derive(Debug, Error)]
 pub enum Error {

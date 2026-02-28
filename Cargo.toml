@@ -18,6 +18,8 @@ clap = { version = "4.5", features = ["derive"] }
 bresenham = "0.1.1"
 image = "0.25"
 uuid = { version = "1.21", features = ["v4"] }
+toml = "1.0"
+serde = "1.0"
 
 # tests
 rstest = "0.26"

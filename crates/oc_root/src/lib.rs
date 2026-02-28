@@ -1,7 +1,7 @@
-pub const WORLD_WIDTH: usize = 5_000;
-pub const WORLD_HEIGHT: usize = 5_000;
-pub const REGION_WIDTH: usize = 1_000;
-pub const REGION_HEIGHT: usize = 1_000;
+pub const WORLD_WIDTH: usize = 1_000;
+pub const WORLD_HEIGHT: usize = 1_000;
+pub const REGION_WIDTH: usize = 100;
+pub const REGION_HEIGHT: usize = 100;
 
 pub const TILES_COUNT: usize = WORLD_WIDTH * WORLD_HEIGHT;
 pub const REGIONS_COUNT: usize = TILES_COUNT / (REGION_WIDTH * REGION_HEIGHT);

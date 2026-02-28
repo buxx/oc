@@ -25,7 +25,7 @@ mod state;
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct Args {
-    #[clap(default_value = "0.0.0.0:6589")]
+    #[clap(long, default_value = "0.0.0.0:6589")]
     pub host: SocketAddr,
 
     #[clap()]

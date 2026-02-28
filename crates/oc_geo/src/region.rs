@@ -18,6 +18,12 @@ impl From<RegionXy> for (u64, u64) {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct WorldRegionIndex(pub u64);
 
+impl WorldRegionIndex {
+    pub fn background_file_name(&self) -> String {
+        format!("{}.png", self.0)
+    }
+}
+
 impl From<WorldRegionIndex> for RegionXy {
     fn from(WorldRegionIndex(i): WorldRegionIndex) -> Self {
         let x = i % REGIONS_WIDTH as u64;
