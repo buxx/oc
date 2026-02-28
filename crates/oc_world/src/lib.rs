@@ -2,10 +2,16 @@ use derive_more::Constructor;
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::{Individual, IndividualIndex};
 
+use crate::meta::Meta;
+
+pub mod load;
+pub mod map;
+pub mod meta;
 pub mod tile;
 
 #[derive(Constructor)]
 pub struct World {
+    meta: Meta,
     tiles: Vec<tile::Tile>,
     individuals: Vec<Individual>,
 }

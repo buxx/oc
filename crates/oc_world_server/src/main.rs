@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 
 use clap::Parser;
 use oc_geo::{
@@ -7,7 +7,7 @@ use oc_geo::{
 };
 use oc_individual::{Individual, behavior::Behavior};
 use oc_root::{GEO_PIXELS_PER_TILE, INDIVIDUALS_COUNT, TILES_COUNT};
-use oc_world::{World, tile::Tile};
+use oc_world::{World, load::WorldLoader, tile::Tile};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
@@ -28,8 +28,14 @@ pub struct Args {
     #[clap(default_value = "0.0.0.0:6589")]
     pub host: SocketAddr,
 
+    #[clap()]
+    pub world: PathBuf,
+
     #[clap(long, action)]
     pub print_ticks: bool,
+
+    #[clap(long, default_value = ".cache")]
+    pub cache: PathBuf,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -43,10 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .init();
 
-    let tiles = vec![Tile::ShortGrass; TILES_COUNT];
-    let individuals = individuals();
-    let world = World::new(tiles, individuals);
-
+    let world = WorldLoader::new(args.world.clone(), args.cache.clone()).load()?;
     let (input, output) = network::listen(args.host);
     let state = Arc::new(State::new(world));
 
@@ -54,18 +57,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Runner::new(state, output, args.print_ticks).run(input)?;
 
     Ok(())
-}
-
-fn individuals() -> Vec<Individual> {
-    (0..INDIVIDUALS_COUNT)
-        .map(|i| {
-            let xy = TileXy::from(WorldTileIndex(i));
-            let position = [
-                ((xy.0.0 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
-                ((xy.0.1 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
-            ];
-            let region: RegionXy = xy.into();
-            Individual::new(position, xy, region, Behavior::Idle, vec![])
-        })
-        .collect()
 }

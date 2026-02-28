@@ -14,6 +14,9 @@ oc_physics = { path = "../oc_physics" }
 
 derive_more = { workspace = true, features = ["constructor"] }
 rkyv.workspace = true
+thiserror.workspace = true
+image.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true
