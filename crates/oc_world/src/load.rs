@@ -1,4 +1,8 @@
-use std::{io, path::PathBuf};
+use std::{
+    io,
+    path::PathBuf,
+    sync::{Arc, atomic::AtomicU32},
+};
 
 use derive_more::Constructor;
 use oc_geo::{
@@ -87,8 +91,9 @@ impl WorldLoader {
         let image = image::open(self.world_path.background())?;
 
         std::fs::create_dir_all(&cache)?;
+        let counter = Arc::new(AtomicU32::new(0));
 
-        tracing::info!("Verify cache for regions ({})", cache.display());
+        tracing::info!("Prepare cache for regions ({})", cache.display());
         (0..REGIONS_COUNT)
             .into_par_iter()
             .map(|i| {
@@ -96,16 +101,17 @@ impl WorldLoader {
                 let cache = cache.join(i.background_file_name());
 
                 if !cache.exists() {
-                    let result = cache::cache_region_background(&cache, &image, i);
-                    if result.is_ok() {
-                        tracing::info!("Cache generated for region {}", i.0);
-                    }
-                    return result;
+                    counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    cache::cache_region_background(&cache, &image, i)
+                } else {
+                    Ok(())
                 }
-
-                Ok(())
             })
             .collect::<Result<Vec<()>, CacheRegionBackgroundError>>()?;
+
+        let cached = counter.load(std::sync::atomic::Ordering::Relaxed);
+        let already = REGIONS_COUNT - cached as usize;
+        tracing::info!("{} cached, {} already cached", cached, already);
 
         Ok(())
     }
