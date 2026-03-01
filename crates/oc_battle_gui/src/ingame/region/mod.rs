@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use bevy::prelude::*;
 use oc_geo::region::{RegionXy, WorldRegionIndex};
-use oc_root::{GEO_PIXELS_PER_TILE, REGION_HEIGHT_PIXELS, REGION_WIDTH, REGION_WIDTH_PIXELS};
+use oc_root::{REGION_HEIGHT_PIXELS, REGION_WIDTH_PIXELS};
 
 use crate::{
     entity::world::region::{Region, RegionBackground},

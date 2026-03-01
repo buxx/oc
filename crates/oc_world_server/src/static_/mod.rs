@@ -3,6 +3,7 @@ use std::{net::SocketAddr, ops::Deref, path::PathBuf, sync::Arc};
 use axum::{Router, routing::get};
 use derive_more::Constructor;
 
+mod minimap;
 mod world;
 
 #[derive(Constructor)]
@@ -25,6 +26,7 @@ impl Static {
                 "/region/{region}/background",
                 get(world::get_region_background),
             )
+            .route("/minimap", get(minimap::get))
             .with_state(state);
 
         let rt = tokio::runtime::Runtime::new()?;

@@ -5,14 +5,15 @@ use std::{
 };
 
 use derive_more::Constructor;
+use image::imageops::FilterType;
 use oc_geo::{
     region::{RegionXy, WorldRegionIndex},
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::{Individual, behavior::Behavior};
 use oc_root::{
-    GEO_PIXELS_PER_TILE, INDIVIDUALS_COUNT, REGIONS_COUNT, TILES_COUNT, WORLD_HEIGHT_PIXELS,
-    WORLD_WIDTH_PIXELS,
+    GEO_PIXELS_PER_TILE, INDIVIDUALS_COUNT, MINIMAP_WIDTH_PIXELS, REGIONS_COUNT, TILES_COUNT,
+    WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS,
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
@@ -88,12 +89,37 @@ impl WorldLoader {
     fn cache(&self, meta: &Meta) -> Result<(), CacheError> {
         let cache = self.cache_path.clone();
         let cache = cache.join(meta.folder_name());
+        let minimap = cache.join("minimap.png"); // TODO: store this name at an unique place ?
         let image = image::open(self.world_path.background())?;
 
         std::fs::create_dir_all(&cache)?;
-        let counter = Arc::new(AtomicU32::new(0));
 
+        match minimap.exists() {
+            true => {}
+            false => {
+                // TODO: size in config/args ?
+                let width = MINIMAP_WIDTH_PIXELS as f32;
+                let ratio = width / WORLD_WIDTH_PIXELS as f32;
+                let height = WORLD_HEIGHT_PIXELS as f32 * ratio;
+                tracing::info!(
+                    "Prepare cache for minimap {} ({}x{})",
+                    minimap.display(),
+                    width,
+                    height
+                );
+                let minimap_ = image::imageops::resize(
+                    &image,
+                    width as u32,
+                    height as u32,
+                    FilterType::Gaussian,
+                );
+                minimap_.save(minimap)?;
+            }
+        }
+
+        let counter = Arc::new(AtomicU32::new(0));
         tracing::info!("Prepare cache for regions ({})", cache.display());
+
         (0..REGIONS_COUNT)
             .into_par_iter()
             .map(|i| {

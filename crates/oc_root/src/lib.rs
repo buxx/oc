@@ -25,6 +25,8 @@ pub const WORLD_HEIGHT_PIXELS: u64 = WORLD_HEIGHT as u64 * GEO_PIXELS_PER_TILE;
 pub const REGION_WIDTH_PIXELS: u64 = REGION_WIDTH as u64 * GEO_PIXELS_PER_TILE;
 pub const REGION_HEIGHT_PIXELS: u64 = REGION_HEIGHT as u64 * GEO_PIXELS_PER_TILE;
 
+pub const MINIMAP_WIDTH_PIXELS: usize = 2048;
+
 const _: () = assert!(
     WORLD_WIDTH % REGION_WIDTH == 0,
     "World width mut be divisible by region width"
