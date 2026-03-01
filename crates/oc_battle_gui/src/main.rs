@@ -1,14 +1,14 @@
-use std::net::SocketAddr;
+use std::{net::SocketAddr, path::PathBuf};
 
 use bevy::prelude::*;
 use bevy::sprite_render::Wireframe2dPlugin;
 use clap::Parser;
 
 use crate::{
+    downloading::DownloadingPlugin,
     error::ErrorPlugin,
     home::HomePlugin,
     ingame::IngamePlugin,
-    loading::LoadingPlugin,
     network::NetworkPlugin,
     states::{AppState, InGameState},
 };
@@ -18,11 +18,11 @@ use debug::DebugPlugin;
 
 #[cfg(feature = "debug")]
 mod debug;
+mod downloading;
 mod entity;
 mod error;
 mod home;
 mod ingame;
-mod loading;
 mod network;
 mod setup;
 mod states;
@@ -32,6 +32,9 @@ mod states;
 pub struct Args_ {
     #[clap(long)]
     pub autoconnect: Option<SocketAddr>,
+
+    #[clap(long, default_value = ".gui")]
+    pub cache: PathBuf,
 }
 
 #[derive(Resource)]
@@ -52,7 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     .add_plugins(ErrorPlugin)
     .add_plugins(NetworkPlugin)
     .add_plugins(HomePlugin)
-    .add_plugins(LoadingPlugin)
+    .add_plugins(DownloadingPlugin)
     .add_plugins(IngamePlugin)
     .insert_state(AppState::Home)
     .init_state::<InGameState>()

@@ -116,11 +116,16 @@ impl Runner {
     fn listen_input(&self, input: Receiver<Event>) {
         let state = self.state.clone();
         let output = self.output.clone();
+        let meta = self.state.world().meta().clone();
 
         std::thread::spawn(move || {
             while let Ok(message) = input.recv() {
                 match message {
-                    Event::Connected(endpoint) => state.listeners_mut().push(endpoint),
+                    Event::Connected(endpoint) => {
+                        state.listeners_mut().push(endpoint.clone());
+                        let meta = ToClient::Meta(meta.clone());
+                        output.send((endpoint, meta)).unwrap(); // TODO
+                    }
                     Event::Disconnected(endpoint) => state.listeners_mut().remove(&endpoint),
                     Event::Message(endpoint, message) => {
                         Dealer::new(&state, &output, endpoint).deal(message);

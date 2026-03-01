@@ -3,7 +3,6 @@ use bevy::{prelude::*, window::WindowResized};
 use crate::{
     ingame::{
         camera::{
-            self,
             move_::{MovedBattleCamera, UpdateVisibleBattleSquare},
             region::Region,
         },

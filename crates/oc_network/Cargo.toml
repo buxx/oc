@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 oc_individual = { path = "../oc_individual" }
 oc_geo = { path = "../oc_geo" }
+oc_world = { path = "../oc_world" }
 rkyv.workspace = true

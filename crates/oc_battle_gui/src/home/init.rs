@@ -10,6 +10,7 @@ pub fn init(
     if let Some(host) = args.0.autoconnect.take() {
         tracing::info!("Auto connect on {host}");
         commands.trigger(Connect(host));
+        tracing::debug!("Entering 'Connecting' state");
         *state = NextState::Pending(AppState::Connecting);
     }
 }

@@ -100,11 +100,12 @@ impl WorldLoader {
                 let i = WorldRegionIndex(i as u64);
                 let cache = cache.join(i.background_file_name());
 
-                if !cache.exists() {
-                    counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                    cache::cache_region_background(&cache, &image, i)
-                } else {
-                    Ok(())
+                match cache.exists() {
+                    true => Ok(()),
+                    false => {
+                        counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        cache::cache_region_background(&cache, &image, i)
+                    }
                 }
             })
             .collect::<Result<Vec<()>, CacheRegionBackgroundError>>()?;

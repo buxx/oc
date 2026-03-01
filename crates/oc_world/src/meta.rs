@@ -1,14 +1,25 @@
 use std::path::PathBuf;
 
 use derive_more::Constructor;
-use serde::{Deserialize, Serialize};
+use rkyv::{Archive, Deserialize, Serialize};
 use thiserror::Error;
-use uuid::Uuid;
 
-#[derive(Debug, Constructor, Deserialize, Serialize)]
+#[derive(
+    Debug,
+    Constructor,
+    serde::Deserialize,
+    serde::Serialize,
+    Clone,
+    Archive,
+    Deserialize,
+    Serialize,
+    PartialEq,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Meta {
-    pub id: Uuid,
-    pub revision: usize,
+    pub id: String,
+    // TODO: use it to permit caches invalidation
+    pub revision: u32,
 }
 
 impl Meta {

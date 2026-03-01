@@ -5,6 +5,7 @@ pub enum AppState {
     #[default]
     Home,
     Connecting,
+    Downloading,
     InGame,
 }
 
@@ -14,3 +15,6 @@ pub enum InGameState {
     Battle,
     World,
 }
+
+#[derive(Debug, Resource, Default)]
+pub struct Meta(pub Option<oc_world::meta::Meta>);

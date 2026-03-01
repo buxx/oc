@@ -46,5 +46,6 @@ pub fn on_connected(
     mut app_state: ResMut<NextState<AppState>>,
 ) {
     network_state.connected = Some(connected.0.clone());
-    *app_state = NextState::Pending(AppState::InGame);
+    tracing::debug!("Entering 'Downloading' state");
+    *app_state = NextState::Pending(AppState::Downloading);
 }

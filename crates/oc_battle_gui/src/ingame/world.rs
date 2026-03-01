@@ -4,7 +4,7 @@ use crate::{
     entity::world::{VisibleBattleSquare, WorldMapBackground},
     ingame::{
         camera::{map::world_map_point_to_bevy_world_point, move_::UpdateVisibleBattleSquare},
-        draw::{self, world::WorldMapDisplay},
+        draw::world::WorldMapDisplay,
     },
 };
 

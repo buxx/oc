@@ -12,7 +12,7 @@ use crate::{
             on_spawn_world_map_background, on_update_battle_square,
         },
     },
-    states::AppState,
+    states::{AppState, Meta},
 };
 use state::State;
 
@@ -32,6 +32,7 @@ impl Plugin for IngamePlugin {
         app.add_plugins(IndividualPlugin)
             .add_plugins(CameraPlugin)
             .init_resource::<State>()
+            .init_resource::<Meta>()
             .add_observer(on_to_client)
             .add_observer(on_insert_individual)
             .add_observer(on_update_individual)
