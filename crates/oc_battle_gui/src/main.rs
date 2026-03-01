@@ -32,9 +32,6 @@ mod states;
 pub struct Args_ {
     #[clap(long)]
     pub autoconnect: Option<SocketAddr>,
-
-    #[clap(long, default_value = ".gui")]
-    pub cache: PathBuf,
 }
 
 #[derive(Resource)]

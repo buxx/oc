@@ -1,4 +1,4 @@
-use std::fs::create_dir_all;
+use std::path::PathBuf;
 
 use bevy::prelude::*;
 use oc_geo::region::WorldRegionIndex;
@@ -29,9 +29,13 @@ fn download(mut commands: Commands, args: Res<Args>, meta: Res<Meta>) {
 
     for region in 0..REGIONS_COUNT {
         let region = WorldRegionIndex(region as u64);
-        let path = args.0.cache.join(meta.folder_name());
-        let path = path.join(region.background_file_name());
+        // TODO: normalize somewhere
+        // TODO: !!! not compatible in "prod"
+        let path = PathBuf::from("crates/oc_battle_gui/assets");
+        let path = path.join(".cache").join("maps");
+        let path = path.join(meta.folder_name());
         std::fs::create_dir_all(&path).unwrap();
+        let path = path.join(region.background_file_name());
 
         match path.exists() {
             true => {}
