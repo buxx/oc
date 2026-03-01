@@ -47,7 +47,11 @@ pub fn on_listening_region(
         RegionBackground,
         Region(region),
         Sprite::from_image(assets.load(path)),
-        Transform::from_xyz(x as f32, y as f32, Z_REGION_BACKGROUND),
+        Transform {
+            scale: Vec3::new(1.0, -1.0, 1.0), // Mirror on Y-axis
+            translation: Vec3::new(x as f32, y as f32, Z_REGION_BACKGROUND),
+            ..default()
+        },
     ));
 }
 
