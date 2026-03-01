@@ -1,17 +1,11 @@
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 
 use clap::Parser;
-use oc_geo::{
-    region::RegionXy,
-    tile::{TileXy, WorldTileIndex},
-};
-use oc_individual::{Individual, behavior::Behavior};
-use oc_root::{GEO_PIXELS_PER_TILE, INDIVIDUALS_COUNT, TILES_COUNT};
-use oc_world::{World, load::WorldLoader, tile::Tile};
+use oc_world::load::WorldLoader;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-use crate::{runner::Runner, state::State};
+use crate::{runner::Runner, state::State, static_::Static};
 
 mod index;
 mod individual;
@@ -21,12 +15,16 @@ mod physics;
 mod routing;
 mod runner;
 mod state;
+mod static_;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct Args {
     #[clap(long, default_value = "0.0.0.0:6589")]
     pub host: SocketAddr,
+
+    #[clap(long("static"), default_value = "0.0.0.0:6590")]
+    pub static_: SocketAddr,
 
     #[clap()]
     pub world: PathBuf,
@@ -53,7 +51,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (input, output) = network::listen(args.host);
     let state = Arc::new(State::new(world));
 
-    // Blocking server logic
+    let state_ = state.clone();
+    std::thread::spawn(move || Static::new(state_, args.cache).serve(args.static_));
+
     Runner::new(state, output, args.print_ticks).run(input)?;
 
     Ok(())

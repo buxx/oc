@@ -33,4 +33,8 @@ impl World {
     pub fn individual_mut(&mut self, i: IndividualIndex) -> &mut Individual {
         &mut self.individuals[i.0 as usize]
     }
+
+    pub fn meta(&self) -> &Meta {
+        &self.meta
+    }
 }

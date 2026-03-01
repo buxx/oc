@@ -14,7 +14,19 @@ impl From<RegionXy> for (u64, u64) {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Archive, Deserialize, Serialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Archive,
+    Deserialize,
+    serde::Deserialize,
+    Serialize,
+)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct WorldRegionIndex(pub u64);
 

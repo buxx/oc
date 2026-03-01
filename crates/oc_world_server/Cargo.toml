@@ -11,7 +11,6 @@ oc_world = { path = "../oc_world" }
 oc_network = { path = "../oc_network" }
 oc_individual = { path = "../oc_individual" }
 oc_physics = { path = "../oc_physics" }
-
 derive_more = { workspace = true, features = ["constructor"] }
 thiserror.workspace = true
 rayon.workspace = true
@@ -22,6 +21,12 @@ message-io.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 clap.workspace = true
+axum = { workspace = true, features = ["macros"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "fs"] }
+tokio-util = { workspace = true, features = ["io"] }
+uuid.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true
