@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, path::PathBuf};
+use std::net::SocketAddr;
 
 use bevy::prelude::*;
 use bevy::sprite_render::Wireframe2dPlugin;
@@ -10,7 +10,7 @@ use crate::{
     home::HomePlugin,
     ingame::IngamePlugin,
     network::NetworkPlugin,
-    states::{AppState, InGameState},
+    states::{AppState, Config, InGameState, Meta},
 };
 
 #[cfg(feature = "debug")]
@@ -26,6 +26,7 @@ mod ingame;
 mod network;
 mod setup;
 mod states;
+mod utils;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -54,7 +55,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     .add_plugins(HomePlugin)
     .add_plugins(DownloadingPlugin)
     .add_plugins(IngamePlugin)
+    .add_plugins(ingame::camera::CameraPlugin)
     .insert_state(AppState::Home)
+    .init_resource::<Meta>()
+    .init_resource::<Config>()
     .init_state::<InGameState>()
     .insert_resource(Args(Args_::parse()))
     .add_systems(Startup, setup::setup);

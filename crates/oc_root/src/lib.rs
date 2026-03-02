@@ -1,3 +1,5 @@
+pub mod config;
+
 pub const WORLD_WIDTH: usize = 1_000;
 pub const WORLD_HEIGHT: usize = 1_000;
 pub const REGION_WIDTH: usize = 100;

@@ -9,7 +9,9 @@ use std::{
 use derive_more::Constructor;
 use message_io::network::Endpoint;
 use oc_network::ToClient;
-use oc_root::{INDIVIDUAL_TICK_INTERVAL_US, INDIVIDUALS_COUNT, PHYSICS_TICK_INTERVAL_US};
+use oc_root::{
+    INDIVIDUAL_TICK_INTERVAL_US, INDIVIDUALS_COUNT, PHYSICS_TICK_INTERVAL_US, config::Config,
+};
 use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 use thiserror::Error;
 
@@ -19,6 +21,7 @@ mod input;
 
 #[derive(Constructor)]
 pub struct Runner {
+    config: Config,
     state: Arc<State>,
     output: Sender<(Endpoint, ToClient)>,
     print_ticks: bool,
@@ -117,6 +120,7 @@ impl Runner {
         let state = self.state.clone();
         let output = self.output.clone();
         let meta = self.state.world().meta().clone();
+        let config = self.config.clone();
 
         std::thread::spawn(move || {
             while let Ok(message) = input.recv() {
@@ -125,6 +129,8 @@ impl Runner {
                         state.listeners_mut().push(endpoint.clone());
                         let meta = ToClient::Meta(meta.clone());
                         output.send((endpoint, meta)).unwrap(); // TODO
+                        let config = ToClient::Config(config.clone());
+                        output.send((endpoint, config)).unwrap(); // TODO
                     }
                     Event::Disconnected(endpoint) => state.listeners_mut().remove(&endpoint),
                     Event::Message(endpoint, message) => {

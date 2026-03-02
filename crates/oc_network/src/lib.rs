@@ -1,11 +1,13 @@
 use oc_geo::region::WorldRegionIndex;
 use oc_individual::network::Individual;
+use oc_root::config::Config;
 use oc_world::meta::Meta;
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum ToClient {
+    Config(Config),
     Meta(Meta),
     Individual(Individual),
 }

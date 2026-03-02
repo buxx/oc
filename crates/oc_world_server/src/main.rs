@@ -1,6 +1,7 @@
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 
 use clap::Parser;
+use oc_root::config::Config;
 use oc_world::load::WorldLoader;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
@@ -50,11 +51,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let world = WorldLoader::new(args.world.clone(), args.cache.clone()).load()?;
     let (input, output) = network::listen(args.host);
     let state = Arc::new(State::new(world));
+    let config = Config::new(args.static_.port());
 
     let state_ = state.clone();
     std::thread::spawn(move || Static::new(state_, args.cache).serve(args.static_));
 
-    Runner::new(state, output, args.print_ticks).run(input)?;
+    Runner::new(config, state, output, args.print_ticks).run(input)?;
 
     Ok(())
 }

@@ -5,11 +5,20 @@ use oc_network::ToClient;
 use crate::{
     ingame::input::individual::{InsertIndividualEvent, UpdateIndividualEvent},
     network::input::ToClientEvent,
-    states::Meta,
+    states::{Config, Meta},
 };
 
-pub fn on_to_client(to_client: On<ToClientEvent>, mut commands: Commands, mut meta: ResMut<Meta>) {
+pub fn on_to_client(
+    to_client: On<ToClientEvent>,
+    mut commands: Commands,
+    mut meta: ResMut<Meta>,
+    mut config: ResMut<Config>,
+) {
     match &to_client.0 {
+        ToClient::Config(config_) => {
+            tracing::debug!("Set 'Config'");
+            config.0 = Some(config_.clone());
+        }
         ToClient::Meta(meta_) => {
             tracing::debug!("Set 'Meta'");
             meta.0 = Some(meta_.clone());

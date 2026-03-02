@@ -4,7 +4,11 @@ use bevy::prelude::*;
 use oc_geo::region::WorldRegionIndex;
 use oc_root::REGIONS_COUNT;
 
-use crate::{Args, states::AppState, states::Meta};
+use crate::{
+    Args, http_to_file, network,
+    states::{AppState, Config, Meta},
+    utils::OcPaths,
+};
 
 #[derive(Event)]
 pub struct Downloaded;
@@ -19,32 +23,36 @@ impl Plugin for DownloadingPlugin {
 }
 
 // TODO: for now, this action is blocking, it should be not and display a progress message
-fn download(mut commands: Commands, args: Res<Args>, meta: Res<Meta>) {
-    let Some(meta) = &meta.0 else { return };
+fn download(
+    mut commands: Commands,
+    meta: Res<Meta>,
+    config: Res<Config>,
+    network: Res<network::state::State>,
+) -> Result<(), BevyError> {
+    let Some(config) = &config.0 else {
+        return Ok(());
+    };
+    let Some(meta) = &meta.0 else { return Ok(()) };
+    let Some(network) = &network.connected else {
+        return Ok(());
+    };
+
     tracing::info!(
         "Start downloading ({} region backgrounds) ...",
         REGIONS_COUNT
     );
-    let mut counter = 0;
 
-    // TODO: normalize somewhere
-    // TODO: !!! not compatible in "prod"
-    let path = PathBuf::from("crates/oc_battle_gui/assets");
-    let path = path.join(".cache").join("maps");
-    let path = path.join(meta.folder_name());
-    let minimap = path.join("minimap.png"); // TODO: this name in unique place
-    std::fs::create_dir_all(&path).unwrap();
+    let static_ = format!("http://{}:{}", network.ip(), config.static_);
+    let mut counter = 0;
+    let path = PathBuf::maps();
+    let minimap = PathBuf::minimap(&meta);
+
+    std::fs::create_dir_all(&path)?;
 
     match minimap.exists() {
         true => {}
         false => {
-            // TODO: generic func or macro
-            // TODO: host given by server through network ?
-            // TODO: unwraps
-            let url = "http://127.0.0.1:6590/minimap";
-            let mut resp = reqwest::blocking::get(url).unwrap();
-            let mut file = std::fs::File::create(minimap).unwrap();
-            std::io::copy(&mut resp, &mut file).unwrap();
+            http_to_file!(format!("{static_}/minimap"), minimap);
         }
     }
 
@@ -55,13 +63,7 @@ fn download(mut commands: Commands, args: Res<Args>, meta: Res<Meta>) {
         match path.exists() {
             true => {}
             false => {
-                // TODO: generic func or macro
-                // TODO: host given by server through network ?
-                // TODO: unwraps
-                let url = format!("http://127.0.0.1:6590/region/{}/background", region.0);
-                let mut resp = reqwest::blocking::get(url).unwrap();
-                let mut file = std::fs::File::create(path).unwrap();
-                std::io::copy(&mut resp, &mut file).unwrap();
+                http_to_file!(format!("{static_}/region/{}/background", region.0), path);
                 counter += 1;
             }
         }
@@ -73,6 +75,8 @@ fn download(mut commands: Commands, args: Res<Args>, meta: Res<Meta>) {
         REGIONS_COUNT - counter
     );
     commands.trigger(Downloaded);
+
+    Ok(())
 }
 
 fn on_downloaded(_: On<Downloaded>, mut app_state: ResMut<NextState<AppState>>) {

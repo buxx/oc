@@ -4734,6 +4734,7 @@ version = "0.1.0"
 dependencies = [
  "oc_geo",
  "oc_individual",
+ "oc_root",
  "oc_world",
  "rkyv",
 ]
@@ -4753,6 +4754,10 @@ dependencies = [
 [[package]]
 name = "oc_root"
 version = "0.1.0"
+dependencies = [
+ "derive_more",
+ "rkyv",
+]
 
 [[package]]
 name = "oc_utils"

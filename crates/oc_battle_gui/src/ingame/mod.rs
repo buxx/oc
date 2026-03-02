@@ -4,7 +4,6 @@ use bevy::prelude::*;
 use crate::ingame::region::debug;
 use crate::{
     ingame::{
-        camera::CameraPlugin,
         individual::{IndividualPlugin, on_insert_individual, on_update_individual},
         input::{client::on_to_client, keyboard::on_key_press},
         region::{on_forgotten_region, on_listening_region},
@@ -13,11 +12,11 @@ use crate::{
             on_spawn_world_map_background, on_update_battle_square,
         },
     },
-    states::{AppState, Meta},
+    states::AppState,
 };
 use state::State;
 
-mod camera;
+pub mod camera;
 mod draw;
 mod individual;
 mod init;
@@ -31,9 +30,7 @@ pub struct IngamePlugin;
 impl Plugin for IngamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(IndividualPlugin)
-            .add_plugins(CameraPlugin)
             .init_resource::<State>()
-            .init_resource::<Meta>()
             .add_observer(on_to_client)
             .add_observer(on_insert_individual)
             .add_observer(on_update_individual)
