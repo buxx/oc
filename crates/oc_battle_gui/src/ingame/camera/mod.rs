@@ -7,7 +7,7 @@ use crate::{
             region::Region,
         },
         input::map::SwitchToWorldMap,
-        world::{DespawnWorldMapBackground, SpawnWorldMapBackground},
+        world::{AdjustMinimap, DespawnWorldMapBackground, SpawnWorldMapBackground},
     },
     states::{AppState, InGameState},
 };
@@ -104,6 +104,7 @@ fn on_window_resize_world_map(
         commands.trigger(SwitchToWorldMap);
         commands.trigger(DespawnWorldMapBackground);
         commands.trigger(SpawnWorldMapBackground);
+        commands.trigger(AdjustMinimap);
 
         if let Some(center) = state.previously {
             commands.trigger(UpdateVisibleBattleSquare(Vec2::new(center.x, center.y)));

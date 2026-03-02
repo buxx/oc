@@ -19,6 +19,9 @@ use crate::{
 pub struct SpawnMinimap;
 
 #[derive(Debug, Event)]
+pub struct AdjustMinimap;
+
+#[derive(Debug, Event)]
 pub struct SpawnVisibleBattleSquare;
 
 #[derive(Debug, Event)]
@@ -55,6 +58,24 @@ pub fn on_spawn_minimap(
         },
     ));
 }
+
+pub fn on_adjust_minimap(
+    _: On<AdjustMinimap>,
+    mut minimap: Single<&mut Transform, With<Minimap>>,
+    window: Single<&Window>,
+) {
+    let display = WorldMapDisplay::from_env(window.size());
+    let x = display.center.x;
+    let y = display.center.y;
+    let scale_x = display.size.x / MINIMAP_WIDTH_PIXELS as f32;
+    let scale_y = display.size.y / MINIMAP_HEIGHT_PIXELS as f32;
+
+    minimap.translation.x = x;
+    minimap.translation.y = y;
+    minimap.scale.x = scale_x;
+    minimap.scale.y = scale_y;
+}
+
 pub fn on_spawn_visible_battle_square(
     _: On<SpawnVisibleBattleSquare>,
     mut commands: Commands,
