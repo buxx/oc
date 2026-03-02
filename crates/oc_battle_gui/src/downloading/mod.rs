@@ -27,19 +27,35 @@ fn download(mut commands: Commands, args: Res<Args>, meta: Res<Meta>) {
     );
     let mut counter = 0;
 
+    // TODO: normalize somewhere
+    // TODO: !!! not compatible in "prod"
+    let path = PathBuf::from("crates/oc_battle_gui/assets");
+    let path = path.join(".cache").join("maps");
+    let path = path.join(meta.folder_name());
+    let minimap = path.join("minimap.png"); // TODO: this name in unique place
+    std::fs::create_dir_all(&path).unwrap();
+
+    match minimap.exists() {
+        true => {}
+        false => {
+            // TODO: generic func or macro
+            // TODO: host given by server through network ?
+            // TODO: unwraps
+            let url = "http://127.0.0.1:6590/minimap";
+            let mut resp = reqwest::blocking::get(url).unwrap();
+            let mut file = std::fs::File::create(minimap).unwrap();
+            std::io::copy(&mut resp, &mut file).unwrap();
+        }
+    }
+
     for region in 0..REGIONS_COUNT {
         let region = WorldRegionIndex(region as u64);
-        // TODO: normalize somewhere
-        // TODO: !!! not compatible in "prod"
-        let path = PathBuf::from("crates/oc_battle_gui/assets");
-        let path = path.join(".cache").join("maps");
-        let path = path.join(meta.folder_name());
-        std::fs::create_dir_all(&path).unwrap();
         let path = path.join(region.background_file_name());
 
         match path.exists() {
             true => {}
             false => {
+                // TODO: generic func or macro
                 // TODO: host given by server through network ?
                 // TODO: unwraps
                 let url = format!("http://127.0.0.1:6590/region/{}/background", region.0);

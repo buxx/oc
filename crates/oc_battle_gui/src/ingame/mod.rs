@@ -9,7 +9,7 @@ use crate::{
         input::{client::on_to_client, keyboard::on_key_press},
         region::{on_forgotten_region, on_listening_region},
         world::{
-            on_despawn_world_map_background, on_spawn_visible_battle_square,
+            on_despawn_world_map_background, on_spawn_minimap, on_spawn_visible_battle_square,
             on_spawn_world_map_background, on_update_battle_square,
         },
     },
@@ -38,11 +38,13 @@ impl Plugin for IngamePlugin {
             .add_observer(on_insert_individual)
             .add_observer(on_update_individual)
             .add_observer(on_update_battle_square)
+            .add_observer(on_spawn_minimap)
             .add_observer(on_spawn_visible_battle_square)
             .add_observer(on_spawn_world_map_background)
             .add_observer(on_despawn_world_map_background)
             .add_observer(on_listening_region)
             .add_observer(on_forgotten_region)
+            // TODO: despawn entities on OnExit(AppState::InGame)
             .add_systems(
                 OnEnter(AppState::InGame),
                 (init::refresh, init::spawn_world_map),

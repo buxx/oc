@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use oc_geo::tile::TileXy;
 
+pub mod minimap;
 pub mod region;
 
 #[derive(Debug, Component)]

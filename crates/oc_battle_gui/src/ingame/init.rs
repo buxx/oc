@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use oc_network::ToServer;
 
 use crate::{
-    ingame::world::{SpawnVisibleBattleSquare, SpawnWorldMapBackground},
+    ingame::world::{SpawnMinimap, SpawnVisibleBattleSquare, SpawnWorldMapBackground},
     network::output::ToServerEvent,
 };
 
@@ -11,6 +11,7 @@ pub fn refresh(mut commands: Commands) {
 }
 
 pub fn spawn_world_map(mut commands: Commands) {
+    commands.trigger(SpawnMinimap);
     commands.trigger(SpawnWorldMapBackground);
     commands.trigger(SpawnVisibleBattleSquare);
 }
