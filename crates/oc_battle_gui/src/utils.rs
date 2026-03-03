@@ -27,6 +27,9 @@ impl OcPaths for PathBuf {
 #[macro_export]
 macro_rules! http_to_file {
     ($url:expr, $path:expr) => {
+        if let Some(parent) = $path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
         let mut resp = reqwest::blocking::get($url)?;
         let mut file = std::fs::File::create($path)?;
         std::io::copy(&mut resp, &mut file)?;

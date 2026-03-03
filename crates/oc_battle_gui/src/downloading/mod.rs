@@ -44,10 +44,8 @@ fn download(
 
     let static_ = format!("http://{}:{}", network.ip(), config.static_);
     let mut counter = 0;
-    let path = PathBuf::maps();
+    let path = PathBuf::maps().join(meta.folder_name());
     let minimap = PathBuf::minimap(&meta);
-
-    std::fs::create_dir_all(&path)?;
 
     match minimap.exists() {
         true => {}
