@@ -1,6 +1,7 @@
 use derive_more::Constructor;
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::{Individual, IndividualIndex};
+use oc_projectile::Projectile;
 
 use crate::meta::Meta;
 
@@ -15,6 +16,7 @@ pub struct World {
     meta: Meta,
     tiles: Vec<tile::Tile>,
     individuals: Vec<Individual>,
+    projectiles: Vec<Projectile>,
 }
 
 impl World {

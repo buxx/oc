@@ -5,7 +5,7 @@ use message_io::network::Endpoint;
 use oc_geo::tile::TileXy;
 use oc_individual::{Individual, IndividualIndex};
 use oc_network::ToClient;
-use oc_physics::Laws;
+use oc_physics::{Force, Laws, Physic};
 
 use crate::{individual, state::State};
 
@@ -18,21 +18,32 @@ pub struct Processor {
 
 impl Processor {
     pub fn step(&self, i: usize) {
-        self.individuals(i);
+        let individuals = self.individuals(i);
+        // let projectiles = self.projectiles(i);
+
+        individuals.into_iter().for_each(|(i, updates)| {
+            updates.into_iter().for_each(|update| {
+                individual::update::write(update, i, &self.state, &self.output);
+            });
+        });
+
+        // projectiles.into_iter().for_each(|(i, updates)| {
+        //     updates.into_iter().for_each(|update| {
+        //         projectiles::update::write(update, i, &self.state, &self.output);
+        //     });
+        // });
     }
 
-    fn individuals(&self, i: usize) {
-        let updates: Vec<(IndividualIndex, Vec<oc_individual::Update>)> = {
-            let world = self.state.world();
-            let all: Vec<(usize, &Individual)> =
-                world.individuals().into_iter().enumerate().collect();
-            let size = (all.len() as f32 / self.cpus as f32).ceil() as usize;
-            let chunks = all.chunks(size).collect::<Vec<_>>();
-            let chunk = chunks.get(i);
-            let Some(chunk) = chunk else { return };
-            let tiles = |xy| world.tile(TileXy(xy));
+    fn individuals(&self, i: usize) -> Vec<(IndividualIndex, Vec<oc_individual::Update>)> {
+        let world = self.state.world();
+        let all: Vec<(usize, &Individual)> = world.individuals().into_iter().enumerate().collect();
+        let size = (all.len() as f32 / self.cpus as f32).ceil() as usize;
+        let chunks = all.chunks(size).collect::<Vec<_>>();
+        let chunk = chunks.get(i);
+        let Some(chunk) = chunk else { return vec![] };
+        let tiles = |xy| world.tile(TileXy(xy));
 
-            chunk
+        chunk
                 .into_iter()
                 .map(|(i, individual)| {
                     let i = IndividualIndex(*i as u64);
@@ -44,12 +55,5 @@ impl Processor {
                     (i, updates)
                 })
                 .collect::<Vec<_>>()
-        };
-
-        updates.into_iter().for_each(|(i, updates)| {
-            updates.into_iter().for_each(|update| {
-                individual::update::write(update, i, &self.state, &self.output);
-            });
-        });
     }
 }

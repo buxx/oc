@@ -39,7 +39,8 @@ impl WorldLoader {
 
         let tiles = vec![Tile::ShortGrass; TILES_COUNT];
         let individuals = hack_individuals();
-        let world = World::new(meta, tiles, individuals);
+        let projectiles = vec![];
+        let world = World::new(meta, tiles, individuals, projectiles);
 
         Ok(world)
     }

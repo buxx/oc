@@ -70,6 +70,7 @@ impl Individual {
     }
 }
 
+// TODO: Resolve this strange need of impl on &T
 impl Physic for &Individual {
     fn position(&self) -> &[f32; 2] {
         &self.position
@@ -84,7 +85,28 @@ impl Physic for &Individual {
     }
 }
 
+impl Physic for Individual {
+    fn position(&self) -> &[f32; 2] {
+        &self.position
+    }
+
+    fn xy(&self) -> &Xy {
+        &self.tile.0
+    }
+
+    fn forces(&self) -> &Vec<Force> {
+        &self.forces
+    }
+}
+
+// TODO: Resolve this strange need of impl on &T
 impl Material for &Individual {
+    fn material(&self) -> Materials {
+        Materials::Traversable
+    }
+}
+
+impl Material for Individual {
     fn material(&self) -> Materials {
         Materials::Traversable
     }
