@@ -46,6 +46,7 @@ pub fn write(
         (region_before, individual.region)
     };
 
+    tracing::trace!(name="individual-update-write-broadast-update", i=?i, update=?update);
     broadcast(
         state,
         Listening::Regions(vec![region_before.into()]),
@@ -57,6 +58,7 @@ pub fn write(
         let world = state.world();
         let individual = world.individual(i).clone();
 
+        tracing::trace!(name="individual-update-write-broadast-insert", i=?i);
         broadcast(
             state,
             Listening::Regions(vec![]),

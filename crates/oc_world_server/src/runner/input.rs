@@ -41,12 +41,7 @@ impl<'a> Dealer<'a> {
     }
 
     fn refresh(&self) {
-        let listeners = self.state.listeners();
-        let regions = listeners.listener_regions(&self.endpoint);
-
-        for region in regions {
-            self.refresh_region(*region)
-        }
+        // global refresh will send "non region" things (global game info, etc)
     }
 
     fn refresh_region(&self, region: WorldRegionIndex) {
@@ -55,6 +50,7 @@ impl<'a> Dealer<'a> {
         let world = self.state.world();
 
         for i in indexes.region_individuals(region) {
+            tracing::trace!(name="dealer-refresh-region-insert-individual", endpoint=?self.endpoint, region=?region, i=?i);
             let individual = world.individual(*i).clone();
             let message = ToClient::Individual(Individual::Insert(*i, individual.into()));
             let message = (self.endpoint.clone(), message);
