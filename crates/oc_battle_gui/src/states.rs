@@ -21,3 +21,6 @@ pub struct Config(pub Option<oc_root::config::Config>);
 
 #[derive(Debug, Resource, Default)]
 pub struct Meta(pub Option<oc_world::meta::Meta>);
+
+#[derive(Debug, Resource, Default)]
+pub struct Window(pub Option<crate::window::Window>);

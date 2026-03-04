@@ -71,6 +71,9 @@ impl Runner {
         let state = self.state.clone();
         let output = self.output.clone();
         let size = (INDIVIDUALS_COUNT as f32 / cpus as f32).ceil() as usize;
+        if size == 0 {
+            return;
+        }
 
         (0..INDIVIDUALS_COUNT)
             .collect::<Vec<usize>>()

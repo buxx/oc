@@ -82,6 +82,11 @@ impl From<TileXy> for WorldRegionIndex {
     }
 }
 
+pub trait Region {
+    fn region(&self) -> &RegionXy;
+    fn set_region(&mut self, value: RegionXy);
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;

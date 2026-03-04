@@ -1,7 +1,8 @@
 use derive_more::Constructor;
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::{Individual, IndividualIndex};
-use oc_projectile::Projectile;
+use oc_projectile::{Projectile, ProjectileId};
+use rustc_hash::FxHashMap;
 
 use crate::meta::Meta;
 
@@ -16,7 +17,7 @@ pub struct World {
     meta: Meta,
     tiles: Vec<tile::Tile>,
     individuals: Vec<Individual>,
-    projectiles: Vec<Projectile>,
+    projectiles: FxHashMap<ProjectileId, Projectile>,
 }
 
 impl World {
@@ -34,6 +35,22 @@ impl World {
 
     pub fn individual_mut(&mut self, i: IndividualIndex) -> &mut Individual {
         &mut self.individuals[i.0 as usize]
+    }
+
+    pub fn projectiles(&self) -> Vec<(&ProjectileId, &Projectile)> {
+        self.projectiles.iter().collect()
+    }
+
+    pub fn projectiles_mut(&mut self) -> &mut FxHashMap<ProjectileId, Projectile> {
+        &mut self.projectiles
+    }
+
+    pub fn projectile(&self, i: &ProjectileId) -> Option<&Projectile> {
+        self.projectiles.get(i)
+    }
+
+    pub fn projectile_mut(&mut self, i: &ProjectileId) -> Option<&mut Projectile> {
+        self.projectiles.get_mut(i)
     }
 
     pub fn meta(&self) -> &Meta {

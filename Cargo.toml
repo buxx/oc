@@ -25,6 +25,7 @@ axum = "0.8"
 tokio = "1.49"
 tokio-util = "0.7"
 reqwest = "0.13"
+bevy_egui = "0.39"
 
 # tests
 rstest = "0.26"

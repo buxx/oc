@@ -93,7 +93,9 @@ pub struct IndividualPlugin;
 
 impl Plugin for IndividualPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(on_update_position_event)
+        app.add_observer(on_insert_individual)
+            .add_observer(on_update_individual)
+            .add_observer(on_update_position_event)
             .add_observer(on_update_tile_event)
             .add_observer(on_update_region_event)
             .add_observer(on_update_behavior_event)

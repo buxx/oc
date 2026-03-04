@@ -1,20 +1,26 @@
 use oc_geo::{
-    region::{RegionXy, WorldRegionIndex},
+    region::{Region, RegionXy, WorldRegionIndex},
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::IndividualIndex;
+use oc_projectile::{Projectile, ProjectileId};
 use oc_root::{REGIONS_COUNT, TILES_COUNT};
 use oc_world::World;
 
+// FIXME: refactor ?
 pub struct Indexes {
     tiles_individuals: Vec<Vec<IndividualIndex>>,
+    tiles_projectiles: Vec<Vec<ProjectileId>>,
     regions_individuals: Vec<Vec<IndividualIndex>>,
+    regions_projectiles: Vec<Vec<ProjectileId>>,
 }
 
 impl Indexes {
     pub fn new(world: &World) -> Self {
         let mut tiles_individuals = vec![vec![]; TILES_COUNT];
+        let mut tiles_projectiles = vec![vec![]; TILES_COUNT];
         let mut regions_individuals = vec![vec![]; REGIONS_COUNT];
+        let mut regions_projectiles = vec![vec![]; REGIONS_COUNT];
 
         for (i, individual) in world.individuals().iter().enumerate() {
             let tile: WorldTileIndex = individual.tile.into();
@@ -24,10 +30,25 @@ impl Indexes {
             regions_individuals[region.0 as usize].push(i.into());
         }
 
+        for (id, projectile) in world.projectiles() {
+            let tile: WorldTileIndex = projectile.tile().clone().into();
+            let region: WorldRegionIndex = tile.into();
+
+            tiles_projectiles[tile.0].push(*id);
+            regions_projectiles[region.0 as usize].push(*id);
+        }
+
         Self {
             tiles_individuals,
+            tiles_projectiles,
             regions_individuals,
+            regions_projectiles,
         }
+    }
+
+    pub fn insert_projectile(&mut self, id: ProjectileId, projectile: &Projectile) {
+        self.update_projectile_tile(id, projectile.tile().clone(), projectile.tile().clone());
+        self.update_projectile_region(id, projectile.region().clone(), projectile.region().clone());
     }
 
     pub fn update_individual_tile(&mut self, i: IndividualIndex, now: TileXy, before: TileXy) {
@@ -35,6 +56,13 @@ impl Indexes {
         self.tiles_individuals[before_tile.0].retain(|i_| *i_ != i);
         let now_tile: WorldTileIndex = now.into();
         self.tiles_individuals[now_tile.0].push(i);
+    }
+
+    pub fn update_projectile_tile(&mut self, id: ProjectileId, now: TileXy, before: TileXy) {
+        let before_tile: WorldTileIndex = before.into();
+        self.tiles_projectiles[before_tile.0].retain(|id_| *id_ != id);
+        let now_tile: WorldTileIndex = now.into();
+        self.tiles_projectiles[now_tile.0].push(id);
     }
 
     pub fn update_individual_region(
@@ -49,7 +77,18 @@ impl Indexes {
         self.regions_individuals[now_region.0 as usize].push(i);
     }
 
+    pub fn update_projectile_region(&mut self, id: ProjectileId, now: RegionXy, before: RegionXy) {
+        let before_region: WorldRegionIndex = before.into();
+        self.regions_projectiles[before_region.0 as usize].retain(|id_| *id_ != id);
+        let now_region: WorldRegionIndex = now.into();
+        self.regions_projectiles[now_region.0 as usize].push(id);
+    }
+
     pub fn region_individuals(&self, region: WorldRegionIndex) -> &Vec<IndividualIndex> {
         &self.regions_individuals[region.0 as usize]
+    }
+
+    pub fn region_projectiles(&self, region: WorldRegionIndex) -> &Vec<ProjectileId> {
+        &self.regions_projectiles[region.0 as usize]
     }
 }

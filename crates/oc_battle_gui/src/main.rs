@@ -2,6 +2,7 @@ use std::net::SocketAddr;
 
 use bevy::prelude::*;
 use bevy::sprite_render::Wireframe2dPlugin;
+use bevy_egui::EguiPlugin;
 use clap::Parser;
 
 use crate::{
@@ -27,6 +28,7 @@ mod network;
 mod setup;
 mod states;
 mod utils;
+mod window;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -49,16 +51,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }),
         ..default()
     }))
+    .add_plugins(EguiPlugin::default())
     .add_plugins(Wireframe2dPlugin::default())
     .add_plugins(ErrorPlugin)
     .add_plugins(NetworkPlugin)
     .add_plugins(HomePlugin)
     .add_plugins(DownloadingPlugin)
     .add_plugins(IngamePlugin)
+    .add_plugins(window::WindowPlugin)
     .add_plugins(ingame::camera::CameraPlugin)
     .insert_state(AppState::Home)
     .init_resource::<Meta>()
     .init_resource::<Config>()
+    .init_resource::<states::Window>()
     .init_state::<InGameState>()
     .insert_resource(Args(Args_::parse()))
     .add_systems(Startup, setup::setup);
