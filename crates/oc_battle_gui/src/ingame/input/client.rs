@@ -1,9 +1,13 @@
 use bevy::prelude::*;
-use oc_individual::network;
+use oc_individual::network::Individual;
 use oc_network::ToClient;
+use oc_projectile::network::Projectile;
 
 use crate::{
-    ingame::input::individual::{InsertIndividualEvent, UpdateIndividualEvent},
+    ingame::input::{
+        individual::{InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent},
+        projectile::{InsertProjectileEvent, UpdateProjectilePhysicsEvent},
+    },
     network::input::ToClientEvent,
     states::{Config, Meta},
 };
@@ -24,11 +28,24 @@ pub fn on_to_client(
             meta.0 = Some(meta_.clone());
         }
         ToClient::Individual(message) => match message {
-            network::Individual::Insert(i, individual) => {
+            Individual::Insert(i, individual) => {
                 commands.trigger(InsertIndividualEvent(*i, individual.clone()));
             }
-            network::Individual::Update(i, update) => {
+            Individual::Update(i, update) => {
                 commands.trigger(UpdateIndividualEvent(*i, update.clone()));
+            }
+            Individual::Physics(i, update) => {
+                commands.trigger(UpdateIndividualPhysicsEvent(*i, update.clone()));
+            }
+        },
+        ToClient::Projectile(message) => match message {
+            Projectile::Insert(id, projectile) => {
+                tracing::trace!(name="ingame-input-client", message=?to_client.0);
+                commands.trigger(InsertProjectileEvent(*id, projectile.clone()));
+            }
+            Projectile::Physics(id, update) => {
+                tracing::trace!(name="ingame-input-client", message=?to_client.0);
+                commands.trigger(UpdateProjectilePhysicsEvent(*id, update.clone()));
             }
         },
     }

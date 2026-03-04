@@ -15,7 +15,10 @@ use oc_root::{
 use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 use thiserror::Error;
 
-use crate::{individual, network::Event, physics, runner::input::Dealer, state::State};
+use crate::{
+    individual, network::Event, physics, runner::input::Dealer, state::State,
+    utils::context::Context,
+};
 
 mod input;
 
@@ -38,13 +41,10 @@ impl Runner {
     }
 
     fn start_physics(&self) {
-        let cpus = num_cpus::get();
-        let state = self.state.clone();
-        let output = self.output.clone();
+        let ctx = Context::new(self.state.clone(), self.output.clone());
 
-        (0..cpus).for_each(|i| {
-            let state = state.clone();
-            let output = output.clone();
+        (0..ctx.cpus).for_each(|i| {
+            let ctx = ctx.clone();
 
             std::thread::spawn(move || {
                 let mut last = Instant::now();
@@ -53,11 +53,7 @@ impl Runner {
                     let elapsed = last.elapsed().as_micros() as u64;
                     let wait = PHYSICS_TICK_INTERVAL_US - elapsed;
                     std::thread::sleep(Duration::from_micros(wait));
-
-                    let state = state.clone();
-                    let output = output.clone();
-                    physics::Processor::new(cpus, state, output).step(i);
-
+                    physics::Processor::new(&ctx).step(i);
                     last = Instant::now();
                 }
             });
@@ -67,18 +63,18 @@ impl Runner {
     fn start_individuals(&self) {
         tracing::debug!("Start individuals threads");
 
-        let cpus = num_cpus::get();
-        let state = self.state.clone();
-        let output = self.output.clone();
-        let size = (INDIVIDUALS_COUNT as f32 / cpus as f32).ceil() as usize;
+        let ctx = Context::new(self.state.clone(), self.output.clone());
+        let size = (INDIVIDUALS_COUNT as f32 / ctx.cpus as f32).ceil() as usize;
+        if size == 0 {
+            return;
+        }
 
         (0..INDIVIDUALS_COUNT)
             .collect::<Vec<usize>>()
             .par_chunks(size)
             .for_each(|indexes| {
                 let indexes = indexes.to_vec();
-                let state = state.clone();
-                let output = output.clone();
+                let ctx = ctx.clone();
 
                 std::thread::spawn(move || {
                     let mut last = Instant::now();
@@ -91,11 +87,8 @@ impl Runner {
                         for i in &indexes {
                             tracing::trace!(name = "runner-individual", i = ?i);
 
-                            let state = state.clone();
-                            let output = output.clone();
-                            state.perf.incr();
-
-                            individual::Processor::new((*i).into(), state, output).step();
+                            ctx.state.perf.incr();
+                            individual::Processor::new(&ctx, (*i).into()).step();
                         }
 
                         last = Instant::now();

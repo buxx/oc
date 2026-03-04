@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-debug = ["bevy/bevy_dev_tools"]
+debug = ["bevy/bevy_dev_tools", "oc_network/debug"]
 
 # [profile.dev]
 # opt-level = 1
@@ -29,6 +29,7 @@ oc_geo = { path = "../oc_geo" }
 oc_world = { path = "../oc_world" }
 oc_physics = { path = "../oc_physics" }
 oc_individual = { path = "../oc_individual" }
+oc_projectile = { path = "../oc_projectile" }
 bevy.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
@@ -37,3 +38,4 @@ message-io.workspace = true
 rkyv.workspace = true
 rustc-hash.workspace = true
 reqwest = { workspace = true, features = ["blocking"] }
+bevy_egui.workspace = true

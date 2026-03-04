@@ -3,9 +3,13 @@ name = "oc_network"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+debug = []
+
 [dependencies]
 oc_root = { path = "../oc_root" }
 oc_individual = { path = "../oc_individual" }
+oc_projectile = { path = "../oc_projectile" }
 oc_geo = { path = "../oc_geo" }
 oc_world = { path = "../oc_world" }
 rkyv.workspace = true

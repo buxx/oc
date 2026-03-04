@@ -18,7 +18,7 @@ pub const REGIONS_HEIGHT: u64 = 11;
 pub struct UpdateRegions(pub Vec2);
 
 #[derive(Debug, Clone)]
-pub struct Region(pub WorldRegionIndex, pub bool);
+pub struct Region(pub WorldRegionIndex);
 
 pub fn on_update_regions(
     point: On<UpdateRegions>,
@@ -33,7 +33,7 @@ pub fn on_update_regions(
     let new: Vec<Region> = regions
         .iter()
         .filter(|region| !current.iter().find(|r| r.0 == **region).is_some())
-        .map(|i| Region(*i, false))
+        .map(|i| Region(*i))
         .collect();
 
     let still: Vec<Region> = current

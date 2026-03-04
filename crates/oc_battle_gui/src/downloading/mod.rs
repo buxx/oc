@@ -5,7 +5,7 @@ use oc_geo::region::WorldRegionIndex;
 use oc_root::REGIONS_COUNT;
 
 use crate::{
-    Args, http_to_file, network,
+    http_to_file, network,
     states::{AppState, Config, Meta},
     utils::OcPaths,
 };

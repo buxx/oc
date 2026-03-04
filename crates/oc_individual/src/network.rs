@@ -7,4 +7,5 @@ use crate::{Individual as Individual_, IndividualIndex, Update};
 pub enum Individual {
     Insert(IndividualIndex, Individual_),
     Update(IndividualIndex, Update),
+    Physics(IndividualIndex, oc_physics::update::Update),
 }

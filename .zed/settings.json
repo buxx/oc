@@ -2,16 +2,13 @@
   "inlay_hints": {
     "enabled": true,
   },
-  "minimap": {
-    "show": "always",
-  },
   "lsp": {
     "rust-analyzer": {
-      // "initialization_options": {
-      //   "cargo": {
-      //     // "allFeatures": true
-      //   },
-      // },
+      "initialization_options": {
+        "cargo": {
+          "features": ["debug"],
+        },
+      },
     },
   },
 }

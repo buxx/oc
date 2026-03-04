@@ -1,31 +1,26 @@
-use std::sync::{Arc, mpsc::Sender};
-
 use derive_more::Constructor;
-use message_io::network::Endpoint;
 use oc_individual::IndividualIndex;
-use oc_network::ToClient;
 
-use crate::{individual::move_::Move, state::State};
+use crate::{individual::move_::Move, utils::context::Context};
 
 mod move_;
 pub mod physics;
 pub mod update;
 
 #[derive(Constructor)]
-pub struct Processor {
+pub struct Processor<'a> {
+    ctx: &'a Context,
     i: IndividualIndex,
-    state: Arc<State>,
-    output: Sender<(Endpoint, ToClient)>,
 }
 
-impl Processor {
+impl<'a> Processor<'a> {
     pub fn step(self) {
         let mut updates = vec![];
 
         updates.extend(Move::from(&self).read());
 
         updates.into_iter().for_each(|update| {
-            update::write(update, self.i, &self.state, &self.output);
+            update::write(&self.ctx, update, self.i);
         });
     }
 }

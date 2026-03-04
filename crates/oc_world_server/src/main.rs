@@ -1,7 +1,7 @@
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 
 use clap::Parser;
-use oc_root::config::Config;
+use oc_root::{config::Config, ids::Ids};
 use oc_world::load::WorldLoader;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
@@ -13,10 +13,12 @@ mod individual;
 mod network;
 mod perf;
 mod physics;
+mod projectile;
 mod routing;
 mod runner;
 mod state;
 mod static_;
+mod utils;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -48,9 +50,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .init();
 
-    let world = WorldLoader::new(args.world.clone(), args.cache.clone()).load()?;
+    let ids = Ids::default();
+    let world = WorldLoader::new(args.world.clone(), args.cache.clone()).load(&ids)?;
     let (input, output) = network::listen(args.host);
-    let state = Arc::new(State::new(world));
+    let state = Arc::new(State::new(ids, world));
     let config = Config::new(args.static_.port());
 
     let state_ = state.clone();

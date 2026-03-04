@@ -50,7 +50,7 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
 
     pub fn find(&self, filter: Listening) -> FxHashSet<T> {
         match filter {
-            Listening::Regions(tiles) => tiles
+            Listening::Regions(regions) => regions
                 .into_iter()
                 .map(|tile| {
                     let region: WorldRegionIndex = tile.into();

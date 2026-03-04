@@ -1,5 +1,5 @@
 use bresenham::Bresenham;
-use oc_root::{GEO_PIXELS_PER_TILE, WORLD_HEIGHT, WORLD_WIDTH};
+use oc_root::{GEO_PIXELS_PER_TILE, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS};
 use oc_utils::d2::Xy;
 
 use crate::Laws;
@@ -37,8 +37,8 @@ impl<'a> Steps<'a> {
         Self {
             laws,
             bresenham,
-            x: from_x,
-            y: from_y,
+            x: start.0 as f32,
+            y: start.1 as f32,
             step,
             tile,
             target,
@@ -51,17 +51,27 @@ impl<'a> Iterator for Steps<'a> {
     type Item = ([f32; 2], Xy);
 
     fn next(&mut self) -> Option<Self::Item> {
+        let world_width = WORLD_WIDTH_PIXELS as f32 * self.laws.bresenham_precision;
+        let world_height = WORLD_HEIGHT_PIXELS as f32 * self.laws.bresenham_precision;
+
         if self.first {
             self.first = false;
+
             let tile = Xy(
                 (self.x / self.laws.bresenham_precision) as u64 / self.laws.pixels_per_tile,
                 (self.y / self.laws.bresenham_precision) as u64 / self.laws.pixels_per_tile,
             );
-            return Some((([self.x, self.y]), tile));
+            return Some((
+                ([
+                    self.x / self.laws.bresenham_precision,
+                    self.y / self.laws.bresenham_precision,
+                ]),
+                tile,
+            ));
         }
 
         if let Some((x, y)) = self.bresenham.nth(self.step) {
-            if x < 0 || y < 0 || x + 1 >= WORLD_WIDTH as isize || y + 1 >= WORLD_HEIGHT as isize {
+            if x < 0 || y < 0 || x + 1 >= world_width as isize || y + 1 >= world_height as isize {
                 return None;
             }
 
@@ -114,5 +124,17 @@ mod tests {
         assert_eq!(steps.next(), Some(([7.52, 7.52], Xy(1, 1)))); // :(
         assert_eq!(steps.next(), Some(([10.0, 10.0], Xy(2, 2))));
         assert_eq!(steps.next(), None);
+    }
+
+    #[test]
+    fn test_steps_in_diag() {
+        // Given
+        let laws = Laws::default();
+        let mut steps = Steps::new(&laws, (10., 10.), (15.0, 15.0));
+
+        // When-Then
+        assert_eq!(steps.next(), Some(([10.0, 10.0], Xy(2, 2))));
+        assert_eq!(steps.next(), Some(([12.5, 12.5], Xy(2, 2))));
+        assert_eq!(steps.next(), Some(([15., 15.], Xy(3, 3))));
     }
 }

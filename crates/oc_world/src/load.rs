@@ -13,9 +13,10 @@ use oc_geo::{
 use oc_individual::{Individual, behavior::Behavior};
 use oc_root::{
     GEO_PIXELS_PER_TILE, INDIVIDUALS_COUNT, MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS,
-    REGIONS_COUNT, TILES_COUNT, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS,
+    REGIONS_COUNT, TILES_COUNT, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS, ids::Ids,
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rustc_hash::FxHashMap;
 use thiserror::Error;
 
 use crate::{
@@ -32,14 +33,15 @@ pub struct WorldLoader {
 }
 
 impl WorldLoader {
-    pub fn load(&self) -> Result<World, Error> {
+    pub fn load(&self, _ids: &Ids) -> Result<World, Error> {
         self.check()?;
         let meta = Meta::from_file(&self.world_path.meta()).map_err(|e| MetaError::Load(e))?;
         self.cache(&meta)?;
 
         let tiles = vec![Tile::ShortGrass; TILES_COUNT];
         let individuals = hack_individuals();
-        let projectiles = vec![];
+        // TODO: when load from backup, regenerate ids
+        let projectiles = FxHashMap::default();
         let world = World::new(meta, tiles, individuals, projectiles);
 
         Ok(world)

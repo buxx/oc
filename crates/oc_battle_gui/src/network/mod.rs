@@ -80,9 +80,7 @@ fn listen(
                         .send(NetworkMessage::Connected(host.clone()))
                         .ok_or_log();
                 } else {
-                    input
-                        .send(NetworkMessage::FailToConnect(host.clone()))
-                        .ok_or_log();
+                    input.send(NetworkMessage::FailToConnect).ok_or_log();
                 }
             }
             NetEvent::Accepted(_, _) => unreachable!(),
@@ -102,9 +100,7 @@ fn listen(
             }
             NetEvent::Disconnected(_endpoint) => {
                 tracing::info!("Disconnected from server ({host})");
-                input
-                    .send(NetworkMessage::Disconnected(host.clone()))
-                    .ok_or_log();
+                input.send(NetworkMessage::Disconnected).ok_or_log();
             }
         },
         NodeEvent::Signal(_signal) => {}

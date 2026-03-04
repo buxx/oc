@@ -3,7 +3,9 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 
 use message_io::network::{Endpoint, NetEvent, Transport};
 use message_io::node::{self};
+use oc_individual::IndividualIndex;
 use oc_network::{ArchivedToServer, ToClient, ToServer};
+use oc_projectile::ProjectileId;
 use rkyv::api::low::deserialize;
 use rkyv::rancor::Error;
 use rkyv::util::AlignedVec;
@@ -61,4 +63,45 @@ pub enum Event {
     Connected(Endpoint),
     Disconnected(Endpoint),
     Message(Endpoint, ToServer),
+}
+
+pub trait IntoNetworkUpdate {
+    fn into_network_update(
+        &self,
+        update: oc_physics::update::Update,
+    ) -> impl Clone + Into<ToClient>;
+}
+
+impl IntoNetworkUpdate for IndividualIndex {
+    fn into_network_update(
+        &self,
+        update: oc_physics::update::Update,
+    ) -> impl Clone + Into<ToClient> {
+        oc_individual::network::Individual::Physics(*self, update)
+    }
+}
+
+impl IntoNetworkUpdate for ProjectileId {
+    fn into_network_update(
+        &self,
+        update: oc_physics::update::Update,
+    ) -> impl Clone + Into<ToClient> {
+        oc_projectile::network::Projectile::Physics(*self, update)
+    }
+}
+
+pub trait IntoNetworkInsert<I> {
+    fn into_network_insert(&self, i: I) -> impl Clone + Into<ToClient>;
+}
+
+impl IntoNetworkInsert<IndividualIndex> for oc_individual::Individual {
+    fn into_network_insert(&self, i: IndividualIndex) -> impl Clone + Into<ToClient> {
+        oc_individual::network::Individual::Insert(i, self.clone())
+    }
+}
+
+impl IntoNetworkInsert<ProjectileId> for oc_projectile::Projectile {
+    fn into_network_insert(&self, i: ProjectileId) -> impl Clone + Into<ToClient> {
+        oc_projectile::network::Projectile::Insert(i, self.clone())
+    }
 }

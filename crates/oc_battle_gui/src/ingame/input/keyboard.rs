@@ -5,6 +5,8 @@ use bevy::prelude::*;
 use crate::ingame::camera;
 use crate::ingame::camera::map::SaveCurrentWindowCenterAsBattleCenter;
 use crate::ingame::input::map::{SwitchToBattleMap, SwitchToWorldMap};
+#[cfg(feature = "debug")]
+use crate::window::debug::battle::ToggleBattleDebugWindow;
 
 pub fn on_key_press(
     mut commands: Commands,
@@ -20,6 +22,10 @@ pub fn on_key_press(
                 }
                 camera::Focus::World => commands.trigger(SwitchToBattleMap),
             },
+            #[cfg(feature = "debug")]
+            (ButtonState::Released, KeyCode::F12) => {
+                commands.trigger(ToggleBattleDebugWindow);
+            }
             _ => {}
         }
     }

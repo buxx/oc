@@ -10,6 +10,7 @@ use crate::collision::Material;
 pub mod collision;
 pub mod line;
 pub mod translation;
+pub mod update;
 
 pub struct Laws {
     /// For units in x/s, this value is coeff per tick, to obtain 1.0 after the number of tick done in one second
@@ -66,8 +67,13 @@ impl Deref for MetersSeconds {
 
 pub trait Physic: Material {
     fn position(&self) -> &[f32; 2];
-    fn xy(&self) -> &Xy;
     fn forces(&self) -> &Vec<Force>;
+}
+
+pub trait UpdatePhysic: Physic + Material {
+    fn set_position(&mut self, value: [f32; 2]);
+    fn push_force(&mut self, value: Force);
+    fn remove_force(&mut self, value: &Force);
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
@@ -92,9 +98,20 @@ where
     'forces: for force in object.forces() {
         match force {
             Force::Translation(direction, speed) => {
-                let s = speed.0 * laws.tick_coeff;
+                let speed = speed.0 * laws.tick_coeff;
                 let [x, y] = position;
-                let (x_, y_) = (x + direction[0] * s, y + direction[1] * s);
+                // FIXME: la direction (f32; 2) influe sur la vitesse, utiliser autre chose
+                let (x_, y_) = (x + direction[0] * speed, y + direction[1] * speed);
+
+                tracing::trace!(
+                    name = "physics-step-translation-start",
+                    x = x,
+                    y = y,
+                    x_ = x_,
+                    y_ = y_,
+                    speed = speed
+                );
+
                 let mut curent_tile = Xy(
                     x as u64 / GEO_PIXELS_PER_TILE,
                     y as u64 / GEO_PIXELS_PER_TILE,
@@ -136,17 +153,14 @@ mod tests {
 
     use super::*;
 
-    struct MyObject([f32; 2], Xy, Vec<Force>);
+    struct MyObject([f32; 2], Vec<Force>);
 
     impl Physic for MyObject {
         fn position(&self) -> &[f32; 2] {
             &self.0
         }
-        fn xy(&self) -> &Xy {
-            &self.1
-        }
         fn forces(&self) -> &Vec<Force> {
-            &self.2
+            &self.1
         }
     }
 
@@ -171,7 +185,7 @@ mod tests {
         let direction = [1.0, 0.0]; // South
         let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0], Xy(0, 0), vec![force]);
+        let object = MyObject([0.0, 0.0], vec![force]);
         let tiles = |_| Some(&MyTile(Materials::Traversable));
 
         // When
@@ -192,7 +206,7 @@ mod tests {
         let direction = [1.0, 0.0]; // South
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0], Xy(0, 0), vec![force]);
+        let object = MyObject([0.0, 0.0], vec![force]);
         let tiles = |xy| {
             if xy == Xy(0, 0) {
                 Some(&MyTile(Materials::Traversable))
@@ -218,7 +232,7 @@ mod tests {
         let direction = [1.0, 0.0]; // South
         let speed = MetersSeconds(10.0);
         let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0], Xy(0, 0), vec![force]);
+        let object = MyObject([0.0, 0.0], vec![force]);
         let tiles = |_| Some(&MyTile(Materials::Traversable));
 
         // When
@@ -239,7 +253,7 @@ mod tests {
         let direction = [1.0, 0.0]; // South
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0], Xy(0, 0), vec![force]);
+        let object = MyObject([0.0, 0.0], vec![force]);
         let tiles = |xy| {
             if xy == Xy(0, 0) {
                 Some(&MyTile(Materials::Traversable))
@@ -265,7 +279,7 @@ mod tests {
         let direction = [1.0, 1.0]; // South
         let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0], Xy(0, 0), vec![force]);
+        let object = MyObject([0.0, 0.0], vec![force]);
         let tiles = |_| Some(&MyTile(Materials::Traversable));
 
         // When

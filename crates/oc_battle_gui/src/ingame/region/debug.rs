@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_root::{
     GEO_PIXELS_PER_TILE, REGION_HEIGHT, REGION_HEIGHT_PIXELS, REGION_WIDTH, REGION_WIDTH_PIXELS,
-    WORLD_HEIGHT, WORLD_WIDTH,
 };
 
 use super::{ForgottenRegion, ListeningRegion};
