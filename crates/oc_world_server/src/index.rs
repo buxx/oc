@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use oc_geo::{
     region::{Region, RegionXy, WorldRegionIndex},
     tile::{TileXy, WorldTileIndex},
@@ -7,20 +9,41 @@ use oc_projectile::{Projectile, ProjectileId};
 use oc_root::{REGIONS_COUNT, TILES_COUNT};
 use oc_world::World;
 
-// FIXME: refactor ?
+pub struct SizedIndex<T>(Vec<Vec<T>>);
+
+impl<T: std::clone::Clone> SizedIndex<T> {
+    pub fn new(size: usize) -> Self {
+        Self(vec![vec![]; size])
+    }
+}
+
+impl<T> Deref for SizedIndex<T> {
+    type Target = Vec<Vec<T>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for SizedIndex<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 pub struct Indexes {
-    tiles_individuals: Vec<Vec<IndividualIndex>>,
-    tiles_projectiles: Vec<Vec<ProjectileId>>,
-    regions_individuals: Vec<Vec<IndividualIndex>>,
-    regions_projectiles: Vec<Vec<ProjectileId>>,
+    tiles_individuals: SizedIndex<IndividualIndex>,
+    tiles_projectiles: SizedIndex<ProjectileId>,
+    regions_individuals: SizedIndex<IndividualIndex>,
+    regions_projectiles: SizedIndex<ProjectileId>,
 }
 
 impl Indexes {
     pub fn new(world: &World) -> Self {
-        let mut tiles_individuals = vec![vec![]; TILES_COUNT];
-        let mut tiles_projectiles = vec![vec![]; TILES_COUNT];
-        let mut regions_individuals = vec![vec![]; REGIONS_COUNT];
-        let mut regions_projectiles = vec![vec![]; REGIONS_COUNT];
+        let mut tiles_individuals = SizedIndex::new(TILES_COUNT);
+        let mut tiles_projectiles = SizedIndex::new(TILES_COUNT);
+        let mut regions_individuals = SizedIndex::new(REGIONS_COUNT);
+        let mut regions_projectiles = SizedIndex::new(REGIONS_COUNT);
 
         for (i, individual) in world.individuals().iter().enumerate() {
             let tile: WorldTileIndex = individual.tile.into();

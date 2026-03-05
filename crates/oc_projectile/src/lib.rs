@@ -18,6 +18,12 @@ pub mod network;
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct ProjectileId(pub u64);
 
+impl From<&ProjectileId> for ProjectileId {
+    fn from(value: &ProjectileId) -> Self {
+        *value
+    }
+}
+
 #[derive(Archive, Deserialize, Serialize, Clone, Debug, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Projectile {
