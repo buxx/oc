@@ -96,9 +96,9 @@ impl UpdatePhysic for Projectile {
         }
     }
 
-    fn remove_force(&mut self, value: Force) {
+    fn remove_force(&mut self, value: &Force) {
         match self {
-            Projectile::Bullet(bullet) => bullet.forces.retain(|f| f != &value),
+            Projectile::Bullet(bullet) => bullet.forces.retain(|f| f != value),
         }
     }
 }

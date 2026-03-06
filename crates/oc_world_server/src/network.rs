@@ -1,12 +1,17 @@
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 use message_io::network::{Endpoint, NetEvent, Transport};
 use message_io::node::{self};
+use oc_individual::IndividualIndex;
 use oc_network::{ArchivedToServer, ToClient, ToServer};
 use rkyv::api::low::deserialize;
 use rkyv::rancor::Error;
 use rkyv::util::AlignedVec;
+
+use crate::routing::Listening;
+use crate::state::State;
 
 pub fn listen(host: SocketAddr) -> (Receiver<Event>, Sender<(Endpoint, ToClient)>) {
     let (input_tx, input_rx) = channel();
@@ -61,4 +66,18 @@ pub enum Event {
     Connected(Endpoint),
     Disconnected(Endpoint),
     Message(Endpoint, ToServer),
+}
+
+pub trait IntoToClient {
+    type Index;
+    fn into_to_client<I: Into<Self::Index>>(&self, i: I) -> impl Clone + Into<ToClient>;
+}
+
+impl IntoToClient for oc_physics::update::Update {
+    type Index = IndividualIndex;
+
+    fn into_to_client<I: Into<Self::Index>>(&self, i: I) -> impl Clone + Into<ToClient> {
+        let update = oc_individual::Update::Physics(self.clone());
+        oc_individual::network::Individual::Update(i.into(), update)
+    }
 }

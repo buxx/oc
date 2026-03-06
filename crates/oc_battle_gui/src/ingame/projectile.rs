@@ -1,4 +1,4 @@
-use bevy::color::palettes::css::{PURPLE, RED};
+use bevy::color::palettes::css::RED;
 use bevy::prelude::*;
 use oc_geo::region::{Region as _, RegionXy, WorldRegionIndex};
 use oc_geo::tile::TileXy;

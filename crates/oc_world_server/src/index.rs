@@ -9,6 +9,8 @@ use oc_projectile::{Projectile, ProjectileId};
 use oc_root::{REGIONS_COUNT, TILES_COUNT};
 use oc_world::World;
 
+use crate::physics;
+
 pub struct SizedIndex<T>(Vec<Vec<T>>);
 
 impl<T: std::clone::Clone> SizedIndex<T> {
@@ -74,33 +76,28 @@ impl Indexes {
         self.update_projectile_region(id, projectile.region().clone(), projectile.region().clone());
     }
 
-    pub fn update_individual_tile(&mut self, i: IndividualIndex, now: TileXy, before: TileXy) {
+    fn update_individual_tile(&mut self, i: IndividualIndex, now: TileXy, before: TileXy) {
         let before_tile: WorldTileIndex = before.into();
         self.tiles_individuals[before_tile.0].retain(|i_| *i_ != i);
         let now_tile: WorldTileIndex = now.into();
         self.tiles_individuals[now_tile.0].push(i);
     }
 
-    pub fn update_projectile_tile(&mut self, id: ProjectileId, now: TileXy, before: TileXy) {
+    fn update_projectile_tile(&mut self, id: ProjectileId, now: TileXy, before: TileXy) {
         let before_tile: WorldTileIndex = before.into();
         self.tiles_projectiles[before_tile.0].retain(|id_| *id_ != id);
         let now_tile: WorldTileIndex = now.into();
         self.tiles_projectiles[now_tile.0].push(id);
     }
 
-    pub fn update_individual_region(
-        &mut self,
-        i: IndividualIndex,
-        now: RegionXy,
-        before: RegionXy,
-    ) {
+    fn update_individual_region(&mut self, i: IndividualIndex, now: RegionXy, before: RegionXy) {
         let before_region: WorldRegionIndex = before.into();
         self.regions_individuals[before_region.0 as usize].retain(|i_| *i_ != i);
         let now_region: WorldRegionIndex = now.into();
         self.regions_individuals[now_region.0 as usize].push(i);
     }
 
-    pub fn update_projectile_region(&mut self, id: ProjectileId, now: RegionXy, before: RegionXy) {
+    fn update_projectile_region(&mut self, id: ProjectileId, now: RegionXy, before: RegionXy) {
         let before_region: WorldRegionIndex = before.into();
         self.regions_projectiles[before_region.0 as usize].retain(|id_| *id_ != id);
         let now_region: WorldRegionIndex = now.into();
@@ -114,4 +111,42 @@ impl Indexes {
     pub fn region_projectiles(&self, region: WorldRegionIndex) -> &Vec<ProjectileId> {
         &self.regions_projectiles[region.0 as usize]
     }
+
+    pub fn react(&mut self, effect: Effect) {
+        match effect {
+            Effect::Individual(i, effect) => match effect {
+                IndividualEffect::Physic(effect) => match effect {
+                    physics::Effect::Tile { before, after } => {
+                        self.update_individual_tile(i, after, before)
+                    }
+                    physics::Effect::Region { before, after } => {
+                        self.update_individual_region(i, after, before)
+                    }
+                },
+            },
+            Effect::Projectile(i, effect) => match effect {
+                ProjectileEffect::Physic(effect) => match effect {
+                    physics::Effect::Tile { before, after } => {
+                        self.update_projectile_tile(i, before, after)
+                    }
+                    physics::Effect::Region { before, after } => {
+                        self.update_projectile_region(i, after, before)
+                    }
+                },
+            },
+        }
+    }
+}
+
+pub enum Effect {
+    Individual(IndividualIndex, IndividualEffect),
+    Projectile(ProjectileId, ProjectileEffect),
+}
+
+pub enum IndividualEffect {
+    Physic(physics::Effect),
+}
+
+pub enum ProjectileEffect {
+    Physic(physics::Effect),
 }

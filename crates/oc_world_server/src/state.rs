@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, atomic::AtomicU64};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use message_io::network::Endpoint;
 use oc_projectile::ProjectileId;

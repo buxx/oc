@@ -1,7 +1,5 @@
 use bresenham::Bresenham;
-use oc_root::{
-    GEO_PIXELS_PER_TILE, WORLD_HEIGHT, WORLD_HEIGHT_PIXELS, WORLD_WIDTH, WORLD_WIDTH_PIXELS,
-};
+use oc_root::{GEO_PIXELS_PER_TILE, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS};
 use oc_utils::d2::Xy;
 
 use crate::Laws;

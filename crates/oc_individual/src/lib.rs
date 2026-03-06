@@ -11,6 +11,7 @@ use oc_physics::Physic;
 use oc_physics::UpdatePhysic;
 use oc_physics::collision::Material;
 use oc_physics::collision::Materials;
+use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::behavior::Behavior;
@@ -35,12 +36,8 @@ pub struct Individual {
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Update {
-    UpdatePosition([f32; 2]),
-    UpdateTile(TileXy),
-    UpdateRegion(RegionXy),
+    Physics(oc_physics::update::Update),
     UpdateBehavior(Behavior),
-    PushForce(Force),
-    RemoveForce(Force),
 }
 
 impl Region for Individual {
@@ -102,8 +99,8 @@ impl UpdatePhysic for Individual {
         self.forces.push(value)
     }
 
-    fn remove_force(&mut self, value: Force) {
-        self.forces.retain(|f| f != &value)
+    fn remove_force(&mut self, value: &Force) {
+        self.forces.retain(|f| f != value)
     }
 }
 
@@ -122,5 +119,14 @@ impl UpdateGeo for Individual {
 impl Material for Individual {
     fn material(&self) -> Materials {
         Materials::Traversable
+    }
+}
+
+impl<'a> WithIds<IndividualIndex, &'a Individual> for &'a [Individual] {
+    fn with_ids(&self) -> Vec<(IndividualIndex, &'a Individual)> {
+        self.into_iter()
+            .enumerate()
+            .map(|(i, individual)| (i.into(), individual))
+            .collect()
     }
 }

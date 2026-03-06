@@ -10,6 +10,7 @@ use crate::collision::Material;
 pub mod collision;
 pub mod line;
 pub mod translation;
+pub mod update;
 
 pub struct Laws {
     /// For units in x/s, this value is coeff per tick, to obtain 1.0 after the number of tick done in one second
@@ -72,7 +73,7 @@ pub trait Physic: Material {
 pub trait UpdatePhysic: Physic + Material {
     fn set_position(&mut self, value: [f32; 2]);
     fn push_force(&mut self, value: Force);
-    fn remove_force(&mut self, value: Force);
+    fn remove_force(&mut self, value: &Force);
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]

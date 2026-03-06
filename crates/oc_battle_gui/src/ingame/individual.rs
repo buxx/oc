@@ -68,23 +68,25 @@ pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Com
 
     // TODO: use macro to automatise events declaration and mapping here
     match update {
-        oc_individual::Update::UpdatePosition(position) => {
-            commands.trigger(UpdatePositionEvent(i, *position));
-        }
-        oc_individual::Update::UpdateTile(tile) => {
-            commands.trigger(UpdateTileEvent(i, *tile));
-        }
-        oc_individual::Update::UpdateRegion(region) => {
-            commands.trigger(UpdateRegionEvent(i, *region));
-        }
+        oc_individual::Update::Physics(update) => match update {
+            oc_physics::update::Update::UpdatePosition(position) => {
+                commands.trigger(UpdatePositionEvent(i, *position));
+            }
+            oc_physics::update::Update::UpdateTile(tile) => {
+                commands.trigger(UpdateTileEvent(i, *tile));
+            }
+            oc_physics::update::Update::UpdateRegion(region) => {
+                commands.trigger(UpdateRegionEvent(i, *region));
+            }
+            oc_physics::update::Update::PushForce(force) => {
+                commands.trigger(PushForceEvent(i, force.clone()));
+            }
+            oc_physics::update::Update::RemoveForce(force) => {
+                commands.trigger(RemoveForceEvent(i, force.clone()));
+            }
+        },
         oc_individual::Update::UpdateBehavior(behavior) => {
             commands.trigger(UpdateBehaviorEvent(i, *behavior));
-        }
-        oc_individual::Update::PushForce(force) => {
-            commands.trigger(PushForceEvent(i, force.clone()));
-        }
-        oc_individual::Update::RemoveForce(force) => {
-            commands.trigger(RemoveForceEvent(i, force.clone()));
         }
     }
 }

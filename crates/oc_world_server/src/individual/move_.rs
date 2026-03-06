@@ -59,7 +59,8 @@ impl Move {
         let mut updates = vec![];
 
         if let Some(pulse) = pulse {
-            updates.push(Update::PushForce(pulse));
+            let update = oc_physics::update::Update::PushForce(pulse);
+            updates.push(Update::Physics(update));
         }
 
         if let Some(behavior) = behavior {

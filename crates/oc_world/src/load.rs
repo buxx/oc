@@ -191,8 +191,6 @@ pub enum Error {
 }
 
 fn hack_individuals() -> Vec<Individual> {
-    return vec![];
-
     (0..INDIVIDUALS_COUNT)
         .map(|i| {
             let xy = TileXy::from(WorldTileIndex(i));

@@ -18,6 +18,7 @@ mod routing;
 mod runner;
 mod state;
 mod static_;
+mod utils;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
