@@ -4,7 +4,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 
 use message_io::network::{Endpoint, NetEvent, Transport};
 use message_io::node::{self};
-use oc_individual::IndividualIndex;
+use oc_individual::{Individual, IndividualIndex};
 use oc_network::{ArchivedToServer, ToClient, ToServer};
 use rkyv::api::low::deserialize;
 use rkyv::rancor::Error;
@@ -79,16 +79,12 @@ impl IntoNetworkUpdate<IndividualIndex> for oc_physics::update::Update {
     }
 }
 
-// pub trait IntoNetworkInsert {
-//     type Index;
-//     fn into_network_insert<I: Into<Self::Index>>(&self, i: I) -> impl Clone + Into<ToClient>;
-// }
+pub trait IntoNetworkInsert<I> {
+    fn into_network_insert(&self, i: I) -> impl Clone + Into<ToClient>;
+}
 
-// impl IntoNetworkUpdate for oc_physics::update::Update {
-//     type Index = IndividualIndex;
-
-//     fn into_network_update<I: Into<Self::Index>>(&self, i: I) -> impl Clone + Into<ToClient> {
-//         let update = oc_individual::Update::Physics(self.clone());
-//         oc_individual::network::Individual::Update(i.into(), update)
-//     }
-// }
+impl IntoNetworkInsert<IndividualIndex> for oc_individual::Individual {
+    fn into_network_insert(&self, i: IndividualIndex) -> impl Clone + Into<ToClient> {
+        oc_individual::network::Individual::Insert(i, self.clone())
+    }
+}

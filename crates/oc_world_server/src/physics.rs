@@ -11,7 +11,7 @@ use oc_world::World;
 
 use crate::{
     index::{self, IntoIndexEffect},
-    network::IntoNetworkUpdate,
+    network::{IntoNetworkInsert, IntoNetworkUpdate},
     routing::Listening,
     utils::{context::Context, subject::IntoSubject},
 };
@@ -46,10 +46,7 @@ impl<'x> Processor<'x> {
 
                     tracing::trace!(name="subject-update-write-broadast-insert", i=?i);
                     let filter = Listening::Regions(vec![after.into()]);
-                    let messages = vec![oc_individual::network::Individual::Insert(
-                        i,
-                        subject.clone(),
-                    )];
+                    let messages = vec![subject.into_network_insert(i)];
                     self.ctx.broadcast(filter, messages);
                 }
             }
