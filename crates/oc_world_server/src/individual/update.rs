@@ -27,30 +27,30 @@ pub fn write(
                 indexes.react(index::Effect::Individual(i, effect));
             }
 
-            physics::apply(
-                state,
-                output,
-                i,
-                region,
-                effect,
-                update,
-                |w, i| w.individual(i),
-                |i, u| {
-                    oc_individual::network::Individual::Update(i, oc_individual::Update::Physics(u))
-                },
-                |i, ind| oc_individual::network::Individual::Insert(i, ind.clone()),
-            );
+            // physics::apply(
+            //     state,
+            //     output,
+            //     i,
+            //     region,
+            //     effect,
+            //     update,
+            //     |w, i| w.individual(i),
+            //     |i, u| {
+            //         oc_individual::network::Individual::Update(i, oc_individual::Update::Physics(u))
+            //     },
+            //     |i, ind| oc_individual::network::Individual::Insert(i, ind.clone()),
+            // );
         }
         Update::UpdateBehavior(behavior) => {
             // FIXME: refactor broadcast effects method (need to broadcast it too ! not only physics...)
             individual.behavior = behavior;
 
-            crate::network::broadcast(
-                state,
-                Listening::Regions(vec![individual.region().clone().into()]),
-                vec![network::Individual::Update(i, update)],
-                output,
-            );
+            // crate::network::broadcast(
+            //     state,
+            //     Listening::Regions(vec![individual.region().clone().into()]),
+            //     vec![network::Individual::Update(i, update)],
+            //     output,
+            // );
         }
     }
 

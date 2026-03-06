@@ -68,16 +68,27 @@ pub enum Event {
     Message(Endpoint, ToServer),
 }
 
-pub trait IntoToClient {
-    type Index;
-    fn into_to_client<I: Into<Self::Index>>(&self, i: I) -> impl Clone + Into<ToClient>;
+pub trait IntoNetworkUpdate<I> {
+    fn into_network_update(&self, i: I) -> impl Clone + Into<ToClient>;
 }
 
-impl IntoToClient for oc_physics::update::Update {
-    type Index = IndividualIndex;
-
-    fn into_to_client<I: Into<Self::Index>>(&self, i: I) -> impl Clone + Into<ToClient> {
+impl IntoNetworkUpdate<IndividualIndex> for oc_physics::update::Update {
+    fn into_network_update(&self, i: IndividualIndex) -> impl Clone + Into<ToClient> {
         let update = oc_individual::Update::Physics(self.clone());
         oc_individual::network::Individual::Update(i.into(), update)
     }
 }
+
+// pub trait IntoNetworkInsert {
+//     type Index;
+//     fn into_network_insert<I: Into<Self::Index>>(&self, i: I) -> impl Clone + Into<ToClient>;
+// }
+
+// impl IntoNetworkUpdate for oc_physics::update::Update {
+//     type Index = IndividualIndex;
+
+//     fn into_network_update<I: Into<Self::Index>>(&self, i: I) -> impl Clone + Into<ToClient> {
+//         let update = oc_individual::Update::Physics(self.clone());
+//         oc_individual::network::Individual::Update(i.into(), update)
+//     }
+// }

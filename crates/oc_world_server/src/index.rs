@@ -150,3 +150,7 @@ pub enum IndividualEffect {
 pub enum ProjectileEffect {
     Physic(physics::Effect),
 }
+
+pub trait IntoIndexEffect<I> {
+    fn into_index_effect(&self, i: I) -> Effect;
+}

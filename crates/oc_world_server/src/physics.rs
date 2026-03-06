@@ -1,23 +1,19 @@
-use std::sync::{Arc, mpsc::Sender};
-
 use derive_more::Constructor;
-use message_io::network::Endpoint;
 use oc_geo::{
     Geo, UpdateGeo,
     region::{Region, RegionXy},
     tile::TileXy,
 };
-use oc_network::ToClient;
+use oc_individual::IndividualIndex;
 use oc_physics::{Force, Laws, Physic, UpdatePhysic, update::Update};
 use oc_utils::collections::WithIds;
 use oc_world::World;
 
 use crate::{
-    index::{self},
-    network::{self, IntoToClient},
+    index::{self, IntoIndexEffect},
+    network::IntoNetworkUpdate,
     routing::Listening,
-    state::State,
-    utils::context::Context,
+    utils::{context::Context, subject::IntoSubject},
 };
 
 #[derive(Constructor)]
@@ -33,21 +29,20 @@ impl<'x> Processor<'x> {
         for (i, (region, effect), update) in effects {
             // Broadcast the update
             let filter = Listening::Regions(vec![region.into()]);
-            let messages = vec![update.into_to_client(i)];
+            let messages = vec![update.into_network_update(i)];
             self.ctx.broadcast(filter, messages);
 
             if let Some(effect) = effect {
                 // Update indexes
                 {
-                    let effect = index::IndividualEffect::Physic(effect.clone());
                     let mut indexes = self.ctx.state.indexes_mut();
-                    indexes.react(index::Effect::Individual(i, effect));
+                    indexes.react(effect.into_index_effect(i));
                 }
 
                 // Broadcast to new listener if required
                 if let Effect::Region { before: _, after } = effect {
                     let world = self.ctx.state.world();
-                    let subject = world.individual(i);
+                    let subject = i.into_subject(&world);
 
                     tracing::trace!(name="subject-update-write-broadast-insert", i=?i);
                     let filter = Listening::Regions(vec![after.into()]);
@@ -192,57 +187,15 @@ where
     (region, effect)
 }
 
-// // TODO: found a better way to do that without giving a lot of closures
-// pub fn apply<I, F, T, U, Up, IT, IR, S, Ss>(
-//     state: &Context,
-//     i: I,
-//     region: RegionXy,
-//     effect: Option<Effect>,
-//     update: Update,
-//     get: F,
-//     network_update: U,
-//     network_insert: S,
-// ) where
-//     I: std::fmt::Debug + Copy,
-//     F: for<'a> Fn(&'a World, I) -> &'a T,
-//     U: Fn(I, Update) -> Up,
-//     Up: Clone + Into<ToClient>,
-//     S: Fn(I, &T) -> Ss,
-//     Ss: Clone + Into<ToClient>,
-// {
-//     tracing::trace!(name="subject-update-write-broadast-update", i=?i, update=?update);
-
-//     network::broadcast(
-//         state,
-//         Listening::Regions(vec![region.into()]),
-//         vec![network_update(i, update)],
-//         output,
-//     );
-
-//     if let Some(effect) = effect {
-//         match effect {
-//             Effect::Tile {
-//                 before: _,
-//                 after: _,
-//             } => {}
-//             Effect::Region { before: _, after } => {
-//                 let world = state.world();
-//                 let subject = get(&world, i);
-
-//                 tracing::trace!(name="subject-update-write-broadast-insert", i=?i);
-//                 network::broadcast(
-//                     state,
-//                     Listening::Regions(vec![after.into()]),
-//                     vec![network_insert(i, subject)],
-//                     output,
-//                 );
-//             }
-//         }
-//     }
-// }
-
 #[derive(Debug, Clone)]
 pub enum Effect {
     Tile { before: TileXy, after: TileXy },
     Region { before: RegionXy, after: RegionXy },
+}
+
+impl IntoIndexEffect<IndividualIndex> for Effect {
+    fn into_index_effect(&self, i: IndividualIndex) -> index::Effect {
+        let effect = index::IndividualEffect::Physic(self.clone());
+        index::Effect::Individual(i, effect)
+    }
 }
