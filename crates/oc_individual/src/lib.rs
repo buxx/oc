@@ -36,8 +36,8 @@ pub struct Individual {
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Update {
-    Physics(oc_physics::update::Update),
-    UpdateBehavior(Behavior),
+    SetForces(Vec<Force>),
+    SetBehavior(Behavior),
 }
 
 impl Region for Individual {

@@ -31,13 +31,6 @@ pub enum Projectile {
     Bullet(Bullet),
 }
 
-// TODO: seems lot of common code with individual. Think to refactor that
-#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub enum Update {
-    Physics(oc_physics::update::Update),
-}
-
 impl Projectile {
     pub fn position(&self) -> &[f32; 2] {
         match self {

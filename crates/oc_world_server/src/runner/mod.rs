@@ -63,10 +63,8 @@ impl Runner {
     fn start_individuals(&self) {
         tracing::debug!("Start individuals threads");
 
-        let cpus = num_cpus::get();
-        let state = self.state.clone();
-        let output = self.output.clone();
-        let size = (INDIVIDUALS_COUNT as f32 / cpus as f32).ceil() as usize;
+        let ctx = Context::new(self.state.clone(), self.output.clone());
+        let size = (INDIVIDUALS_COUNT as f32 / ctx.cpus as f32).ceil() as usize;
         if size == 0 {
             return;
         }
@@ -76,8 +74,7 @@ impl Runner {
             .par_chunks(size)
             .for_each(|indexes| {
                 let indexes = indexes.to_vec();
-                let state = state.clone();
-                let output = output.clone();
+                let ctx = ctx.clone();
 
                 std::thread::spawn(move || {
                     let mut last = Instant::now();
@@ -90,10 +87,8 @@ impl Runner {
                         for i in &indexes {
                             tracing::trace!(name = "runner-individual", i = ?i);
 
-                            let state = state.clone();
-                            state.perf.incr();
-
-                            individual::Processor::new((*i).into(), state).step();
+                            ctx.state.perf.incr();
+                            individual::Processor::new(&ctx, (*i).into()).step();
                         }
 
                         last = Instant::now();

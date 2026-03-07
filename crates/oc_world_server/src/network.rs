@@ -1,10 +1,9 @@
 use std::net::SocketAddr;
-use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 use message_io::network::{Endpoint, NetEvent, Transport};
 use message_io::node::{self};
-use oc_individual::{Individual, IndividualIndex};
+use oc_individual::IndividualIndex;
 use oc_network::{ArchivedToServer, ToClient, ToServer};
 use oc_projectile::ProjectileId;
 use rkyv::api::low::deserialize;
@@ -78,8 +77,7 @@ impl IntoNetworkUpdate for IndividualIndex {
         &self,
         update: oc_physics::update::Update,
     ) -> impl Clone + Into<ToClient> {
-        let update = oc_individual::Update::Physics(update.clone());
-        oc_individual::network::Individual::Update(*self, update)
+        oc_individual::network::Individual::Physics(*self, update)
     }
 }
 
@@ -88,8 +86,7 @@ impl IntoNetworkUpdate for ProjectileId {
         &self,
         update: oc_physics::update::Update,
     ) -> impl Clone + Into<ToClient> {
-        let update = oc_projectile::Update::Physics(update.clone());
-        oc_projectile::network::Projectile::Update(*self, update)
+        oc_projectile::network::Projectile::Physics(*self, update)
     }
 }
 

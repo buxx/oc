@@ -5,4 +5,4 @@ use oc_projectile::{Projectile, ProjectileId};
 pub struct InsertProjectileEvent(pub ProjectileId, pub Projectile);
 
 #[derive(Debug, Event)]
-pub struct UpdateProjectileEvent(pub ProjectileId, pub oc_projectile::Update);
+pub struct UpdateProjectilePhysicsEvent(pub ProjectileId, pub oc_physics::update::Update);

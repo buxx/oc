@@ -10,7 +10,9 @@ use crate::entity::physics::Forces;
 use crate::entity::world::Tile;
 use crate::entity::world::region::Region;
 use crate::ingame::draw::Z_INDIVIDUAL;
-use crate::ingame::input::individual::{InsertIndividualEvent, UpdateIndividualEvent};
+use crate::ingame::input::individual::{
+    InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
+};
 use crate::ingame::region::ForgottenRegion;
 use crate::ingame::state::State;
 
@@ -24,7 +26,7 @@ pub struct UpdateTileEvent(oc_individual::IndividualIndex, TileXy);
 pub struct UpdateRegionEvent(oc_individual::IndividualIndex, RegionXy);
 
 #[derive(Debug, Event)]
-pub struct UpdateBehaviorEvent(
+pub struct SetBehaviorEvent(
     oc_individual::IndividualIndex,
     oc_individual::behavior::Behavior,
 );
@@ -63,30 +65,43 @@ pub fn on_insert_individual(
     state.individuals.insert(individual.0, entity);
 }
 
+// FIXME: generic or macro way to update physics of individual and projectile
+pub fn on_update_individual_physics(
+    update: On<UpdateIndividualPhysicsEvent>,
+    mut commands: Commands,
+) {
+    let (i, update) = (update.0, &update.1);
+
+    // TODO: use macro to automatise events declaration and mapping here
+    match update {
+        oc_physics::update::Update::UpdatePosition(position) => {
+            commands.trigger(UpdatePositionEvent(i, *position));
+        }
+        oc_physics::update::Update::UpdateTile(tile) => {
+            commands.trigger(UpdateTileEvent(i, *tile));
+        }
+        oc_physics::update::Update::UpdateRegion(region) => {
+            commands.trigger(UpdateRegionEvent(i, *region));
+        }
+        oc_physics::update::Update::PushForce(force) => {
+            commands.trigger(PushForceEvent(i, force.clone()));
+        }
+        oc_physics::update::Update::RemoveForce(force) => {
+            commands.trigger(RemoveForceEvent(i, force.clone()));
+        }
+    }
+}
+
 pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Commands) {
     let (i, update) = (update.0, &update.1);
 
     // TODO: use macro to automatise events declaration and mapping here
     match update {
-        oc_individual::Update::Physics(update) => match update {
-            oc_physics::update::Update::UpdatePosition(position) => {
-                commands.trigger(UpdatePositionEvent(i, *position));
-            }
-            oc_physics::update::Update::UpdateTile(tile) => {
-                commands.trigger(UpdateTileEvent(i, *tile));
-            }
-            oc_physics::update::Update::UpdateRegion(region) => {
-                commands.trigger(UpdateRegionEvent(i, *region));
-            }
-            oc_physics::update::Update::PushForce(force) => {
-                commands.trigger(PushForceEvent(i, force.clone()));
-            }
-            oc_physics::update::Update::RemoveForce(force) => {
-                commands.trigger(RemoveForceEvent(i, force.clone()));
-            }
-        },
-        oc_individual::Update::UpdateBehavior(behavior) => {
-            commands.trigger(UpdateBehaviorEvent(i, *behavior));
+        oc_individual::Update::SetBehavior(behavior) => {
+            commands.trigger(SetBehaviorEvent(i, *behavior));
+        }
+        oc_individual::Update::SetForces(forces) => {
+            commands.trigger(SetForcesEvent(i, *forces));
         }
     }
 }
@@ -96,7 +111,7 @@ pub struct IndividualPlugin;
 impl Plugin for IndividualPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(on_insert_individual)
-            .add_observer(on_update_individual)
+            .add_observer(on_update_individual_physics)
             .add_observer(on_update_position_event)
             .add_observer(on_update_tile_event)
             .add_observer(on_update_region_event)
@@ -153,7 +168,7 @@ fn on_update_region_event(
 }
 
 fn on_update_behavior_event(
-    behavior: On<UpdateBehaviorEvent>,
+    behavior: On<SetBehaviorEvent>,
     mut query: Query<&mut Behavior>,
     state: Res<State>,
 ) {

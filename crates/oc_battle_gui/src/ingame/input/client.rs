@@ -6,7 +6,7 @@ use oc_projectile::network::Projectile;
 use crate::{
     ingame::input::{
         individual::{InsertIndividualEvent, UpdateIndividualEvent},
-        projectile::{InsertProjectileEvent, UpdateProjectileEvent},
+        projectile::{InsertProjectileEvent, UpdateProjectilePhysicsEvent},
     },
     network::input::ToClientEvent,
     states::{Config, Meta},
@@ -42,7 +42,7 @@ pub fn on_to_client(
             }
             Projectile::Update(id, update) => {
                 tracing::trace!(name="ingame-input-client", message=?to_client.0);
-                commands.trigger(UpdateProjectileEvent(*id, update.clone()));
+                commands.trigger(UpdateProjectilePhysicsEvent(*id, update.clone()));
             }
         },
     }

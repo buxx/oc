@@ -5,4 +5,7 @@ use oc_individual::{Individual, IndividualIndex};
 pub struct InsertIndividualEvent(pub IndividualIndex, pub Individual);
 
 #[derive(Debug, Event)]
+pub struct UpdateIndividualPhysicsEvent(pub IndividualIndex, pub oc_physics::update::Update);
+
+#[derive(Debug, Event)]
 pub struct UpdateIndividualEvent(pub IndividualIndex, pub oc_individual::Update);

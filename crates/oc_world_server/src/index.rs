@@ -7,7 +7,9 @@ use oc_geo::{
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::IndividualIndex;
-use oc_projectile::{Projectile, ProjectileId};
+#[cfg(feature = "debug")]
+use oc_projectile::Projectile;
+use oc_projectile::ProjectileId;
 use oc_root::{REGIONS_COUNT, TILES_COUNT};
 use oc_world::World;
 

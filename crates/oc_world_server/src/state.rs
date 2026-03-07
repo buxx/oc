@@ -1,6 +1,7 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use message_io::network::Endpoint;
+#[cfg(feature = "debug")]
 use oc_projectile::ProjectileId;
 use oc_root::ids::Ids;
 use oc_world::World;

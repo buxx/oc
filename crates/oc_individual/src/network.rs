@@ -6,6 +6,6 @@ use crate::{Individual as Individual_, IndividualIndex, Update};
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Individual {
     Insert(IndividualIndex, Individual_),
-    // Physics(IndividualIndex, oc_physics::update::Update),
     Update(IndividualIndex, Update),
+    Physics(IndividualIndex, oc_physics::update::Update),
 }
