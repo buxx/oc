@@ -7,6 +7,7 @@ use oc_physics::{
     Force, Physic, UpdatePhysic,
     collision::{Material, Materials},
 };
+use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::bullet::Bullet;
@@ -34,11 +35,7 @@ pub enum Projectile {
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Update {
-    UpdatePosition([f32; 2]),
-    UpdateTile(TileXy),
-    UpdateRegion(RegionXy),
-    PushForce(Force),
-    RemoveForce(Force),
+    Physics(oc_physics::update::Update),
 }
 
 impl Projectile {
@@ -122,5 +119,13 @@ impl UpdateGeo for Projectile {
 impl Material for Projectile {
     fn material(&self) -> Materials {
         Materials::Traversable
+    }
+}
+
+impl<'a> WithIds<ProjectileId, &'a Projectile> for Vec<(&'a ProjectileId, &'a Projectile)> {
+    fn with_ids(&self) -> Vec<(ProjectileId, &'a Projectile)> {
+        self.into_iter()
+            .map(|(i, projectile)| (**i, *projectile))
+            .collect()
     }
 }

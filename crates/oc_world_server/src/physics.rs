@@ -6,6 +6,7 @@ use oc_geo::{
 };
 use oc_individual::IndividualIndex;
 use oc_physics::{Force, Laws, Physic, UpdatePhysic, update::Update};
+use oc_projectile::ProjectileId;
 use oc_utils::collections::WithIds;
 use oc_world::World;
 
@@ -27,8 +28,13 @@ pub struct Processor<'x> {
 impl<'x> Processor<'x> {
     pub fn step(&self, i: usize) {
         let subjects = self.step_for(i, |w| w.individuals().with_ids());
-        let effects = self.write(subjects);
-        self.apply(effects)
+        let subjects = self.write(subjects);
+
+        let projectiles = self.step_for(i, |w| w.projectiles().with_ids());
+        let projectiles = self.write(projectiles);
+
+        self.apply(subjects);
+        self.apply(projectiles);
     }
 
     fn step_for<F, I, T>(&self, i: usize, all: F) -> Vec<(I, Vec<Update>)>
@@ -71,12 +77,14 @@ impl<'x> Processor<'x> {
         subjects
             .into_iter()
             .flat_map(|(i, updates)| updates.into_iter().map(move |update| (i, update)))
-            .map(|(i, update)| {
+            .filter_map(|(i, update)| {
                 let mut world = self.ctx.state.world_mut();
-                let subject = i.into_subject_mut(&mut world);
+                let Some(subject) = i.into_subject_mut(&mut world) else {
+                    return None; // TODO: its possible ? What to do ? Simply log ?
+                };
                 let effect = write(&update, subject);
 
-                (i, effect, update)
+                Some((i, effect, update))
             })
             .collect()
     }
@@ -102,7 +110,9 @@ impl<'x> Processor<'x> {
                 // Broadcast to new listener if required
                 if let Effect::Region { before: _, after } = effect {
                     let world = self.ctx.state.world();
-                    let subject = i.into_subject(&world);
+                    let Some(subject) = i.into_subject(&world) else {
+                        continue; // TODO: its possible ? What to do ? Simply log ?
+                    };
 
                     tracing::trace!(name="subject-update-write-broadast-insert", i=?i);
                     let filter = Listening::Regions(vec![after.into()]);
@@ -202,5 +212,12 @@ impl IntoIndexEffect<Effect> for IndividualIndex {
     fn into_index_effect(&self, effect: Effect) -> index::Effect {
         let effect = index::IndividualEffect::Physic(effect.clone());
         index::Effect::Individual(*self, effect)
+    }
+}
+
+impl IntoIndexEffect<Effect> for ProjectileId {
+    fn into_index_effect(&self, effect: Effect) -> index::Effect {
+        let effect = index::ProjectileEffect::Physic(effect.clone());
+        index::Effect::Projectile(*self, effect)
     }
 }

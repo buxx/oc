@@ -6,6 +6,7 @@ use message_io::network::{Endpoint, NetEvent, Transport};
 use message_io::node::{self};
 use oc_individual::{Individual, IndividualIndex};
 use oc_network::{ArchivedToServer, ToClient, ToServer};
+use oc_projectile::ProjectileId;
 use rkyv::api::low::deserialize;
 use rkyv::rancor::Error;
 use rkyv::util::AlignedVec;
@@ -82,6 +83,16 @@ impl IntoNetworkUpdate for IndividualIndex {
     }
 }
 
+impl IntoNetworkUpdate for ProjectileId {
+    fn into_network_update(
+        &self,
+        update: oc_physics::update::Update,
+    ) -> impl Clone + Into<ToClient> {
+        let update = oc_projectile::Update::Physics(update.clone());
+        oc_projectile::network::Projectile::Update(*self, update)
+    }
+}
+
 pub trait IntoNetworkInsert<I> {
     fn into_network_insert(&self, i: I) -> impl Clone + Into<ToClient>;
 }
@@ -89,5 +100,11 @@ pub trait IntoNetworkInsert<I> {
 impl IntoNetworkInsert<IndividualIndex> for oc_individual::Individual {
     fn into_network_insert(&self, i: IndividualIndex) -> impl Clone + Into<ToClient> {
         oc_individual::network::Individual::Insert(i, self.clone())
+    }
+}
+
+impl IntoNetworkInsert<ProjectileId> for oc_projectile::Projectile {
+    fn into_network_insert(&self, i: ProjectileId) -> impl Clone + Into<ToClient> {
+        oc_projectile::network::Projectile::Insert(i, self.clone())
     }
 }

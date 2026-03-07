@@ -65,21 +65,23 @@ pub fn on_update_projectile(update: On<UpdateProjectileEvent>, mut commands: Com
 
     // TODO: use macro to automatise events declaration and mapping here
     match update {
-        oc_projectile::Update::UpdatePosition(position) => {
-            commands.trigger(UpdatePositionEvent(i, *position));
-        }
-        oc_projectile::Update::UpdateTile(tile) => {
-            commands.trigger(UpdateTileEvent(i, *tile));
-        }
-        oc_projectile::Update::UpdateRegion(region) => {
-            commands.trigger(UpdateRegionEvent(i, *region));
-        }
-        oc_projectile::Update::PushForce(force) => {
-            commands.trigger(PushForceEvent(i, force.clone()));
-        }
-        oc_projectile::Update::RemoveForce(force) => {
-            commands.trigger(RemoveForceEvent(i, force.clone()));
-        }
+        oc_projectile::Update::Physics(update) => match update {
+            oc_physics::update::Update::UpdatePosition(position) => {
+                commands.trigger(UpdatePositionEvent(i, *position));
+            }
+            oc_physics::update::Update::UpdateTile(tile) => {
+                commands.trigger(UpdateTileEvent(i, *tile));
+            }
+            oc_physics::update::Update::UpdateRegion(region) => {
+                commands.trigger(UpdateRegionEvent(i, *region));
+            }
+            oc_physics::update::Update::PushForce(force) => {
+                commands.trigger(PushForceEvent(i, force.clone()));
+            }
+            oc_physics::update::Update::RemoveForce(force) => {
+                commands.trigger(RemoveForceEvent(i, force.clone()));
+            }
+        },
     }
 }
 
