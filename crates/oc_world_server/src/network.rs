@@ -10,9 +10,6 @@ use rkyv::api::low::deserialize;
 use rkyv::rancor::Error;
 use rkyv::util::AlignedVec;
 
-use crate::routing::Listening;
-use crate::state::State;
-
 pub fn listen(host: SocketAddr) -> (Receiver<Event>, Sender<(Endpoint, ToClient)>) {
     let (input_tx, input_rx) = channel();
     let (output_tx, output_rx) = channel();
@@ -68,14 +65,20 @@ pub enum Event {
     Message(Endpoint, ToServer),
 }
 
-pub trait IntoNetworkUpdate<I> {
-    fn into_network_update(&self, i: I) -> impl Clone + Into<ToClient>;
+pub trait IntoNetworkUpdate {
+    fn into_network_update(
+        &self,
+        update: oc_physics::update::Update,
+    ) -> impl Clone + Into<ToClient>;
 }
 
-impl IntoNetworkUpdate<IndividualIndex> for oc_physics::update::Update {
-    fn into_network_update(&self, i: IndividualIndex) -> impl Clone + Into<ToClient> {
-        let update = oc_individual::Update::Physics(self.clone());
-        oc_individual::network::Individual::Update(i.into(), update)
+impl IntoNetworkUpdate for IndividualIndex {
+    fn into_network_update(
+        &self,
+        update: oc_physics::update::Update,
+    ) -> impl Clone + Into<ToClient> {
+        let update = oc_individual::Update::Physics(update.clone());
+        oc_individual::network::Individual::Update(*self, update)
     }
 }
 

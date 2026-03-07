@@ -13,7 +13,10 @@ use crate::{
     index::{self, IntoIndexEffect},
     network::{IntoNetworkInsert, IntoNetworkUpdate},
     routing::Listening,
-    utils::{context::Context, subject::IntoSubject},
+    utils::{
+        context::Context,
+        subject::{IntoSubject, IntoSubjectMut},
+    },
 };
 
 #[derive(Constructor)]
@@ -24,33 +27,8 @@ pub struct Processor<'x> {
 impl<'x> Processor<'x> {
     pub fn step(&self, i: usize) {
         let subjects = self.step_for(i, |w| w.individuals().with_ids());
-        let effects = self.write(subjects, |w, i| w.individual_mut(i));
-
-        for (i, (region, effect), update) in effects {
-            // Broadcast the update
-            let filter = Listening::Regions(vec![region.into()]);
-            let messages = vec![update.into_network_update(i)];
-            self.ctx.broadcast(filter, messages);
-
-            if let Some(effect) = effect {
-                // Update indexes
-                {
-                    let mut indexes = self.ctx.state.indexes_mut();
-                    indexes.react(effect.into_index_effect(i));
-                }
-
-                // Broadcast to new listener if required
-                if let Effect::Region { before: _, after } = effect {
-                    let world = self.ctx.state.world();
-                    let subject = i.into_subject(&world);
-
-                    tracing::trace!(name="subject-update-write-broadast-insert", i=?i);
-                    let filter = Listening::Regions(vec![after.into()]);
-                    let messages = vec![subject.into_network_insert(i)];
-                    self.ctx.broadcast(filter, messages);
-                }
-            }
-        }
+        let effects = self.write(subjects);
+        self.apply(effects)
     }
 
     fn step_for<F, I, T>(&self, i: usize, all: F) -> Vec<(I, Vec<Update>)>
@@ -82,14 +60,12 @@ impl<'x> Processor<'x> {
             .collect::<Vec<_>>()
     }
 
-    fn write<F, I, T>(
+    fn write<I, T>(
         &self,
         subjects: Vec<(I, Vec<Update>)>,
-        get: F,
     ) -> Vec<(I, (RegionXy, Option<Effect>), Update)>
     where
-        F: for<'a> Fn(&'a mut World, I) -> &'a mut T,
-        I: std::fmt::Debug + Copy,
+        I: IntoSubjectMut<T> + std::fmt::Debug + Copy,
         T: Clone + Physic + UpdatePhysic + Geo + UpdateGeo + Region,
     {
         subjects
@@ -97,12 +73,44 @@ impl<'x> Processor<'x> {
             .flat_map(|(i, updates)| updates.into_iter().map(move |update| (i, update)))
             .map(|(i, update)| {
                 let mut world = self.ctx.state.world_mut();
-                let subject = get(&mut world, i);
+                let subject = i.into_subject_mut(&mut world);
                 let effect = write(&update, subject);
 
                 (i, effect, update)
             })
             .collect()
+    }
+
+    fn apply<'a, I, T: 'a>(&self, effects: Vec<(I, (RegionXy, Option<Effect>), Update)>)
+    where
+        I: IntoSubject<T> + IntoNetworkUpdate + IntoIndexEffect<Effect> + std::fmt::Debug,
+        T: IntoNetworkInsert<I>,
+    {
+        for (i, (region, effect), update) in effects {
+            // Broadcast the update
+            let filter = Listening::Regions(vec![region.into()]);
+            let messages = vec![i.into_network_update(update)];
+            self.ctx.broadcast(filter, messages);
+
+            if let Some(effect) = effect {
+                // Update indexes
+                {
+                    let mut indexes = self.ctx.state.indexes_mut();
+                    indexes.react(i.into_index_effect(effect.clone()));
+                }
+
+                // Broadcast to new listener if required
+                if let Effect::Region { before: _, after } = effect {
+                    let world = self.ctx.state.world();
+                    let subject = i.into_subject(&world);
+
+                    tracing::trace!(name="subject-update-write-broadast-insert", i=?i);
+                    let filter = Listening::Regions(vec![after.into()]);
+                    let messages = vec![subject.into_network_insert(i)];
+                    self.ctx.broadcast(filter, messages);
+                }
+            }
+        }
     }
 }
 
@@ -190,9 +198,9 @@ pub enum Effect {
     Region { before: RegionXy, after: RegionXy },
 }
 
-impl IntoIndexEffect<IndividualIndex> for Effect {
-    fn into_index_effect(&self, i: IndividualIndex) -> index::Effect {
-        let effect = index::IndividualEffect::Physic(self.clone());
-        index::Effect::Individual(i, effect)
+impl IntoIndexEffect<Effect> for IndividualIndex {
+    fn into_index_effect(&self, effect: Effect) -> index::Effect {
+        let effect = index::IndividualEffect::Physic(effect.clone());
+        index::Effect::Individual(*self, effect)
     }
 }

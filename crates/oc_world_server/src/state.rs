@@ -56,6 +56,7 @@ impl State {
         self.listeners.write().expect("Assume lock")
     }
 
+    #[cfg(feature = "debug")]
     pub fn new_projectile_id(&self) -> ProjectileId {
         let projectiles = &self.ids.projectiles;
         let id = projectiles.fetch_add(1, std::sync::atomic::Ordering::Relaxed);

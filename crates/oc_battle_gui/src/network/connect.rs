@@ -18,11 +18,11 @@ pub struct Connected(pub SocketAddr);
 
 // TODO: manage reconnection
 #[derive(Event)]
-pub struct Disconnected(pub SocketAddr);
+pub struct Disconnected;
 
 // TODO: display it in gui
 #[derive(Event)]
-pub struct FailedToConnect(pub SocketAddr);
+pub struct FailedToConnect;
 
 pub fn on_connect(
     event: On<Connect>,

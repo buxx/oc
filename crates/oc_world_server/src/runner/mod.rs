@@ -91,10 +91,9 @@ impl Runner {
                             tracing::trace!(name = "runner-individual", i = ?i);
 
                             let state = state.clone();
-                            let output = output.clone();
                             state.perf.incr();
 
-                            individual::Processor::new((*i).into(), state, output).step();
+                            individual::Processor::new((*i).into(), state).step();
                         }
 
                         last = Instant::now();

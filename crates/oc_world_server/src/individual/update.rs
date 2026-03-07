@@ -1,17 +1,12 @@
 use std::sync::{Arc, mpsc::Sender};
 
 use message_io::network::Endpoint;
-use oc_individual::{IndividualIndex, Update, network};
+use oc_individual::{IndividualIndex, Update};
 use oc_network::ToClient;
 
-use crate::{index, physics, routing::Listening, state::State};
+use crate::{index, physics, state::State};
 
-pub fn write(
-    update: Update,
-    i: IndividualIndex,
-    state: &Arc<State>,
-    output: &Sender<(Endpoint, ToClient)>,
-) {
+pub fn write(update: Update, i: IndividualIndex, state: &Arc<State>) {
     let mut world = state.world_mut();
     let individual = world.individual_mut(i);
 

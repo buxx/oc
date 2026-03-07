@@ -15,7 +15,6 @@ pub mod update;
 pub struct Processor {
     i: IndividualIndex,
     state: Arc<State>,
-    output: Sender<(Endpoint, ToClient)>,
 }
 
 impl Processor {
@@ -25,7 +24,7 @@ impl Processor {
         updates.extend(Move::from(&self).read());
 
         updates.into_iter().for_each(|update| {
-            update::write(update, self.i, &self.state, &self.output);
+            update::write(update, self.i, &self.state);
         });
     }
 }

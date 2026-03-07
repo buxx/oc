@@ -1,7 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
+#[cfg(feature = "debug")]
+use oc_geo::region::Region;
 use oc_geo::{
-    region::{Region, RegionXy, WorldRegionIndex},
+    region::{RegionXy, WorldRegionIndex},
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::IndividualIndex;
@@ -71,6 +73,7 @@ impl Indexes {
         }
     }
 
+    #[cfg(feature = "debug")]
     pub fn insert_projectile(&mut self, id: ProjectileId, projectile: &Projectile) {
         self.update_projectile_tile(id, projectile.tile().clone(), projectile.tile().clone());
         self.update_projectile_region(id, projectile.region().clone(), projectile.region().clone());
@@ -151,6 +154,6 @@ pub enum ProjectileEffect {
     Physic(physics::Effect),
 }
 
-pub trait IntoIndexEffect<I> {
-    fn into_index_effect(&self, i: I) -> Effect;
+pub trait IntoIndexEffect<T> {
+    fn into_index_effect(&self, value: T) -> Effect;
 }
