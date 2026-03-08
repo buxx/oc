@@ -32,6 +32,9 @@ pub struct SetBehaviorEvent(
 );
 
 #[derive(Debug, Event)]
+pub struct SetForcesEvent(oc_individual::IndividualIndex, Vec<oc_physics::Force>);
+
+#[derive(Debug, Event)]
 pub struct PushForceEvent(oc_individual::IndividualIndex, Force);
 
 #[derive(Debug, Event)]
@@ -101,7 +104,7 @@ pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Com
             commands.trigger(SetBehaviorEvent(i, *behavior));
         }
         oc_individual::Update::SetForces(forces) => {
-            commands.trigger(SetForcesEvent(i, *forces));
+            commands.trigger(SetForcesEvent(i, forces.clone()));
         }
     }
 }
@@ -112,6 +115,7 @@ impl Plugin for IndividualPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(on_insert_individual)
             .add_observer(on_update_individual_physics)
+            .add_observer(on_update_individual)
             .add_observer(on_update_position_event)
             .add_observer(on_update_tile_event)
             .add_observer(on_update_region_event)
