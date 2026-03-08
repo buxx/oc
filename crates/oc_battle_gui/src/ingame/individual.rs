@@ -120,6 +120,7 @@ impl Plugin for IndividualPlugin {
             .add_observer(on_update_tile_event)
             .add_observer(on_update_region_event)
             .add_observer(on_update_behavior_event)
+            .add_observer(on_set_forces_event)
             .add_observer(on_push_force_event)
             .add_observer(on_remove_force_event)
             .add_observer(on_forgotten_region);
@@ -185,6 +186,22 @@ fn on_update_behavior_event(
     tracing::trace!(name = "update-individual-behavior", i=?behavior.0, behavior=?behavior.1);
 
     behavior_.0 = behavior.1;
+}
+
+fn on_set_forces_event(
+    forces: On<SetForcesEvent>,
+    mut query: Query<&mut Forces>,
+    state: Res<State>,
+) {
+    let Some(entity) = state.individuals.get(&forces.0) else {
+        return;
+    };
+    let Ok(mut forces_) = query.get_mut(*entity) else {
+        return;
+    };
+    tracing::trace!(name = "update-individual-set-force", i=?forces.0, forces=?forces.1);
+
+    forces_.0 = forces.1.clone();
 }
 
 fn on_push_force_event(
