@@ -10,6 +10,7 @@ use crate::{
     },
     network::input::ToClientEvent,
     states::{Config, Meta},
+    world::InsertTiles,
 };
 
 pub fn on_to_client(
@@ -48,5 +49,9 @@ pub fn on_to_client(
                 commands.trigger(UpdateProjectilePhysicsEvent(*id, update.clone()));
             }
         },
+        ToClient::Tiles(region, tiles) => {
+            tracing::trace!(name="ingame-input-tiles", region=?region);
+            commands.trigger(InsertTiles(*region, tiles.clone()));
+        }
     }
 }

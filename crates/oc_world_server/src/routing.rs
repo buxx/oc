@@ -67,59 +67,9 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
         static EMPTY: Vec<WorldRegionIndex> = vec![];
         self.listeners_regions.get(listener).unwrap_or(&EMPTY)
     }
-
-    // #[cfg(test)]
-    // pub fn regions_listeners(&self) -> &[Vec<T>] {
-    //     &self.regions_listeners
-    // }
-
-    // #[cfg(test)]
-    // pub fn listeners_regions(&self) -> &FxHashMap<T, Vec<WorldRegionIndex>> {
-    //     &self.listeners_regions
-    // }
 }
 
 #[derive(Debug, Clone)]
 pub enum Listening {
     Regions(Vec<WorldRegionIndex>),
 }
-
-// #[derive(Debug, Clone)]
-// pub enum Listen {
-//     Area(TileXy, TileXy),
-// }
-
-// #[cfg(test)]
-// mod tests {
-//     use oc_root::{WORLD_HEIGHT, WORLD_WIDTH};
-
-//     use super::*;
-
-//     #[test]
-//     fn test_listen_area() {
-//         // Given
-//         let mut listener = Listeners::new();
-//         let from = TileXy(Xy(0, 0));
-//         let to = TileXy(Xy(WORLD_WIDTH as u64 - 1, WORLD_HEIGHT as u64 - 1)); // Whole map is listened
-//         let filter = Listen::Area(from, to);
-
-//         // When (listen all regions)
-//         listener.listen((), filter);
-
-//         // Then (all regions listened in `regions_listeners` and `listeners_regions`)
-//         let expected = vec![vec![()]; REGIONS_COUNT]; // All region is listened
-//         assert_eq!(listener.regions_listeners(), expected);
-//         let expected = (0..REGIONS_COUNT).map(WorldRegionIndex).collect();
-//         assert_eq!(listener.listeners_regions().get(&()), Some(&expected));
-
-//         // When (listen only first region)
-//         let filter = Listen::Area(TileXy(Xy(0, 0)), TileXy(Xy(0, 0))); // No longer listen others
-//         listener.listen((), filter);
-
-//         // Then (`regions_listeners` and `listeners_regions` no longer list previons regions)
-//         let expected = vec![vec![()]];
-//         assert_eq!(listener.regions_listeners(), expected);
-//         let expected = Some(&vec![WorldRegionIndex(0)]);
-//         assert_eq!(listener.listeners_regions().get(&()), expected);
-//     }
-// }

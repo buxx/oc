@@ -1,10 +1,10 @@
-use oc_geo::region::WorldRegionIndex;
+use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_individual::network::Individual;
 use oc_projectile::network::Projectile;
 #[cfg(feature = "debug")]
 use oc_projectile::network::SpawnProjectile;
 use oc_root::config::Config;
-use oc_world::meta::Meta;
+use oc_world::{meta::Meta, tile::Tile};
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
@@ -14,6 +14,7 @@ pub enum ToClient {
     Meta(Meta),
     Individual(Individual),
     Projectile(Projectile),
+    Tiles(WorldRegionIndex, Vec<(WorldTileIndex, Tile)>),
 }
 
 impl From<Individual> for ToClient {

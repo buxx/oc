@@ -29,6 +29,7 @@ mod setup;
 mod states;
 mod utils;
 mod window;
+mod world;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]

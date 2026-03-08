@@ -12,6 +12,7 @@ use crate::{
         },
     },
     states::AppState,
+    world::WorldPlugin,
 };
 use state::State;
 
@@ -33,7 +34,8 @@ pub struct FirstIngameEnter;
 
 impl Plugin for IngamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(IndividualPlugin)
+        app.add_plugins(WorldPlugin)
+            .add_plugins(IndividualPlugin)
             .add_plugins(ProjectilePlugin)
             .init_resource::<State>()
             .add_observer(on_to_client)

@@ -1,10 +1,13 @@
 use derive_more::Constructor;
-use oc_geo::tile::{TileXy, WorldTileIndex};
+use oc_geo::{
+    region::WorldRegionIndex,
+    tile::{TileXy, WorldTileIndex},
+};
 use oc_individual::{Individual, IndividualIndex};
 use oc_projectile::{Projectile, ProjectileId};
 use rustc_hash::FxHashMap;
 
-use crate::meta::Meta;
+use crate::{meta::Meta, tile::Tile};
 
 pub mod cache;
 pub mod load;
@@ -22,7 +25,11 @@ pub struct World {
 
 impl World {
     pub fn tile(&self, xy: TileXy) -> Option<&tile::Tile> {
-        self.tiles.get(WorldTileIndex::from(xy).0)
+        self.tiles.get(WorldTileIndex::from(xy).0 as usize)
+    }
+
+    pub fn region_tiles(&self, region: WorldRegionIndex) -> Vec<(WorldTileIndex, &Tile)> {
+        todo!()
     }
 
     pub fn individuals(&self) -> &[Individual] {

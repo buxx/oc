@@ -26,6 +26,7 @@ impl From<RegionXy> for (u64, u64) {
     Deserialize,
     serde::Deserialize,
     Serialize,
+    Hash,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct WorldRegionIndex(pub u64);

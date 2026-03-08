@@ -8,6 +8,7 @@ use oc_projectile::network::Projectile;
 #[cfg(feature = "debug")]
 use oc_projectile::network::SpawnProjectile;
 use oc_utils::error::OkOrLogError;
+use oc_world::tile::IntoTiles;
 
 use crate::{network::IntoNetworkInsert, state::State, utils::subject::IntoSubject};
 
@@ -79,6 +80,7 @@ impl<'a> Dealer<'a> {
 
         self.send_subjects(indexes.region_individuals(region));
         self.send_subjects(indexes.region_projectiles(region));
+        self.send_tiles(region);
     }
 
     fn send_subjects<I, T>(&self, subjects: &Vec<I>)
@@ -96,5 +98,13 @@ impl<'a> Dealer<'a> {
             let message = (self.endpoint.clone(), subject.into());
             self.output.send(message).ok_or_log();
         }
+    }
+
+    fn send_tiles(&self, region: WorldRegionIndex) {
+        let world = self.state.world();
+        let tiles = region.into_tiles(&world);
+        let tiles = ToClient::Tiles(region, tiles);
+        let message = (self.endpoint.clone(), tiles);
+        self.output.send(message).ok_or_log();
     }
 }

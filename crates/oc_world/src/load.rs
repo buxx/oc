@@ -193,7 +193,7 @@ pub enum Error {
 fn hack_individuals() -> Vec<Individual> {
     (0..INDIVIDUALS_COUNT)
         .map(|i| {
-            let xy = TileXy::from(WorldTileIndex(i));
+            let xy = TileXy::from(WorldTileIndex(i as u64));
             let position = [
                 ((xy.0.0 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
                 ((xy.0.1 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,

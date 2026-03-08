@@ -21,28 +21,29 @@ impl From<TileXy> for (u64, u64) {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct WorldTileIndex(pub usize);
+#[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct WorldTileIndex(pub u64);
 
 impl From<WorldTileIndex> for TileXy {
     fn from(WorldTileIndex(i): WorldTileIndex) -> Self {
-        let x = i % WORLD_WIDTH;
-        let y = i / WORLD_WIDTH;
+        let x = i % WORLD_WIDTH as u64;
+        let y = i / WORLD_WIDTH as u64;
         Self(Xy(x as u64, y as u64))
     }
 }
 
 impl From<WorldTileIndex> for Xy {
     fn from(WorldTileIndex(i): WorldTileIndex) -> Self {
-        let x = i % WORLD_WIDTH;
-        let y = i / WORLD_WIDTH;
+        let x = i % WORLD_WIDTH as u64;
+        let y = i / WORLD_WIDTH as u64;
         Xy(x as u64, y as u64)
     }
 }
 
 impl From<TileXy> for WorldTileIndex {
     fn from(TileXy(Xy(x, y)): TileXy) -> Self {
-        Self(y as usize * WORLD_WIDTH + x as usize)
+        Self(y * WORLD_WIDTH as u64 + x)
     }
 }
 
@@ -72,6 +73,6 @@ mod tests {
         let index = WorldTileIndex::from(TileXy(Xy(x as u64, y)));
 
         // Then
-        assert_eq!(index.0, i);
+        assert_eq!(index.0, i as u64);
     }
 }

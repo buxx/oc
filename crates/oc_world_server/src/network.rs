@@ -3,9 +3,11 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 
 use message_io::network::{Endpoint, NetEvent, Transport};
 use message_io::node::{self};
+use oc_geo::tile::WorldTileIndex;
 use oc_individual::IndividualIndex;
 use oc_network::{ArchivedToServer, ToClient, ToServer};
 use oc_projectile::ProjectileId;
+use oc_world::tile::Tile;
 use rkyv::api::low::deserialize;
 use rkyv::rancor::Error;
 use rkyv::util::AlignedVec;

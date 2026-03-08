@@ -8,6 +8,7 @@ use crate::{
     entity::world::region::{Region, RegionBackground},
     ingame::draw::Z_REGION_BACKGROUND,
     states::Meta,
+    world::tile::Tiles,
 };
 
 #[cfg(feature = "debug")]
@@ -59,7 +60,10 @@ pub fn on_forgotten_region(
     region: On<ListeningRegion>,
     mut commands: Commands,
     query: Query<(Entity, &Region), With<RegionBackground>>,
+    mut tiles: ResMut<Tiles>,
 ) {
+    tiles.0.remove(&region.0);
+
     let region: RegionXy = region.0.into();
     for (entity, region_) in query {
         if region_.0 == region {
