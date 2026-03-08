@@ -72,6 +72,7 @@ pub trait IntoNetworkUpdate {
     ) -> impl Clone + Into<ToClient>;
 }
 
+// TODO: Derive on IndividualIndex
 impl IntoNetworkUpdate for IndividualIndex {
     fn into_network_update(
         &self,
@@ -81,6 +82,7 @@ impl IntoNetworkUpdate for IndividualIndex {
     }
 }
 
+// TODO: Derive on ProjectileId
 impl IntoNetworkUpdate for ProjectileId {
     fn into_network_update(
         &self,
@@ -94,12 +96,14 @@ pub trait IntoNetworkInsert<I> {
     fn into_network_insert(&self, i: I) -> impl Clone + Into<ToClient>;
 }
 
+// TODO: Derive on oc_individual::Individual
 impl IntoNetworkInsert<IndividualIndex> for oc_individual::Individual {
     fn into_network_insert(&self, i: IndividualIndex) -> impl Clone + Into<ToClient> {
         oc_individual::network::Individual::Insert(i, self.clone())
     }
 }
 
+// TODO: Derive on oc_projectile::Projectile
 impl IntoNetworkInsert<ProjectileId> for oc_projectile::Projectile {
     fn into_network_insert(&self, i: ProjectileId) -> impl Clone + Into<ToClient> {
         oc_projectile::network::Projectile::Insert(i, self.clone())
