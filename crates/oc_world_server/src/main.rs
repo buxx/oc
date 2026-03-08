@@ -13,7 +13,6 @@ mod individual;
 mod network;
 mod perf;
 mod physics;
-mod projectile;
 mod routing;
 mod runner;
 mod state;
