@@ -3,14 +3,13 @@ use std::sync::{Arc, mpsc::Sender};
 use derive_more::Constructor;
 use message_io::network::Endpoint;
 use oc_geo::region::WorldRegionIndex;
-use oc_individual::network::Individual;
 use oc_network::{ToClient, ToServer};
 use oc_projectile::network::Projectile;
 #[cfg(feature = "debug")]
 use oc_projectile::network::SpawnProjectile;
 use oc_utils::error::OkOrLogError;
 
-use crate::state::State;
+use crate::{network::IntoNetworkInsert, state::State, utils::subject::IntoSubject};
 
 #[derive(Constructor)]
 pub struct Dealer<'a> {
@@ -77,24 +76,24 @@ impl<'a> Dealer<'a> {
     fn refresh_region(&self, region: WorldRegionIndex) {
         tracing::trace!(name="dealer-refresh-region", endpoint=?self.endpoint, region=?region);
         let indexes = self.state.indexes();
+
+        self.send_subjects(indexes.region_individuals(region));
+        self.send_subjects(indexes.region_projectiles(region));
+    }
+
+    fn send_subjects<I, T>(&self, subjects: &Vec<I>)
+    where
+        I: Clone + IntoSubject<T>,
+        T: IntoNetworkInsert<I>,
+    {
         let world = self.state.world();
 
-        // FIXME: refactor / generic (individual + projectiles)
-        for i in indexes.region_individuals(region) {
-            tracing::trace!(name="dealer-refresh-region-insert-individual", endpoint=?self.endpoint, region=?region, i=?i);
-            let individual = world.individual(*i).clone();
-            let message = ToClient::Individual(Individual::Insert(*i, individual.into()));
-            let message = (self.endpoint.clone(), message);
-            self.output.send(message).ok_or_log();
-        }
-
-        for id in indexes.region_projectiles(region) {
-            tracing::trace!(name="dealer-refresh-region-insert-projectile", endpoint=?self.endpoint, region=?region, id=?id);
-            let Some(projectile) = world.projectile(id).cloned() else {
-                return; // TODO: can be None ? panic if none ?
+        for i in subjects {
+            let Some(subject) = i.into_subject(&world) else {
+                continue; // TODO: Possible ?
             };
-            let message = ToClient::Projectile(Projectile::Insert(*id, projectile.into()));
-            let message = (self.endpoint.clone(), message);
+            let subject = subject.into_network_insert(i.clone());
+            let message = (self.endpoint.clone(), subject.into());
             self.output.send(message).ok_or_log();
         }
     }
