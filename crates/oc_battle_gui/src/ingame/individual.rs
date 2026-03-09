@@ -17,13 +17,13 @@ use crate::ingame::region::ForgottenRegion;
 use crate::ingame::state::State;
 
 #[derive(Debug, Event)]
-pub struct UpdatePositionEvent(oc_individual::IndividualIndex, [f32; 2]);
+pub struct SetPositionEvent(oc_individual::IndividualIndex, [f32; 2]);
 
 #[derive(Debug, Event)]
-pub struct UpdateTileEvent(oc_individual::IndividualIndex, TileXy);
+pub struct SetTileEvent(oc_individual::IndividualIndex, TileXy);
 
 #[derive(Debug, Event)]
-pub struct UpdateRegionEvent(oc_individual::IndividualIndex, RegionXy);
+pub struct SetRegionEvent(oc_individual::IndividualIndex, RegionXy);
 
 #[derive(Debug, Event)]
 pub struct SetBehaviorEvent(
@@ -77,14 +77,14 @@ pub fn on_update_individual_physics(
 
     // TODO: use macro to automatise events declaration and mapping here
     match update {
-        oc_physics::update::Update::UpdatePosition(position) => {
-            commands.trigger(UpdatePositionEvent(i, *position));
+        oc_physics::update::Update::SetPosition(position) => {
+            commands.trigger(SetPositionEvent(i, *position));
         }
-        oc_physics::update::Update::UpdateTile(tile) => {
-            commands.trigger(UpdateTileEvent(i, *tile));
+        oc_physics::update::Update::SetTile(tile) => {
+            commands.trigger(SetTileEvent(i, *tile));
         }
-        oc_physics::update::Update::UpdateRegion(region) => {
-            commands.trigger(UpdateRegionEvent(i, *region));
+        oc_physics::update::Update::SetRegion(region) => {
+            commands.trigger(SetRegionEvent(i, *region));
         }
         oc_physics::update::Update::PushForce(force) => {
             commands.trigger(PushForceEvent(i, force.clone()));
@@ -116,10 +116,10 @@ impl Plugin for IndividualPlugin {
         app.add_observer(on_insert_individual)
             .add_observer(on_update_individual_physics)
             .add_observer(on_update_individual)
-            .add_observer(on_update_position_event)
-            .add_observer(on_update_tile_event)
-            .add_observer(on_update_region_event)
-            .add_observer(on_update_behavior_event)
+            .add_observer(on_set_position_event)
+            .add_observer(on_set_tile_event)
+            .add_observer(on_set_region_event)
+            .add_observer(on_set_behavior_event)
             .add_observer(on_set_forces_event)
             .add_observer(on_push_force_event)
             .add_observer(on_remove_force_event)
@@ -127,8 +127,8 @@ impl Plugin for IndividualPlugin {
     }
 }
 
-fn on_update_position_event(
-    position: On<UpdatePositionEvent>,
+fn on_set_position_event(
+    position: On<SetPositionEvent>,
     mut query: Query<(&mut Position, &mut Transform)>,
     state: Res<State>,
 ) {
@@ -144,7 +144,7 @@ fn on_update_position_event(
     transform.translation = Vec3::new(position.1[0], position.1[1], Z_INDIVIDUAL);
 }
 
-fn on_update_tile_event(tile: On<UpdateTileEvent>, mut query: Query<&mut Tile>, state: Res<State>) {
+fn on_set_tile_event(tile: On<SetTileEvent>, mut query: Query<&mut Tile>, state: Res<State>) {
     let Some(entity) = state.individuals.get(&tile.0) else {
         return;
     };
@@ -156,8 +156,8 @@ fn on_update_tile_event(tile: On<UpdateTileEvent>, mut query: Query<&mut Tile>, 
     tile_.0 = tile.1;
 }
 
-fn on_update_region_event(
-    region: On<UpdateRegionEvent>,
+fn on_set_region_event(
+    region: On<SetRegionEvent>,
     mut query: Query<&mut Region>,
     state: Res<State>,
 ) {
@@ -172,7 +172,7 @@ fn on_update_region_event(
     region_.0 = region.1;
 }
 
-fn on_update_behavior_event(
+fn on_set_behavior_event(
     behavior: On<SetBehaviorEvent>,
     mut query: Query<&mut Behavior>,
     state: Res<State>,

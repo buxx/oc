@@ -6,9 +6,9 @@ use crate::Force;
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Update {
-    UpdatePosition([f32; 2]),
-    UpdateTile(TileXy),
-    UpdateRegion(RegionXy),
+    SetPosition([f32; 2]),
+    SetTile(TileXy),
+    SetRegion(RegionXy),
     PushForce(Force),
     RemoveForce(Force),
 }

@@ -136,17 +136,17 @@ where
     let mut updates = vec![];
 
     if individual.position() != position {
-        updates.push(Update::UpdatePosition(*position));
+        updates.push(Update::SetPosition(*position));
 
         let tile: TileXy = position.clone().into();
         let region: RegionXy = tile.into();
 
         if individual.tile() != &tile {
-            updates.push(Update::UpdateTile(tile));
+            updates.push(Update::SetTile(tile));
         }
 
         if individual.region() != &region {
-            updates.push(Update::UpdateRegion(region));
+            updates.push(Update::SetRegion(region));
         }
     }
 
@@ -175,18 +175,18 @@ where
     let region = subject.region().clone();
 
     let effect = match update {
-        Update::UpdatePosition(position) => {
+        Update::SetPosition(position) => {
             subject.set_position(*position);
             None
         }
-        Update::UpdateTile(tile_) => {
+        Update::SetTile(tile_) => {
             subject.set_tile(*tile_);
             Some(Effect::Tile {
                 before: tile,
                 after: *tile_,
             })
         }
-        Update::UpdateRegion(region_) => {
+        Update::SetRegion(region_) => {
             subject.set_region(*region_);
             Some(Effect::Region {
                 before: region,

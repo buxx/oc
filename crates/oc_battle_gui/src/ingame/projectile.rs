@@ -21,13 +21,13 @@ use crate::world::tile::Tiles;
 // FIXME: refactor accoridng to projectile similar code
 
 #[derive(Debug, Event)]
-pub struct UpdatePositionEvent(oc_projectile::ProjectileId, [f32; 2]);
+pub struct SetPositionEvent(oc_projectile::ProjectileId, [f32; 2]);
 
 #[derive(Debug, Event)]
-pub struct UpdateTileEvent(oc_projectile::ProjectileId, TileXy);
+pub struct SetTileEvent(oc_projectile::ProjectileId, TileXy);
 
 #[derive(Debug, Event)]
-pub struct UpdateRegionEvent(oc_projectile::ProjectileId, RegionXy);
+pub struct SetRegionEvent(oc_projectile::ProjectileId, RegionXy);
 
 #[derive(Debug, Event)]
 pub struct PushForceEvent(oc_projectile::ProjectileId, Force);
@@ -70,14 +70,14 @@ pub fn on_update_projectile_physics(
 
     // TODO: use macro to automatise events declaration and mapping here
     match update {
-        oc_physics::update::Update::UpdatePosition(position) => {
-            commands.trigger(UpdatePositionEvent(i, *position));
+        oc_physics::update::Update::SetPosition(position) => {
+            commands.trigger(SetPositionEvent(i, *position));
         }
-        oc_physics::update::Update::UpdateTile(tile) => {
-            commands.trigger(UpdateTileEvent(i, *tile));
+        oc_physics::update::Update::SetTile(tile) => {
+            commands.trigger(SetTileEvent(i, *tile));
         }
-        oc_physics::update::Update::UpdateRegion(region) => {
-            commands.trigger(UpdateRegionEvent(i, *region));
+        oc_physics::update::Update::SetRegion(region) => {
+            commands.trigger(SetRegionEvent(i, *region));
         }
         oc_physics::update::Update::PushForce(force) => {
             commands.trigger(PushForceEvent(i, force.clone()));
@@ -94,9 +94,9 @@ impl Plugin for ProjectilePlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(on_insert_projectile)
             .add_observer(on_update_projectile_physics)
-            .add_observer(on_update_position_event)
-            .add_observer(on_update_tile_event)
-            .add_observer(on_update_region_event)
+            .add_observer(on_set_position_event)
+            .add_observer(on_set_tile_event)
+            .add_observer(on_set_region_event)
             .add_observer(on_push_force_event)
             .add_observer(on_remove_force_event)
             .add_observer(on_forgotten_region)
@@ -163,8 +163,8 @@ impl<'a> oc_physics::collision::Material for Projectile<'a> {
     }
 }
 
-fn on_update_position_event(
-    position: On<UpdatePositionEvent>,
+fn on_set_position_event(
+    position: On<SetPositionEvent>,
     mut query: Query<(&mut Position, &mut Transform)>,
     state: Res<State>,
 ) {
@@ -180,7 +180,7 @@ fn on_update_position_event(
     transform.translation = Vec3::new(position.1[0], position.1[1], Z_INDIVIDUAL);
 }
 
-fn on_update_tile_event(tile: On<UpdateTileEvent>, mut query: Query<&mut Tile>, state: Res<State>) {
+fn on_set_tile_event(tile: On<SetTileEvent>, mut query: Query<&mut Tile>, state: Res<State>) {
     let Some(entity) = state.projectiles.get(&tile.0) else {
         return;
     };
@@ -192,8 +192,8 @@ fn on_update_tile_event(tile: On<UpdateTileEvent>, mut query: Query<&mut Tile>, 
     tile_.0 = tile.1;
 }
 
-fn on_update_region_event(
-    region: On<UpdateRegionEvent>,
+fn on_set_region_event(
+    region: On<SetRegionEvent>,
     mut query: Query<&mut Region>,
     state: Res<State>,
 ) {
