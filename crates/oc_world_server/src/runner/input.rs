@@ -78,9 +78,9 @@ impl<'a> Dealer<'a> {
         tracing::trace!(name="dealer-refresh-region", endpoint=?self.endpoint, region=?region);
         let indexes = self.state.indexes();
 
+        self.send_tiles(region);
         self.send_subjects(indexes.region_individuals(region));
         self.send_subjects(indexes.region_projectiles(region));
-        self.send_tiles(region);
     }
 
     fn send_subjects<I, T>(&self, subjects: &Vec<I>)

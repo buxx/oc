@@ -4,6 +4,7 @@ use oc_geo::region::{Region as _, RegionXy, WorldRegionIndex};
 use oc_geo::tile::TileXy;
 use oc_physics::collision::Materials;
 use oc_physics::{Force, Laws, Physic};
+use oc_utils::d2::Xy;
 
 use crate::entity::geo::Position;
 use crate::entity::physics::Forces;
@@ -15,6 +16,7 @@ use crate::ingame::input::projectile::{InsertProjectileEvent, UpdateProjectilePh
 use crate::ingame::region::ForgottenRegion;
 use crate::ingame::state::State;
 use crate::states::AppState;
+use crate::world::tile::Tiles;
 
 // FIXME: refactor accoridng to projectile similar code
 
@@ -40,7 +42,7 @@ pub fn on_insert_projectile(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position());
+    tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position(), forces=?projectile.1.forces());
     let entity = commands
         .spawn((
             ProjectileId(projectile.0),
@@ -102,19 +104,37 @@ impl Plugin for ProjectilePlugin {
     }
 }
 
+// FIXME: apply on all (wanted) physic-able
 fn physics(
     time: Res<Time>,
-    query: Query<(&mut Position, &mut Forces, &mut Transform), With<ProjectileId>>,
+    query: Query<
+        (
+            &ProjectileId,
+            &mut Position,
+            &Region,
+            &mut Forces,
+            &mut Transform,
+        ),
+        With<ProjectileId>,
+    >,
+    tiles: Res<Tiles>,
 ) {
+    tracing::trace!(name = "projectile-physics-start");
     let laws = Laws::default().tick_coeff(time.delta_secs() / 1.);
-    let tiles = |_| Some(&oc_world::tile::Tile::ShortGrass); // FIXME
 
-    for (mut position, mut forces, mut transform) in query {
+    for (i, mut position, region, mut forces, mut transform) in query {
+        // TODO: Maybe performant bottleneck ?
+        let tiles = |xy: Xy| {
+            tiles
+                .get(&region.0.into())
+                .and_then(|tiles| tiles.get(&TileXy(xy).into()))
+        };
         let projectile = Projectile {
             position: &position.0,
             forces: &forces.0,
         };
         let (position_, forces_) = oc_physics::step(&laws, &projectile, tiles);
+        tracing::trace!(name = "projectile-physics-step", i=?i, position=?position_);
         position.0 = position_;
         forces.0 = forces_;
         transform.translation.x = position.0[0];

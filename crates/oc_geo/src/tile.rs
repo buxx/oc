@@ -1,6 +1,8 @@
-use oc_root::{GEO_PIXELS_PER_TILE, WORLD_HEIGHT, WORLD_WIDTH};
+use oc_root::{GEO_PIXELS_PER_TILE, REGION_HEIGHT, REGION_WIDTH, WORLD_HEIGHT, WORLD_WIDTH};
 use oc_utils::d2::Xy;
 use rkyv::{Archive, Deserialize, Serialize};
+
+use crate::region::RegionXy;
 
 #[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
@@ -53,6 +55,14 @@ impl From<[f32; 2]> for TileXy {
             value[0] as u64 / GEO_PIXELS_PER_TILE,
             value[1] as u64 / GEO_PIXELS_PER_TILE,
         ))
+    }
+}
+
+impl From<RegionXy> for TileXy {
+    fn from(value: RegionXy) -> Self {
+        let x = value.0.0 * REGION_WIDTH as u64;
+        let y = value.0.1 * REGION_HEIGHT as u64;
+        Self(Xy(x, y))
     }
 }
 
