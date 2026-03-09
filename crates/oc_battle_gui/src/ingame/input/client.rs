@@ -5,8 +5,11 @@ use oc_projectile::network::Projectile;
 
 use crate::{
     ingame::input::{
-        individual::{InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent},
-        projectile::{InsertProjectileEvent, UpdateProjectilePhysicsEvent},
+        individual::{
+            InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
+            UpdateProjectilePhysicsEvent,
+        },
+        projectile::InsertProjectileEvent,
     },
     network::input::ToClientEvent,
     states::{Config, Meta},

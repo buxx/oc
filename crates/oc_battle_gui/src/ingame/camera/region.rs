@@ -68,6 +68,7 @@ pub fn on_update_regions(
     state.regions = Some(now);
 }
 
+/// List regions to consider around given point
 pub fn regions(center: Vec2) -> Vec<WorldRegionIndex> {
     let center: TileXy = [center.x, center.y].into();
     let center: RegionXy = center.into();

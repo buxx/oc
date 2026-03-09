@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
+bevy = ["dep:bevy"]
 
 [dependencies]
 oc_root = { path = "../oc_root" }
 rkyv.workspace = true
 tracing.workspace = true
+bevy = { workspace = true, optional = true }
+rustc-hash.workspace = true

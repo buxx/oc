@@ -1,3 +1,4 @@
+use derive_more::Constructor;
 use oc_root::{
     GEO_BRESENHAM_PRECISION, GEO_BRESENHAM_STEP, GEO_PIXELS_PER_TILE, PHYSICS_COEFF_PER_TICK,
 };
@@ -74,6 +75,29 @@ pub trait UpdatePhysic: Physic + Material {
     fn set_position(&mut self, value: [f32; 2]);
     fn push_force(&mut self, value: Force);
     fn remove_force(&mut self, value: &Force);
+}
+
+#[derive(Debug, Constructor)]
+pub struct Corps<'a> {
+    position: &'a [f32; 2],
+    forces: &'a Vec<Force>,
+    material: collision::Materials,
+}
+
+impl<'a> Physic for Corps<'a> {
+    fn position(&self) -> &[f32; 2] {
+        &self.position
+    }
+
+    fn forces(&self) -> &Vec<Force> {
+        &self.forces
+    }
+}
+
+impl<'a> collision::Material for Corps<'a> {
+    fn material(&self) -> collision::Materials {
+        self.material
+    }
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]

@@ -1,4 +1,6 @@
-// TODO ... réfléchir au concept
+#[cfg(feature = "bevy")]
+use bevy::prelude::*;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Materials {
     Solid,
@@ -17,3 +19,7 @@ impl Materials {
 pub trait Material {
     fn material(&self) -> Materials;
 }
+
+#[cfg(feature = "bevy")]
+#[derive(Debug, Deref, DerefMut, Component)]
+pub struct Material_(pub Materials);

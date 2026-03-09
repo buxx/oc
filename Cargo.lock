@@ -4943,6 +4943,7 @@ dependencies = [
 name = "oc_physics"
 version = "0.1.0"
 dependencies = [
+ "bevy",
  "bresenham",
  "derive_more",
  "oc_geo",
@@ -4976,8 +4977,10 @@ dependencies = [
 name = "oc_utils"
 version = "0.1.0"
 dependencies = [
+ "bevy",
  "oc_root",
  "rkyv",
+ "rustc-hash 2.1.1",
  "tracing",
 ]
 

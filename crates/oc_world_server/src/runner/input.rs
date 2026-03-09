@@ -4,6 +4,7 @@ use derive_more::Constructor;
 use message_io::network::Endpoint;
 use oc_geo::region::WorldRegionIndex;
 use oc_network::{ToClient, ToServer};
+#[cfg(feature = "debug")]
 use oc_projectile::network::Projectile;
 #[cfg(feature = "debug")]
 use oc_projectile::network::SpawnProjectile;

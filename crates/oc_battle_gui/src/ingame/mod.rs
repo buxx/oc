@@ -14,7 +14,6 @@ use crate::{
     states::AppState,
     world::WorldPlugin,
 };
-use state::State;
 
 pub mod camera;
 mod draw;
@@ -24,7 +23,6 @@ mod input;
 mod physics;
 mod projectile;
 mod region;
-mod state;
 mod world;
 
 pub struct IngamePlugin;
@@ -37,7 +35,6 @@ impl Plugin for IngamePlugin {
         app.add_plugins(WorldPlugin)
             .add_plugins(IndividualPlugin)
             .add_plugins(ProjectilePlugin)
-            .init_resource::<State>()
             .add_observer(on_to_client)
             .add_observer(on_update_battle_square)
             .add_observer(on_spawn_minimap)

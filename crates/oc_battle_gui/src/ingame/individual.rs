@@ -1,29 +1,15 @@
 use bevy::color::palettes::css::PURPLE;
 use bevy::prelude::*;
-use oc_geo::region::{RegionXy, WorldRegionIndex};
-use oc_geo::tile::TileXy;
-use oc_physics::Force;
+use oc_geo::region::WorldRegionIndex;
+use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile};
+use oc_utils::bevy::EntityMapping;
 
-use crate::entity::geo::Position;
 use crate::entity::individual::{Behavior, IndividualIndex};
-use crate::entity::physics::Forces;
-use crate::entity::world::Tile;
-use crate::entity::world::region::Region;
 use crate::ingame::draw::Z_INDIVIDUAL;
 use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
 };
 use crate::ingame::region::ForgottenRegion;
-use crate::ingame::state::State;
-
-#[derive(Debug, Event)]
-pub struct SetPositionEvent(oc_individual::IndividualIndex, [f32; 2]);
-
-#[derive(Debug, Event)]
-pub struct SetTileEvent(oc_individual::IndividualIndex, TileXy);
-
-#[derive(Debug, Event)]
-pub struct SetRegionEvent(oc_individual::IndividualIndex, RegionXy);
 
 #[derive(Debug, Event)]
 pub struct SetBehaviorEvent(
@@ -34,16 +20,10 @@ pub struct SetBehaviorEvent(
 #[derive(Debug, Event)]
 pub struct SetForcesEvent(oc_individual::IndividualIndex, Vec<oc_physics::Force>);
 
-#[derive(Debug, Event)]
-pub struct PushForceEvent(oc_individual::IndividualIndex, Force);
-
-#[derive(Debug, Event)]
-pub struct RemoveForceEvent(oc_individual::IndividualIndex, Force);
-
 pub fn on_insert_individual(
     individual: On<InsertIndividualEvent>,
     mut commands: Commands,
-    mut state: ResMut<State>,
+    mut state: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
@@ -65,34 +45,7 @@ pub fn on_insert_individual(
             ),
         ))
         .id();
-    state.individuals.insert(individual.0, entity);
-}
-
-// FIXME: generic or macro way to update physics of individual and projectile
-pub fn on_update_individual_physics(
-    update: On<UpdateIndividualPhysicsEvent>,
-    mut commands: Commands,
-) {
-    let (i, update) = (update.0, &update.1);
-
-    // TODO: use macro to automatise events declaration and mapping here
-    match update {
-        oc_physics::update::Update::SetPosition(position) => {
-            commands.trigger(SetPositionEvent(i, *position));
-        }
-        oc_physics::update::Update::SetTile(tile) => {
-            commands.trigger(SetTileEvent(i, *tile));
-        }
-        oc_physics::update::Update::SetRegion(region) => {
-            commands.trigger(SetRegionEvent(i, *region));
-        }
-        oc_physics::update::Update::PushForce(force) => {
-            commands.trigger(PushForceEvent(i, force.clone()));
-        }
-        oc_physics::update::Update::RemoveForce(force) => {
-            commands.trigger(RemoveForceEvent(i, force.clone()));
-        }
-    }
+    state.insert(individual.0, entity);
 }
 
 pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Commands) {
@@ -113,71 +66,25 @@ pub struct IndividualPlugin;
 
 impl Plugin for IndividualPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(on_insert_individual)
-            .add_observer(on_update_individual_physics)
+        app.add_plugins(PhysicsPlugin::<
+            oc_individual::IndividualIndex,
+            UpdateIndividualPhysicsEvent,
+        >::default())
+            .init_resource::<EntityMapping<oc_individual::IndividualIndex>>()
+            .add_observer(on_insert_individual)
             .add_observer(on_update_individual)
-            .add_observer(on_set_position_event)
-            .add_observer(on_set_tile_event)
-            .add_observer(on_set_region_event)
             .add_observer(on_set_behavior_event)
             .add_observer(on_set_forces_event)
-            .add_observer(on_push_force_event)
-            .add_observer(on_remove_force_event)
             .add_observer(on_forgotten_region);
     }
-}
-
-fn on_set_position_event(
-    position: On<SetPositionEvent>,
-    mut query: Query<(&mut Position, &mut Transform)>,
-    state: Res<State>,
-) {
-    let Some(entity) = state.individuals.get(&position.0) else {
-        return;
-    };
-    let Ok((mut position_, mut transform)) = query.get_mut(*entity) else {
-        return;
-    };
-    tracing::trace!(name = "update-individual-position", i=?position.0.0, position=?position.1);
-
-    position_.0 = position.1;
-    transform.translation = Vec3::new(position.1[0], position.1[1], Z_INDIVIDUAL);
-}
-
-fn on_set_tile_event(tile: On<SetTileEvent>, mut query: Query<&mut Tile>, state: Res<State>) {
-    let Some(entity) = state.individuals.get(&tile.0) else {
-        return;
-    };
-    let Ok(mut tile_) = query.get_mut(*entity) else {
-        return;
-    };
-    tracing::trace!(name="update-individual-tile", i=?tile.0, tile=?tile.1);
-
-    tile_.0 = tile.1;
-}
-
-fn on_set_region_event(
-    region: On<SetRegionEvent>,
-    mut query: Query<&mut Region>,
-    state: Res<State>,
-) {
-    let Some(entity) = state.individuals.get(&region.0) else {
-        return;
-    };
-    let Ok(mut region_) = query.get_mut(*entity) else {
-        return;
-    };
-    tracing::trace!(name="update-individual-region", i=?region.0, region=?region.1);
-
-    region_.0 = region.1;
 }
 
 fn on_set_behavior_event(
     behavior: On<SetBehaviorEvent>,
     mut query: Query<&mut Behavior>,
-    state: Res<State>,
+    state: Res<EntityMapping<oc_individual::IndividualIndex>>,
 ) {
-    let Some(entity) = state.individuals.get(&behavior.0) else {
+    let Some(entity) = state.get(&behavior.0) else {
         return;
     };
     let Ok(mut behavior_) = query.get_mut(*entity) else {
@@ -191,9 +98,9 @@ fn on_set_behavior_event(
 fn on_set_forces_event(
     forces: On<SetForcesEvent>,
     mut query: Query<&mut Forces>,
-    state: Res<State>,
+    state: Res<EntityMapping<oc_individual::IndividualIndex>>,
 ) {
-    let Some(entity) = state.individuals.get(&forces.0) else {
+    let Some(entity) = state.get(&forces.0) else {
         return;
     };
     let Ok(mut forces_) = query.get_mut(*entity) else {
@@ -204,42 +111,11 @@ fn on_set_forces_event(
     forces_.0 = forces.1.clone();
 }
 
-fn on_push_force_event(
-    force: On<PushForceEvent>,
-    mut query: Query<&mut Forces>,
-    state: Res<State>,
-) {
-    let Some(entity) = state.individuals.get(&force.0) else {
-        return;
-    };
-    let Ok(mut forces) = query.get_mut(*entity) else {
-        return;
-    };
-    tracing::trace!(name = "update-individual-force-push", i=?force.0, force=?force.1);
-
-    forces.0.push(force.1.clone());
-}
-
-fn on_remove_force_event(
-    force: On<RemoveForceEvent>,
-    mut query: Query<&mut Forces>,
-    state: Res<State>,
-) {
-    let Some(entity) = state.individuals.get(&force.0) else {
-        return;
-    };
-    let Ok(mut forces) = query.get_mut(*entity) else {
-        return;
-    };
-    tracing::trace!(name = "update-individual-force-remove", i=?force.0, force=?force.1);
-
-    forces.0.retain(|f| f != &force.1);
-}
-
+// TODO: should be automatized (macro? derive ?)
 fn on_forgotten_region(
     region: On<ForgottenRegion>,
     mut commands: Commands,
-    mut state: ResMut<State>,
+    mut state: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
     query: Query<(Entity, &Region, &IndividualIndex)>,
 ) {
     for (entity, region_, individual) in query {
@@ -247,7 +123,7 @@ fn on_forgotten_region(
         if region_ == region.0 {
             tracing::trace!(name = "remove-individual", i=?individual);
             commands.entity(entity).despawn();
-            state.individuals.remove(&individual.0);
+            state.remove(&individual.0);
         }
     }
 }

@@ -1,8 +1,6 @@
 use bevy::prelude::*;
+#[cfg(feature = "debug")]
 use oc_geo::region::RegionXy;
-
-#[derive(Debug, Component)]
-pub struct Region(pub RegionXy);
 
 #[derive(Debug, Component)]
 pub struct RegionBackground;

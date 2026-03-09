@@ -2,12 +2,11 @@ use std::path::PathBuf;
 
 use bevy::prelude::*;
 use oc_geo::region::{RegionXy, WorldRegionIndex};
+use oc_physics::update::bevy::Region;
 use oc_root::{REGION_HEIGHT_PIXELS, REGION_WIDTH_PIXELS};
 
 use crate::{
-    entity::world::region::{Region, RegionBackground},
-    ingame::draw::Z_REGION_BACKGROUND,
-    states::Meta,
+    entity::world::region::RegionBackground, ingame::draw::Z_REGION_BACKGROUND, states::Meta,
     world::tile::Tiles,
 };
 
