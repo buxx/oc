@@ -32,7 +32,7 @@ pub fn spawn_world_map(mut commands: Commands) {
 pub fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
     let position = [0., 0.];
     let direction = [0.5, 0.5];
-    let speed = MetersSeconds(100.);
+    let speed = MetersSeconds(20.);
     let thrust = Force::Translation(direction, speed);
     let forces = vec![thrust];
     let bullet = Bullet::new(position, forces);

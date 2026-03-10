@@ -1,6 +1,7 @@
 use derive_more::Constructor;
 use oc_root::{
-    GEO_BRESENHAM_PRECISION, GEO_BRESENHAM_STEP, GEO_PIXELS_PER_TILE, PHYSICS_COEFF_PER_TICK,
+    GEO_BRESENHAM_PRECISION, GEO_BRESENHAM_STEP, GEO_PIXELS_PER_METERS, GEO_PIXELS_PER_TILE,
+    PHYSICS_COEFF_PER_TICK,
 };
 use oc_utils::d2::Xy;
 use rkyv::{Archive, Deserialize, Serialize};
@@ -19,6 +20,7 @@ pub struct Laws {
     pub bresenham_precision: f32,
     pub bresenham_step: usize,
     pub pixels_per_tile: u64,
+    pub pixels_per_meters: f32,
 }
 
 impl Laws {
@@ -41,6 +43,11 @@ impl Laws {
         self.pixels_per_tile = value;
         self
     }
+
+    pub fn pixels_per_meters(mut self, value: f32) -> Self {
+        self.pixels_per_meters = value;
+        self
+    }
 }
 
 impl Default for Laws {
@@ -50,6 +57,7 @@ impl Default for Laws {
             bresenham_precision: GEO_BRESENHAM_PRECISION,
             bresenham_step: GEO_BRESENHAM_STEP,
             pixels_per_tile: GEO_PIXELS_PER_TILE,
+            pixels_per_meters: GEO_PIXELS_PER_METERS,
         }
     }
 }
@@ -123,9 +131,10 @@ where
         match force {
             Force::Translation(direction, speed) => {
                 let speed = speed.0 * laws.tick_coeff;
+                let pixels = speed * laws.pixels_per_meters as f32;
                 let [x, y] = position;
                 // FIXME: la direction (f32; 2) influe sur la vitesse, utiliser autre chose
-                let (x_, y_) = (x + direction[0] * speed, y + direction[1] * speed);
+                let (x_, y_) = (x + direction[0] * pixels, y + direction[1] * pixels);
 
                 tracing::trace!(
                     name = "physics-step-translation-start",
@@ -205,7 +214,10 @@ mod tests {
     #[test]
     fn test_unidirectional_translation() {
         // Given
-        let laws = Laws::default().tick_coeff(0.5).bresenham_precision(100.);
+        let laws = Laws::default()
+            .tick_coeff(0.5)
+            .bresenham_precision(100.)
+            .pixels_per_meters(10.);
         let direction = [1.0, 0.0]; // South
         let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction, speed);
@@ -216,7 +228,7 @@ mod tests {
         let (new_position, _) = step(&laws, &object, tiles);
 
         // Then
-        let expected_new_position = [0.5, 0.0];
+        let expected_new_position = [5.0, 0.0];
         assert_eq!(new_position, expected_new_position);
     }
 
@@ -226,7 +238,8 @@ mod tests {
         let laws = Laws::default()
             .tick_coeff(0.5)
             .bresenham_precision(100.)
-            .bresenham_step(250);
+            .bresenham_step(250)
+            .pixels_per_meters(10.);
         let direction = [1.0, 0.0]; // South
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
@@ -252,7 +265,10 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_high_speed() {
         // Given
-        let laws = Laws::default().tick_coeff(0.5).bresenham_precision(100.);
+        let laws = Laws::default()
+            .tick_coeff(0.5)
+            .bresenham_precision(100.)
+            .pixels_per_meters(10.);
         let direction = [1.0, 0.0]; // South
         let speed = MetersSeconds(10.0);
         let force = Force::Translation(direction, speed);
@@ -263,7 +279,7 @@ mod tests {
         let (new_position, _) = step(&laws, &object, tiles);
 
         // Then
-        let expected_new_position = [5.0, 0.0];
+        let expected_new_position = [50.0, 0.0];
         assert_eq!(new_position, expected_new_position);
     }
 
@@ -273,7 +289,8 @@ mod tests {
         let laws = Laws::default()
             .tick_coeff(0.5)
             .bresenham_precision(100.)
-            .bresenham_step(250);
+            .bresenham_step(250)
+            .pixels_per_meters(10.);
         let direction = [1.0, 0.0]; // South
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
@@ -299,7 +316,10 @@ mod tests {
     #[test]
     fn test_bidirectional_translation() {
         // Given
-        let laws = Laws::default().tick_coeff(0.5).bresenham_precision(100.);
+        let laws = Laws::default()
+            .tick_coeff(0.5)
+            .bresenham_precision(100.)
+            .pixels_per_meters(10.);
         let direction = [1.0, 1.0]; // South
         let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction, speed);
@@ -310,7 +330,7 @@ mod tests {
         let (new_position, _) = step(&laws, &object, tiles);
 
         // Then
-        let expected_new_position = [0.5, 0.5];
+        let expected_new_position = [5.0, 5.0];
         assert_eq!(new_position, expected_new_position);
     }
 }
