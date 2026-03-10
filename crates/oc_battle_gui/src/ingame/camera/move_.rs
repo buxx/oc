@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 
-use crate::ingame::camera::{self, map::window_point_to_world_map_point, region::UpdateRegions};
+use crate::ingame::camera::{
+    self, GoToPoint, map::window_point_to_world_map_point, region::UpdateRegions,
+};
 
 #[derive(Debug, Event)]
 pub struct MovedBattleCamera;
@@ -73,4 +75,10 @@ pub fn move_in_world_map(
         commands.trigger(UpdateRegions(point));
         commands.trigger(UpdateVisibleBattleSquare(point));
     }
+}
+
+pub fn on_go_to_point(point: On<GoToPoint>, mut camera: Single<&mut Transform, With<Camera2d>>) {
+    camera.translation.x = point[0];
+    camera.translation.y = point[1];
+    camera.translation.z = 0.;
 }

@@ -2,8 +2,6 @@ use bevy::prelude::*;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_world::tile::Tile;
 
-use crate::world::tile::on_insert_tiles;
-
 pub mod tile;
 
 pub struct WorldPlugin;
@@ -11,7 +9,8 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<tile::Tiles>()
-            .add_observer(on_insert_tiles);
+            .add_observer(tile::on_insert_tiles)
+            .add_observer(tile::on_forgotten_region);
     }
 }
 

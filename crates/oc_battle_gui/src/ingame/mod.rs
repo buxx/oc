@@ -22,7 +22,7 @@ mod init;
 mod input;
 mod physics;
 mod projectile;
-mod region;
+pub mod region;
 mod world;
 
 pub struct IngamePlugin;

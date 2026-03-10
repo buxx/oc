@@ -112,14 +112,14 @@ impl<'x> Processor<'x> {
                 }
 
                 // Broadcast to new listener if required
-                if let Effect::Region { before: _, after } = effect {
+                if let Effect::Region { before, after } = effect {
                     let world = self.ctx.state.world();
                     let Some(subject) = i.into_subject(&world) else {
                         continue; // TODO: its possible ? What to do ? Simply log ?
                     };
 
                     tracing::trace!(name="subject-update-write-broadast-insert", i=?i);
-                    let filter = Listening::Regions(vec![after.into()]);
+                    let filter = Listening::Border(before.into(), after.into());
                     let messages = vec![subject.into_network_insert(i)];
                     self.ctx.broadcast(filter, messages);
                 }

@@ -6,12 +6,18 @@ use crate::ingame::camera;
 use crate::ingame::camera::map::SaveCurrentWindowCenterAsBattleCenter;
 use crate::ingame::input::map::{SwitchToBattleMap, SwitchToWorldMap};
 #[cfg(feature = "debug")]
-use crate::window::debug::battle::ToggleBattleDebugWindow;
+use crate::window::ToggleWindow;
+use crate::window::Window;
+#[cfg(feature = "debug")]
+use crate::window::debug::battle::DebugBattleWindow;
+#[cfg(feature = "debug")]
+use crate::window::debug::battle::window::Window as DebugWindow;
 
 pub fn on_key_press(
     mut commands: Commands,
     mut keyboard: MessageReader<KeyboardInput>,
     camera: Res<camera::State>,
+    #[cfg(feature = "debug")] debug: Res<DebugBattleWindow>,
 ) {
     for event in keyboard.read() {
         match (event.state, event.key_code) {
@@ -24,7 +30,8 @@ pub fn on_key_press(
             },
             #[cfg(feature = "debug")]
             (ButtonState::Released, KeyCode::F12) => {
-                commands.trigger(ToggleBattleDebugWindow);
+                let window = debug.0.clone().unwrap_or(DebugWindow::default());
+                commands.trigger(ToggleWindow(Window::BattleDebug(window)));
             }
             _ => {}
         }

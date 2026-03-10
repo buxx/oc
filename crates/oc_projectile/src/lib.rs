@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use oc_geo::{
     Geo, UpdateGeo,
     region::{Region, RegionXy},
@@ -18,6 +20,12 @@ pub mod network;
 #[derive(Archive, Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct ProjectileId(pub u64);
+
+impl Display for ProjectileId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("{}", self.0))
+    }
+}
 
 impl From<&ProjectileId> for ProjectileId {
     fn from(value: &ProjectileId) -> Self {

@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::ops::Deref;
 
 use derive_more::Constructor;
@@ -22,6 +23,12 @@ pub mod network;
 #[derive(Archive, Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq, Constructor, Hash)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndividualIndex(pub u64);
+
+impl Display for IndividualIndex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("{}", self.0))
+    }
+}
 
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]

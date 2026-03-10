@@ -3,6 +3,7 @@ use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_world::tile::Tile;
 use rustc_hash::FxHashMap;
 
+use crate::ingame::region::ForgottenRegion;
 use crate::world::InsertTiles;
 
 // TODO: maybe need improve perf on access tiles. Think about a Vec (with size of world tiles ?) containing references
@@ -11,6 +12,8 @@ use crate::world::InsertTiles;
 pub struct Tiles(pub FxHashMap<WorldRegionIndex, FxHashMap<WorldTileIndex, Tile>>);
 
 pub fn on_insert_tiles(insert: On<InsertTiles>, mut tiles: ResMut<Tiles>) {
+    tracing::debug!("Insert tiles for region {:?}", insert.0);
+
     tiles
         .0
         .entry(insert.0)
@@ -20,4 +23,11 @@ pub fn on_insert_tiles(insert: On<InsertTiles>, mut tiles: ResMut<Tiles>) {
             }
         })
         .or_insert(insert.1.clone().into_iter().collect());
+}
+
+// TODO: should be automatized (macro? derive ?)
+pub fn on_forgotten_region(region: On<ForgottenRegion>, mut tiles: ResMut<Tiles>) {
+    tracing::debug!("Remove tiles for region {:?}", region.0);
+
+    tiles.0.remove(&region.0);
 }

@@ -26,6 +26,9 @@ tokio = "1.49"
 tokio-util = "0.7"
 reqwest = "0.13"
 bevy_egui = "0.39"
+egui_dock = "0.18"
+strum = "0.28"
+strum_macros = "0.28"
 
 # tests
 rstest = "0.26"

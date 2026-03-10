@@ -23,6 +23,9 @@ pub mod region;
 
 pub struct CameraPlugin;
 
+#[derive(Debug, Deref, DerefMut, Clone, Event)]
+pub struct GoToPoint(pub [f32; 2]);
+
 #[derive(Debug, Default)]
 pub enum Focus {
     #[default]
@@ -38,6 +41,7 @@ impl Plugin for CameraPlugin {
             .add_observer(map::on_switch_to_battle_map)
             .add_observer(region::on_update_regions)
             .add_observer(move_::on_moved_battle_camera)
+            .add_observer(move_::on_go_to_point)
             .add_systems(OnEnter(AppState::InGame), init)
             .add_systems(
                 Update,
@@ -65,7 +69,10 @@ impl Plugin for CameraPlugin {
             );
 
         #[cfg(feature = "debug")]
-        app.add_systems(OnEnter(AppState::InGame), debug::world::setup)
+        app.init_resource::<debug::tile::ShowTiles>()
+            .add_observer(debug::tile::on_toggle_show_tiles)
+            .add_observer(debug::tile::on_camera_moved)
+            .add_systems(OnEnter(AppState::InGame), debug::world::setup)
             .add_systems(
                 Update,
                 debug::world::cursor

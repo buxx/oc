@@ -39,3 +39,7 @@ rkyv.workspace = true
 rustc-hash.workspace = true
 reqwest = { workspace = true, features = ["blocking"] }
 bevy_egui.workspace = true
+egui_dock.workspace = true
+strum.workspace = true
+strum_macros.workspace = true
+derive_more = { workspace = true, features = ["constructor"] }
