@@ -16,6 +16,7 @@ use crate::bullet::Bullet;
 
 pub mod bullet;
 pub mod network;
+pub mod spawn;
 
 #[derive(Archive, Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[rkyv(compare(PartialEq), derive(Debug))]

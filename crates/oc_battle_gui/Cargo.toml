@@ -25,6 +25,7 @@ debug = ["bevy/bevy_dev_tools", "oc_network/debug"]
 oc_root = { path = "../oc_root" }
 oc_network = { path = "../oc_network" }
 oc_utils = { path = "../oc_utils", features = ["bevy"] }
+oc_mod = { path = "../oc_mod" }
 oc_geo = { path = "../oc_geo" }
 oc_world = { path = "../oc_world" }
 oc_physics = { path = "../oc_physics", features = ["bevy"] }
@@ -43,3 +44,5 @@ egui_dock.workspace = true
 strum.workspace = true
 strum_macros.workspace = true
 derive_more = { workspace = true, features = ["constructor"] }
+flate2.workspace = true
+tar.workspace = true

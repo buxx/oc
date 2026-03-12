@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 
-use crate::ingame::camera::{
-    self, GoToPoint, map::window_point_to_world_map_point, region::UpdateRegions,
+use crate::{
+    ingame::camera::{
+        self, GoToPoint, map::window_point_to_world_map_point, region::UpdateRegions,
+    },
+    window::PointerInWindow,
 };
 
 #[derive(Debug, Event)]
@@ -12,12 +15,17 @@ pub struct UpdateVisibleBattleSquare(pub Vec2); // The bevy world map point corr
 
 pub fn move_battle(
     mut commands: Commands,
+    ignore: Res<PointerInWindow>,
     mut camera: Single<&mut Transform, With<Camera2d>>,
     window: Single<&Window>,
     buttons: Res<ButtonInput<MouseButton>>,
     keys: Res<ButtonInput<KeyCode>>,
     state: Res<super::State>,
 ) {
+    if ignore.0 {
+        return;
+    }
+
     let cursor = window.cursor_position();
     let ctrl = keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight);
     let left = buttons.pressed(MouseButton::Left);
@@ -55,11 +63,16 @@ pub fn on_moved_battle_camera(
 }
 
 pub fn move_in_world_map(
+    ignore: Res<PointerInWindow>,
     mut commands: Commands,
     window: Single<&Window>,
     buttons: Res<ButtonInput<MouseButton>>,
     mut state: ResMut<camera::State>,
 ) {
+    if ignore.0 {
+        return;
+    }
+
     if buttons.just_released(MouseButton::Left) {
         let Some(cursor) = window.cursor_position() else {
             return;

@@ -11,7 +11,7 @@ use crate::{
     home::HomePlugin,
     ingame::IngamePlugin,
     network::NetworkPlugin,
-    states::{AppState, Config, InGameState, Meta},
+    states::{AppState, Config, InGameState, Meta, Mod},
 };
 
 #[cfg(feature = "debug")]
@@ -62,6 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     .add_plugins(window::WindowPlugin)
     .add_plugins(ingame::camera::CameraPlugin)
     .insert_state(AppState::Home)
+    .init_resource::<Mod>()
     .init_resource::<Meta>()
     .init_resource::<Config>()
     .init_resource::<states::Window>()

@@ -1,10 +1,14 @@
 use bevy::prelude::*;
 use bevy_egui::{EguiContexts, EguiPrimaryContextPass};
+use oc_mod::Mod;
 
 use crate::states;
 
 #[cfg(feature = "debug")]
 pub mod debug;
+
+#[derive(Deref, DerefMut, Resource, Default)]
+pub struct PointerInWindow(pub bool);
 
 #[derive(Clone)]
 pub enum Window {
@@ -13,10 +17,10 @@ pub enum Window {
 }
 
 impl Window {
-    fn show(&mut self, contexts: &mut EguiContexts, commands: &mut Commands) -> Result {
+    fn show(&mut self, contexts: &mut EguiContexts, commands: &mut Commands, mod_: &Mod) -> Result {
         #[cfg(feature = "debug")]
         match self {
-            Window::BattleDebug(window) => window.show(contexts, commands)?,
+            Window::BattleDebug(window) => window.show(contexts, commands, mod_)?,
         }
 
         Ok(())
@@ -52,7 +56,8 @@ pub struct WindowPlugin;
 
 impl Plugin for WindowPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(EguiPrimaryContextPass, show)
+        app.init_resource::<PointerInWindow>()
+            .add_systems(EguiPrimaryContextPass, show)
             .add_observer(on_toggle_debug_window);
 
         #[cfg(feature = "debug")]
@@ -66,10 +71,18 @@ fn show(
     mut contexts: EguiContexts,
     mut window: ResMut<states::Window>,
     mut commands: Commands,
+    mod_: Res<states::Mod>,
+    mut pointer: ResMut<PointerInWindow>,
 ) -> Result {
-    if let Some(window) = &mut window.0 {
-        window.show(&mut contexts, &mut commands)?
-    }
+    let Some(window) = &mut window.0 else {
+        return Ok(());
+    };
+    let Some(mod_) = &mod_.0 else {
+        return Ok(());
+    };
+
+    window.show(&mut contexts, &mut commands, &mod_)?;
+    pointer.0 = contexts.ctx_mut()?.is_pointer_over_area();
 
     Ok(())
 }

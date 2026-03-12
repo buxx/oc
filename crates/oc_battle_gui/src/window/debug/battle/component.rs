@@ -3,6 +3,7 @@ use std::fmt::Display;
 use bevy::prelude::*;
 use bevy_egui::prelude::*;
 use oc_geo::region::RegionXy;
+use oc_mod::Mod;
 
 use crate::{
     ingame::camera::{GoToPoint, region::Region},
@@ -10,7 +11,7 @@ use crate::{
 };
 
 impl super::Context {
-    pub fn ui_components(&mut self, ui: &mut egui::Ui, commands: &mut Commands) {
+    pub fn ui_components(&mut self, ui: &mut egui::Ui, commands: &mut Commands, mod_: &Mod) {
         ui.horizontal(|ui| {
             if ui.button("x").clicked() {
                 self.view = View::None;

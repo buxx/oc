@@ -5,9 +5,7 @@ use message_io::network::Endpoint;
 use oc_geo::region::WorldRegionIndex;
 use oc_network::{ToClient, ToServer};
 #[cfg(feature = "debug")]
-use oc_projectile::network::Projectile;
-#[cfg(feature = "debug")]
-use oc_projectile::network::SpawnProjectile;
+use oc_projectile::spawn::SpawnProjectile;
 use oc_utils::error::OkOrLogError;
 use oc_world::tile::IntoTiles;
 
@@ -49,27 +47,35 @@ impl<'a> Dealer<'a> {
     }
 
     #[cfg(feature = "debug")]
-    fn spawn_projectile(&self, projectile: SpawnProjectile) {
+    fn spawn_projectile(&self, spawn: SpawnProjectile) {
+        use crate::projectile;
+        use crate::routing::Listening;
         use oc_geo::region::Region;
 
-        use crate::routing::Listening;
-
-        // Insert it in the world
-        tracing::trace!(name="dealer-spawn-projectile", endpoint=?self.endpoint, projectile=?projectile);
         let id = self.state.new_projectile_id();
-        let mut world = self.state.world_mut();
-        let projectiles = world.projectiles_mut();
-        projectiles.insert(id, projectile.0.clone());
 
-        // Make it known by index (TODO: normalize ?)
-        let mut indexes = self.state.indexes_mut();
-        indexes.insert_projectile(id, &projectile.0);
+        let projectile = {
+            let world = self.state.world();
+            let mod_ = world.mod_();
+            projectile::Builder::new(mod_, spawn).build()
+        };
 
-        // Broadcast the new projectile (TODO: normalize ?)
+        // Make both insert and update index at same clock to lock at the same time
+        {
+            let mut world = self.state.world_mut();
+            let mut indexes = self.state.indexes_mut();
+            let projectiles = world.projectiles_mut();
+
+            projectiles.insert(id, projectile.clone());
+            indexes.insert_projectile(id, &projectile);
+        }
+
+        // Broadcast the new projectile (TODO: normalize/refactor to not call loop manually ?)
         let region: WorldRegionIndex = projectile.region().clone().into();
         let listeners = self.state.listeners();
         for listener in listeners.find(Listening::Regions(vec![region])) {
-            let message = ToClient::Projectile(Projectile::Insert(id, projectile.0.clone()));
+            let insert = oc_projectile::network::Projectile::Insert(id, projectile.clone());
+            let message = ToClient::Projectile(insert);
             let message = (listener.clone(), message);
             self.output.send(message).ok_or_log();
         }

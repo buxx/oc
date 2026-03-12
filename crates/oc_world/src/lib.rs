@@ -4,6 +4,7 @@ use oc_geo::{
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::{Individual, IndividualIndex};
+use oc_mod::Mod;
 use oc_projectile::{Projectile, ProjectileId};
 use oc_root::{REGION_HEIGHT, REGION_WIDTH};
 use oc_utils::d2::Xy;
@@ -19,6 +20,7 @@ pub mod tile;
 
 #[derive(Constructor)]
 pub struct World {
+    mod_: Mod, // Maybe its place is not in world (when want to access, need to read lock World, but Mod never change)
     meta: Meta,
     tiles: Vec<tile::Tile>,
     individuals: Vec<Individual>,
@@ -83,6 +85,10 @@ impl World {
 
     pub fn meta(&self) -> &Meta {
         &self.meta
+    }
+
+    pub fn mod_(&self) -> &Mod {
+        &self.mod_
     }
 }
 

@@ -1,8 +1,9 @@
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_individual::network::Individual;
+use oc_mod::Mod;
 use oc_projectile::network::Projectile;
 #[cfg(feature = "debug")]
-use oc_projectile::network::SpawnProjectile;
+use oc_projectile::spawn::SpawnProjectile;
 use oc_root::config::Config;
 use oc_world::{meta::Meta, tile::Tile};
 use rkyv::{Archive, Deserialize, Serialize};
@@ -11,6 +12,7 @@ use rkyv::{Archive, Deserialize, Serialize};
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum ToClient {
     Config(Config),
+    Mod(Mod),
     Meta(Meta),
     Individual(Individual),
     Projectile(Projectile),

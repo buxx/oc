@@ -16,14 +16,16 @@ use crate::{
 };
 
 pub mod camera;
-mod draw;
-mod individual;
-mod init;
-mod input;
-mod physics;
-mod projectile;
+#[cfg(feature = "debug")]
+pub mod debug;
+pub mod draw;
+pub mod individual;
+pub mod init;
+pub mod input;
+pub mod physics;
+pub mod projectile;
 pub mod region;
-mod world;
+pub mod world;
 
 pub struct IngamePlugin;
 
@@ -35,6 +37,9 @@ impl Plugin for IngamePlugin {
         app.add_plugins(WorldPlugin)
             .add_plugins(IndividualPlugin)
             .add_plugins(ProjectilePlugin)
+            // TODO: InputPlugin
+            .init_resource::<input::State>()
+            .init_resource::<input::left_click::LeftClick>()
             .add_observer(on_to_client)
             .add_observer(on_update_battle_square)
             .add_observer(on_spawn_minimap)
@@ -44,18 +49,31 @@ impl Plugin for IngamePlugin {
             .add_observer(on_despawn_world_map_background)
             .add_observer(on_listening_region)
             .add_observer(on_forgotten_region)
+            // TODO: InputPlugin
+            .add_observer(input::left_click::on_set_left_click)
+            .add_observer(input::left_click::on_spawn_clicks_line)
+            .add_observer(input::left_click::on_despawn_clicks_line)
             // TODO: despawn entities on OnExit(AppState::InGame)
             .add_systems(
                 OnEnter(AppState::InGame),
                 (init::init, init::refresh, init::spawn_world_map),
             )
-            .add_systems(Update, on_key_press.run_if(in_state(AppState::InGame)));
+            .add_systems(
+                Update,
+                (
+                    on_key_press,
+                    // TODO: InputPlugin
+                    input::left_click::click,
+                    input::left_click::update_clicks_line,
+                )
+                    .run_if(in_state(AppState::InGame)),
+            );
 
         #[cfg(feature = "debug")]
         app.add_observer(region::debug::on_listening_region)
             .add_observer(region::debug::on_spawn_region_wire_frame_debug)
             .add_observer(region::debug::on_forgotten_region)
-            .add_observer(region::debug::on_despawn_region_wire_frame_debug)
-            .add_observer(init::on_first_ingame_enter);
+            .add_observer(region::debug::on_despawn_region_wire_frame_debug);
+        // .add_observer(init::on_first_ingame_enter)
     }
 }

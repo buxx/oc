@@ -12,13 +12,14 @@ use crate::{
         projectile::InsertProjectileEvent,
     },
     network::input::ToClientEvent,
-    states::{Config, Meta},
+    states::{Config, Meta, Mod},
     world::InsertTiles,
 };
 
 pub fn on_to_client(
     to_client: On<ToClientEvent>,
     mut commands: Commands,
+    mut mod_: ResMut<Mod>,
     mut meta: ResMut<Meta>,
     mut config: ResMut<Config>,
 ) {
@@ -26,6 +27,10 @@ pub fn on_to_client(
         ToClient::Config(config_) => {
             tracing::debug!("Set 'Config'");
             config.0 = Some(config_.clone());
+        }
+        ToClient::Mod(mod__) => {
+            tracing::debug!("Set 'Mod'");
+            mod_.0 = Some(mod__.clone());
         }
         ToClient::Meta(meta_) => {
             tracing::debug!("Set 'Meta'");

@@ -4,15 +4,20 @@ use bevy::prelude::*;
 use bevy_egui::egui;
 use derive_more::Constructor;
 use oc_individual::IndividualIndex;
-use oc_projectile::ProjectileId;
+use oc_mod::{
+    Mod,
+    projectiles::{IndexedProjectile, ProjectileType},
+};
+use oc_projectile::{ProjectileId, spawn::SpawnProfile};
 use strum_macros::EnumIter;
 
 pub mod component;
+pub mod left_click;
 pub mod refresh;
 pub mod window;
 
 use crate::{
-    ingame::camera::region::Region,
+    ingame::{camera::region::Region, input::left_click::LeftClickModeType},
     window::{MountedWindow, UnmountedWindow, debug::subject::Subject},
 };
 
@@ -27,28 +32,37 @@ pub struct Refresh;
 pub struct Context {
     refresh: refresh::Refresh,
     show_tiles: bool,
+    // Components
     view: View,
     regions: Vec<Region>,
     individuals: Vec<Subject<IndividualIndex>>,
     projectiles: Vec<Subject<ProjectileId>>,
+    // Left click
+    left_click_mode: LeftClickModeType,
+    spawn_projectile_type: ProjectileType,
+    spawn_projectile: Option<IndexedProjectile>,
+    spawn_profile: SpawnProfile,
 }
 
 #[derive(Constructor)]
 pub struct InContext<'a, 'b, 'w, 's> {
     pub context: &'a mut Context,
     pub commands: &'b mut Commands<'w, 's>,
+    pub mod_: &'a Mod,
 }
 
 #[derive(Debug, Clone, EnumIter, Default)]
 pub enum Tab {
     #[default]
     Components,
+    Leftclick,
 }
 
 impl Display for Tab {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Tab::Components => f.write_str("Components"),
+            Tab::Leftclick => f.write_str("Left click"),
         }
     }
 }
@@ -72,17 +86,11 @@ impl<'a, 'b, 'w, 's> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's> {
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         let context = &mut self.context;
         let commands = &mut self.commands;
-
-        egui::ComboBox::from_label("Refresh every")
-            .selected_text(format!("{:?}", context.refresh))
-            .show_ui(ui, |ui| {
-                ui.selectable_value(&mut context.refresh, refresh::Refresh::EachFrame, "frame");
-                ui.selectable_value(&mut context.refresh, refresh::Refresh::X100ms, "100ms");
-                ui.selectable_value(&mut context.refresh, refresh::Refresh::X1s, "1s");
-            });
+        let mod_ = &self.mod_;
 
         match tab {
-            Tab::Components => context.ui_components(ui, commands),
+            Tab::Components => context.ui_components(ui, commands, mod_),
+            Tab::Leftclick => context.ui_left_click(ui, commands, mod_),
         }
     }
 }

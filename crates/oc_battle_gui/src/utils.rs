@@ -1,9 +1,11 @@
 use std::path::PathBuf;
 
+use oc_mod::MOD_DIR;
 use oc_world::meta::Meta;
 
 pub trait OcPaths {
     fn assets() -> PathBuf;
+    fn mods() -> PathBuf;
     fn maps() -> PathBuf;
     fn minimap(meta: &Meta) -> PathBuf;
 }
@@ -11,6 +13,11 @@ pub trait OcPaths {
 impl OcPaths for PathBuf {
     fn assets() -> PathBuf {
         Self::from("./assets")
+    }
+
+    fn mods() -> PathBuf {
+        let path = PathBuf::from(".cache");
+        path.join(MOD_DIR)
     }
 
     fn maps() -> PathBuf {

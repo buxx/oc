@@ -4,6 +4,7 @@ pub mod world;
 pub const Z_REGION_BACKGROUND: f32 = 0.0;
 pub const Z_TILE_WIREFRAME: f32 = 0.1;
 pub const Z_INDIVIDUAL: f32 = 2.0;
+pub const Z_SELECT_WIRES: f32 = 5.0;
 #[cfg(feature = "debug")]
 pub const Z_REGION_WIREFRAME: f32 = 1.0;
 #[cfg(feature = "debug")]

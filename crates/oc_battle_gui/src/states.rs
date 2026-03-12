@@ -20,6 +20,9 @@ pub enum InGameState {
 pub struct Config(pub Option<oc_root::config::Config>);
 
 #[derive(Debug, Resource, Default)]
+pub struct Mod(pub Option<oc_mod::Mod>);
+
+#[derive(Debug, Resource, Default)]
 pub struct Meta(pub Option<oc_world::meta::Meta>);
 
 #[derive(Deref, DerefMut, Resource, Default)]

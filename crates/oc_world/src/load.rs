@@ -11,6 +11,7 @@ use oc_geo::{
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::{Individual, behavior::Behavior};
+use oc_mod::Mod;
 use oc_root::{
     GEO_PIXELS_PER_TILE, INDIVIDUALS_COUNT, MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS,
     REGIONS_COUNT, TILES_COUNT, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS, ids::Ids,
@@ -28,6 +29,7 @@ use crate::{
 
 #[derive(Debug, Constructor)]
 pub struct WorldLoader {
+    mod_: Mod,
     world_path: PathBuf,
     cache_path: PathBuf,
 }
@@ -42,7 +44,7 @@ impl WorldLoader {
         let individuals = hack_individuals();
         // TODO: when load from backup, regenerate ids
         let projectiles = FxHashMap::default();
-        let world = World::new(meta, tiles, individuals, projectiles);
+        let world = World::new(self.mod_.clone(), meta, tiles, individuals, projectiles);
 
         Ok(world)
     }
