@@ -15,11 +15,15 @@ pub fn move_battle(
     mut camera: Single<&mut Transform, With<Camera2d>>,
     window: Single<&Window>,
     buttons: Res<ButtonInput<MouseButton>>,
+    keys: Res<ButtonInput<KeyCode>>,
     state: Res<super::State>,
 ) {
     let cursor = window.cursor_position();
+    let ctrl = keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight);
+    let left = buttons.pressed(MouseButton::Left);
+    let right = buttons.pressed(MouseButton::Right);
 
-    if buttons.pressed(MouseButton::Left) {
+    if right || (left && ctrl) {
         if let (Some(cursor1), Some(cursor2)) = (&state.cursor, &cursor) {
             let diff = cursor1 - cursor2;
             if diff != Vec2::ZERO {
