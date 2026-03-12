@@ -4,6 +4,7 @@ use axum::{Router, routing::get};
 use derive_more::Constructor;
 
 mod minimap;
+mod mod_;
 mod world;
 
 #[derive(Constructor)]
@@ -22,6 +23,7 @@ impl Static {
     pub fn serve(&self, host: SocketAddr) -> Result<(), std::io::Error> {
         let state = State::new(self.state.clone(), self.cache.clone());
         let app = Router::new()
+            .route("/mod", get(mod_::get))
             .route(
                 "/region/{region}/background",
                 get(world::get_region_background),

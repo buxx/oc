@@ -2926,6 +2926,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "filetime"
+version = "0.2.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f98844151eee8917efc50bd9e8318cb963ae8b297431495d3f758616ea5c57db"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "libredox",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4911,9 +4922,11 @@ dependencies = [
  "clap",
  "derive_more",
  "egui_dock",
+ "flate2",
  "message-io",
  "oc_geo",
  "oc_individual",
+ "oc_mod",
  "oc_network",
  "oc_physics",
  "oc_projectile",
@@ -4925,6 +4938,7 @@ dependencies = [
  "rustc-hash 2.1.1",
  "strum 0.28.0",
  "strum_macros 0.28.0",
+ "tar",
  "tracing",
  "tracing-subscriber",
 ]
@@ -4954,11 +4968,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "oc_mod"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "flate2",
+ "oc_root",
+ "oc_utils",
+ "rkyv",
+ "ron",
+ "serde",
+ "serde_derive",
+ "strum 0.28.0",
+ "strum_macros 0.28.0",
+ "tar",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
 name = "oc_network"
 version = "0.1.0"
 dependencies = [
  "oc_geo",
  "oc_individual",
+ "oc_mod",
  "oc_projectile",
  "oc_root",
  "oc_world",
@@ -4985,6 +5019,7 @@ version = "0.1.0"
 dependencies = [
  "derive_more",
  "oc_geo",
+ "oc_mod",
  "oc_physics",
  "oc_root",
  "oc_utils",
@@ -5018,6 +5053,7 @@ dependencies = [
  "image 0.25.9",
  "oc_geo",
  "oc_individual",
+ "oc_mod",
  "oc_physics",
  "oc_projectile",
  "oc_root",
@@ -5063,6 +5099,7 @@ dependencies = [
  "num_cpus",
  "oc_geo",
  "oc_individual",
+ "oc_mod",
  "oc_network",
  "oc_physics",
  "oc_projectile",
@@ -6627,6 +6664,17 @@ dependencies = [
  "grid",
  "serde",
  "slotmap",
+]
+
+[[package]]
+name = "tar"
+version = "0.4.44"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d863878d212c87a19c1a610eb53bb01fe12951c0501cf5a0d65f724914a667a"
+dependencies = [
+ "filetime",
+ "libc",
+ "xattr",
 ]
 
 [[package]]
@@ -8448,6 +8496,16 @@ name = "x11rb-protocol"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea6fc2961e4ef194dcbfe56bb845534d0dc8098940c7e5c012a258bfec6701bd"
+
+[[package]]
+name = "xattr"
+version = "1.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32e45ad4206f6d2479085147f02bc2ef834ac85886624a23575ae137c8aa8156"
+dependencies = [
+ "libc",
+ "rustix 1.1.3",
+]
 
 [[package]]
 name = "xcursor"

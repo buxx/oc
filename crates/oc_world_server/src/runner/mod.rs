@@ -8,6 +8,7 @@ use std::{
 
 use derive_more::Constructor;
 use message_io::network::Endpoint;
+use oc_mod::Mod;
 use oc_network::ToClient;
 use oc_root::{
     INDIVIDUAL_TICK_INTERVAL_US, INDIVIDUALS_COUNT, PHYSICS_TICK_INTERVAL_US, config::Config,
@@ -25,6 +26,7 @@ mod input;
 #[derive(Constructor)]
 pub struct Runner {
     config: Config,
+    mod_: Mod,
     state: Arc<State>,
     output: Sender<(Endpoint, ToClient)>,
     print_ticks: bool,
@@ -112,6 +114,7 @@ impl Runner {
     fn listen_input(&self, input: Receiver<Event>) {
         let state = self.state.clone();
         let output = self.output.clone();
+        let mod_ = self.state.world().mod_().clone();
         let meta = self.state.world().meta().clone();
         let config = self.config.clone();
 
@@ -120,6 +123,8 @@ impl Runner {
                 match message {
                     Event::Connected(endpoint) => {
                         state.listeners_mut().push(endpoint.clone());
+                        let mod_ = ToClient::Mod(mod_.clone());
+                        output.send((endpoint, mod_)).unwrap(); // TODO
                         let meta = ToClient::Meta(meta.clone());
                         output.send((endpoint, meta)).unwrap(); // TODO
                         let config = ToClient::Config(config.clone());
