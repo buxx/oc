@@ -1,4 +1,5 @@
 use derive_more::Constructor;
+use glam::Vec2;
 use oc_mod::Mod;
 use oc_physics::{Force, MetersSeconds};
 use oc_projectile::{Projectile, bullet::Bullet, spawn::SpawnProjectile};
@@ -12,10 +13,12 @@ pub struct Builder<'a> {
 impl<'a> Builder<'a> {
     pub fn build(&self) -> Projectile {
         let specs = &self.mod_.projectiles[*self.spawn.i as usize];
+        let from = Vec2::from(self.spawn.from);
+        let to = Vec2::from(self.spawn.to);
         let position = self.spawn.from;
-        // TODO: direction according to from/to
+        let direction = (to - from).normalize_or_zero();
         // TODO: speed according to weapon spec
-        let forces = vec![Force::Translation([0.5, 0.5], MetersSeconds(100.0))];
+        let forces = vec![Force::Translation(direction.into(), MetersSeconds(100.0))];
 
         match specs.inner() {
             oc_mod::projectiles::Projectile::Bullet(_bullet) => {

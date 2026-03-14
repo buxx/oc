@@ -33,6 +33,7 @@ strum_macros = "0.28"
 ron = "0.12"
 tar = "0.4"
 flate2 = "1.1"
+glam = "0.32"
 
 # tests
 rstest = "0.26"
