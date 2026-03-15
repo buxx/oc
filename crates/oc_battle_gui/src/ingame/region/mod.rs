@@ -61,6 +61,7 @@ pub fn on_forgotten_region(
     query: Query<(Entity, &Region), With<RegionBackground>>,
     mut tiles: ResMut<Tiles>,
 ) {
+    tracing::debug!("Remove tiles from region {}", region.0.0);
     tiles.0.remove(&region.0);
 
     let region: RegionXy = region.0.into();

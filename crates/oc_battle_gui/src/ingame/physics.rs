@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use oc_geo::tile::TileXy;
+use oc_geo::{region::WorldRegionIndex, tile::TileXy};
 use oc_physics::{
     Corps, Laws,
     collision::Material_,
@@ -29,8 +29,10 @@ pub fn physics_step<C: Component>(
     for (mut position, region, mut forces, material, mut transform) in query {
         // TODO: Maybe performant bottleneck ?
         let tiles = |xy: Xy| {
+            // NOTE: We must use the given tile xy and not the component position because closure position is the real position (computed by physics).
+            let region: WorldRegionIndex = TileXy(xy).into();
             tiles
-                .get(&region.0.into())
+                .get(&region)
                 .and_then(|tiles| tiles.get(&TileXy(xy).into()))
         };
         let corps = Corps::new(&position.0, &forces.0, material.0);
