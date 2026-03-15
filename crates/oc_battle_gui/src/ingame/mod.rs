@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+#[cfg(feature = "debug")]
+use crate::ingame::input::left_click::SpawnProjectileLeftClick;
 use crate::{
     ingame::{
         individual::IndividualPlugin,
@@ -70,9 +72,11 @@ impl Plugin for IngamePlugin {
             );
 
         #[cfg(feature = "debug")]
-        app.add_observer(region::debug::on_listening_region)
+        app.init_resource::<SpawnProjectileLeftClick>()
+            .add_observer(region::debug::on_listening_region)
             .add_observer(region::debug::on_spawn_region_wire_frame_debug)
             .add_observer(region::debug::on_forgotten_region)
+            .add_observer(input::left_click::on_set_spawn_projectile_left_click)
             .add_observer(region::debug::on_despawn_region_wire_frame_debug);
         // .add_observer(init::on_first_ingame_enter)
     }

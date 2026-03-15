@@ -108,6 +108,7 @@ impl<'a> collision::Material for Corps<'a> {
     }
 }
 
+// TODO: gravité
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Force {

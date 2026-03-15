@@ -5,7 +5,9 @@ use strum::IntoEnumIterator;
 
 use crate::ingame::{
     debug::projectile::SpawnProjectileProfile,
-    input::left_click::{LeftClickMode, LeftClickModeType, SetLeftClick},
+    input::left_click::{
+        LeftClickMode, LeftClickModeType, SetLeftClick, SetSpawnProjectileLeftClickMode,
+    },
 };
 
 impl super::Context {
@@ -31,29 +33,42 @@ impl super::Context {
                 let projectile_before = self.spawn_projectile.clone();
                 let projectile = &mut self.spawn_projectile;
                 let profile = &mut self.spawn_profile;
+                let click_mode_before = self.spawn_projectile_click_mode.clone();
+                let click_mode = &mut self.spawn_projectile_click_mode;
 
-                egui::ComboBox::from_label("Projectile type")
-                    .selected_text(projectile_type.name())
-                    .show_ui(ui, |ui| {
-                        for item in ProjectileType::iter() {
-                            let name = item.name();
-                            ui.selectable_value(projectile_type, item, name);
-                        }
-                    });
+                ui.horizontal(|ui| {
+                    egui::ComboBox::from_label("Projectile type")
+                        .selected_text(projectile_type.name())
+                        .show_ui(ui, |ui| {
+                            for item in ProjectileType::iter() {
+                                let name = item.name();
+                                ui.selectable_value(projectile_type, item, name);
+                            }
+                        });
 
-                egui::ComboBox::from_label("Projectile")
-                    .selected_text(projectile.as_ref().map(|p| p.label()).unwrap_or_default())
-                    .show_ui(ui, |ui| {
-                        let items = mod_
-                            .projectiles
-                            .iter()
-                            .filter(|p| p.is_type(*projectile_type));
-                        for item in items {
-                            let item = item.clone();
-                            let name = item.label();
-                            ui.selectable_value(projectile, Some(item.clone()), name);
-                        }
-                    });
+                    egui::ComboBox::from_label("Projectile")
+                        .selected_text(projectile.as_ref().map(|p| p.label()).unwrap_or_default())
+                        .show_ui(ui, |ui| {
+                            let items = mod_
+                                .projectiles
+                                .iter()
+                                .filter(|p| p.is_type(*projectile_type));
+                            for item in items {
+                                let item = item.clone();
+                                let name = item.label();
+                                ui.selectable_value(projectile, Some(item.clone()), name);
+                            }
+                        });
+
+                    egui::ComboBox::from_label("Click Mode")
+                        .selected_text(click_mode.to_string())
+                        .show_ui(ui, |ui| {
+                            for item in super::SpawnProjectileClickMode::iter() {
+                                let name = item.to_string();
+                                ui.selectable_value(click_mode, item, name);
+                            }
+                        });
+                });
 
                 ui.horizontal(|ui| {
                     ui.add(
@@ -80,6 +95,11 @@ impl super::Context {
                         let profile = SpawnProjectileProfile::new(projectile, profile);
                         commands.trigger(SetLeftClick(LeftClickMode::SpawnProjectile(profile)));
                     }
+                }
+
+                let click_mode_now = click_mode.clone();
+                if click_mode_before != click_mode_now {
+                    commands.trigger(SetSpawnProjectileLeftClickMode(click_mode_now));
                 }
             }
         }

@@ -18,6 +18,7 @@ impl<'a> Builder<'a> {
         let position = self.spawn.from;
         let direction = (to - from).normalize_or_zero();
         // TODO: speed according to weapon spec
+        // TODO: Calculer angle (3D)
         let forces = vec![Force::Translation(direction.into(), MetersSeconds(100.0))];
 
         match specs.inner() {

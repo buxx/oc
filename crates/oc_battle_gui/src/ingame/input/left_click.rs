@@ -1,14 +1,21 @@
 #[cfg(feature = "debug")]
-use crate::ingame::debug::projectile::SpawnProjectileProfile;
+use crate::{
+    ingame::debug::projectile::SpawnProjectileProfile,
+    window::debug::battle::SpawnProjectileClickMode,
+};
 use bevy::{color::palettes::css::YELLOW, prelude::*};
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectile;
 use strum_macros::EnumIter;
 
-use crate::{ingame::draw, network::output::ToServerEvent, states::Mod, window::PointerInWindow};
+use crate::{ingame::draw, network::output::ToServerEvent, window::PointerInWindow};
 
 #[derive(Debug, Deref, DerefMut, Event)]
 pub struct SetLeftClick(pub LeftClickMode);
+
+#[cfg(feature = "debug")]
+#[derive(Debug, Deref, DerefMut, Event)]
+pub struct SetSpawnProjectileLeftClickMode(pub SpawnProjectileClickMode);
 
 #[derive(Debug, Event)]
 pub struct SpawnClicksLine;
@@ -21,6 +28,10 @@ pub struct ClicksLine;
 
 #[derive(Debug, Deref, DerefMut, Resource, Default)]
 pub struct LeftClick(pub LeftClickMode);
+
+#[cfg(feature = "debug")]
+#[derive(Debug, Deref, DerefMut, Resource, Default)]
+pub struct SpawnProjectileLeftClick(pub SpawnProjectileClickMode);
 
 #[derive(Debug, Clone, Default)]
 pub enum LeftClickMode {
@@ -47,10 +58,6 @@ impl LeftClickModeType {
     }
 }
 
-pub fn on_set_left_click(set: On<SetLeftClick>, mut left_click: ResMut<LeftClick>) {
-    left_click.0 = set.0.clone();
-}
-
 pub fn click(
     mut commands: Commands,
     ignore: Res<PointerInWindow>,
@@ -58,6 +65,7 @@ pub fn click(
     camera: Single<(&Camera, &GlobalTransform)>,
     buttons: Res<ButtonInput<MouseButton>>,
     mode: Res<LeftClick>,
+    spawn_mode: Res<SpawnProjectileLeftClick>,
     _keys: Res<ButtonInput<KeyCode>>,
     mut state: ResMut<super::State>,
 ) {
@@ -76,33 +84,68 @@ pub fn click(
         LeftClickMode::Select => {
             // TODO
         }
-        LeftClickMode::SpawnProjectile(profile) => {
-            if buttons.just_released(MouseButton::Left) {
-                state.clicks.push(point);
+        LeftClickMode::SpawnProjectile(profile) => match spawn_mode.0 {
+            SpawnProjectileClickMode::TwoClicks => {
+                if buttons.just_released(MouseButton::Left) {
+                    state.clicks.push(point);
 
-                if state.clicks.len() == 1 {
+                    if state.clicks.len() == 1 {
+                        commands.trigger(SpawnClicksLine);
+                    }
+
+                    if state.clicks.len() == 2 {
+                        let start = state.clicks.first().expect("len checked line before");
+                        let start = [start.x, start.y];
+                        let end = state.clicks.last().expect("len checked line before");
+                        let end = [end.x, end.y];
+                        let projectile = profile.projectile.id();
+                        let profile = profile.profile.clone();
+                        let spawn = SpawnProjectile::new(projectile, profile, start, end);
+
+                        commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                        commands.trigger(DespawnClicksLine);
+
+                        state.clicks.clear();
+                    }
+                }
+            }
+            SpawnProjectileClickMode::DraggedClick => {
+                if buttons.just_pressed(MouseButton::Left) {
+                    state.clicks.push(point);
                     commands.trigger(SpawnClicksLine);
                 }
 
-                if state.clicks.len() == 2 {
-                    let start = state.clicks.first().expect("len checked line before");
-                    let start = [start.x, start.y];
-                    let end = state.clicks.last().expect("len checked line before");
-                    let end = [end.x, end.y];
-                    let projectile = profile.projectile.id();
-                    let profile = profile.profile.clone();
-                    let spawn = SpawnProjectile::new(projectile, profile, start, end);
+                if buttons.just_released(MouseButton::Left) {
+                    if let Some(start) = state.clicks.first() {
+                        let start = [start.x, start.y];
+                        let end = [point.x, point.y];
 
-                    commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                        let projectile = profile.projectile.id();
+                        let profile = profile.profile.clone();
+                        let spawn = SpawnProjectile::new(projectile, profile, start, end);
+
+                        commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                    }
+
                     commands.trigger(DespawnClicksLine);
-
                     state.clicks.clear();
                 }
             }
-        }
+        },
     }
 
     //
+}
+
+pub fn on_set_left_click(set: On<SetLeftClick>, mut left_click: ResMut<LeftClick>) {
+    left_click.0 = set.0.clone();
+}
+
+pub fn on_set_spawn_projectile_left_click(
+    set: On<SetSpawnProjectileLeftClickMode>,
+    mut left_click: ResMut<SpawnProjectileLeftClick>,
+) {
+    left_click.0 = set.0.clone();
 }
 
 pub fn on_spawn_clicks_line(

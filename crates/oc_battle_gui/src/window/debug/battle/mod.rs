@@ -9,7 +9,7 @@ use oc_mod::{
     projectiles::{IndexedProjectile, ProjectileType},
 };
 use oc_projectile::{ProjectileId, spawn::SpawnProfile};
-use strum_macros::EnumIter;
+use strum_macros::{Display, EnumIter};
 
 pub mod component;
 pub mod left_click;
@@ -41,6 +41,7 @@ pub struct Context {
     left_click_mode: LeftClickModeType,
     spawn_projectile_type: ProjectileType,
     spawn_projectile: Option<IndexedProjectile>,
+    spawn_projectile_click_mode: SpawnProjectileClickMode,
     spawn_profile: SpawnProfile,
 }
 
@@ -49,6 +50,13 @@ pub struct InContext<'a, 'b, 'w, 's> {
     pub context: &'a mut Context,
     pub commands: &'b mut Commands<'w, 's>,
     pub mod_: &'a Mod,
+}
+
+#[derive(Debug, Clone, Copy, Default, Display, EnumIter, PartialEq, Eq)]
+pub enum SpawnProjectileClickMode {
+    TwoClicks,
+    #[default]
+    DraggedClick,
 }
 
 #[derive(Debug, Clone, EnumIter, Default)]
