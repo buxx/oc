@@ -9,9 +9,11 @@ use oc_geo::region::RegionXy;
 use oc_geo::tile::TileXy;
 use oc_physics::Force;
 use oc_physics::Physic;
+use oc_physics::Reactive;
 use oc_physics::UpdatePhysic;
 use oc_physics::collision::Material;
 use oc_physics::collision::Materials;
+use oc_root::tile::Tile;
 use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -94,6 +96,12 @@ impl Physic for Individual {
 
     fn forces(&self) -> &Vec<Force> {
         &self.forces
+    }
+}
+
+impl Reactive<Tile> for Individual {
+    fn react(&self, _event: &oc_physics::Event<Tile>) -> Vec<oc_physics::update::Update> {
+        vec![]
     }
 }
 

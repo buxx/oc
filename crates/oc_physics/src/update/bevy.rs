@@ -19,6 +19,9 @@ pub struct PushForceEvent<I>(I, crate::Force);
 #[derive(Debug, Event)]
 pub struct RemoveForceEvent<I>(I, crate::Force);
 
+#[derive(Debug, Event)]
+pub struct Disapear<I>(I);
+
 #[derive(Debug, Component)]
 pub struct Position(pub [f32; 2]);
 
@@ -143,6 +146,18 @@ fn on_remove_force_event<I: Hash + Eq + Send + Sync + 'static>(
     component.0.retain(|f| f != &event.1);
 }
 
+fn on_disapear<I: Hash + Eq + Send + Sync + 'static>(
+    event: On<SetRegionEvent<I>>,
+    mut commands: Commands,
+    state: Res<EntityMapping<I>>,
+) {
+    let Some(entity) = state.get(&event.0) else {
+        return;
+    };
+
+    commands.entity(*entity).despawn();
+}
+
 #[derive(Debug)]
 pub struct PhysicsPlugin<I: Hash + Eq + Send + Sync + 'static, E: Event + UpdatePhysicsEvent<I>> {
     _marker: std::marker::PhantomData<(I, E)>,
@@ -167,6 +182,7 @@ impl<I: Hash + Eq + Send + Sync + 'static, E: Event + UpdatePhysicsEvent<I>> Plu
             .add_observer(on_set_tile_event::<I>)
             .add_observer(on_set_region_event::<I>)
             .add_observer(on_push_force_event::<I>)
-            .add_observer(on_remove_force_event::<I>);
+            .add_observer(on_remove_force_event::<I>)
+            .add_observer(on_disapear::<I>);
     }
 }

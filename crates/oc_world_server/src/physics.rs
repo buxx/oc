@@ -5,8 +5,9 @@ use oc_geo::{
     tile::TileXy,
 };
 use oc_individual::IndividualIndex;
-use oc_physics::{Force, Laws, Physic, UpdatePhysic, update::Update};
+use oc_physics::{Event, Force, Laws, Physic, Reactive, UpdatePhysic, update::Update};
 use oc_projectile::ProjectileId;
+use oc_root::tile::Tile;
 use oc_utils::collections::WithIds;
 use oc_world::World;
 
@@ -43,7 +44,7 @@ impl<'x> Processor<'x> {
     where
         for<'a> F: Fn(&'a World) -> Vec<(I, &'a T)>,
         I: std::fmt::Debug + Copy,
-        T: Physic + Geo + Region,
+        T: Physic + Geo + Region + Reactive<Tile>,
     {
         let world = self.ctx.state.world();
         let all = all(&world);
@@ -60,9 +61,9 @@ impl<'x> Processor<'x> {
             .into_iter()
             .map(|(i, subject)| {
                 let laws = Laws::default();
-                let (new_position, forces) = oc_physics::step(&laws, *subject, tiles);
+                let (new_position, forces, events) = oc_physics::step(&laws, *subject, tiles);
                 tracing::trace!(name="physics-subject", i=?i, new_position=?new_position, forces=?forces);
-                let updates = changes(i, *subject, &new_position, &forces);
+                let updates = changes(i, *subject, &new_position, &forces, &events);
 
                 tracing::trace!(name = "physics-step-for", i = ?i, updates=?updates);
                 (*i, updates)
@@ -128,38 +129,49 @@ impl<'x> Processor<'x> {
     }
 }
 
-pub fn changes<I, T>(i: I, individual: &T, position: &[f32; 2], forces: &Vec<Force>) -> Vec<Update>
+pub fn changes<I, T>(
+    i: I,
+    subject: &T,
+    position: &[f32; 2],
+    forces: &Vec<Force>,
+    events: &Vec<Event<Tile>>,
+) -> Vec<Update>
 where
     I: std::fmt::Debug,
-    T: Physic + Geo + Region,
+    T: Physic + Geo + Region + Reactive<Tile>,
 {
     let mut updates = vec![];
 
-    if individual.position() != position {
+    // TODO: to improve perfs, maybe these updates sould be known at physics::step ?
+    if subject.position() != position {
         updates.push(Update::SetPosition(*position));
 
         let tile: TileXy = position.clone().into();
         let region: RegionXy = tile.into();
 
-        if individual.tile() != &tile {
+        if subject.tile() != &tile {
             updates.push(Update::SetTile(tile));
         }
 
-        if individual.region() != &region {
+        if subject.region() != &region {
             updates.push(Update::SetRegion(region));
         }
     }
 
-    for force in individual.forces() {
+    for force in subject.forces() {
         if !forces.contains(force) {
             updates.push(Update::RemoveForce(force.clone()));
         }
     }
 
     for force in forces {
-        if !individual.forces().contains(force) {
+        if !subject.forces().contains(force) {
             updates.push(Update::PushForce(force.clone()));
         }
+    }
+
+    for event in events {
+        updates.extend(subject.react(event));
     }
 
     tracing::trace!(name="physics-individual-updates", i=?i, updates=?updates);

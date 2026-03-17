@@ -5,9 +5,12 @@ use oc_root::{
 };
 use oc_utils::d2::Xy;
 use rkyv::{Archive, Deserialize, Serialize};
-use std::ops::Deref;
+use std::{marker::PhantomData, ops::Deref};
 
-use crate::collision::Material;
+use crate::{
+    collision::{Collision, Material},
+    update::Update,
+};
 
 pub mod collision;
 pub mod line;
@@ -79,17 +82,35 @@ pub trait Physic: Material {
     fn forces(&self) -> &Vec<Force>;
 }
 
+pub trait Reactive<T: Clone> {
+    fn react(&self, event: &Event<T>) -> Vec<Update>;
+}
+
 pub trait UpdatePhysic: Physic + Material {
     fn set_position(&mut self, value: [f32; 2]);
     fn push_force(&mut self, value: Force);
     fn remove_force(&mut self, value: &Force);
 }
 
-#[derive(Debug, Constructor)]
+#[derive(Debug)]
 pub struct Corps<'a> {
     position: &'a [f32; 2],
     forces: &'a Vec<Force>,
     material: collision::Materials,
+}
+
+impl<'a> Corps<'a> {
+    pub fn new(
+        position: &'a [f32; 2],
+        forces: &'a Vec<Force>,
+        material: collision::Materials,
+    ) -> Self {
+        Self {
+            position,
+            forces,
+            material,
+        }
+    }
 }
 
 impl<'a> Physic for Corps<'a> {
@@ -115,15 +136,22 @@ pub enum Force {
     Translation([f32; 2], MetersSeconds),
 }
 
+#[derive(Debug, Clone)]
+pub enum Event<T: Clone> {
+    NoTile,
+    Collision(Collision<T>),
+}
+
 #[inline]
-pub fn step<'a, O: Physic, T: Material + 'a, F>(
+pub fn step<'a, O: Physic, T: Clone + Material + 'a, F>(
     laws: &Laws,
     object: &O,
     tiles: F,
-) -> ([f32; 2], Vec<Force>)
+) -> ([f32; 2], Vec<Force>, Vec<Event<T>>)
 where
     F: Fn(Xy) -> Option<&'a T>,
 {
+    let mut events = vec![];
     let mut position = object.position().clone();
     let mut forces = vec![];
     tracing::trace!(name="physics-step-start", p=?position, forces=?object.forces());
@@ -134,7 +162,6 @@ where
                 let speed = speed.0 * laws.tick_coeff;
                 let pixels = speed * laws.pixels_per_meters as f32;
                 let [x, y] = position;
-                // FIXME: la direction (f32; 2) influe sur la vitesse, utiliser autre chose
                 let (x_, y_) = (x + direction[0] * pixels, y + direction[1] * pixels);
 
                 tracing::trace!(
@@ -157,13 +184,18 @@ where
                         let Some(tile) = tiles(step_tile) else {
                             // No tile means outside map
                             tracing::trace!(name="physics-step-translation-no-tile", p=?position, xy=?step_tile);
+                            events.push(Event::NoTile);
                             continue 'forces;
                         };
 
                         // Move is finished if its a solid
                         if tile.material().is_solid() {
-                            // Do not keep this force by stoping this iteration
                             tracing::trace!(name="physics-step-translation-solid", p=?position, xy=?step_tile);
+
+                            let collision = collision::Collision::Tile(tile.clone());
+                            events.push(Event::Collision(collision.clone()));
+
+                            // Do not keep this force by stoping this iteration
                             continue 'forces;
                         }
                     }
@@ -178,7 +210,7 @@ where
         forces.push(force.clone());
     }
 
-    (position, forces)
+    (position, forces, events)
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
-use oc_world::tile::Tile;
+use oc_root::tile::Tile;
 use rustc_hash::FxHashMap;
 
 use crate::ingame::region::ForgottenRegion;

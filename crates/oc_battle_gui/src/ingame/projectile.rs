@@ -55,7 +55,8 @@ impl Plugin for ProjectilePlugin {
             .add_observer(on_forgotten_region)
             .add_systems(
                 Update,
-                ingame::physics::physics_step::<ProjectileId>.run_if(in_state(AppState::InGame)),
+                ingame::physics::physics_step::<oc_projectile::ProjectileId, ProjectileId>
+                    .run_if(in_state(AppState::InGame)),
             );
     }
 }
