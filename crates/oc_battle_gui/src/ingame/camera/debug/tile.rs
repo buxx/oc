@@ -1,11 +1,12 @@
 use bevy::prelude::*;
+use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_physics::update::bevy::Region;
 use oc_root::GEO_PIXELS_PER_TILE;
 
 use crate::ingame::camera::move_::MovedBattleCamera;
 use crate::ingame::draw;
-use crate::world::tile::Tiles;
+use crate::world::World;
 
 #[derive(Debug, Event)]
 pub struct ToggleShowTiles;
@@ -21,7 +22,7 @@ pub fn on_toggle_show_tiles(
     mut commands: Commands,
     mut showing: ResMut<ShowTiles>,
     wires: Query<(Entity, &TileWire)>,
-    tiles: Res<Tiles>,
+    world: Res<World>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     camera: Single<(&Camera, &GlobalTransform)>,
@@ -36,36 +37,35 @@ pub fn on_toggle_show_tiles(
         let window_width = window.width();
         let window_height = window.height();
 
-        for (region, tiles) in tiles.iter() {
-            for (i, _) in tiles {
-                let tile: TileXy = (*i).into();
-                let width = GEO_PIXELS_PER_TILE as f32;
-                let height = GEO_PIXELS_PER_TILE as f32;
-                let x = tile.0.0 as f32 * width + width / 2.;
-                let y = tile.0.1 as f32 * height + height / 2.;
-                let rectangle = Rectangle::new(width, height);
-                let color = Color::srgba(0.1, 0.1, 0.6, 0.5);
+        for (i, _) in world.tiles().iter() {
+            let region: WorldRegionIndex = (**i).into();
+            let tile: TileXy = (**i).into();
+            let width = GEO_PIXELS_PER_TILE as f32;
+            let height = GEO_PIXELS_PER_TILE as f32;
+            let x = tile.0.0 as f32 * width + width / 2.;
+            let y = tile.0.1 as f32 * height + height / 2.;
+            let rectangle = Rectangle::new(width, height);
+            let color = Color::srgba(0.1, 0.1, 0.6, 0.5);
 
-                if let Ok(screen_position) =
-                    camera.world_to_viewport(transform, Vec3::new(x, y, draw::Z_TILE_WIREFRAME))
+            if let Ok(screen_position) =
+                camera.world_to_viewport(transform, Vec3::new(x, y, draw::Z_TILE_WIREFRAME))
+            {
+                if !(screen_position.x >= 0.0
+                    && screen_position.x <= window_width
+                    && screen_position.y >= 0.0
+                    && screen_position.y <= window_height)
                 {
-                    if !(screen_position.x >= 0.0
-                        && screen_position.x <= window_width
-                        && screen_position.y >= 0.0
-                        && screen_position.y <= window_height)
-                    {
-                        continue;
-                    }
+                    continue;
                 }
-
-                commands.spawn((
-                    TileWire(*i),
-                    Region((*region).into()),
-                    Mesh2d(meshes.add(rectangle)),
-                    MeshMaterial2d(materials.add(color)),
-                    Transform::from_xyz(x, y, draw::Z_TILE_WIREFRAME),
-                ));
             }
+
+            commands.spawn((
+                TileWire(**i),
+                Region(region.into()),
+                Mesh2d(meshes.add(rectangle)),
+                MeshMaterial2d(materials.add(color)),
+                Transform::from_xyz(x, y, draw::Z_TILE_WIREFRAME),
+            ));
         }
     }
 

@@ -23,6 +23,8 @@ pub fn on_to_client(
     mut meta: ResMut<Meta>,
     mut config: ResMut<Config>,
 ) {
+    tracing::trace!(name="ingame-input-client", message=?to_client.0);
+
     match &to_client.0 {
         ToClient::Config(config_) => {
             tracing::debug!("Set 'Config'");
@@ -49,11 +51,11 @@ pub fn on_to_client(
         },
         ToClient::Projectile(message) => match message {
             Projectile::Insert(id, projectile) => {
-                tracing::trace!(name="ingame-input-client", message=?to_client.0);
+                tracing::trace!(name="ingame-input-client-projectile-insert", i=?id);
                 commands.trigger(InsertProjectileEvent(*id, projectile.clone()));
             }
             Projectile::Physics(id, update) => {
-                tracing::trace!(name="ingame-input-client", message=?to_client.0);
+                tracing::trace!(name="ingame-input-client-projectile-physics", i=?id);
                 commands.trigger(UpdateProjectilePhysicsEvent(*id, update.clone()));
             }
         },

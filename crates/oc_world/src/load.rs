@@ -14,7 +14,7 @@ use oc_individual::{Individual, behavior::Behavior};
 use oc_mod::Mod;
 use oc_root::{
     GEO_PIXELS_PER_TILE, INDIVIDUALS_COUNT, MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS,
-    REGIONS_COUNT, TILES_COUNT, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS, ids::Ids,
+    REGIONS_COUNT, TILES_COUNT, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS, ids::Ids, tile::Tile,
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rustc_hash::FxHashMap;
@@ -24,7 +24,6 @@ use crate::{
     World,
     cache::{self, CacheRegionBackgroundError},
     meta::{self, Meta},
-    tile::Tile,
 };
 
 #[derive(Debug, Constructor)]

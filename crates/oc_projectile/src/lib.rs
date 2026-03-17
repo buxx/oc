@@ -8,6 +8,7 @@ use oc_geo::{
 use oc_physics::{
     Force, Physic, UpdatePhysic,
     collision::{Material, Materials},
+    volume::Volume,
 };
 use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
@@ -80,6 +81,10 @@ impl Physic for Projectile {
             Projectile::Bullet(bullet) => &bullet.forces,
         }
     }
+
+    fn volume(&self) -> &Volume {
+        &Volume::Point
+    }
 }
 
 impl UpdatePhysic for Projectile {
@@ -99,6 +104,10 @@ impl UpdatePhysic for Projectile {
         match self {
             Projectile::Bullet(bullet) => bullet.forces.retain(|f| f != value),
         }
+    }
+
+    fn set_volume(&self, _value: Volume) {
+        // Never need to update projectile volume
     }
 }
 

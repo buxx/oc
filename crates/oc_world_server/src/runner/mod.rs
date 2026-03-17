@@ -8,7 +8,6 @@ use std::{
 
 use derive_more::Constructor;
 use message_io::network::Endpoint;
-use oc_mod::Mod;
 use oc_network::ToClient;
 use oc_root::{
     INDIVIDUAL_TICK_INTERVAL_US, INDIVIDUALS_COUNT, PHYSICS_TICK_INTERVAL_US, config::Config,
@@ -26,7 +25,6 @@ mod input;
 #[derive(Constructor)]
 pub struct Runner {
     config: Config,
-    mod_: Mod,
     state: Arc<State>,
     output: Sender<(Endpoint, ToClient)>,
     print_ticks: bool,

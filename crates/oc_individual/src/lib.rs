@@ -12,6 +12,7 @@ use oc_physics::Physic;
 use oc_physics::UpdatePhysic;
 use oc_physics::collision::Material;
 use oc_physics::collision::Materials;
+use oc_physics::volume::Volume;
 use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -95,6 +96,15 @@ impl Physic for Individual {
     fn forces(&self) -> &Vec<Force> {
         &self.forces
     }
+
+    fn volume(&self) -> &Volume {
+        // TODO
+        static VOLUME: Volume = Volume::Square2d {
+            width: 5.0,
+            height: 5.0,
+        };
+        &VOLUME
+    }
 }
 
 impl UpdatePhysic for Individual {
@@ -108,6 +118,10 @@ impl UpdatePhysic for Individual {
 
     fn remove_force(&mut self, value: &Force) {
         self.forces.retain(|f| f != value)
+    }
+
+    fn set_volume(&self, _value: Volume) {
+        // No update volume of an individual (for now ...)
     }
 }
 

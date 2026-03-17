@@ -6,29 +6,31 @@ use oc_geo::{
 use oc_individual::{Individual, IndividualIndex};
 use oc_mod::Mod;
 use oc_projectile::{Projectile, ProjectileId};
-use oc_root::{REGION_HEIGHT, REGION_WIDTH};
+use oc_root::{REGION_HEIGHT, REGION_WIDTH, tile::Tile};
 use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
 
-use crate::{meta::Meta, tile::Tile};
+use crate::meta::Meta;
 
 pub mod cache;
 pub mod load;
 pub mod map;
 pub mod meta;
+pub mod physics;
 pub mod tile;
+pub mod update;
 
 #[derive(Constructor)]
 pub struct World {
     mod_: Mod, // Maybe its place is not in world (when want to access, need to read lock World, but Mod never change)
     meta: Meta,
-    tiles: Vec<tile::Tile>,
+    tiles: Vec<Tile>,
     individuals: Vec<Individual>,
     projectiles: FxHashMap<ProjectileId, Projectile>,
 }
 
 impl World {
-    pub fn tile(&self, xy: TileXy) -> Option<&tile::Tile> {
+    pub fn tile(&self, xy: TileXy) -> Option<&Tile> {
         self.tiles.get(WorldTileIndex::from(xy).0 as usize)
     }
 

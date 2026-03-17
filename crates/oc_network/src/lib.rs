@@ -4,8 +4,8 @@ use oc_mod::Mod;
 use oc_projectile::network::Projectile;
 #[cfg(feature = "debug")]
 use oc_projectile::spawn::SpawnProjectile;
-use oc_root::config::Config;
-use oc_world::{meta::Meta, tile::Tile};
+use oc_root::{config::Config, tile::Tile};
+use oc_world::meta::Meta;
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]

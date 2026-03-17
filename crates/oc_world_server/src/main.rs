@@ -14,6 +14,7 @@ mod individual;
 mod network;
 mod perf;
 mod physics;
+#[cfg(feature = "debug")] // Remove from debug feature when soldier can shoot by themselves
 mod projectile;
 mod routing;
 mod runner;
@@ -62,13 +63,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mod_ = Mod::load(&mod_, Some(&cache))?;
     let world = WorldLoader::new(mod_.clone(), world.clone(), cache.clone()).load(&ids)?;
     let (input, output) = network::listen(args.host);
-    let state = Arc::new(State::new(ids, world));
+    let state = Arc::new(State::new(
+        #[cfg(feature = "debug")]
+        ids,
+        world,
+    ));
     let config = Config::new(args.static_.port());
 
     let state_ = state.clone();
     std::thread::spawn(move || Static::new(state_, args.cache).serve(args.static_));
 
-    Runner::new(config, mod_, state, output, args.print_ticks).run(input)?;
+    Runner::new(config, state, output, args.print_ticks).run(input)?;
 
     Ok(())
 }

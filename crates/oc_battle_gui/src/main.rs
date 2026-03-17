@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 
-use bevy::prelude::*;
 use bevy::sprite_render::Wireframe2dPlugin;
+use bevy::{prelude::*, window::PresentMode};
 use bevy_egui::EguiPlugin;
 use clap::Parser;
 
@@ -48,6 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         primary_window: Some(Window {
             title: "Open Combat".into(),
             resolution: (800, 800).into(),
+            // present_mode: PresentMode::AutoNoVsync,
             ..default()
         }),
         ..default()

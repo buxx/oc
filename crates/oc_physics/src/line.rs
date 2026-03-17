@@ -47,8 +47,15 @@ impl<'a> Steps<'a> {
     }
 }
 
+pub enum Step {
+    First([f32; 2], Xy),
+    Inside([f32; 2], Xy),
+    Last([f32; 2], Xy),
+    Outside,
+}
+
 impl<'a> Iterator for Steps<'a> {
-    type Item = ([f32; 2], Xy);
+    type Item = Step;
 
     fn next(&mut self) -> Option<Self::Item> {
         let world_width = WORLD_WIDTH_PIXELS as f32 * self.laws.bresenham_precision;
@@ -61,18 +68,18 @@ impl<'a> Iterator for Steps<'a> {
                 (self.x / self.laws.bresenham_precision) as u64 / self.laws.pixels_per_tile,
                 (self.y / self.laws.bresenham_precision) as u64 / self.laws.pixels_per_tile,
             );
-            return Some((
-                ([
+            return Some(Step::First(
+                [
                     self.x / self.laws.bresenham_precision,
                     self.y / self.laws.bresenham_precision,
-                ]),
+                ],
                 tile,
             ));
         }
 
         if let Some((x, y)) = self.bresenham.nth(self.step) {
             if x < 0 || y < 0 || x + 1 >= world_width as isize || y + 1 >= world_height as isize {
-                return None;
+                return Some(Step::Outside);
             }
 
             let tile = Xy(
@@ -86,7 +93,10 @@ impl<'a> Iterator for Steps<'a> {
             self.x = (x as f32) / self.laws.bresenham_precision;
             self.y = (y as f32) / self.laws.bresenham_precision;
 
-            return Some(([self.x as f32, self.y as f32], self.tile.clone()));
+            return Some(Step::Inside(
+                [self.x as f32, self.y as f32],
+                self.tile.clone(),
+            ));
         }
 
         if let Some([x, y]) = self.target.take() {
@@ -98,7 +108,7 @@ impl<'a> Iterator for Steps<'a> {
                 x as u64 / self.laws.pixels_per_tile,
                 y as u64 / self.laws.pixels_per_tile,
             );
-            return Some((([x as f32, y as f32]), tile));
+            return Some(Step::Last([x as f32, y as f32], tile));
         }
 
         None

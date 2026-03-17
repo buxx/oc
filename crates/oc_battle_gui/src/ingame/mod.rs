@@ -7,7 +7,8 @@ use crate::{
         individual::IndividualPlugin,
         input::{client::on_to_client, keyboard::on_key_press},
         projectile::ProjectilePlugin,
-        region::{on_forgotten_region, on_listening_region},
+        // region::{on_forgotten_region, on_listening_region},
+        region::on_listening_region,
         world::{
             on_adjust_minimap, on_despawn_world_map_background, on_spawn_minimap,
             on_spawn_visible_battle_square, on_spawn_world_map_background, on_update_battle_square,
@@ -50,11 +51,11 @@ impl Plugin for IngamePlugin {
             .add_observer(on_spawn_world_map_background)
             .add_observer(on_despawn_world_map_background)
             .add_observer(on_listening_region)
-            .add_observer(on_forgotten_region)
+            // .add_observer(on_forgotten_region)
             // TODO: InputPlugin
             .add_observer(input::left_click::on_set_left_click)
-            .add_observer(input::left_click::on_spawn_clicks_line)
             .add_observer(input::left_click::on_despawn_clicks_line)
+            .add_observer(physics::on_projectile_physics_event)
             // TODO: despawn entities on OnExit(AppState::InGame)
             .add_systems(
                 OnEnter(AppState::InGame),
@@ -77,6 +78,7 @@ impl Plugin for IngamePlugin {
             .add_observer(region::debug::on_spawn_region_wire_frame_debug)
             .add_observer(region::debug::on_forgotten_region)
             .add_observer(input::left_click::on_set_spawn_projectile_left_click)
+            .add_observer(input::left_click::on_spawn_clicks_line)
             .add_observer(region::debug::on_despawn_region_wire_frame_debug);
         // .add_observer(init::on_first_ingame_enter)
     }

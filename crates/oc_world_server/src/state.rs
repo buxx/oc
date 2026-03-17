@@ -1,7 +1,7 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use message_io::network::Endpoint;
-#[cfg(feature = "debug")]
+use oc_individual::IndividualIndex;
 use oc_projectile::ProjectileId;
 use oc_root::ids::Ids;
 use oc_world::World;
@@ -10,6 +10,7 @@ use crate::{index::Indexes, perf::Perf, routing::Listeners};
 
 #[derive(Clone)]
 pub struct State {
+    #[cfg(feature = "debug")]
     ids: Ids,
     pub perf: Arc<Perf>,
     world: Arc<RwLock<World>>,
@@ -18,13 +19,14 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(ids: Ids, world: World) -> Self {
+    pub fn new(#[cfg(feature = "debug")] ids: Ids, world: World) -> Self {
         let perf = Arc::new(Perf::default());
         let indexes = Arc::new(RwLock::new(Indexes::new(&world)));
         let world = Arc::new(RwLock::new(world));
         let listeners = Arc::new(RwLock::new(Listeners::new()));
 
         Self {
+            #[cfg(feature = "debug")]
             ids,
             perf,
             world,
@@ -63,4 +65,12 @@ impl State {
         let id = projectiles.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         ProjectileId(id)
     }
+}
+
+// TODO: move code
+#[derive(Debug, Clone)]
+pub enum ObjectId {
+    Individual(IndividualIndex),
+    Projectile(ProjectileId),
+    // Tile(WorldTileIndex),
 }

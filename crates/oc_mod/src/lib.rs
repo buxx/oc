@@ -7,8 +7,6 @@ use ron;
 use tar::Builder;
 use thiserror::Error;
 
-use crate::projectiles::ProjectileIndex;
-
 pub mod projectiles;
 
 pub const MOD_DIR: &str = "mods";
