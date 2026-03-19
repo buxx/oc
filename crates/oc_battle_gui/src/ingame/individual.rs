@@ -1,7 +1,8 @@
 use bevy::color::palettes::css::PURPLE;
 use bevy::prelude::*;
 use oc_geo::region::WorldRegionIndex;
-use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile};
+use oc_physics::Physic;
+use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volume};
 use oc_utils::bevy::EntityMapping;
 
 use crate::entity::individual::{Behavior, IndividualIndex};
@@ -36,6 +37,7 @@ pub fn on_insert_individual(
             Region(individual.1.region),
             Behavior(individual.1.behavior),
             Forces(individual.1.forces.clone()),
+            Volume(individual.1.volume().clone()),
             Mesh2d(meshes.add(Circle::new(2.5))),
             MeshMaterial2d(materials.add(Color::from(PURPLE))),
             Transform::from_xyz(

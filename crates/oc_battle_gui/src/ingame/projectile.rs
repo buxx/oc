@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use oc_geo::region::{Region as _, WorldRegionIndex};
 use oc_physics::Physic;
 use oc_physics::collision::{Material_, Materials};
-use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile};
+use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volume};
 use oc_utils::bevy::EntityMapping;
 
 use crate::entity::projectile::ProjectileId;
@@ -30,6 +30,7 @@ pub fn on_insert_projectile(
             Region(projectile.1.region().clone()),
             Forces(projectile.1.forces().clone()),
             Material_(Materials::Traversable),
+            Volume(projectile.1.volume().clone()),
             Mesh2d(meshes.add(Circle::new(2.5))),
             MeshMaterial2d(materials.add(Color::from(RED))),
             Transform::from_xyz(

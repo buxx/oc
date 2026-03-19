@@ -5,22 +5,22 @@ use oc_geo::{region::RegionXy, tile::TileXy};
 use oc_utils::bevy::EntityMapping;
 
 #[derive(Debug, Event)]
-pub struct SetPositionEvent<I>(I, [f32; 2]);
+pub struct SetPositionEvent<I>(pub I, pub [f32; 2], pub [f32; 2]); // new, before
 
 #[derive(Debug, Event)]
-pub struct SetTileEvent<I>(I, TileXy);
+pub struct SetTileEvent<I>(pub I, pub TileXy, pub TileXy); // new, before
 
 #[derive(Debug, Event)]
-pub struct SetRegionEvent<I>(I, RegionXy);
+pub struct SetRegionEvent<I>(pub I, pub RegionXy, pub RegionXy); // new, before
 
 #[derive(Debug, Event)]
-pub struct PushForceEvent<I>(I, crate::Force);
+pub struct PushForceEvent<I>(pub I, pub crate::Force);
 
 #[derive(Debug, Event)]
-pub struct RemoveForceEvent<I>(I, crate::Force);
+pub struct RemoveForceEvent<I>(pub I, pub crate::Force);
 
 #[derive(Debug, Event)]
-pub struct Disapear<I>(I);
+pub struct SetVolumeEvent<I>(pub I, pub crate::volume::Volume, pub crate::volume::Volume); // new, before
 
 #[derive(Debug, Component)]
 pub struct Position(pub [f32; 2]);
@@ -34,6 +34,9 @@ pub struct Region(pub RegionXy);
 #[derive(Debug, Component)]
 pub struct Forces(pub Vec<crate::Force>);
 
+#[derive(Debug, Component)]
+pub struct Volume(pub crate::volume::Volume);
+
 pub trait UpdatePhysicsEvent<I> {
     fn i(&self) -> I;
     fn value(&self) -> &super::Update;
@@ -46,20 +49,23 @@ pub fn on_update_physics<I: Send + Sync + 'static, E: Event + UpdatePhysicsEvent
     let (i, update) = (update.i(), &update.value());
 
     match update {
-        super::Update::SetPosition(position) => {
-            commands.trigger(SetPositionEvent(i, position.clone()));
+        super::Update::SetPosition(position2, position1) => {
+            commands.trigger(SetPositionEvent(i, position2.clone(), position1.clone()));
         }
-        super::Update::SetTile(tile) => {
-            commands.trigger(SetTileEvent(i, tile.clone()));
+        super::Update::SetTile(tile2, tile1) => {
+            commands.trigger(SetTileEvent(i, tile2.clone(), tile1.clone()));
         }
-        super::Update::SetRegion(region) => {
-            commands.trigger(SetRegionEvent(i, region.clone()));
+        super::Update::SetRegion(region2, region1) => {
+            commands.trigger(SetRegionEvent(i, region2.clone(), region1.clone()));
         }
         super::Update::PushForce(force) => {
             commands.trigger(PushForceEvent(i, force.clone()));
         }
         super::Update::RemoveForce(force) => {
             commands.trigger(RemoveForceEvent(i, force.clone()));
+        }
+        super::Update::SetVolume(volume2, volume1) => {
+            commands.trigger(SetVolumeEvent(i, volume2.clone(), volume1.clone()));
         }
     }
 }
@@ -146,16 +152,20 @@ fn on_remove_force_event<I: Hash + Eq + Send + Sync + 'static>(
     component.0.retain(|f| f != &event.1);
 }
 
-fn on_disapear<I: Hash + Eq + Send + Sync + 'static>(
-    event: On<SetRegionEvent<I>>,
-    mut commands: Commands,
+fn on_set_volume<I: Hash + Eq + Send + Sync + 'static>(
+    event: On<SetVolumeEvent<I>>,
+    mut query: Query<&mut Volume>,
     state: Res<EntityMapping<I>>,
 ) {
     let Some(entity) = state.get(&event.0) else {
         return;
     };
+    let Ok(mut component) = query.get_mut(*entity) else {
+        return;
+    };
+    // tracing::trace!(name="update-individual-region", i=?region.0, region=?region.1);
 
-    commands.entity(*entity).despawn();
+    component.0 = event.1.clone();
 }
 
 #[derive(Debug)]
@@ -182,7 +192,7 @@ impl<I: Hash + Eq + Send + Sync + 'static, E: Event + UpdatePhysicsEvent<I>> Plu
             .add_observer(on_set_tile_event::<I>)
             .add_observer(on_set_region_event::<I>)
             .add_observer(on_push_force_event::<I>)
-            .add_observer(on_remove_force_event::<I>)
-            .add_observer(on_disapear::<I>);
+            .add_observer(on_set_volume::<I>)
+            .add_observer(on_remove_force_event::<I>);
     }
 }

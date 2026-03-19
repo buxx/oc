@@ -23,6 +23,16 @@ impl From<TileXy> for (u64, u64) {
     }
 }
 
+// a little bit ricky ...
+impl From<TileXy> for [f32; 2] {
+    fn from(value: TileXy) -> Self {
+        [
+            value.0.0 as f32 * GEO_PIXELS_PER_TILE as f32,
+            value.0.1 as f32 * GEO_PIXELS_PER_TILE as f32,
+        ]
+    }
+}
+
 #[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct WorldTileIndex(pub u64);

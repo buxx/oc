@@ -6,10 +6,10 @@ use oc_geo::{
     tile::TileXy,
 };
 use oc_physics::{
-    Force, Physic, Reactive, UpdatePhysic,
+    Force, Physic, UpdatePhysic,
     collision::{Material, Materials},
+    volume::Volume,
 };
-use oc_root::tile::Tile;
 use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -81,12 +81,9 @@ impl Physic for Projectile {
             Projectile::Bullet(bullet) => &bullet.forces,
         }
     }
-}
 
-impl Reactive<Tile> for Projectile {
-    fn react(&self, _event: &oc_physics::Event<Tile>) -> Vec<oc_physics::update::Update> {
-        // FIXME BS NOW
-        todo!()
+    fn volume(&self) -> &Volume {
+        &Volume::Point
     }
 }
 
@@ -107,6 +104,10 @@ impl UpdatePhysic for Projectile {
         match self {
             Projectile::Bullet(bullet) => bullet.forces.retain(|f| f != value),
         }
+    }
+
+    fn set_volume(&self, _value: Volume) {
+        // Never need to update projectile volume
     }
 }
 

@@ -1,9 +1,18 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use message_io::network::Endpoint;
+use oc_geo::tile::{TileXy, WorldTileIndex};
+use oc_individual::{Individual, IndividualIndex};
+use oc_physics::{
+    Physic,
+    collision::{Material, Materials},
+    volume::Volume,
+};
+use oc_projectile::Projectile;
 #[cfg(feature = "debug")]
 use oc_projectile::ProjectileId;
-use oc_root::ids::Ids;
+use oc_root::{GEO_PIXELS_PER_TILE, ids::Ids, tile::Tile};
+use oc_utils::d2::Xy;
 use oc_world::World;
 
 use crate::{index::Indexes, perf::Perf, routing::Listeners};
@@ -64,3 +73,61 @@ impl State {
         ProjectileId(id)
     }
 }
+
+// TODO: move code
+#[derive(Debug, Clone)]
+pub enum ObjectId {
+    Individual(IndividualIndex),
+    Projectile(ProjectileId),
+    Tile(WorldTileIndex),
+}
+
+// impl From<Object<'_>> for ObjectId {
+//     fn from(value: Object) -> Self {
+//         match value {
+//             Object::Individual(i, _) => ObjectId::Individual(i),
+//             Object::Projectile(i, _) => ObjectId::Projectile(i),
+//             Object::Tile(i, _) => ObjectId::Tile(i.into()),
+//         }
+//     }
+// }
+
+// impl From<IndividualIndex> for ObjectId {
+//     fn from(value: IndividualIndex) -> Self {
+//         Self::Individual(value)
+//     }
+// }
+
+// impl From<ProjectileId> for ObjectId {
+//     fn from(value: ProjectileId) -> Self {
+//         Self::Projectile(value)
+//     }
+// }
+
+// // TODO: move code
+// #[derive(Debug)]
+// pub enum Object<'a> {
+//     Individual(IndividualIndex, &'a Individual),
+//     Projectile(ProjectileId, &'a Projectile),
+//     Tile(TileXy, Tile),
+// }
+
+// impl<'a> Physic for Object<'a> {
+//     fn position(&self) -> &[f32; 2] {
+//         todo!()
+//     }
+
+//     fn forces(&self) -> &Vec<oc_physics::Force> {
+//         todo!()
+//     }
+
+//     fn volume(&self) -> &oc_physics::volume::Volume {
+//         todo!()
+//     }
+// }
+
+// impl<'a> Material for Object<'a> {
+//     fn material(&self) -> oc_physics::collision::Materials {
+//         todo!()
+//     }
+// }

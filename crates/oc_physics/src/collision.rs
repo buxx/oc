@@ -26,12 +26,11 @@ pub trait Material {
 pub struct Material_(pub Materials);
 
 #[derive(Debug, Clone)]
-pub enum Collision<T: Clone> {
-    Tile(T),
-}
+pub struct Collision<L, R>(pub L, pub R);
 
 impl Material for Tile {
     fn material(&self) -> Materials {
+        // TODO: depending on tile
         Materials::Traversable
     }
 }

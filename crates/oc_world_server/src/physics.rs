@@ -2,12 +2,11 @@ use derive_more::Constructor;
 use oc_geo::{
     Geo, UpdateGeo,
     region::{Region, RegionXy},
-    tile::TileXy,
+    tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::IndividualIndex;
-use oc_physics::{Event, Force, Laws, Physic, Reactive, UpdatePhysic, update::Update};
+use oc_physics::{Event, Force, Laws, Physic, UpdatePhysic, update::Update};
 use oc_projectile::ProjectileId;
-use oc_root::tile::Tile;
 use oc_utils::collections::WithIds;
 use oc_world::World;
 
@@ -15,6 +14,7 @@ use crate::{
     index::{self, IntoIndexEffect},
     network::{IntoNetworkInsert, IntoNetworkUpdate},
     routing::Listening,
+    state::ObjectId,
     utils::{
         context::Context,
         subject::{IntoSubject, IntoSubjectMut},
@@ -30,45 +30,77 @@ impl<'x> Processor<'x> {
     pub fn step(&self, i: usize) {
         tracing::trace!(name = "physics-step", i = i);
 
-        let subjects = self.step_for(i, |w| w.individuals().with_ids());
-        let subjects = self.write(subjects);
+        let (subject_upds, subject_events) = self.step_for(i, |w| w.individuals().with_ids());
+        let subject_effects = self.write(subject_upds);
 
-        let projectiles = self.step_for(i, |w| w.projectiles().with_ids());
-        let projectiles = self.write(projectiles);
+        let (projectile_upds, projectile_events) = self.step_for(i, |w| w.projectiles().with_ids());
+        let projectile_effects = self.write(projectile_upds);
 
-        self.apply(subjects);
-        self.apply(projectiles);
+        self.apply(subject_effects);
+        self.apply(projectile_effects);
+
+        // self.react(subject_events);
+        // self.react(projectile_events);
     }
 
-    fn step_for<F, I, T>(&self, i: usize, all: F) -> Vec<(I, Vec<Update>)>
+    fn step_for<F, I, T>(
+        &self,
+        i: usize,
+        all: F,
+    ) -> (Vec<(I, Vec<Update>)>, Vec<Event<I, ObjectId>>)
     where
         for<'a> F: Fn(&'a World) -> Vec<(I, &'a T)>,
         I: std::fmt::Debug + Copy,
-        T: Physic + Geo + Region + Reactive<Tile>,
+        T: Physic + Geo + Region,
     {
         let world = self.ctx.state.world();
+        let indexes = self.ctx.state.indexes();
         let all = all(&world);
         let size = (all.len() as f32 / self.ctx.cpus as f32).ceil() as usize;
         if size == 0 {
-            return vec![];
+            return (vec![], vec![]);
         };
         let chunks = all.chunks(size).collect::<Vec<_>>();
         let chunk = chunks.get(i);
-        let Some(chunk) = chunk else { return vec![] };
-        let tiles = |xy| world.tile(TileXy(xy));
+        let Some(chunk) = chunk else {
+            return (vec![], vec![]);
+        };
 
-        chunk
+        // Move code (wich must take worl and indexes as ref because RwReadLockGuard lifetime)
+        let objects = |xy| {
+            let tile = TileXy(xy);
+            let i: WorldTileIndex = tile.into();
+            let individuals = indexes.tile_individuals(i);
+            // let tile = world.tile(tile);
+
+            let mut objects = vec![];
+
+            for i in individuals {
+                let individual = world.individual(*i);
+                let individual: Box<&dyn Physic> = Box::new(individual);
+                objects.push((ObjectId::Individual(*i), individual));
+            }
+
+            objects
+        };
+
+        let mut events = vec![];
+        let updates = chunk
             .into_iter()
             .map(|(i, subject)| {
                 let laws = Laws::default();
-                let (new_position, forces, events) = oc_physics::step(&laws, *subject, tiles);
-                tracing::trace!(name="physics-subject", i=?i, new_position=?new_position, forces=?forces);
-                let updates = changes(i, *subject, &new_position, &forces, &events);
+                let (position, forces, events_) = oc_physics::step(&laws, (i.clone(), *subject), objects);
+                tracing::trace!(name="physics-subject", i=?i, position=?position, forces=?forces);
+                let updates = changes(i, *subject, &position, &forces);
 
-                tracing::trace!(name = "physics-step-for", i = ?i, updates=?updates);
+                tracing::trace!(name = "physics-step-for", i = ?i, updates=?updates, events=events_.len());
+
+                events.extend(events_);
                 (*i, updates)
             })
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+
+        (updates, events)
     }
 
     fn write<I, T>(
@@ -129,32 +161,27 @@ impl<'x> Processor<'x> {
     }
 }
 
-pub fn changes<I, T>(
-    i: I,
-    subject: &T,
-    position: &[f32; 2],
-    forces: &Vec<Force>,
-    events: &Vec<Event<Tile>>,
-) -> Vec<Update>
+pub fn changes<I, T>(i: I, subject: &T, position: &[f32; 2], forces: &Vec<Force>) -> Vec<Update>
 where
     I: std::fmt::Debug,
-    T: Physic + Geo + Region + Reactive<Tile>,
+    T: Physic + Geo + Region,
 {
+    tracing::trace!(name="physics-changes", i=?i, position=?position, forces=?forces);
     let mut updates = vec![];
 
     // TODO: to improve perfs, maybe these updates sould be known at physics::step ?
     if subject.position() != position {
-        updates.push(Update::SetPosition(*position));
+        updates.push(Update::SetPosition(*position, *subject.position()));
 
         let tile: TileXy = position.clone().into();
         let region: RegionXy = tile.into();
 
         if subject.tile() != &tile {
-            updates.push(Update::SetTile(tile));
+            updates.push(Update::SetTile(tile, subject.tile().clone()));
         }
 
         if subject.region() != &region {
-            updates.push(Update::SetRegion(region));
+            updates.push(Update::SetRegion(region, subject.region().clone()));
         }
     }
 
@@ -170,10 +197,6 @@ where
         }
     }
 
-    for event in events {
-        updates.extend(subject.react(event));
-    }
-
     tracing::trace!(name="physics-individual-updates", i=?i, updates=?updates);
 
     updates
@@ -187,18 +210,18 @@ where
     let region = subject.region().clone();
 
     let effect = match update {
-        Update::SetPosition(position) => {
+        Update::SetPosition(position, _) => {
             subject.set_position(*position);
             None
         }
-        Update::SetTile(tile_) => {
+        Update::SetTile(tile_, _) => {
             subject.set_tile(*tile_);
             Some(Effect::Tile {
                 before: tile,
                 after: *tile_,
             })
         }
-        Update::SetRegion(region_) => {
+        Update::SetRegion(region_, _) => {
             subject.set_region(*region_);
             Some(Effect::Region {
                 before: region,
@@ -211,6 +234,10 @@ where
         }
         Update::RemoveForce(force) => {
             subject.remove_force(&force);
+            None
+        }
+        Update::SetVolume(volume, _) => {
+            subject.set_volume(volume.clone());
             None
         }
     };
