@@ -3,12 +3,19 @@ use crate::{
     ingame::debug::projectile::SpawnProjectileProfile,
     window::debug::battle::SpawnProjectileClickMode,
 };
-use bevy::{color::palettes::css::YELLOW, prelude::*};
+#[cfg(feature = "debug")]
+use bevy::color::palettes::css::YELLOW;
+use bevy::prelude::*;
+#[cfg(feature = "debug")]
 use oc_network::ToServer;
+#[cfg(feature = "debug")]
 use oc_projectile::spawn::SpawnProjectile;
+#[cfg(feature = "debug")]
 use strum_macros::EnumIter;
 
+#[cfg(feature = "debug")]
 use crate::window::PointerInWindow;
+#[cfg(feature = "debug")]
 use crate::{ingame::draw, network::output::ToServerEvent};
 
 #[derive(Debug, Deref, DerefMut, Event)]
@@ -22,9 +29,11 @@ pub struct SetSpawnProjectileLeftClickMode(pub SpawnProjectileClickMode);
 #[derive(Debug, Event)]
 pub struct SpawnClicksLine;
 
+#[cfg(feature = "debug")]
 #[derive(Debug, Event)]
 pub struct DespawnClicksLine;
 
+#[cfg(feature = "debug")]
 #[derive(Debug, Component)]
 pub struct ClicksLine;
 
@@ -202,6 +211,7 @@ pub fn update_spawn_projectile_clicks_line(
     }
 }
 
+#[cfg(feature = "debug")]
 pub fn on_despawn_clicks_line(
     _: On<DespawnClicksLine>,
     mut commands: Commands,
