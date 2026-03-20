@@ -53,29 +53,33 @@ impl LeftClickModeType {
     pub fn name(&self) -> &str {
         match self {
             LeftClickModeType::Select => "Select",
+            #[cfg(feature = "debug")]
             LeftClickModeType::SpawnProjectile => "Spawn projectile",
         }
     }
 }
 
 pub fn click(
-    mut commands: Commands,
+    #[cfg(feature = "debug")] mut commands: Commands,
     ignore: Res<PointerInWindow>,
-    window: Single<&Window>,
-    camera: Single<(&Camera, &GlobalTransform)>,
-    buttons: Res<ButtonInput<MouseButton>>,
+    #[cfg(feature = "debug")] window: Single<&Window>,
+    #[cfg(feature = "debug")] camera: Single<(&Camera, &GlobalTransform)>,
+    #[cfg(feature = "debug")] buttons: Res<ButtonInput<MouseButton>>,
     mode: Res<LeftClick>,
-    spawn_mode: Res<SpawnProjectileLeftClick>,
-    _keys: Res<ButtonInput<KeyCode>>,
-    mut state: ResMut<super::State>,
+    #[cfg(feature = "debug")] spawn_mode: Res<SpawnProjectileLeftClick>,
+    #[cfg(feature = "debug")] _keys: Res<ButtonInput<KeyCode>>,
+    #[cfg(feature = "debug")] mut state: ResMut<super::State>,
 ) {
     if ignore.0 {
         return;
     }
+    #[cfg(feature = "debug")]
     let Some(cursor) = window.cursor_position() else {
         return;
     };
+    #[cfg(feature = "debug")]
     let (camera, transform) = *camera;
+    #[cfg(feature = "debug")]
     let Ok(point) = camera.viewport_to_world_2d(transform, cursor) else {
         return;
     };
@@ -84,6 +88,7 @@ pub fn click(
         LeftClickMode::Select => {
             // TODO
         }
+        #[cfg(feature = "debug")]
         LeftClickMode::SpawnProjectile(profile) => match spawn_mode.0 {
             SpawnProjectileClickMode::TwoClicks => {
                 if buttons.just_released(MouseButton::Left) {
@@ -141,6 +146,7 @@ pub fn on_set_left_click(set: On<SetLeftClick>, mut left_click: ResMut<LeftClick
     left_click.0 = set.0.clone();
 }
 
+#[cfg(feature = "debug")]
 pub fn on_set_spawn_projectile_left_click(
     set: On<SetSpawnProjectileLeftClickMode>,
     mut left_click: ResMut<SpawnProjectileLeftClick>,
@@ -148,6 +154,7 @@ pub fn on_set_spawn_projectile_left_click(
     left_click.0 = set.0.clone();
 }
 
+#[cfg(feature = "debug")]
 pub fn on_spawn_clicks_line(
     _: On<SpawnClicksLine>,
     window: Single<&Window>,
@@ -180,6 +187,7 @@ pub fn on_spawn_clicks_line(
 pub fn update_clicks_line(mut commands: Commands, mode: Res<LeftClick>, state: Res<super::State>) {
     match &mode.0 {
         LeftClickMode::Select => {}
+        #[cfg(feature = "debug")]
         LeftClickMode::SpawnProjectile(_) => {
             if !state.clicks.is_empty() {
                 commands.trigger(DespawnClicksLine);

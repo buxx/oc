@@ -11,6 +11,7 @@ use crate::{index::Indexes, perf::Perf, routing::Listeners};
 
 #[derive(Clone)]
 pub struct State {
+    #[cfg(feature = "debug")]
     ids: Ids,
     pub perf: Arc<Perf>,
     world: Arc<RwLock<World>>,
@@ -19,13 +20,14 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(ids: Ids, world: World) -> Self {
+    pub fn new(#[cfg(feature = "debug")] ids: Ids, world: World) -> Self {
         let perf = Arc::new(Perf::default());
         let indexes = Arc::new(RwLock::new(Indexes::new(&world)));
         let world = Arc::new(RwLock::new(world));
         let listeners = Arc::new(RwLock::new(Listeners::new()));
 
         Self {
+            #[cfg(feature = "debug")]
             ids,
             perf,
             world,
