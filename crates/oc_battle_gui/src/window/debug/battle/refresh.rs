@@ -39,28 +39,28 @@ pub fn on_refresh(
         window.context.regions = camera.regions.clone().unwrap_or(vec![]);
         window.context.individuals = individuals
             .iter()
-            .map(|(id, position, tile, region, forces)| {
+            .map(|(id, position, _, region, _)| {
                 Subject::new(
                     id.0.clone(),
                     PhysicsRepr::new(
                         position.0.clone(),
-                        tile.0.clone(),
+                        // tile.0.clone(),
                         region.0.clone(),
-                        forces.0.clone(),
+                        // forces.0.clone(),
                     ),
                 )
             })
             .collect();
         window.context.projectiles = projectiles
             .iter()
-            .map(|(id, position, tile, region, forces)| {
+            .map(|(id, position, _, region, _)| {
                 Subject::new(
                     id.0.clone(),
                     PhysicsRepr::new(
                         position.0.clone(),
-                        tile.0.clone(),
+                        // tile.0.clone(),
                         region.0.clone(),
-                        forces.0.clone(),
+                        // forces.0.clone(),
                     ),
                 )
             })

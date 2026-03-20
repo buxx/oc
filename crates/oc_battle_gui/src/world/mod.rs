@@ -4,7 +4,7 @@ use oc_geo::{
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::{Individual, IndividualIndex};
-use oc_physics::{Corps, Physic};
+use oc_physics::Physic;
 use oc_root::tile::Tile;
 use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
@@ -40,6 +40,7 @@ impl<K, V> Default for Index<K, V> {
     }
 }
 
+// FIXME: improve perfs by using Partial and list index (like in previous projects)
 #[derive(Resource, Default)]
 pub struct World {
     individuals: Index<WorldTileIndex, Vec<(IndividualIndex, Individual)>>,

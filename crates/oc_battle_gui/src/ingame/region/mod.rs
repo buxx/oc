@@ -6,10 +6,7 @@ use oc_physics::update::bevy::Region;
 use oc_root::{REGION_HEIGHT_PIXELS, REGION_WIDTH_PIXELS};
 
 use crate::{
-    entity::world::region::RegionBackground,
-    ingame::draw::Z_REGION_BACKGROUND,
-    states::Meta,
-    // world::tile::Tiles,
+    entity::world::region::RegionBackground, ingame::draw::Z_REGION_BACKGROUND, states::Meta,
 };
 
 #[cfg(feature = "debug")]
@@ -56,21 +53,3 @@ pub fn on_listening_region(
         },
     ));
 }
-
-// FIXME BS NOW: delete (done in World now)
-// pub fn on_forgotten_region(
-//     region: On<ListeningRegion>,
-//     mut commands: Commands,
-//     query: Query<(Entity, &Region), With<RegionBackground>>,
-//     mut tiles: ResMut<Tiles>,
-// ) {
-//     tracing::debug!("Remove tiles from region {}", region.0.0);
-//     tiles.0.remove(&region.0);
-
-//     let region: RegionXy = region.0.into();
-//     for (entity, region_) in query {
-//         if region_.0 == region {
-//             commands.entity(entity).despawn();
-//         }
-//     }
-// }
