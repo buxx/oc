@@ -6,10 +6,7 @@ use oc_utils::d2::Xy;
 use rkyv::{Archive, Deserialize, Serialize};
 use std::ops::Deref;
 
-use crate::{
-    collision::{Collision, Material},
-    volume::Volume,
-};
+use crate::{collision::Material, volume::Volume};
 
 pub mod collision;
 pub mod line;
@@ -148,8 +145,8 @@ pub enum Force {
 
 #[derive(Debug, Clone)]
 pub enum Event<T> {
-    NoTile,
-    Collision(Collision<T>),
+    NoTile(T),
+    Collision(T, T),
 }
 
 pub trait World<Z> {
@@ -213,8 +210,7 @@ where
                                             tracing::trace!(name="physics-step-translation-collide", p=?position, xy=?step_tile);
 
                                             let left = i.clone().into();
-                                            let collision = collision::Collision(left, z);
-                                            let collision = Event::Collision(collision);
+                                            let collision = Event::Collision(left, z);
                                             events.push(collision);
 
                                             // Do not keep this force by stoping this iteration
@@ -251,7 +247,7 @@ where
                         }
                         line::Step::Outside => {
                             tracing::trace!(name="physics-step-translation-no-tile", p=?position);
-                            events.push(Event::NoTile);
+                            events.push(Event::NoTile(i.clone().into()));
                             continue 'forces;
                         }
                     }

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use oc_geo::region::WorldRegionIndex;
-use oc_geo::tile::{TileXy, WorldTileIndex};
+use oc_geo::tile::TileXy;
 use oc_physics::update::bevy::Region;
 use oc_root::GEO_PIXELS_PER_TILE;
 
@@ -15,7 +15,7 @@ pub struct ToggleShowTiles;
 pub struct ShowTiles(pub bool);
 
 #[derive(Debug, Component)]
-pub struct TileWire(WorldTileIndex);
+pub struct TileWire;
 
 pub fn on_toggle_show_tiles(
     _: On<ToggleShowTiles>,
@@ -60,7 +60,7 @@ pub fn on_toggle_show_tiles(
             }
 
             commands.spawn((
-                TileWire(**i),
+                TileWire,
                 Region(region.into()),
                 Mesh2d(meshes.add(rectangle)),
                 MeshMaterial2d(materials.add(color)),

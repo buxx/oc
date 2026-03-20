@@ -5,7 +5,7 @@ use oc_geo::{
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::IndividualIndex;
-use oc_physics::{Event, Force, Laws, Physic, UpdatePhysic, reactive::Reactive, update::Update};
+use oc_physics::{Event, Force, Laws, Physic, UpdatePhysic, update::Update};
 use oc_projectile::ProjectileId;
 use oc_utils::collections::WithIds;
 use oc_world::World;
@@ -157,7 +157,27 @@ impl<'x> Processor<'x> {
     }
 
     fn react(&self, events: Vec<Event<ObjectId>>) {
-        //
+        for event in events {
+            match event {
+                Event::NoTile(id) => match id {
+                    ObjectId::Individual(_) => {}
+                    ObjectId::Projectile(_) => {
+                        // Remove from world
+                    }
+                },
+                Event::Collision(a, b) => match (a, b) {
+                    (ObjectId::Individual(_), ObjectId::Individual(_)) => {}
+                    (ObjectId::Individual(_), ObjectId::Projectile(_)) => {}
+                    (
+                        ObjectId::Projectile(_projectile_id),
+                        ObjectId::Individual(_individual_index),
+                    ) => {
+                        // TODO: bam !
+                    }
+                    (ObjectId::Projectile(_), ObjectId::Projectile(_)) => {}
+                },
+            }
+        }
     }
 }
 

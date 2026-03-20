@@ -51,26 +51,17 @@ impl Plugin for IngamePlugin {
             .add_observer(on_spawn_world_map_background)
             .add_observer(on_despawn_world_map_background)
             .add_observer(on_listening_region)
+            .add_observer(projectile::on_disapear_projectile)
             // .add_observer(on_forgotten_region)
             // TODO: InputPlugin
             .add_observer(input::left_click::on_set_left_click)
-            .add_observer(input::left_click::on_despawn_clicks_line)
-            .add_observer(physics::on_projectile_physics_event)
+            .add_observer(physics::on_physics_event)
             // TODO: despawn entities on OnExit(AppState::InGame)
             .add_systems(
                 OnEnter(AppState::InGame),
                 (init::init, init::refresh, init::spawn_world_map),
             )
-            .add_systems(
-                Update,
-                (
-                    on_key_press,
-                    // TODO: InputPlugin
-                    input::left_click::click,
-                    input::left_click::update_clicks_line,
-                )
-                    .run_if(in_state(AppState::InGame)),
-            );
+            .add_systems(Update, on_key_press.run_if(in_state(AppState::InGame)));
 
         #[cfg(feature = "debug")]
         app.init_resource::<SpawnProjectileLeftClick>()
@@ -79,7 +70,17 @@ impl Plugin for IngamePlugin {
             .add_observer(region::debug::on_forgotten_region)
             .add_observer(input::left_click::on_set_spawn_projectile_left_click)
             .add_observer(input::left_click::on_spawn_clicks_line)
-            .add_observer(region::debug::on_despawn_region_wire_frame_debug);
+            .add_observer(input::left_click::on_despawn_clicks_line)
+            .add_observer(region::debug::on_despawn_region_wire_frame_debug)
+            .add_systems(
+                Update,
+                (input::left_click::click_debug).run_if(in_state(AppState::InGame)),
+            )
+            .add_systems(
+                Update,
+                (input::left_click::update_spawn_projectile_clicks_line,)
+                    .run_if(in_state(AppState::InGame)),
+            );
         // .add_observer(init::on_first_ingame_enter)
     }
 }

@@ -3,12 +3,20 @@ use crate::{
     ingame::debug::projectile::SpawnProjectileProfile,
     window::debug::battle::SpawnProjectileClickMode,
 };
-use bevy::{color::palettes::css::YELLOW, prelude::*};
+#[cfg(feature = "debug")]
+use bevy::color::palettes::css::YELLOW;
+use bevy::prelude::*;
+#[cfg(feature = "debug")]
 use oc_network::ToServer;
+#[cfg(feature = "debug")]
 use oc_projectile::spawn::SpawnProjectile;
+#[cfg(feature = "debug")]
 use strum_macros::EnumIter;
 
-use crate::{ingame::draw, network::output::ToServerEvent, window::PointerInWindow};
+#[cfg(feature = "debug")]
+use crate::window::PointerInWindow;
+#[cfg(feature = "debug")]
+use crate::{ingame::draw, network::output::ToServerEvent};
 
 #[derive(Debug, Deref, DerefMut, Event)]
 pub struct SetLeftClick(pub LeftClickMode);
@@ -17,12 +25,15 @@ pub struct SetLeftClick(pub LeftClickMode);
 #[derive(Debug, Deref, DerefMut, Event)]
 pub struct SetSpawnProjectileLeftClickMode(pub SpawnProjectileClickMode);
 
+#[cfg(feature = "debug")]
 #[derive(Debug, Event)]
 pub struct SpawnClicksLine;
 
+#[cfg(feature = "debug")]
 #[derive(Debug, Event)]
 pub struct DespawnClicksLine;
 
+#[cfg(feature = "debug")]
 #[derive(Debug, Component)]
 pub struct ClicksLine;
 
@@ -41,6 +52,7 @@ pub enum LeftClickMode {
     SpawnProjectile(SpawnProjectileProfile),
 }
 
+#[cfg(feature = "debug")]
 #[derive(Debug, Clone, Default, PartialEq, Eq, EnumIter)]
 pub enum LeftClickModeType {
     #[default]
@@ -49,37 +61,35 @@ pub enum LeftClickModeType {
     SpawnProjectile,
 }
 
+#[cfg(feature = "debug")]
 impl LeftClickModeType {
     pub fn name(&self) -> &str {
         match self {
             LeftClickModeType::Select => "Select",
-            #[cfg(feature = "debug")]
             LeftClickModeType::SpawnProjectile => "Spawn projectile",
         }
     }
 }
 
-pub fn click(
-    #[cfg(feature = "debug")] mut commands: Commands,
+#[cfg(feature = "debug")]
+pub fn click_debug(
+    mut commands: Commands,
     ignore: Res<PointerInWindow>,
-    #[cfg(feature = "debug")] window: Single<&Window>,
-    #[cfg(feature = "debug")] camera: Single<(&Camera, &GlobalTransform)>,
-    #[cfg(feature = "debug")] buttons: Res<ButtonInput<MouseButton>>,
+    window: Single<&Window>,
+    camera: Single<(&Camera, &GlobalTransform)>,
+    buttons: Res<ButtonInput<MouseButton>>,
     mode: Res<LeftClick>,
-    #[cfg(feature = "debug")] spawn_mode: Res<SpawnProjectileLeftClick>,
-    #[cfg(feature = "debug")] _keys: Res<ButtonInput<KeyCode>>,
-    #[cfg(feature = "debug")] mut state: ResMut<super::State>,
+    spawn_mode: Res<SpawnProjectileLeftClick>,
+    _keys: Res<ButtonInput<KeyCode>>,
+    mut state: ResMut<super::State>,
 ) {
     if ignore.0 {
         return;
     }
-    #[cfg(feature = "debug")]
     let Some(cursor) = window.cursor_position() else {
         return;
     };
-    #[cfg(feature = "debug")]
     let (camera, transform) = *camera;
-    #[cfg(feature = "debug")]
     let Ok(point) = camera.viewport_to_world_2d(transform, cursor) else {
         return;
     };
@@ -184,10 +194,14 @@ pub fn on_spawn_clicks_line(
     ));
 }
 
-pub fn update_clicks_line(mut commands: Commands, mode: Res<LeftClick>, state: Res<super::State>) {
+#[cfg(feature = "debug")]
+pub fn update_spawn_projectile_clicks_line(
+    mut commands: Commands,
+    mode: Res<LeftClick>,
+    state: Res<super::State>,
+) {
     match &mode.0 {
         LeftClickMode::Select => {}
-        #[cfg(feature = "debug")]
         LeftClickMode::SpawnProjectile(_) => {
             if !state.clicks.is_empty() {
                 commands.trigger(DespawnClicksLine);
@@ -197,6 +211,7 @@ pub fn update_clicks_line(mut commands: Commands, mode: Res<LeftClick>, state: R
     }
 }
 
+#[cfg(feature = "debug")]
 pub fn on_despawn_clicks_line(
     _: On<DespawnClicksLine>,
     mut commands: Commands,

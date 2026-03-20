@@ -9,5 +9,6 @@ pub mod projectile;
 
 #[derive(Debug, Resource, Default)]
 pub struct State {
+    #[cfg(feature = "debug")]
     pub clicks: Vec<Vec2>,
 }
