@@ -7,12 +7,12 @@ use oc_physics::{
     update::bevy::{Forces, Position, Volume},
 };
 use oc_projectile::ProjectileId;
-use oc_utils::{bevy::EntityMapping, d2::Xy};
+use oc_utils::d2::Xy;
 
-use crate::world::World;
+use crate::{ingame::projectile::DisapearProjectile, world::World};
 
 #[derive(Debug, Clone, Event)]
-pub struct PhysicEvent<I: Clone + std::fmt::Debug>(I, oc_physics::Event<ObjectId>);
+pub struct PhysicEvent(oc_physics::Event<ObjectId>);
 
 pub fn physics_step<I, C>(
     mut commands: Commands,
@@ -60,29 +60,28 @@ pub fn physics_step<I, C>(
         transform.translation.y = position.0[1];
 
         for event in events {
-            // Add observer for ProjectileId
-            commands.trigger(PhysicEvent::<I>(i.clone(), event))
+            commands.trigger(PhysicEvent(event))
         }
     }
 }
 
-pub fn on_projectile_physics_event(
-    event: On<PhysicEvent<ProjectileId>>,
-    mut commands: Commands,
-    mut projectiles: ResMut<EntityMapping<ProjectileId>>,
-) {
-    match &event.1 {
-        oc_physics::Event::NoTile => {
-            if let Some(entity) = projectiles.remove(&event.0) {
-                commands.entity(entity).despawn();
+pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
+    match &event.0 {
+        oc_physics::Event::NoTile(id) => match id {
+            ObjectId::Individual(_) => {}
+            ObjectId::Projectile(i) => {
+                commands.trigger(DisapearProjectile(*i));
             }
-        }
-        oc_physics::Event::Collision(_) => {
-            // FIXME BS NOW: implement fragments / rebound
-            // Code must be refactored to be used by GUI for instant display
-            // and by server to game logic
-            if let Some(entity) = projectiles.remove(&event.0) {
-                commands.entity(entity).despawn();
+        },
+        // FIXME: implement fragments / rebound
+        oc_physics::Event::Collision(a, b) => {
+            match (a, b) {
+                (ObjectId::Individual(_), ObjectId::Individual(_)) => {}
+                (ObjectId::Individual(_), ObjectId::Projectile(_)) => {}
+                (ObjectId::Projectile(_projectile_id), ObjectId::Individual(_individual_index)) => {
+                    // TODO: bam
+                }
+                (ObjectId::Projectile(_), ObjectId::Projectile(_)) => {}
             }
         }
     }

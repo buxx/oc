@@ -14,6 +14,28 @@ use crate::ingame::input::projectile::InsertProjectileEvent;
 use crate::ingame::region::ForgottenRegion;
 use crate::states::AppState;
 
+#[derive(Debug, Deref, Event)]
+pub struct DisapearProjectile(pub oc_projectile::ProjectileId);
+
+pub struct ProjectilePlugin;
+
+impl Plugin for ProjectilePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins(PhysicsPlugin::<
+            oc_projectile::ProjectileId,
+            UpdateProjectilePhysicsEvent,
+        >::default())
+            .add_observer(on_insert_projectile)
+            .init_resource::<EntityMapping<oc_projectile::ProjectileId>>()
+            .add_observer(on_forgotten_region)
+            .add_systems(
+                Update,
+                ingame::physics::physics_step::<oc_projectile::ProjectileId, ProjectileId>
+                    .run_if(in_state(AppState::InGame)),
+            );
+    }
+}
+
 pub fn on_insert_projectile(
     projectile: On<InsertProjectileEvent>,
     mut commands: Commands,
@@ -43,25 +65,6 @@ pub fn on_insert_projectile(
     state.insert(projectile.0, entity);
 }
 
-pub struct ProjectilePlugin;
-
-impl Plugin for ProjectilePlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins(PhysicsPlugin::<
-            oc_projectile::ProjectileId,
-            UpdateProjectilePhysicsEvent,
-        >::default())
-            .add_observer(on_insert_projectile)
-            .init_resource::<EntityMapping<oc_projectile::ProjectileId>>()
-            .add_observer(on_forgotten_region)
-            .add_systems(
-                Update,
-                ingame::physics::physics_step::<oc_projectile::ProjectileId, ProjectileId>
-                    .run_if(in_state(AppState::InGame)),
-            );
-    }
-}
-
 // TODO: should be automatized (macro? derive ?)
 fn on_forgotten_region(
     region: On<ForgottenRegion>,
@@ -76,5 +79,15 @@ fn on_forgotten_region(
             commands.entity(entity).despawn();
             state.remove(&projectile.0);
         }
+    }
+}
+
+pub fn on_disapear_projectile(
+    projectile: On<DisapearProjectile>,
+    mut commands: Commands,
+    mut projectiles: ResMut<EntityMapping<oc_projectile::ProjectileId>>,
+) {
+    if let Some(entity) = projectiles.remove(&projectile.0) {
+        commands.entity(entity).despawn();
     }
 }

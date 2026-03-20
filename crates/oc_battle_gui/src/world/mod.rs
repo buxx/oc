@@ -137,6 +137,7 @@ impl World {
             .unwrap_or_default()
     }
 
+    #[cfg(feature = "debug")]
     pub fn tiles(&self) -> Vec<(&WorldTileIndex, &Tile)> {
         self.tiles
             .iter()

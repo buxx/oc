@@ -2,24 +2,28 @@ use bevy::prelude::*;
 use bevy_egui::{EguiContexts, EguiPrimaryContextPass};
 use oc_mod::Mod;
 
-use crate::states;
+use crate::{states, window::menu::battle::BattleMenuWindowPlugin};
 
 #[cfg(feature = "debug")]
 pub mod debug;
+pub mod menu;
 
 #[derive(Deref, DerefMut, Resource, Default)]
 pub struct PointerInWindow(pub bool);
 
+// TODO: There is a lot of common code for windows, use generic
 #[derive(Clone)]
 pub enum Window {
+    BattleMenu(menu::battle::Window),
     #[cfg(feature = "debug")]
     BattleDebug(debug::battle::window::Window),
 }
 
 impl Window {
     fn show(&mut self, contexts: &mut EguiContexts, commands: &mut Commands, mod_: &Mod) -> Result {
-        #[cfg(feature = "debug")]
         match self {
+            Window::BattleMenu(window) => window.show(contexts, commands, mod_)?,
+            #[cfg(feature = "debug")]
             Window::BattleDebug(window) => window.show(contexts, commands, mod_)?,
         }
 
@@ -57,6 +61,7 @@ pub struct WindowPlugin;
 impl Plugin for WindowPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PointerInWindow>()
+            .add_plugins(BattleMenuWindowPlugin::default())
             .add_systems(EguiPrimaryContextPass, show)
             .add_observer(on_toggle_debug_window);
 

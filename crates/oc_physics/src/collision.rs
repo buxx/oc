@@ -25,9 +25,6 @@ pub trait Material {
 #[derive(Debug, Deref, DerefMut, Component)]
 pub struct Material_(pub Materials);
 
-#[derive(Debug, Clone)]
-pub struct Collision<T>(pub T, pub T);
-
 impl Material for Tile {
     fn material(&self) -> Materials {
         // TODO: depending on tile

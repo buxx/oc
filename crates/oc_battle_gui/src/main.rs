@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 
+use bevy::prelude::*;
 use bevy::sprite_render::Wireframe2dPlugin;
-use bevy::{prelude::*, window::PresentMode};
 use bevy_egui::EguiPlugin;
 use clap::Parser;
 
