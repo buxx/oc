@@ -113,9 +113,9 @@ impl Indexes {
         &self.tiles_individuals[tile.0 as usize]
     }
 
-    pub fn tile_projectiles(&self, tile: WorldTileIndex) -> &Vec<ProjectileId> {
-        &self.tiles_projectiles[tile.0 as usize]
-    }
+    // pub fn tile_projectiles(&self, tile: WorldTileIndex) -> &Vec<ProjectileId> {
+    //     &self.tiles_projectiles[tile.0 as usize]
+    // }
 
     pub fn region_individuals(&self, region: WorldRegionIndex) -> &Vec<IndividualIndex> {
         &self.regions_individuals[region.0 as usize]

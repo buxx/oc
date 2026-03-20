@@ -1,7 +1,7 @@
 use std::{ops::Deref, path::PathBuf};
 
 use anyhow::Context;
-use rkyv::{Archive, Deserialize, Serialize};
+use rkyv::Archive;
 use strum_macros::EnumIter;
 use thiserror::Error;
 

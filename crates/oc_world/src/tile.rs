@@ -1,7 +1,5 @@
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
-use oc_physics::collision::{Material, Materials};
 use oc_root::tile::Tile;
-use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::World;
 

@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state_ = state.clone();
     std::thread::spawn(move || Static::new(state_, args.cache).serve(args.static_));
 
-    Runner::new(config, mod_, state, output, args.print_ticks).run(input)?;
+    Runner::new(config, state, output, args.print_ticks).run(input)?;
 
     Ok(())
 }

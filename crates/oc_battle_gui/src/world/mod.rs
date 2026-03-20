@@ -9,7 +9,7 @@ use oc_root::tile::Tile;
 use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
 
-use crate::ingame::{input::individual::UpdateIndividualPhysicsEvent, physics::ObjectId};
+use crate::ingame::physics::ObjectId;
 
 pub mod individual;
 pub mod tile;

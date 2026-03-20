@@ -11,7 +11,7 @@ use crate::{
 };
 
 impl super::Context {
-    pub fn ui_components(&mut self, ui: &mut egui::Ui, commands: &mut Commands, mod_: &Mod) {
+    pub fn ui_components(&mut self, ui: &mut egui::Ui, commands: &mut Commands, _mod_: &Mod) {
         ui.horizontal(|ui| {
             if ui.button("x").clicked() {
                 self.view = View::None;

@@ -7,7 +7,7 @@ use rkyv::{Archive, Deserialize, Serialize};
 use std::ops::Deref;
 
 use crate::{
-    collision::{Collision, Material, Materials},
+    collision::{Collision, Material},
     volume::Volume,
 };
 
