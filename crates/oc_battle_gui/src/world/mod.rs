@@ -135,4 +135,12 @@ impl World {
             })
             .unwrap_or_default()
     }
+
+    pub fn tiles(&self) -> Vec<(&WorldTileIndex, &Tile)> {
+        self.tiles
+            .iter()
+            .map(|(_, tiles)| tiles.iter())
+            .flatten()
+            .collect()
+    }
 }
