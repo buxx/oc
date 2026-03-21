@@ -9,7 +9,7 @@ use oc_physics::{
 use oc_projectile::ProjectileId;
 use oc_utils::d2::Xy;
 
-use crate::{ingame::projectile::DisapearProjectile, world::World};
+use crate::{ingame::projectile::ForgotProjectile, world::World};
 
 #[derive(Debug, Clone, Event)]
 pub struct PhysicEvent(oc_physics::Event<ObjectId>);
@@ -70,7 +70,7 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
         oc_physics::Event::NoTile(id) => match id {
             ObjectId::Individual(_) => {}
             ObjectId::Projectile(i) => {
-                commands.trigger(DisapearProjectile(*i));
+                commands.trigger(ForgotProjectile(*i));
             }
         },
         // FIXME: implement fragments / rebound

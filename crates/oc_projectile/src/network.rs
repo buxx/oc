@@ -7,4 +7,5 @@ use crate::{Projectile as Projectile_, ProjectileId};
 pub enum Projectile {
     Insert(ProjectileId, Projectile_),
     Physics(ProjectileId, oc_physics::update::Update),
+    Forgot(ProjectileId),
 }

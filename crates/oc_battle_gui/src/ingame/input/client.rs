@@ -4,12 +4,16 @@ use oc_network::ToClient;
 use oc_projectile::network::Projectile;
 
 use crate::{
-    ingame::input::{
-        individual::{
-            InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
-            UpdateProjectilePhysicsEvent,
+    ingame::{
+        individual::ForgotIndividual,
+        input::{
+            individual::{
+                InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
+                UpdateProjectilePhysicsEvent,
+            },
+            projectile::InsertProjectileEvent,
         },
-        projectile::InsertProjectileEvent,
+        projectile::ForgotProjectile,
     },
     network::input::ToClientEvent,
     states::{Config, Meta, Mod},
@@ -48,6 +52,9 @@ pub fn on_to_client(
             Individual::Physics(i, update) => {
                 commands.trigger(UpdateIndividualPhysicsEvent(*i, update.clone()));
             }
+            Individual::Forgot(i) => {
+                commands.trigger(ForgotIndividual(*i));
+            }
         },
         ToClient::Projectile(message) => match message {
             Projectile::Insert(id, projectile) => {
@@ -57,6 +64,9 @@ pub fn on_to_client(
             Projectile::Physics(id, update) => {
                 tracing::trace!(name="ingame-input-client-projectile-physics", i=?id);
                 commands.trigger(UpdateProjectilePhysicsEvent(*id, update.clone()));
+            }
+            Projectile::Forgot(i) => {
+                commands.trigger(ForgotProjectile(*i));
             }
         },
         ToClient::Tiles(region, tiles) => {

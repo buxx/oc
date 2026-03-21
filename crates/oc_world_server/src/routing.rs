@@ -60,12 +60,20 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
                 .into_iter()
                 .flatten()
                 .collect::<FxHashSet<_>>(),
-            Listening::Border(before, after) => {
+            Listening::EnterBorder(before, after) => {
                 let before_listeners = self.find(Listening::Regions(vec![before]));
                 let after_listeners = self.find(Listening::Regions(vec![after]));
                 after_listeners
                     .into_iter()
                     .filter(|l| !before_listeners.contains(l))
+                    .collect::<FxHashSet<_>>()
+            }
+            Listening::ExitBorder(before, after) => {
+                let before_listeners = self.find(Listening::Regions(vec![before]));
+                let after_listeners = self.find(Listening::Regions(vec![after]));
+                before_listeners
+                    .into_iter()
+                    .filter(|l| !after_listeners.contains(l))
                     .collect::<FxHashSet<_>>()
             }
         }
@@ -81,6 +89,8 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
 pub enum Listening {
     /// Will match with all listener of one of these regions
     Regions(Vec<WorldRegionIndex>),
-    /// Will match with all listener NOT listening region& and listening regionb
-    Border(WorldRegionIndex, WorldRegionIndex),
+    /// Will match with all listener NOT listening region1 and listening region2
+    EnterBorder(WorldRegionIndex, WorldRegionIndex),
+    /// Will match with all listener listening region1 and NOT listening region2
+    ExitBorder(WorldRegionIndex, WorldRegionIndex),
 }

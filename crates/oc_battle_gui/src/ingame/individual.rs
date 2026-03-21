@@ -12,6 +12,9 @@ use crate::ingame::input::individual::{
 };
 use crate::ingame::region::ForgottenRegion;
 
+#[derive(Debug, Deref, Event)]
+pub struct ForgotIndividual(pub oc_individual::IndividualIndex);
+
 #[derive(Debug, Event)]
 pub struct SetBehaviorEvent(
     oc_individual::IndividualIndex,
@@ -77,7 +80,8 @@ impl Plugin for IndividualPlugin {
             .add_observer(on_update_individual)
             .add_observer(on_set_behavior_event)
             .add_observer(on_set_forces_event)
-            .add_observer(on_forgotten_region);
+            .add_observer(on_forgotten_region)
+            .add_observer(on_forgot_individual);
     }
 }
 
@@ -127,5 +131,16 @@ fn on_forgotten_region(
             commands.entity(entity).despawn();
             state.remove(&individual.0);
         }
+    }
+}
+
+pub fn on_forgot_individual(
+    individual: On<ForgotIndividual>,
+    mut commands: Commands,
+    mut individuals: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
+) {
+    if let Some(entity) = individuals.remove(&individual.0) {
+        tracing::trace!(name = "remove-individual", i=?individual);
+        commands.entity(entity).despawn();
     }
 }

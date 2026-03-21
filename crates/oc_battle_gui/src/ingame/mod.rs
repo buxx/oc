@@ -51,7 +51,7 @@ impl Plugin for IngamePlugin {
             .add_observer(on_spawn_world_map_background)
             .add_observer(on_despawn_world_map_background)
             .add_observer(on_listening_region)
-            .add_observer(projectile::on_disapear_projectile)
+            .add_observer(projectile::on_forgot_projectile)
             // .add_observer(on_forgotten_region)
             // TODO: InputPlugin
             .add_observer(input::left_click::on_set_left_click)

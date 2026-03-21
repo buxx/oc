@@ -12,7 +12,7 @@ use oc_world::World;
 
 use crate::{
     index::{self, IntoIndexEffect},
-    network::{IntoNetworkInsert, IntoNetworkUpdate},
+    network::{IntoNetworkForgot, IntoNetworkInsert, IntoNetworkUpdate},
     routing::Listening,
     state::ObjectId,
     utils::{
@@ -124,8 +124,8 @@ impl<'x> Processor<'x> {
 
     fn apply<'a, I, T: 'a>(&self, effects: Vec<(I, (RegionXy, Option<Effect>), Update)>)
     where
-        I: IntoSubject<T> + IntoNetworkUpdate + IntoIndexEffect<Effect> + std::fmt::Debug,
-        T: IntoNetworkInsert<I>,
+        I: Copy + IntoSubject<T> + IntoNetworkUpdate + IntoIndexEffect<Effect> + std::fmt::Debug,
+        T: IntoNetworkInsert<I> + IntoNetworkForgot<I>,
     {
         for (i, (region, effect), update) in effects {
             // Broadcast the update
@@ -148,8 +148,13 @@ impl<'x> Processor<'x> {
                     };
 
                     tracing::trace!(name="subject-update-write-broadast-insert", i=?i);
-                    let filter = Listening::Border(before.into(), after.into());
+                    let filter = Listening::EnterBorder(before.into(), after.into());
                     let messages = vec![subject.into_network_insert(i)];
+                    self.ctx.broadcast(filter, messages);
+
+                    tracing::trace!(name="subject-update-write-broadast-forgot", i=?i);
+                    let filter = Listening::ExitBorder(before.into(), after.into());
+                    let messages = vec![subject.into_network_forgot(i)];
                     self.ctx.broadcast(filter, messages);
                 }
             }

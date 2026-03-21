@@ -15,7 +15,7 @@ use crate::ingame::region::ForgottenRegion;
 use crate::states::AppState;
 
 #[derive(Debug, Deref, Event)]
-pub struct DisapearProjectile(pub oc_projectile::ProjectileId);
+pub struct ForgotProjectile(pub oc_projectile::ProjectileId);
 
 pub struct ProjectilePlugin;
 
@@ -28,6 +28,7 @@ impl Plugin for ProjectilePlugin {
             .add_observer(on_insert_projectile)
             .init_resource::<EntityMapping<oc_projectile::ProjectileId>>()
             .add_observer(on_forgotten_region)
+            .add_observer(on_forgot_projectile)
             .add_systems(
                 Update,
                 ingame::physics::physics_step::<oc_projectile::ProjectileId, ProjectileId>
@@ -69,25 +70,24 @@ pub fn on_insert_projectile(
 fn on_forgotten_region(
     region: On<ForgottenRegion>,
     mut commands: Commands,
-    mut state: ResMut<EntityMapping<oc_projectile::ProjectileId>>,
-    query: Query<(Entity, &Region, &ProjectileId)>,
+    query: Query<(&Region, &ProjectileId)>,
 ) {
-    for (entity, region_, projectile) in query {
+    for (region_, i) in query {
         let region_: WorldRegionIndex = region_.0.into();
         if region_ == region.0 {
-            tracing::trace!(name = "remove-projectile", i=?projectile);
-            commands.entity(entity).despawn();
-            state.remove(&projectile.0);
+            tracing::trace!(name = "trigger-forgot-projectile", i=?i);
+            commands.trigger(ForgotProjectile(i.0));
         }
     }
 }
 
-pub fn on_disapear_projectile(
-    projectile: On<DisapearProjectile>,
+pub fn on_forgot_projectile(
+    projectile: On<ForgotProjectile>,
     mut commands: Commands,
     mut projectiles: ResMut<EntityMapping<oc_projectile::ProjectileId>>,
 ) {
     if let Some(entity) = projectiles.remove(&projectile.0) {
+        tracing::trace!(name = "remove-projectile", i=?projectile);
         commands.entity(entity).despawn();
     }
 }
