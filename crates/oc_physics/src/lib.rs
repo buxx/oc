@@ -1,10 +1,9 @@
 use oc_root::{
     GEO_BRESENHAM_PRECISION, GEO_BRESENHAM_STEP, GEO_PIXELS_PER_METERS, GEO_PIXELS_PER_TILE,
-    PHYSICS_COEFF_PER_TICK,
+    PHYSICS_COEFF_PER_TICK, physics::MetersSeconds,
 };
 use oc_utils::d2::Xy;
 use rkyv::{Archive, Deserialize, Serialize};
-use std::ops::Deref;
 
 use crate::{collision::Material, volume::Volume};
 
@@ -63,26 +62,14 @@ impl Default for Laws {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct MetersSeconds(pub f32);
-
-impl Deref for MetersSeconds {
-    type Target = f32;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 pub trait Physic: Material {
-    fn position(&self) -> &[f32; 2];
+    fn position(&self) -> &[f32; 3];
     fn forces(&self) -> &Vec<Force>;
     fn volume(&self) -> &Volume;
 }
 
 pub trait UpdatePhysic: Physic + Material {
-    fn set_position(&mut self, value: [f32; 2]);
+    fn set_position(&mut self, value: [f32; 3]);
     fn push_force(&mut self, value: Force);
     fn remove_force(&mut self, value: &Force);
     fn set_volume(&self, value: Volume);
@@ -92,7 +79,7 @@ pub trait UpdatePhysic: Physic + Material {
 #[derive(Debug)]
 pub struct Corps<I: Clone + std::fmt::Debug> {
     pub i: I,
-    position: [f32; 2],
+    position: [f32; 3],
     forces: Vec<Force>,
     material: collision::Materials,
     volume: volume::Volume,
@@ -101,7 +88,7 @@ pub struct Corps<I: Clone + std::fmt::Debug> {
 impl<I: Clone + std::fmt::Debug> Corps<I> {
     pub fn new(
         i: I,
-        position: [f32; 2],
+        position: [f32; 3],
         forces: Vec<Force>,
         material: collision::Materials,
         volume: volume::Volume,
@@ -117,7 +104,7 @@ impl<I: Clone + std::fmt::Debug> Corps<I> {
 }
 
 impl<I: Clone + std::fmt::Debug> Physic for Corps<I> {
-    fn position(&self) -> &[f32; 2] {
+    fn position(&self) -> &[f32; 3] {
         &self.position
     }
 
@@ -140,7 +127,7 @@ impl<I: Clone + std::fmt::Debug> collision::Material for Corps<I> {
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Force {
-    Translation([f32; 2], MetersSeconds),
+    Translation([f32; 3], MetersSeconds),
 }
 
 #[derive(Debug, Clone)]
@@ -158,7 +145,7 @@ pub fn step<'a, I, O, F, Z>(
     laws: &Laws,
     object: (I, &'a O),
     at: F,
-) -> ([f32; 2], Vec<Force>, Vec<Event<Z>>)
+) -> ([f32; 3], Vec<Force>, Vec<Event<Z>>)
 where
     I: Clone + Into<Z> + std::fmt::Debug,
     O: Physic,
@@ -175,17 +162,23 @@ where
     'forces: for force in object.forces() {
         match force {
             Force::Translation(direction, speed) => {
-                let speed = speed.0 * laws.tick_coeff;
+                let speed = speed.0.0 * laws.tick_coeff;
                 let pixels = speed * laws.pixels_per_meters as f32;
-                let [x, y] = position;
-                let (x_, y_) = (x + direction[0] * pixels, y + direction[1] * pixels);
+                let [x, y, z] = position;
+                let (x_, y_, z_) = (
+                    x + direction[0] * pixels,
+                    y + direction[1] * pixels,
+                    z + direction[2] * pixels,
+                );
 
                 tracing::trace!(
                     name = "physics-step-translation-start",
                     x = x,
                     y = y,
+                    z = z,
                     x_ = x_,
                     y_ = y_,
+                    z_ = z_,
                     speed = speed
                 );
 
@@ -194,23 +187,24 @@ where
                     y as u64 / GEO_PIXELS_PER_TILE,
                 );
 
-                for step in line::Steps::new(laws, (x, y), (x_, y_)) {
+                for step in line::Steps::new(laws, (x, y, z), (x_, y_, z_)) {
                     match step {
-                        line::Step::First([step_x, step_y], step_tile)
-                        | line::Step::Inside([step_x, step_y], step_tile)
-                        | line::Step::Last([step_x, step_y], step_tile) => {
+                        line::Step::First([step_x, step_y, step_z], step_tile)
+                        | line::Step::Inside([step_x, step_y, step_z], step_tile)
+                        | line::Step::Last([step_x, step_y, step_z], step_tile) => {
                             // Test new tile only when line on new tile
                             if step_tile != curent_tile {
-                                for (z, other) in at(step_tile) {
+                                for (o, other) in at(step_tile) {
                                     if other.material().is_solid() {
                                         // TODO: consider materials better
-                                        let [other_x, other_y] = other.position();
+                                        let [other_x, other_y, other_z] = other.position();
                                         let volume2 = other.volume();
+                                        // FIXME BS NOW: now use z to know if collide
                                         if volume.collide(x, y, &volume2, *other_x, *other_y) {
                                             tracing::trace!(name="physics-step-translation-collide", p=?position, xy=?step_tile);
 
                                             let left = i.clone().into();
-                                            let collision = Event::Collision(left, z);
+                                            let collision = Event::Collision(left, o);
                                             events.push(collision);
 
                                             // Do not keep this force by stoping this iteration
@@ -220,29 +214,8 @@ where
                                 }
                             }
 
-                            // // Test new tile only when line on new tile
-                            // if step_tile != curent_tile {
-                            //     let Some(tile) = objects(step_tile) else {
-                            //         // No tile means outside map
-                            //         tracing::trace!(name="physics-step-translation-no-tile", p=?position, xy=?step_tile);
-                            //         events.push(Event::NoTile);
-                            //         continue 'forces;
-                            //     };
-
-                            //     // Move is finished if its a solid
-                            //     if tile.material().is_solid() {
-                            //         tracing::trace!(name="physics-step-translation-solid", p=?position, xy=?step_tile);
-
-                            //         let collision = collision::Collision(object, tile);
-                            //         events.push(Event::Collision(collision.clone()));
-
-                            //         // Do not keep this force by stoping this iteration
-                            //         continue 'forces;
-                            //     }
-                            // }
-
                             curent_tile = step_tile;
-                            position = [step_x, step_y];
+                            position = [step_x, step_y, step_z];
                             tracing::trace!(name="physics-step-translation-updated", p=?position, xy=?step_tile);
                         }
                         line::Step::Outside => {

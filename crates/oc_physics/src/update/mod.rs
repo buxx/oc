@@ -9,7 +9,7 @@ pub mod bevy;
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Update {
-    SetPosition([f32; 2], [f32; 2]), // new, before
+    SetPosition([f32; 3], [f32; 3]), // new, before
     SetTile(TileXy, TileXy),         // new, before
     SetRegion(RegionXy, RegionXy),   // new, before
     PushForce(Force),

@@ -23,13 +23,23 @@ impl From<TileXy> for (u64, u64) {
     }
 }
 
-// a little bit ricky ...
+// a little bit tricky ...
 impl From<TileXy> for [f32; 2] {
     fn from(value: TileXy) -> Self {
         [
             value.0.0 as f32 * GEO_PIXELS_PER_TILE as f32,
             value.0.1 as f32 * GEO_PIXELS_PER_TILE as f32,
         ]
+    }
+}
+
+// a little bit tricky ...
+impl From<(f32, f32)> for TileXy {
+    fn from(value: (f32, f32)) -> Self {
+        TileXy(Xy(
+            value.0 as u64 / GEO_PIXELS_PER_TILE,
+            value.0 as u64 / GEO_PIXELS_PER_TILE,
+        ))
     }
 }
 
@@ -61,6 +71,15 @@ impl From<TileXy> for WorldTileIndex {
 
 impl From<[f32; 2]> for TileXy {
     fn from(value: [f32; 2]) -> Self {
+        Self(Xy(
+            value[0] as u64 / GEO_PIXELS_PER_TILE,
+            value[1] as u64 / GEO_PIXELS_PER_TILE,
+        ))
+    }
+}
+
+impl From<[f32; 3]> for TileXy {
+    fn from(value: [f32; 3]) -> Self {
         Self(Xy(
             value[0] as u64 / GEO_PIXELS_PER_TILE,
             value[1] as u64 / GEO_PIXELS_PER_TILE,

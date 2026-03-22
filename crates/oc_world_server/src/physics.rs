@@ -186,7 +186,7 @@ impl<'x> Processor<'x> {
     }
 }
 
-pub fn changes<I, T>(i: I, subject: &T, position: &[f32; 2], forces: &Vec<Force>) -> Vec<Update>
+pub fn changes<I, T>(i: I, subject: &T, position: &[f32; 3], forces: &Vec<Force>) -> Vec<Update>
 where
     I: std::fmt::Debug,
     T: Physic + Geo + Region,

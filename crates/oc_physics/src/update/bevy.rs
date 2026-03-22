@@ -5,7 +5,7 @@ use oc_geo::{region::RegionXy, tile::TileXy};
 use oc_utils::bevy::EntityMapping;
 
 #[derive(Debug, Event)]
-pub struct SetPositionEvent<I>(pub I, pub [f32; 2], pub [f32; 2]); // new, before
+pub struct SetPositionEvent<I>(pub I, pub [f32; 3], pub [f32; 3]); // new, before
 
 #[derive(Debug, Event)]
 pub struct SetTileEvent<I>(pub I, pub TileXy, pub TileXy); // new, before
@@ -23,7 +23,7 @@ pub struct RemoveForceEvent<I>(pub I, pub crate::Force);
 pub struct SetVolumeEvent<I>(pub I, pub crate::volume::Volume, pub crate::volume::Volume); // new, before
 
 #[derive(Debug, Component)]
-pub struct Position(pub [f32; 2]);
+pub struct Position(pub [f32; 3]);
 
 #[derive(Debug, Component)]
 pub struct Tile(pub TileXy);

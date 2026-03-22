@@ -1,4 +1,4 @@
-use bresenham::Bresenham;
+use line_drawing::Bresenham3d;
 use oc_root::{GEO_PIXELS_PER_TILE, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS};
 use oc_utils::d2::Xy;
 
@@ -6,39 +6,47 @@ use crate::Laws;
 
 pub struct Steps<'a> {
     laws: &'a Laws,
-    bresenham: Bresenham,
+    bresenham: Bresenham3d<isize>,
     step: usize,
     x: f32,
     y: f32,
+    z: f32,
     tile: Xy,
-    target: Option<[isize; 2]>,
+    target: Option<[isize; 3]>,
     first: bool,
 }
 
 impl<'a> Steps<'a> {
-    pub fn new(laws: &'a Laws, (from_x, from_y): (f32, f32), (to_x, to_y): (f32, f32)) -> Self {
+    pub fn new(
+        laws: &'a Laws,
+        (from_x, from_y, from_z): (f32, f32, f32),
+        (to_x, to_y, to_z): (f32, f32, f32),
+    ) -> Self {
         let start = (
             (from_x * laws.bresenham_precision) as isize,
             (from_y * laws.bresenham_precision) as isize,
+            (from_z * laws.bresenham_precision) as isize,
         );
         let end = (
             (to_x * laws.bresenham_precision) as isize,
             (to_y * laws.bresenham_precision) as isize,
+            (to_z * laws.bresenham_precision) as isize,
         );
         let tile = Xy(
             from_x as u64 / GEO_PIXELS_PER_TILE,
             from_y as u64 / GEO_PIXELS_PER_TILE,
         );
-        let bresenham = Bresenham::new(start, end);
+        let bresenham = Bresenham3d::new(start, end);
         let distance = Xy::from(start).distance(Xy::from(end));
         let step = (laws.bresenham_step).min(distance as usize);
-        let target = Some([end.0, end.1]);
+        let target = Some([end.0, end.1, end.2]);
 
         Self {
             laws,
             bresenham,
             x: start.0 as f32,
             y: start.1 as f32,
+            z: start.2 as f32,
             step,
             tile,
             target,
@@ -48,9 +56,9 @@ impl<'a> Steps<'a> {
 }
 
 pub enum Step {
-    First([f32; 2], Xy),
-    Inside([f32; 2], Xy),
-    Last([f32; 2], Xy),
+    First([f32; 3], Xy),
+    Inside([f32; 3], Xy),
+    Last([f32; 3], Xy),
     Outside,
 }
 
@@ -72,13 +80,20 @@ impl<'a> Iterator for Steps<'a> {
                 [
                     self.x / self.laws.bresenham_precision,
                     self.y / self.laws.bresenham_precision,
+                    self.z / self.laws.bresenham_precision,
                 ],
                 tile,
             ));
         }
 
-        if let Some((x, y)) = self.bresenham.nth(self.step) {
-            if x < 0 || y < 0 || x + 1 >= world_width as isize || y + 1 >= world_height as isize {
+        if let Some((x, y, z)) = self.bresenham.nth(self.step) {
+            // TODO: maximum z ?
+            if x < 0
+                || y < 0
+                || z < 1
+                || x + 1 >= world_width as isize
+                || y + 1 >= world_height as isize
+            {
                 return Some(Step::Outside);
             }
 
@@ -92,23 +107,25 @@ impl<'a> Iterator for Steps<'a> {
 
             self.x = (x as f32) / self.laws.bresenham_precision;
             self.y = (y as f32) / self.laws.bresenham_precision;
+            self.z = (z as f32) / self.laws.bresenham_precision;
 
             return Some(Step::Inside(
-                [self.x as f32, self.y as f32],
+                [self.x as f32, self.y as f32, self.z as f32],
                 self.tile.clone(),
             ));
         }
 
-        if let Some([x, y]) = self.target.take() {
-            let (x, y) = (
+        if let Some([x, y, z]) = self.target.take() {
+            let (x, y, z) = (
                 x as f32 / self.laws.bresenham_precision,
                 y as f32 / self.laws.bresenham_precision,
+                z as f32 / self.laws.bresenham_precision,
             );
             let tile = Xy(
                 x as u64 / self.laws.pixels_per_tile,
                 y as u64 / self.laws.pixels_per_tile,
             );
-            return Some(Step::Last([x as f32, y as f32], tile));
+            return Some(Step::Last([x as f32, y as f32, z as f32], tile));
         }
 
         None

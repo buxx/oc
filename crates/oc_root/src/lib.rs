@@ -1,5 +1,6 @@
 pub mod config;
 pub mod ids;
+pub mod physics;
 pub mod tile;
 
 pub const WORLD_WIDTH: usize = 1_000;

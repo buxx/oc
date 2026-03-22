@@ -34,7 +34,7 @@ impl Display for IndividualIndex {
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Individual {
-    pub position: [f32; 2],
+    pub position: [f32; 3],
     pub tile: TileXy,
     pub region: RegionXy,
     pub behavior: Behavior,
@@ -89,7 +89,7 @@ impl Individual {
 }
 
 impl Physic for Individual {
-    fn position(&self) -> &[f32; 2] {
+    fn position(&self) -> &[f32; 3] {
         &self.position
     }
 
@@ -108,7 +108,7 @@ impl Physic for Individual {
 }
 
 impl UpdatePhysic for Individual {
-    fn set_position(&mut self, value: [f32; 2]) {
+    fn set_position(&mut self, value: [f32; 3]) {
         self.position = value;
     }
 

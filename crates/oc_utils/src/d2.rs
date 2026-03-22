@@ -9,8 +9,15 @@ impl From<Xy> for (u64, u64) {
         (value.0, value.1)
     }
 }
+
 impl From<(isize, isize)> for Xy {
     fn from((x, y): (isize, isize)) -> Self {
+        Self(x as u64, y as u64)
+    }
+}
+
+impl From<(isize, isize, isize)> for Xy {
+    fn from((x, y, _): (isize, isize, isize)) -> Self {
         Self(x as u64, y as u64)
     }
 }

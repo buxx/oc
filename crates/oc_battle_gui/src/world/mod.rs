@@ -86,7 +86,7 @@ impl World {
         self.individuals_refs.insert(i, (region, tile));
     }
 
-    pub fn remove_individual(&mut self, i: IndividualIndex, position: [f32; 2]) {
+    pub fn remove_individual(&mut self, i: IndividualIndex, position: [f32; 3]) {
         let position = TileXy(Xy(position[0] as u64, position[1] as u64));
         let tile: WorldTileIndex = position.into();
         let region: WorldRegionIndex = tile.into();
@@ -135,6 +135,13 @@ impl World {
                     .collect::<Vec<(ObjectId, Box<&dyn Physic>)>>()
             })
             .unwrap_or_default()
+    }
+
+    #[cfg(feature = "debug")]
+    pub fn tile(&self, xy: TileXy) -> Option<&Tile> {
+        let i: WorldTileIndex = xy.into();
+        let region: WorldRegionIndex = i.into();
+        self.tiles.get(&region).and_then(|tiles| tiles.get(&i))
     }
 
     #[cfg(feature = "debug")]
