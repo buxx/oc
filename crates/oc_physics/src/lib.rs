@@ -63,7 +63,8 @@ impl Default for Laws {
 }
 
 pub trait Physic: Material {
-    fn position(&self) -> &[f32; 3];
+    // TODO: maby position should be `Geo` instead `Physics`...
+    fn position(&self) -> [f32; 3];
     fn forces(&self) -> &Vec<Force>;
     fn volume(&self) -> &Volume;
 }
@@ -104,8 +105,8 @@ impl<I: Clone + std::fmt::Debug> Corps<I> {
 }
 
 impl<I: Clone + std::fmt::Debug> Physic for Corps<I> {
-    fn position(&self) -> &[f32; 3] {
-        &self.position
+    fn position(&self) -> [f32; 3] {
+        self.position
     }
 
     fn forces(&self) -> &Vec<Force> {
@@ -195,26 +196,23 @@ where
                             // Test new tile only when line on new tile
                             if step_tile != curent_tile {
                                 for (o, other) in at(step_tile) {
-                                    if other.material().is_solid() {
-                                        let [other_x, other_y, other_z] = other.position();
-                                        let volume2 = other.volume();
-                                        if volume.collide(
-                                            x, y, z, &volume2, *other_x, *other_y, *other_z,
-                                        ) {
-                                            tracing::trace!(name="physics-step-translation-collide", p=?position, xy=?step_tile);
+                                    // if other.material().is_solid() {
+                                    let [other_x, other_y, other_z] = other.position();
+                                    let volume2 = other.volume();
+                                    if volume.collide(x, y, z, &volume2, other_x, other_y, other_z)
+                                    {
+                                        tracing::trace!(name="physics-step-translation-collide", p=?position, xy=?step_tile);
 
-                                            let left = i.clone().into();
-                                            let collision = Event::Collision(left, o);
-                                            events.push(collision);
+                                        let left = i.clone().into();
+                                        let collision = Event::Collision(left, o);
+                                        events.push(collision);
 
-                                            // Do not keep this force by stoping this iteration
-                                            continue 'forces;
-                                        }
+                                        // Do not keep this force by stoping this iteration
+                                        continue 'forces;
                                     }
+                                    // }
                                 }
                             }
-
-                            // FIXME BS NOW: TILE z
 
                             curent_tile = step_tile;
                             position = [step_x, step_y, step_z];

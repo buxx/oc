@@ -70,9 +70,9 @@ impl Region for Projectile {
 }
 
 impl Physic for Projectile {
-    fn position(&self) -> &[f32; 3] {
+    fn position(&self) -> [f32; 3] {
         match self {
-            Projectile::Bullet(bullet) => &bullet.position,
+            Projectile::Bullet(bullet) => bullet.position,
         }
     }
 

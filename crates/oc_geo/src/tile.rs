@@ -15,6 +15,13 @@ impl TileXy {
             self.0.1.max(0).min(WORLD_HEIGHT as u64 - 1),
         ))
     }
+
+    pub fn point(&self) -> [f32; 2] {
+        [
+            self.0.0 as f32 * GEO_PIXELS_PER_TILE as f32,
+            self.0.1 as f32 * GEO_PIXELS_PER_TILE as f32,
+        ]
+    }
 }
 
 impl From<TileXy> for (u64, u64) {

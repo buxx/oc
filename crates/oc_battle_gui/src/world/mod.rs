@@ -5,8 +5,8 @@ use oc_geo::{
 };
 use oc_individual::{Individual, IndividualIndex};
 use oc_physics::Physic;
-use oc_root::tile::Tile;
 use oc_utils::d2::Xy;
+use oc_world::tile::Tile;
 use rustc_hash::FxHashMap;
 
 use crate::ingame::physics::ObjectId;
@@ -122,7 +122,10 @@ impl World {
         let region: WorldRegionIndex = tile.into();
         let tile: WorldTileIndex = tile.into();
 
-        self.individuals
+        let mut objects = vec![];
+
+        objects = self
+            .individuals
             .get(&region)
             .and_then(|region| region.get(&tile))
             .map(|individuals| {
@@ -134,7 +137,18 @@ impl World {
                     })
                     .collect::<Vec<(ObjectId, Box<&dyn Physic>)>>()
             })
-            .unwrap_or_default()
+            .unwrap_or_default();
+
+        if let Some(tile_) = self
+            .tiles
+            .get(&region)
+            .and_then(|tiles| tiles.get(&tile.into()))
+        {
+            let tile_: Box<&dyn Physic> = Box::new(tile_);
+            objects.push((ObjectId::Tile(tile.into()), tile_));
+        }
+
+        objects
     }
 
     #[cfg(feature = "debug")]

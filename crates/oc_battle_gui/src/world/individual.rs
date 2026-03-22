@@ -30,13 +30,13 @@ pub fn on_update_individual_physics(
     // Here, must update index with all used values by oc_physics::step
     match update {
         oc_physics::update::Update::SetTile(tile, _) => {
-            let position = *individual.position();
+            let position = individual.position();
             individual.set_tile(*tile);
             index.remove_individual(i, position);
             index.insert_individual(i, individual);
         }
         oc_physics::update::Update::SetVolume(volume, _) => {
-            let position = *individual.position();
+            let position = individual.position();
             individual.set_volume(volume.clone());
             index.remove_individual(i, position);
             index.insert_individual(i, individual);

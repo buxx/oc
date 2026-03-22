@@ -9,7 +9,7 @@ use crate::GEO_PIXELS_PER_METERS;
 pub struct Meters(pub f32);
 
 impl Meters {
-    pub fn pixels(&self) -> f32 {
+    pub const fn pixels(&self) -> f32 {
         self.0 * GEO_PIXELS_PER_METERS
     }
 }

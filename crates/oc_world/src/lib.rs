@@ -6,11 +6,11 @@ use oc_geo::{
 use oc_individual::{Individual, IndividualIndex};
 use oc_mod::Mod;
 use oc_projectile::{Projectile, ProjectileId};
-use oc_root::{REGION_HEIGHT, REGION_WIDTH, tile::Tile};
+use oc_root::{REGION_HEIGHT, REGION_WIDTH};
 use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
 
-use crate::meta::Meta;
+use crate::{meta::Meta, tile::Tile};
 
 pub mod cache;
 pub mod load;
