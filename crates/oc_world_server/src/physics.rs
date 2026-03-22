@@ -191,6 +191,7 @@ impl<'x> Processor<'x> {
                         // FIXME: bam
                     }
                     (ObjectId::Projectile(_), ObjectId::Tile(_)) => {
+                        tracing::error!("FOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
                         // FIXME BS NOW: impact
                     }
                 },

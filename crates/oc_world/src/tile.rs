@@ -1,3 +1,5 @@
+use std::f32;
+
 use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
@@ -7,6 +9,7 @@ use oc_physics::{
     collision::{Material, Materials},
     volume::Volume,
 };
+use oc_root::GEO_PIXELS_PER_TILE;
 
 use crate::World;
 use derive_more::Constructor;
@@ -68,6 +71,10 @@ impl Physic for Tile {
 
     fn volume(&self) -> &Volume {
         // FIXME: according to tile type ...
-        &Volume::TileGround
+        &Volume::Cube {
+            width: GEO_PIXELS_PER_TILE as f32,
+            height: GEO_PIXELS_PER_TILE as f32,
+            depth: f32::MIN,
+        }
     }
 }

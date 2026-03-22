@@ -87,7 +87,8 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
                     // TODO: bam
                 }
                 (ObjectId::Projectile(_), ObjectId::Tile(_)) => {
-                    // FIXME BS NOW: impact sound
+                    tracing::error!("FOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
+                    // FIXME BS NOW: disapear + impact sound
                 }
             }
         }

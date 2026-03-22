@@ -150,8 +150,8 @@ pub fn step<'a, I, O, F, Z>(
 where
     I: Clone + Into<Z> + std::fmt::Debug,
     O: Physic,
-    // TODO: I failed to use references here, but I could be best for perfs ...
     F: Fn(Xy) -> Vec<(Z, Box<&'a dyn Physic>)>,
+    Z: std::fmt::Debug,
 {
     let (i, object) = object;
     let volume = object.volume();
@@ -195,12 +195,17 @@ where
                         | line::Step::Last([step_x, step_y, step_z], step_tile) => {
                             // Test new tile only when line on new tile
                             if step_tile != curent_tile {
+                                tracing::trace!(name="physics-step-translation-newtile", p=?position, xy=?step_tile);
+
                                 for (o, other) in at(step_tile) {
                                     // if other.material().is_solid() {
                                     let [other_x, other_y, other_z] = other.position();
                                     let volume2 = other.volume();
-                                    if volume.collide(x, y, z, &volume2, other_x, other_y, other_z)
-                                    {
+
+                                    tracing::trace!(name="physics-step-translation-test-collide-with", p=?position, xy=?step_tile, o=?o);
+                                    if volume.collide(
+                                        step_x, step_y, step_z, &volume2, other_x, other_y, other_z,
+                                    ) {
                                         tracing::trace!(name="physics-step-translation-collide", p=?position, xy=?step_tile);
 
                                         let left = i.clone().into();

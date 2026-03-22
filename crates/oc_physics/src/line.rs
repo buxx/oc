@@ -88,12 +88,7 @@ impl<'a> Iterator for Steps<'a> {
 
         if let Some((x, y, z)) = self.bresenham.nth(self.step) {
             // TODO: maximum z ?
-            if x < 0
-                || y < 0
-                || z < 1
-                || x + 1 >= world_width as isize
-                || y + 1 >= world_height as isize
-            {
+            if x < 0 || y < 0 || x + 1 >= world_width as isize || y + 1 >= world_height as isize {
                 return Some(Step::Outside);
             }
 
