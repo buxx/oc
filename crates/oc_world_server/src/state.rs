@@ -73,5 +73,5 @@ impl State {
 pub enum ObjectId {
     Individual(IndividualIndex),
     Projectile(ProjectileId),
-    // Tile(WorldTileIndex),
+    Tile(WorldTileIndex),
 }

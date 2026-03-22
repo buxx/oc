@@ -1,33 +1,69 @@
 use rkyv::{Archive, Deserialize, Serialize};
 
-// TODO: intoroduce 3D, this is a temporary volume for 2D
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Volume {
     Point,
-    Square2d { width: f32, height: f32 },
+    Cube { width: f32, height: f32, depth: f32 },
 }
 
 impl Volume {
-    pub fn collide(&self, x1: f32, y1: f32, other: &Self, x2: f32, y2: f32) -> bool {
+    pub fn collide(
+        &self,
+        x1: f32,
+        y1: f32,
+        z1: f32,
+        other: &Self,
+        x2: f32,
+        y2: f32,
+        z2: f32,
+    ) -> bool {
         match (self, other) {
-            (Volume::Point, Volume::Point) => x1 == x2 && y1 == y2,
+            (Volume::Point, Volume::Point) => x1 == x2 && y1 == y2 && z1 == z2,
 
-            (Volume::Point, Volume::Square2d { width, height })
-            | (Volume::Square2d { width, height }, Volume::Point) => {
-                x1 >= x2 && x1 <= x2 + width && y1 >= y2 && y1 <= y2 + height
+            (
+                Volume::Point,
+                Volume::Cube {
+                    width,
+                    height,
+                    depth,
+                },
+            )
+            | (
+                Volume::Cube {
+                    width,
+                    height,
+                    depth,
+                },
+                Volume::Point,
+            ) => {
+                x1 >= x2
+                    && x1 <= x2 + width
+                    && y1 >= y2
+                    && y1 <= y2 + height
+                    && z1 >= z2
+                    && z1 <= z2 + depth
             }
 
             (
-                Volume::Square2d {
+                Volume::Cube {
                     width: w1,
                     height: h1,
+                    depth: d1,
                 },
-                Volume::Square2d {
+                Volume::Cube {
                     width: w2,
                     height: h2,
+                    depth: d2,
                 },
-            ) => x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2,
+            ) => {
+                x1 < x2 + w2
+                    && x1 + w1 > x2
+                    && y1 < y2 + h2
+                    && y1 + h1 > y2
+                    && z1 < z2 + d2
+                    && z1 + d1 > z2
+            }
         }
     }
 }
@@ -41,151 +77,196 @@ mod tests {
     fn test_point_point_same() {
         let a = Volume::Point;
         let b = Volume::Point;
-        assert!(a.collide(1.0, 1.0, &b, 1.0, 1.0));
+        assert!(a.collide(1.0, 1.0, 1.0, &b, 1.0, 1.0, 1.0));
     }
 
     #[test]
     fn test_point_point_different() {
         let a = Volume::Point;
         let b = Volume::Point;
-        assert!(!a.collide(1.0, 1.0, &b, 1.0, 2.0));
+        assert!(!a.collide(1.0, 1.0, 1.0, &b, 1.0, 2.0, 1.0));
     }
 
-    // Point vs Square
+    // Point vs Cube
     #[test]
-    fn test_point_inside_square() {
+    fn test_point_inside_cube() {
         let p = Volume::Point;
-        let s = Volume::Square2d {
+        let c = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        assert!(p.collide(2.0, 2.0, &s, 0.0, 0.0));
+        assert!(p.collide(2.0, 2.0, 2.0, &c, 0.0, 0.0, 0.0));
     }
 
     #[test]
-    fn test_point_outside_square() {
+    fn test_point_outside_cube() {
         let p = Volume::Point;
-        let s = Volume::Square2d {
+        let c = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        assert!(!p.collide(6.0, 6.0, &s, 0.0, 0.0));
+        assert!(!p.collide(6.0, 6.0, 6.0, &c, 0.0, 0.0, 0.0));
     }
 
     #[test]
-    fn test_point_on_square_edge() {
+    fn test_point_outside_cube_z_axis() {
         let p = Volume::Point;
-        let s = Volume::Square2d {
+        let c = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        assert!(p.collide(0.0, 0.0, &s, 0.0, 0.0));
+        // x and y are inside, but z is out
+        assert!(!p.collide(2.0, 2.0, 6.0, &c, 0.0, 0.0, 0.0));
     }
 
     #[test]
-    fn test_point_on_square_corner() {
+    fn test_point_on_cube_face() {
         let p = Volume::Point;
-        let s = Volume::Square2d {
+        let c = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        assert!(p.collide(5.0, 5.0, &s, 0.0, 0.0));
+        assert!(p.collide(0.0, 0.0, 0.0, &c, 0.0, 0.0, 0.0));
     }
 
-    // Symmetry: Square vs Point should mirror Point vs Square
     #[test]
-    fn test_square_point_symmetry() {
+    fn test_point_on_cube_corner() {
         let p = Volume::Point;
-        let s = Volume::Square2d {
+        let c = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
+        };
+        assert!(p.collide(5.0, 5.0, 5.0, &c, 0.0, 0.0, 0.0));
+    }
+
+    // Symmetry: Cube vs Point should mirror Point vs Cube
+    #[test]
+    fn test_cube_point_symmetry() {
+        let p = Volume::Point;
+        let c = Volume::Cube {
+            width: 5.0,
+            height: 5.0,
+            depth: 5.0,
         };
         assert_eq!(
-            p.collide(2.0, 2.0, &s, 0.0, 0.0),
-            s.collide(0.0, 0.0, &p, 2.0, 2.0)
+            p.collide(2.0, 2.0, 2.0, &c, 0.0, 0.0, 0.0),
+            c.collide(0.0, 0.0, 0.0, &p, 2.0, 2.0, 2.0)
         );
     }
 
-    // Square vs Square
+    // Cube vs Cube
     #[test]
-    fn test_squares_overlapping() {
-        let a = Volume::Square2d {
+    fn test_cubes_overlapping() {
+        let a = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        let b = Volume::Square2d {
+        let b = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        assert!(a.collide(0.0, 0.0, &b, 3.0, 3.0));
+        assert!(a.collide(0.0, 0.0, 0.0, &b, 3.0, 3.0, 3.0));
     }
 
     #[test]
-    fn test_squares_not_overlapping() {
-        let a = Volume::Square2d {
+    fn test_cubes_not_overlapping() {
+        let a = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        let b = Volume::Square2d {
+        let b = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        assert!(!a.collide(0.0, 0.0, &b, 6.0, 6.0));
+        assert!(!a.collide(0.0, 0.0, 0.0, &b, 6.0, 6.0, 6.0));
     }
 
     #[test]
-    fn test_squares_touching_edge() {
-        // Shares an edge but does not overlap — no collision
-        let a = Volume::Square2d {
+    fn test_cubes_separated_on_z_axis() {
+        // x and y overlap, but z does not
+        let a = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        let b = Volume::Square2d {
+        let b = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        assert!(!a.collide(0.0, 0.0, &b, 5.0, 0.0));
+        assert!(!a.collide(0.0, 0.0, 0.0, &b, 0.0, 0.0, 6.0));
     }
 
     #[test]
-    fn test_squares_one_inside_other() {
-        let outer = Volume::Square2d {
+    fn test_cubes_touching_face() {
+        // Shares a face but does not overlap — no collision
+        let a = Volume::Cube {
+            width: 5.0,
+            height: 5.0,
+            depth: 5.0,
+        };
+        let b = Volume::Cube {
+            width: 5.0,
+            height: 5.0,
+            depth: 5.0,
+        };
+        assert!(!a.collide(0.0, 0.0, 0.0, &b, 5.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn test_cubes_one_inside_other() {
+        let outer = Volume::Cube {
             width: 10.0,
             height: 10.0,
+            depth: 10.0,
         };
-        let inner = Volume::Square2d {
+        let inner = Volume::Cube {
             width: 3.0,
             height: 3.0,
+            depth: 3.0,
         };
-        assert!(outer.collide(0.0, 0.0, &inner, 2.0, 2.0));
+        assert!(outer.collide(0.0, 0.0, 0.0, &inner, 2.0, 2.0, 2.0));
     }
 
     #[test]
-    fn test_squares_same_position() {
-        let a = Volume::Square2d {
+    fn test_cubes_same_position() {
+        let a = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        let b = Volume::Square2d {
+        let b = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        assert!(a.collide(0.0, 0.0, &b, 0.0, 0.0));
+        assert!(a.collide(0.0, 0.0, 0.0, &b, 0.0, 0.0, 0.0));
     }
 
     #[test]
-    fn test_squares_overlap_symmetry() {
-        let a = Volume::Square2d {
+    fn test_cubes_overlap_symmetry() {
+        let a = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
-        let b = Volume::Square2d {
+        let b = Volume::Cube {
             width: 5.0,
             height: 5.0,
+            depth: 5.0,
         };
         assert_eq!(
-            a.collide(0.0, 0.0, &b, 3.0, 3.0),
-            b.collide(3.0, 3.0, &a, 0.0, 0.0)
+            a.collide(0.0, 0.0, 0.0, &b, 3.0, 3.0, 3.0),
+            b.collide(3.0, 3.0, 3.0, &a, 0.0, 0.0, 0.0)
         );
     }
 }

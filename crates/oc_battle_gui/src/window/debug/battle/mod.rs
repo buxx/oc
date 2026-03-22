@@ -5,12 +5,10 @@ use bevy_egui::egui;
 use derive_more::Constructor;
 use oc_individual::IndividualIndex;
 use oc_mod::{
-    DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS, DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS,
-    Mod,
+    DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS, Mod,
     projectiles::{IndexedProjectile, ProjectileType},
 };
 use oc_projectile::{ProjectileId, spawn::SpawnProfile};
-use oc_root::GEO_PIXELS_PER_METERS;
 use strum_macros::{Display, EnumIter};
 
 pub mod component;

@@ -196,11 +196,11 @@ where
                             if step_tile != curent_tile {
                                 for (o, other) in at(step_tile) {
                                     if other.material().is_solid() {
-                                        // TODO: consider materials better
                                         let [other_x, other_y, other_z] = other.position();
                                         let volume2 = other.volume();
-                                        // FIXME BS NOW: now use z to know if collide
-                                        if volume.collide(x, y, &volume2, *other_x, *other_y) {
+                                        if volume.collide(
+                                            x, y, z, &volume2, *other_x, *other_y, *other_z,
+                                        ) {
                                             tracing::trace!(name="physics-step-translation-collide", p=?position, xy=?step_tile);
 
                                             let left = i.clone().into();
@@ -213,6 +213,8 @@ where
                                     }
                                 }
                             }
+
+                            // FIXME BS NOW: TILE z
 
                             curent_tile = step_tile;
                             position = [step_x, step_y, step_z];

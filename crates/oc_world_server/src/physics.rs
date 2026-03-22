@@ -77,6 +77,12 @@ impl<'x> Processor<'x> {
                 objects.push((ObjectId::Individual(*i), individual));
             }
 
+            if let Some(tile_) = world.tile(*tile) {
+                let i: WorldTileIndex = tile.into();
+                let tile: Box<&dyn Physic> = Box::new(tile_);
+                objects.push((ObjectId::Tile(i), tile));
+            }
+
             objects
         };
 
