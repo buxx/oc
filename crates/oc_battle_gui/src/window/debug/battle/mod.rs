@@ -5,7 +5,7 @@ use bevy_egui::egui;
 use derive_more::Constructor;
 use oc_individual::IndividualIndex;
 use oc_mod::{
-    Mod,
+    DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS, Mod,
     projectiles::{IndexedProjectile, ProjectileType},
 };
 use oc_projectile::{ProjectileId, spawn::SpawnProfile};
@@ -28,7 +28,7 @@ pub struct DebugBattleWindow(pub Option<window::Window>);
 #[derive(Debug, Event)]
 pub struct Refresh;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Context {
     refresh: refresh::Refresh,
     show_tiles: bool,
@@ -43,6 +43,26 @@ pub struct Context {
     spawn_projectile: Option<IndexedProjectile>,
     spawn_projectile_click_mode: SpawnProjectileClickMode,
     spawn_profile: SpawnProfile,
+    spawn_projectile_plus_z: f32, // pixels
+}
+
+impl Default for Context {
+    fn default() -> Self {
+        Self {
+            refresh: Default::default(),
+            show_tiles: Default::default(),
+            view: Default::default(),
+            regions: Default::default(),
+            individuals: Default::default(),
+            projectiles: Default::default(),
+            left_click_mode: Default::default(),
+            spawn_projectile_type: Default::default(),
+            spawn_projectile: Default::default(),
+            spawn_projectile_click_mode: Default::default(),
+            spawn_profile: Default::default(),
+            spawn_projectile_plus_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS,
+        }
+    }
 }
 
 #[derive(Constructor)]

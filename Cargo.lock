@@ -1986,12 +1986,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bresenham"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfc1116225f66d2ea341a26503f83a6b1205070a6f7199ce1f1550ead91f6fd7"
-
-[[package]]
 name = "built"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4081,6 +4075,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "line_drawing"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5f309016f7f96b0147c6f223d5a8c4e678bf13ae8fb4f85f60c3bb5e0598ea8"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "linebender_resource_handle"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4978,6 +4981,7 @@ name = "oc_mod"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "derive_more",
  "flate2",
  "oc_root",
  "oc_utils",
@@ -5010,8 +5014,8 @@ name = "oc_physics"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bresenham",
  "derive_more",
+ "line_drawing",
  "oc_geo",
  "oc_root",
  "oc_utils",

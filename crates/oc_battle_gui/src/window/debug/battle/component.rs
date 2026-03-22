@@ -74,7 +74,8 @@ impl super::Context {
                     let region = subject.physics.region;
 
                     if ui.button("⏵").clicked() {
-                        action = Some(Action::GoToPoint(subject.physics.position.clone()));
+                        let point = [subject.physics.position[0], subject.physics.position[1]];
+                        action = Some(Action::GoToPoint(point));
                     }
                     ui.label(format!(
                         "{} {}.{} ({}.{})",

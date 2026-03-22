@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
+use derive_more::Constructor;
 use flate2::{Compression, write::GzEncoder};
+use oc_root::{GEO_PIXELS_PER_METERS, physics::Meters};
 use rkyv::{Archive, Deserialize, Serialize};
 use ron;
 use tar::Builder;
@@ -12,8 +14,20 @@ pub mod projectiles;
 pub const MOD_DIR: &str = "mods";
 pub const MOD_RON: &str = "mod.ron";
 
+pub const DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS: Meters = Meters(1.5);
+pub const DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS: f32 =
+    DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS.0 * GEO_PIXELS_PER_METERS;
+
 #[derive(
-    Debug, Clone, Archive, Deserialize, Serialize, PartialEq, serde::Deserialize, serde::Serialize,
+    Debug,
+    Clone,
+    Archive,
+    Deserialize,
+    Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+    Constructor,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Mod {
@@ -21,6 +35,9 @@ pub struct Mod {
     version: u32,
     #[serde(skip, default)]
     pub projectiles: Vec<projectiles::IndexedProjectile>,
+    // Below game specs
+    #[serde(default = "default_human_default_stand_up_fire_meters")]
+    pub human_default_stand_up_fire_meters: f32,
 }
 
 impl Mod {
@@ -99,4 +116,8 @@ pub enum ModError {
 pub enum CacheError {
     #[error("{0}")]
     Any(#[from] anyhow::Error),
+}
+
+fn default_human_default_stand_up_fire_meters() -> f32 {
+    DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS.0
 }

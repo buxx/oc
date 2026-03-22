@@ -77,6 +77,12 @@ impl<'x> Processor<'x> {
                 objects.push((ObjectId::Individual(*i), individual));
             }
 
+            if let Some(tile_) = world.tile(tile) {
+                let i: WorldTileIndex = tile.into();
+                let tile: Box<&dyn Physic> = Box::new(tile_);
+                objects.push((ObjectId::Tile(i), tile));
+            }
+
             objects
         };
 
@@ -165,28 +171,36 @@ impl<'x> Processor<'x> {
         for event in events {
             match event {
                 Event::NoTile(id) => match id {
-                    ObjectId::Individual(_) => {}
+                    ObjectId::Individual(_) | ObjectId::Tile(_) => {}
                     ObjectId::Projectile(_) => {
-                        // Remove from world
+                        // FIXME BS NOW: Remove from world
                     }
                 },
                 Event::Collision(a, b) => match (a, b) {
-                    (ObjectId::Individual(_), ObjectId::Individual(_)) => {}
-                    (ObjectId::Individual(_), ObjectId::Projectile(_)) => {}
+                    (ObjectId::Individual(_), ObjectId::Individual(_))
+                    | (ObjectId::Individual(_), ObjectId::Projectile(_))
+                    | (ObjectId::Projectile(_), ObjectId::Projectile(_))
+                    | (ObjectId::Individual(_), ObjectId::Tile(_))
+                    | (ObjectId::Tile(_), ObjectId::Individual(_))
+                    | (ObjectId::Tile(_), ObjectId::Projectile(_))
+                    | (ObjectId::Tile(_), ObjectId::Tile(_)) => {}
                     (
                         ObjectId::Projectile(_projectile_id),
                         ObjectId::Individual(_individual_index),
                     ) => {
-                        // TODO: bam !
+                        // FIXME: bam
                     }
-                    (ObjectId::Projectile(_), ObjectId::Projectile(_)) => {}
+                    (ObjectId::Projectile(_), ObjectId::Tile(_)) => {
+                        tracing::error!("FOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
+                        // FIXME BS NOW: impact
+                    }
                 },
             }
         }
     }
 }
 
-pub fn changes<I, T>(i: I, subject: &T, position: &[f32; 2], forces: &Vec<Force>) -> Vec<Update>
+pub fn changes<I, T>(i: I, subject: &T, position: &[f32; 3], forces: &Vec<Force>) -> Vec<Update>
 where
     I: std::fmt::Debug,
     T: Physic + Geo + Region,
@@ -195,8 +209,8 @@ where
     let mut updates = vec![];
 
     // TODO: to improve perfs, maybe these updates sould be known at physics::step ?
-    if subject.position() != position {
-        updates.push(Update::SetPosition(*position, *subject.position()));
+    if subject.position() != *position {
+        updates.push(Update::SetPosition(*position, subject.position()));
 
         let tile: TileXy = position.clone().into();
         let region: RegionXy = tile.into();

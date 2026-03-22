@@ -17,6 +17,7 @@ pub enum Refresh {
     X100ms,
     X1s,
 }
+
 impl Refresh {
     fn as_millis(&self) -> u128 {
         match self {

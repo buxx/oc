@@ -1,4 +1,6 @@
 #[cfg(feature = "debug")]
+use crate::world::World;
+#[cfg(feature = "debug")]
 use crate::{
     ingame::debug::projectile::SpawnProjectileProfile,
     window::debug::battle::SpawnProjectileClickMode,
@@ -6,6 +8,8 @@ use crate::{
 #[cfg(feature = "debug")]
 use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
+#[cfg(feature = "debug")]
+use oc_geo::tile::TileXy;
 #[cfg(feature = "debug")]
 use oc_network::ToServer;
 #[cfg(feature = "debug")]
@@ -82,6 +86,7 @@ pub fn click_debug(
     spawn_mode: Res<SpawnProjectileLeftClick>,
     _keys: Res<ButtonInput<KeyCode>>,
     mut state: ResMut<super::State>,
+    world: Res<World>,
 ) {
     if ignore.0 {
         return;
@@ -110,9 +115,19 @@ pub fn click_debug(
 
                     if state.clicks.len() == 2 {
                         let start = state.clicks.first().expect("len checked line before");
-                        let start = [start.x, start.y];
+                        let start_tile_xy = TileXy::from((start.x, start.y));
+                        let Some(start_tile) = world.tile(start_tile_xy) else {
+                            return;
+                        };
+                        let start_z = start_tile.z as f32 + profile.plus_z.pixels();
+                        let start = [start.x, start.y, start_z];
                         let end = state.clicks.last().expect("len checked line before");
-                        let end = [end.x, end.y];
+                        let end_tile_xy = TileXy::from((end.x, end.y));
+                        let Some(end_tile) = world.tile(end_tile_xy) else {
+                            return;
+                        };
+                        let end_z = end_tile.z as f32;
+                        let end = [end.x, end.y, end_z];
                         let projectile = profile.projectile.id();
                         let profile = profile.profile.clone();
                         let spawn = SpawnProjectile::new(projectile, profile, start, end);
@@ -132,8 +147,19 @@ pub fn click_debug(
 
                 if buttons.just_released(MouseButton::Left) {
                     if let Some(start) = state.clicks.first() {
-                        let start = [start.x, start.y];
-                        let end = [point.x, point.y];
+                        let start_tile_xy = TileXy::from((start.x, start.y));
+                        let Some(start_tile) = world.tile(start_tile_xy) else {
+                            return;
+                        };
+                        let start_z = start_tile.z as f32 + profile.plus_z.pixels();
+                        let start = [start.x, start.y, start_z];
+
+                        let end_tile_xy = TileXy::from((point.x, point.y));
+                        let Some(end_tile) = world.tile(end_tile_xy) else {
+                            return;
+                        };
+                        let end_z = end_tile.z as f32;
+                        let end = [point.x, point.y, end_z];
 
                         let projectile = profile.projectile.id();
                         let profile = profile.profile.clone();

@@ -1,6 +1,6 @@
 use rkyv::{Archive, Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, Eq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Xy(pub u64, pub u64);
 
@@ -9,8 +9,15 @@ impl From<Xy> for (u64, u64) {
         (value.0, value.1)
     }
 }
+
 impl From<(isize, isize)> for Xy {
     fn from((x, y): (isize, isize)) -> Self {
+        Self(x as u64, y as u64)
+    }
+}
+
+impl From<(isize, isize, isize)> for Xy {
+    fn from((x, y, _): (isize, isize, isize)) -> Self {
         Self(x as u64, y as u64)
     }
 }

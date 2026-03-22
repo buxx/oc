@@ -1,7 +1,10 @@
 use derive_more::Constructor;
 use oc_individual::{IndividualIndex, Update, behavior::Behavior};
-use oc_physics::{Force, MetersSeconds};
-use oc_root::WORLD_HEIGHT;
+use oc_physics::Force;
+use oc_root::{
+    WORLD_HEIGHT,
+    physics::{Meters, MetersSeconds},
+};
 
 use crate::{individual::Processor, utils::context::Context};
 
@@ -30,7 +33,10 @@ impl<'a> Move<'a> {
             Behavior::MovingNorth => {
                 if x == 0 {
                     (
-                        Some(Force::Translation([0.0, 1.0], MetersSeconds(0.5))),
+                        Some(Force::Translation(
+                            [0.0, 1.0, 0.0],
+                            MetersSeconds(Meters(0.5)),
+                        )),
                         Some(Behavior::MovingSouth),
                     )
                 } else {
@@ -40,7 +46,10 @@ impl<'a> Move<'a> {
             Behavior::MovingSouth => {
                 if x == WORLD_HEIGHT as u64 - 1 {
                     (
-                        Some(Force::Translation([0.0, -1.0], MetersSeconds(0.5))),
+                        Some(Force::Translation(
+                            [0.0, -1.0, 0.0],
+                            MetersSeconds(Meters(0.5)),
+                        )),
                         Some(Behavior::MovingNorth),
                     )
                 } else {
@@ -48,7 +57,10 @@ impl<'a> Move<'a> {
                 }
             }
             Behavior::Idle => (
-                Some(Force::Translation([0.0, 1.0], MetersSeconds(0.5))),
+                Some(Force::Translation(
+                    [0.0, 1.0, 0.0],
+                    MetersSeconds(Meters(0.5)),
+                )),
                 Some(Behavior::MovingSouth),
             ),
         };

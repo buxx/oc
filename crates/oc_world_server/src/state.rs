@@ -1,6 +1,7 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use message_io::network::Endpoint;
+use oc_geo::tile::WorldTileIndex;
 use oc_individual::IndividualIndex;
 use oc_projectile::ProjectileId;
 #[cfg(feature = "debug")]
@@ -73,5 +74,5 @@ impl State {
 pub enum ObjectId {
     Individual(IndividualIndex),
     Projectile(ProjectileId),
-    // Tile(WorldTileIndex),
+    Tile(WorldTileIndex),
 }

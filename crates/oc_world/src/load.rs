@@ -14,7 +14,7 @@ use oc_individual::{Individual, behavior::Behavior};
 use oc_mod::Mod;
 use oc_root::{
     GEO_PIXELS_PER_TILE, INDIVIDUALS_COUNT, MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS,
-    REGIONS_COUNT, TILES_COUNT, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS, ids::Ids, tile::Tile,
+    REGIONS_COUNT, TILES_COUNT, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS, ids::Ids,
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rustc_hash::FxHashMap;
@@ -24,6 +24,7 @@ use crate::{
     World,
     cache::{self, CacheRegionBackgroundError},
     meta::{self, Meta},
+    tile::{Nature, Tile},
 };
 
 #[derive(Debug, Constructor)]
@@ -39,7 +40,9 @@ impl WorldLoader {
         let meta = Meta::from_file(&self.world_path.meta()).map_err(|e| MetaError::Load(e))?;
         self.cache(&meta)?;
 
-        let tiles = vec![Tile::ShortGrass; TILES_COUNT];
+        let tiles: Vec<Tile> = (0..TILES_COUNT)
+            .map(|i| Tile::new(WorldTileIndex(i as u64), Nature::ShortGrass, 0))
+            .collect();
         let individuals = hack_individuals();
         // TODO: when load from backup, regenerate ids
         let projectiles = FxHashMap::default();
@@ -198,6 +201,7 @@ fn hack_individuals() -> Vec<Individual> {
             let position = [
                 ((xy.0.0 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
                 ((xy.0.1 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
+                0.0, // FIXME BS NOW: must be the tile z
             ];
             let region: RegionXy = xy.into();
             Individual::new(position, xy, region, Behavior::Idle, vec![])

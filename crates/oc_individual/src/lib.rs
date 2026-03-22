@@ -13,6 +13,7 @@ use oc_physics::UpdatePhysic;
 use oc_physics::collision::Material;
 use oc_physics::collision::Materials;
 use oc_physics::volume::Volume;
+use oc_root::physics::Meters;
 use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -34,7 +35,7 @@ impl Display for IndividualIndex {
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Individual {
-    pub position: [f32; 2],
+    pub position: [f32; 3],
     pub tile: TileXy,
     pub region: RegionXy,
     pub behavior: Behavior,
@@ -89,26 +90,28 @@ impl Individual {
 }
 
 impl Physic for Individual {
-    fn position(&self) -> &[f32; 2] {
-        &self.position
+    fn position(&self) -> [f32; 3] {
+        self.position
     }
 
     fn forces(&self) -> &Vec<Force> {
         &self.forces
     }
 
-    fn volume(&self) -> &Volume {
-        // TODO
-        static VOLUME: Volume = Volume::Square2d {
-            width: 5.0,
-            height: 5.0,
-        };
-        &VOLUME
+    fn volume(&self, ref_: [f32; 3]) -> Volume {
+        Volume::Cube {
+            x: ref_[0],
+            y: ref_[1],
+            z: ref_[2],
+            width: Meters(0.5).pixels(),
+            height: Meters(0.5).pixels(),
+            depth: Meters(1.8).pixels(),
+        }
     }
 }
 
 impl UpdatePhysic for Individual {
-    fn set_position(&mut self, value: [f32; 2]) {
+    fn set_position(&mut self, value: [f32; 3]) {
         self.position = value;
     }
 

@@ -1,6 +1,5 @@
 #[cfg(feature = "bevy")]
 use bevy::prelude::*;
-use oc_root::tile::Tile;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Materials {
@@ -24,10 +23,3 @@ pub trait Material {
 #[cfg(feature = "bevy")]
 #[derive(Debug, Deref, DerefMut, Component)]
 pub struct Material_(pub Materials);
-
-impl Material for Tile {
-    fn material(&self) -> Materials {
-        // TODO: depending on tile
-        Materials::Traversable
-    }
-}

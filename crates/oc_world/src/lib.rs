@@ -6,11 +6,11 @@ use oc_geo::{
 use oc_individual::{Individual, IndividualIndex};
 use oc_mod::Mod;
 use oc_projectile::{Projectile, ProjectileId};
-use oc_root::{REGION_HEIGHT, REGION_WIDTH, tile::Tile};
+use oc_root::{REGION_HEIGHT, REGION_WIDTH};
 use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
 
-use crate::meta::Meta;
+use crate::{meta::Meta, tile::Tile};
 
 pub mod cache;
 pub mod load;
@@ -100,24 +100,31 @@ mod tests {
 
     use oc_root::TILES_COUNT;
 
+    use crate::tile::Nature;
+
     use super::*;
 
     #[test]
     fn test_region_tiles() {
         // Given
+        let mod_ = Mod::new("MyMod".to_string(), 1, vec![], 1.5);
         let meta = Meta::new("MyWorld".to_string(), 0);
-        let tiles = vec![Tile::ShortGrass; TILES_COUNT];
-        let world = World::new(meta, tiles, vec![], HashMap::default());
+        let tiles: Vec<Tile> = (0..TILES_COUNT)
+            .map(|i| Tile::new(WorldTileIndex(i as u64), Nature::ShortGrass, 0))
+            .collect();
+        let world = World::new(mod_, meta, tiles, vec![], HashMap::default());
 
         // When
         let tiles = world.region_tiles(WorldRegionIndex(0));
+        let tiles: Vec<(WorldTileIndex, Tile)> =
+            tiles.into_iter().map(|(i, t)| (i, t.clone())).collect();
 
         // Then
         let mut expected = vec![];
         for y in 0..REGION_HEIGHT {
             for x in 0..REGION_WIDTH {
                 let i: WorldTileIndex = TileXy(Xy(x as u64, y as u64)).into();
-                expected.push((i, &Tile::ShortGrass));
+                expected.push((i, Tile::new(i, Nature::ShortGrass, 0)));
             }
         }
         assert_eq!(tiles, expected);

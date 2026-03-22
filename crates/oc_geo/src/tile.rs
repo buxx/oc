@@ -15,6 +15,13 @@ impl TileXy {
             self.0.1.max(0).min(WORLD_HEIGHT as u64 - 1),
         ))
     }
+
+    pub fn point(&self) -> [f32; 2] {
+        [
+            self.0.0 as f32 * GEO_PIXELS_PER_TILE as f32,
+            self.0.1 as f32 * GEO_PIXELS_PER_TILE as f32,
+        ]
+    }
 }
 
 impl From<TileXy> for (u64, u64) {
@@ -23,12 +30,33 @@ impl From<TileXy> for (u64, u64) {
     }
 }
 
-// a little bit ricky ...
+// a little bit tricky ...
 impl From<TileXy> for [f32; 2] {
     fn from(value: TileXy) -> Self {
         [
             value.0.0 as f32 * GEO_PIXELS_PER_TILE as f32,
             value.0.1 as f32 * GEO_PIXELS_PER_TILE as f32,
+        ]
+    }
+}
+
+// a little bit tricky ...
+impl From<(f32, f32)> for TileXy {
+    fn from(value: (f32, f32)) -> Self {
+        TileXy(Xy(
+            value.0 as u64 / GEO_PIXELS_PER_TILE,
+            value.0 as u64 / GEO_PIXELS_PER_TILE,
+        ))
+    }
+}
+
+// a little bit tricky ...
+impl From<TileXy> for [f32; 3] {
+    fn from(value: TileXy) -> Self {
+        [
+            value.0.0 as f32 * GEO_PIXELS_PER_TILE as f32,
+            value.0.1 as f32 * GEO_PIXELS_PER_TILE as f32,
+            0.0,
         ]
     }
 }
@@ -61,6 +89,15 @@ impl From<TileXy> for WorldTileIndex {
 
 impl From<[f32; 2]> for TileXy {
     fn from(value: [f32; 2]) -> Self {
+        Self(Xy(
+            value[0] as u64 / GEO_PIXELS_PER_TILE,
+            value[1] as u64 / GEO_PIXELS_PER_TILE,
+        ))
+    }
+}
+
+impl From<[f32; 3]> for TileXy {
+    fn from(value: [f32; 3]) -> Self {
         Self(Xy(
             value[0] as u64 / GEO_PIXELS_PER_TILE,
             value[1] as u64 / GEO_PIXELS_PER_TILE,

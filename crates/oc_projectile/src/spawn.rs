@@ -23,6 +23,6 @@ impl Default for SpawnProfile {
 pub struct SpawnProjectile {
     pub i: ProjectileIndex,
     pub profile: SpawnProfile,
-    pub from: [f32; 2],
-    pub to: [f32; 2],
+    pub from: [f32; 3],
+    pub to: [f32; 3],
 }

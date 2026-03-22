@@ -42,7 +42,7 @@ pub enum Projectile {
 }
 
 impl Projectile {
-    pub fn position(&self) -> &[f32; 2] {
+    pub fn position(&self) -> &[f32; 3] {
         match self {
             Projectile::Bullet(bullet) => &bullet.position,
         }
@@ -70,9 +70,9 @@ impl Region for Projectile {
 }
 
 impl Physic for Projectile {
-    fn position(&self) -> &[f32; 2] {
+    fn position(&self) -> [f32; 3] {
         match self {
-            Projectile::Bullet(bullet) => &bullet.position,
+            Projectile::Bullet(bullet) => bullet.position,
         }
     }
 
@@ -82,13 +82,17 @@ impl Physic for Projectile {
         }
     }
 
-    fn volume(&self) -> &Volume {
-        &Volume::Point
+    fn volume(&self, ref_: [f32; 3]) -> Volume {
+        Volume::Point {
+            x: ref_[0],
+            y: ref_[1],
+            z: ref_[2],
+        }
     }
 }
 
 impl UpdatePhysic for Projectile {
-    fn set_position(&mut self, value: [f32; 2]) {
+    fn set_position(&mut self, value: [f32; 3]) {
         match self {
             Projectile::Bullet(bullet) => bullet.position = value,
         }

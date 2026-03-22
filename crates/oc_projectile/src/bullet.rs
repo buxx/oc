@@ -6,14 +6,14 @@ use rkyv::{Archive, Deserialize, Serialize};
 #[derive(Archive, Deserialize, Serialize, Clone, Debug, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Bullet {
-    pub position: [f32; 2],
+    pub position: [f32; 3],
     pub tile: TileXy,
     pub region: RegionXy,
     pub forces: Vec<Force>,
 }
 
 impl Bullet {
-    pub fn new(position: [f32; 2], forces: Vec<Force>) -> Self {
+    pub fn new(position: [f32; 3], forces: Vec<Force>) -> Self {
         let tile: TileXy = position.into();
         let region: RegionXy = tile.into();
 

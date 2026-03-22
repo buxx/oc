@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::prelude::*;
 use oc_mod::{Mod, projectiles::ProjectileType};
+use oc_root::physics::Meters;
 use strum::IntoEnumIterator;
 
 use crate::ingame::{
@@ -35,6 +36,7 @@ impl super::Context {
                 let profile = &mut self.spawn_profile;
                 let click_mode_before = self.spawn_projectile_click_mode.clone();
                 let click_mode = &mut self.spawn_projectile_click_mode;
+                let plus_z = &mut self.spawn_projectile_plus_z;
 
                 ui.horizontal(|ui| {
                     egui::ComboBox::from_label("Projectile type")
@@ -86,13 +88,19 @@ impl super::Context {
                             .speed(10),
                     );
                     ui.label("interval");
+
+                    ui.separator();
+
+                    ui.add(egui::DragValue::new(plus_z).range((0.0)..=(5.0)).speed(0.1));
+                    ui.label("+z");
                 });
 
                 if projectile_before != self.spawn_projectile {
                     if let Some(spawn_projectile) = &self.spawn_projectile {
                         let projectile = spawn_projectile.clone();
                         let profile = profile.clone();
-                        let profile = SpawnProjectileProfile::new(projectile, profile);
+                        let plus_z = Meters(*plus_z);
+                        let profile = SpawnProjectileProfile::new(projectile, profile, plus_z);
                         commands.trigger(SetLeftClick(LeftClickMode::SpawnProjectile(profile)));
                     }
                 }

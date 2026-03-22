@@ -5,7 +5,7 @@ use oc_physics::Physic;
 
 #[derive(Debug, Clone, Constructor)]
 pub struct PhysicsRepr {
-    pub position: [f32; 2],
+    pub position: [f32; 3],
     // pub tile: TileXy,
     pub region: RegionXy,
     // pub forces: Vec<Force>,

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use oc_geo::tile::TileXy;
+use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::IndividualIndex;
 use oc_physics::{
     Corps, Laws,
@@ -68,20 +68,28 @@ pub fn physics_step<I, C>(
 pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
     match &event.0 {
         oc_physics::Event::NoTile(id) => match id {
-            ObjectId::Individual(_) => {}
+            ObjectId::Individual(_) | ObjectId::Tile(_) => {}
             ObjectId::Projectile(i) => {
                 commands.trigger(ForgotProjectile(*i));
             }
         },
-        // FIXME: implement fragments / rebound
+        // TODO: implement fragments / rebound
         oc_physics::Event::Collision(a, b) => {
             match (a, b) {
-                (ObjectId::Individual(_), ObjectId::Individual(_)) => {}
-                (ObjectId::Individual(_), ObjectId::Projectile(_)) => {}
+                (ObjectId::Individual(_), ObjectId::Individual(_))
+                | (ObjectId::Individual(_), ObjectId::Projectile(_))
+                | (ObjectId::Projectile(_), ObjectId::Projectile(_))
+                | (ObjectId::Individual(_), ObjectId::Tile(_))
+                | (ObjectId::Tile(_), ObjectId::Individual(_))
+                | (ObjectId::Tile(_), ObjectId::Projectile(_))
+                | (ObjectId::Tile(_), ObjectId::Tile(_)) => {}
                 (ObjectId::Projectile(_projectile_id), ObjectId::Individual(_individual_index)) => {
                     // TODO: bam
                 }
-                (ObjectId::Projectile(_), ObjectId::Projectile(_)) => {}
+                (ObjectId::Projectile(_), ObjectId::Tile(_)) => {
+                    tracing::error!("FOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
+                    // FIXME BS NOW: disapear + impact sound
+                }
             }
         }
     }
@@ -92,7 +100,7 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
 pub enum ObjectId {
     Individual(IndividualIndex),
     Projectile(ProjectileId),
-    // Tile(WorldTileIndex),
+    Tile(WorldTileIndex),
 }
 
 impl From<IndividualIndex> for ObjectId {
