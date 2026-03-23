@@ -66,7 +66,7 @@ pub trait Physic: Material {
     // TODO: maby position should be `Geo` instead `Physics`...
     fn position(&self) -> [f32; 3];
     fn forces(&self) -> &Vec<Force>;
-    fn volume(&self) -> &Volume;
+    fn volume(&self, ref_: [f32; 3]) -> Volume;
 }
 
 pub trait UpdatePhysic: Physic + Material {
@@ -113,8 +113,8 @@ impl<I: Clone + std::fmt::Debug> Physic for Corps<I> {
         &self.forces
     }
 
-    fn volume(&self) -> &Volume {
-        &self.volume
+    fn volume(&self, ref_: [f32; 3]) -> Volume {
+        self.volume.clone().with_ref(ref_)
     }
 }
 
@@ -154,7 +154,6 @@ where
     Z: std::fmt::Debug,
 {
     let (i, object) = object;
-    let volume = object.volume();
     let mut events = vec![];
     let mut position = object.position().clone();
     let mut forces = vec![];
@@ -195,17 +194,16 @@ where
                         | line::Step::Last([step_x, step_y, step_z], step_tile) => {
                             // Test new tile only when line on new tile
                             if step_tile != curent_tile {
+                                let volume = object.volume([step_x, step_y, step_z]);
                                 tracing::trace!(name="physics-step-translation-newtile", p=?position, xy=?step_tile);
 
                                 for (o, other) in at(step_tile) {
                                     // if other.material().is_solid() {
                                     let [other_x, other_y, other_z] = other.position();
-                                    let volume2 = other.volume();
+                                    let volume2 = other.volume([other_x, other_y, other_z]);
 
                                     tracing::trace!(name="physics-step-translation-test-collide-with", p=?position, xy=?step_tile, o=?o);
-                                    if volume.collide(
-                                        step_x, step_y, step_z, &volume2, other_x, other_y, other_z,
-                                    ) {
+                                    if volume.collide(&volume2) {
                                         tracing::trace!(name="physics-step-translation-collide", p=?position, xy=?step_tile);
 
                                         let left = i.clone().into();
@@ -242,18 +240,31 @@ where
 
 #[cfg(test)]
 mod tests {
+    use oc_geo::tile::TileXy;
+    use oc_root::physics::Meters;
+
     use crate::collision::Materials;
 
     use super::*;
 
-    struct MyObject([f32; 2], Vec<Force>);
+    struct MyObject([f32; 3], Vec<Force>);
+    #[derive(Debug, Clone)]
+    struct MyObjectId;
 
     impl Physic for MyObject {
-        fn position(&self) -> &[f32; 2] {
-            &self.0
+        fn position(&self) -> [f32; 3] {
+            self.0
         }
         fn forces(&self) -> &Vec<Force> {
             &self.1
+        }
+
+        fn volume(&self, ref_: [f32; 3]) -> Volume {
+            Volume::Point {
+                x: ref_[0],
+                y: ref_[1],
+                z: ref_[2],
+            }
         }
     }
 
@@ -263,11 +274,33 @@ mod tests {
         }
     }
 
-    struct MyTile(Materials);
+    struct MyTile(TileXy, Materials);
+
+    impl Physic for MyTile {
+        fn position(&self) -> [f32; 3] {
+            self.0.into()
+        }
+
+        fn forces(&self) -> &Vec<Force> {
+            static EMPTY: Vec<Force> = vec![];
+            &EMPTY
+        }
+
+        fn volume(&self, ref_: [f32; 3]) -> Volume {
+            Volume::Cube {
+                x: ref_[0],
+                y: ref_[1],
+                z: ref_[2],
+                width: GEO_PIXELS_PER_TILE as f32,
+                height: GEO_PIXELS_PER_TILE as f32,
+                depth: f32::MAX,
+            }
+        }
+    }
 
     impl Material for MyTile {
         fn material(&self) -> Materials {
-            self.0
+            self.1
         }
     }
 
@@ -278,17 +311,17 @@ mod tests {
             .tick_coeff(0.5)
             .bresenham_precision(100.)
             .pixels_per_meters(10.);
-        let direction = [1.0, 0.0]; // South
-        let speed = MetersSeconds(1.0);
+        let direction = [1.0, 0.0, 0.0]; // South
+        let speed = MetersSeconds(Meters(1.0));
         let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0], vec![force]);
-        let tiles = |_| Some(&MyTile(Materials::Traversable));
+        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
 
         // When
-        let (new_position, _) = step(&laws, &object, tiles);
+        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
+            step(&laws, (MyObjectId, &object), |_| vec![]);
 
         // Then
-        let expected_new_position = [5.0, 0.0];
+        let expected_new_position = [5.0, 0.0, 0.0];
         assert_eq!(new_position, expected_new_position);
     }
 
@@ -300,23 +333,28 @@ mod tests {
             .bresenham_precision(100.)
             .bresenham_step(250)
             .pixels_per_meters(10.);
-        let direction = [1.0, 0.0]; // South
-        let speed = MetersSeconds(100.0);
+        let direction = [1.0, 0.0, 0.0]; // South
+        let speed = MetersSeconds(Meters(100.0));
         let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0], vec![force]);
-        let tiles = |xy| {
+        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
+        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Materials::Solid);
+        let my_traversable_tile: Box<&dyn Physic> = Box::new(&my_traversable_tile);
+        let my_solid_tile = MyTile(TileXy(Xy(0, 0)), Materials::Solid);
+        let my_solid_tile: Box<&dyn Physic> = Box::new(&my_solid_tile);
+        let objects = |xy| {
             if xy == Xy(0, 0) {
-                Some(&MyTile(Materials::Traversable))
+                return vec![(MyObjectId, my_traversable_tile.clone())];
             } else {
-                Some(&MyTile(Materials::Solid))
+                return vec![(MyObjectId, my_solid_tile.clone())];
             }
         };
 
         // When
-        let (new_position, new_forces) = step(&laws, &object, tiles);
+        let (new_position, new_forces, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
+            step(&laws, (MyObjectId, &object), objects);
 
         // Then
-        let expected_new_position = [2.5, 0.0];
+        let expected_new_position = [2.5, 0.0, 0.0];
         let expected_new_forces: Vec<Force> = vec![];
         assert_eq!(new_position, expected_new_position);
         assert_eq!(new_forces, expected_new_forces);
@@ -329,17 +367,17 @@ mod tests {
             .tick_coeff(0.5)
             .bresenham_precision(100.)
             .pixels_per_meters(10.);
-        let direction = [1.0, 0.0]; // South
-        let speed = MetersSeconds(10.0);
+        let direction = [1.0, 0.0, 0.0]; // South
+        let speed = MetersSeconds(Meters(10.0));
         let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0], vec![force]);
-        let tiles = |_| Some(&MyTile(Materials::Traversable));
+        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
 
         // When
-        let (new_position, _) = step(&laws, &object, tiles);
+        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
+            step(&laws, (MyObjectId, &object), |_| vec![]);
 
         // Then
-        let expected_new_position = [50.0, 0.0];
+        let expected_new_position = [50.0, 0.0, 0.0];
         assert_eq!(new_position, expected_new_position);
     }
 
@@ -351,23 +389,28 @@ mod tests {
             .bresenham_precision(100.)
             .bresenham_step(250)
             .pixels_per_meters(10.);
-        let direction = [1.0, 0.0]; // South
-        let speed = MetersSeconds(100.0);
+        let direction = [1.0, 0.0, 0.0]; // South
+        let speed = MetersSeconds(Meters(100.0));
         let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0], vec![force]);
-        let tiles = |xy| {
+        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
+        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Materials::Solid);
+        let my_traversable_tile: Box<&dyn Physic> = Box::new(&my_traversable_tile);
+        let my_solid_tile = MyTile(TileXy(Xy(0, 0)), Materials::Solid);
+        let my_solid_tile: Box<&dyn Physic> = Box::new(&my_solid_tile);
+        let objects = |xy| {
             if xy == Xy(0, 0) {
-                Some(&MyTile(Materials::Traversable))
+                return vec![(MyObjectId, my_traversable_tile.clone())];
             } else {
-                Some(&MyTile(Materials::Solid))
+                return vec![(MyObjectId, my_solid_tile.clone())];
             }
         };
 
         // When
-        let (new_position, new_forces) = step(&laws, &object, tiles);
+        let (new_position, new_forces, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
+            step(&laws, (MyObjectId, &object), objects);
 
         // Then
-        let expected_new_position = [2.5, 0.0];
+        let expected_new_position = [2.5, 0.0, 0.0];
         let expected_new_forces: Vec<Force> = vec![];
         assert_eq!(new_position, expected_new_position);
         assert_eq!(new_forces, expected_new_forces);
@@ -380,17 +423,17 @@ mod tests {
             .tick_coeff(0.5)
             .bresenham_precision(100.)
             .pixels_per_meters(10.);
-        let direction = [1.0, 1.0]; // South
-        let speed = MetersSeconds(1.0);
+        let direction = [1.0, 1.0, 0.0]; // South
+        let speed = MetersSeconds(Meters(1.0));
         let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0], vec![force]);
-        let tiles = |_| Some(&MyTile(Materials::Traversable));
+        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
 
         // When
-        let (new_position, _) = step(&laws, &object, tiles);
+        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
+            step(&laws, (MyObjectId, &object), |_| vec![]);
 
         // Then
-        let expected_new_position = [5.0, 5.0];
+        let expected_new_position = [5.0, 5.0, 0.0];
         assert_eq!(new_position, expected_new_position);
     }
 }

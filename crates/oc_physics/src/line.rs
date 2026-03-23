@@ -55,6 +55,7 @@ impl<'a> Steps<'a> {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Step {
     First([f32; 3], Xy),
     Inside([f32; 3], Xy),
@@ -137,14 +138,20 @@ mod tests {
         let laws = Laws::default()
             .bresenham_precision(100.)
             .bresenham_step(250);
-        let mut steps = Steps::new(&laws, (0., 0.), (10.0, 10.0));
+        let mut steps = Steps::new(&laws, (0., 0., 0.), (10.0, 10.0, 0.));
 
         // When-Then
-        assert_eq!(steps.next(), Some(([0.0, 0.0], Xy(0, 0))));
-        assert_eq!(steps.next(), Some(([2.5, 2.5], Xy(0, 0))));
-        assert_eq!(steps.next(), Some(([5.01, 5.01], Xy(1, 1)))); // :(
-        assert_eq!(steps.next(), Some(([7.52, 7.52], Xy(1, 1)))); // :(
-        assert_eq!(steps.next(), Some(([10.0, 10.0], Xy(2, 2))));
+        assert_eq!(steps.next(), Some(Step::First([0.0, 0.0, 0.0], Xy(0, 0))));
+        assert_eq!(steps.next(), Some(Step::Inside([2.5, 2.5, 0.0], Xy(0, 0))));
+        assert_eq!(
+            steps.next(),
+            Some(Step::Inside([5.01, 5.01, 0.0], Xy(1, 1)))
+        );
+        assert_eq!(
+            steps.next(),
+            Some(Step::Inside([7.52, 7.52, 0.0], Xy(1, 1)))
+        );
+        assert_eq!(steps.next(), Some(Step::Last([10.0, 10.0, 0.0], Xy(2, 2))));
         assert_eq!(steps.next(), None);
     }
 
@@ -152,11 +159,11 @@ mod tests {
     fn test_steps_in_diag() {
         // Given
         let laws = Laws::default();
-        let mut steps = Steps::new(&laws, (10., 10.), (15.0, 15.0));
+        let mut steps = Steps::new(&laws, (10., 10., 0.), (15.0, 15.0, 0.));
 
         // When-Then
-        assert_eq!(steps.next(), Some(([10.0, 10.0], Xy(2, 2))));
-        assert_eq!(steps.next(), Some(([12.5, 12.5], Xy(2, 2))));
-        assert_eq!(steps.next(), Some(([15., 15.], Xy(3, 3))));
+        assert_eq!(steps.next(), Some(Step::First([10.0, 10.0, 0.], Xy(2, 2))));
+        assert_eq!(steps.next(), Some(Step::Inside([12.5, 12.5, 0.], Xy(2, 2))));
+        assert_eq!(steps.next(), Some(Step::Last([15., 15., 0.], Xy(3, 3))));
     }
 }

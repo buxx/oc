@@ -32,15 +32,16 @@ pub fn on_insert_individual(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     tracing::trace!(name="spawn-individual", i=?individual.0, position=?individual.1.position);
+    let position = individual.1.position;
     let entity = commands
         .spawn((
             IndividualIndex(individual.0),
-            Position(individual.1.position),
+            Position(position),
             Tile(individual.1.tile),
             Region(individual.1.region),
             Behavior(individual.1.behavior),
             Forces(individual.1.forces.clone()),
-            Volume(individual.1.volume().clone()),
+            Volume(individual.1.volume(position).clone()),
             Mesh2d(meshes.add(Circle::new(2.5))),
             MeshMaterial2d(materials.add(Color::from(PURPLE))),
             Transform::from_xyz(

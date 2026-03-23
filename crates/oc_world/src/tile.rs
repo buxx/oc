@@ -69,12 +69,14 @@ impl Physic for Tile {
         &EMPTY
     }
 
-    fn volume(&self) -> &Volume {
-        // FIXME: according to tile type ...
-        &Volume::Cube {
+    fn volume(&self, ref_: [f32; 3]) -> Volume {
+        Volume::Cube {
+            x: ref_[0],
+            y: ref_[1],
+            z: f32::MIN,
             width: GEO_PIXELS_PER_TILE as f32,
             height: GEO_PIXELS_PER_TILE as f32,
-            depth: f32::MIN,
+            depth: f32::MAX,
         }
     }
 }

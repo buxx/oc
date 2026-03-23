@@ -45,15 +45,16 @@ pub fn on_insert_projectile(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position(), forces=?projectile.1.forces());
+    let position = projectile.1.position();
     let entity = commands
         .spawn((
             ProjectileId(projectile.0),
-            Position(projectile.1.position().clone()),
+            Position(*position),
             Tile(projectile.1.tile().clone()),
             Region(projectile.1.region().clone()),
             Forces(projectile.1.forces().clone()),
             Material_(Materials::Traversable),
-            Volume(projectile.1.volume().clone()),
+            Volume(projectile.1.volume(*position).clone()),
             Mesh2d(meshes.add(Circle::new(2.5))),
             MeshMaterial2d(materials.add(Color::from(RED))),
             Transform::from_xyz(

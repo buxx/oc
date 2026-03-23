@@ -98,14 +98,15 @@ impl Physic for Individual {
         &self.forces
     }
 
-    fn volume(&self) -> &Volume {
-        // FIXME
-        static VOLUME: Volume = Volume::Cube {
+    fn volume(&self, ref_: [f32; 3]) -> Volume {
+        Volume::Cube {
+            x: ref_[0],
+            y: ref_[1],
+            z: ref_[2],
             width: Meters(0.5).pixels(),
             height: Meters(0.5).pixels(),
             depth: Meters(1.8).pixels(),
-        };
-        &VOLUME
+        }
     }
 }
 

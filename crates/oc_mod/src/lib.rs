@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
+use derive_more::Constructor;
 use flate2::{Compression, write::GzEncoder};
 use oc_root::{GEO_PIXELS_PER_METERS, physics::Meters};
 use rkyv::{Archive, Deserialize, Serialize};
@@ -18,7 +19,15 @@ pub const DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS: f32 =
     DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS.0 * GEO_PIXELS_PER_METERS;
 
 #[derive(
-    Debug, Clone, Archive, Deserialize, Serialize, PartialEq, serde::Deserialize, serde::Serialize,
+    Debug,
+    Clone,
+    Archive,
+    Deserialize,
+    Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+    Constructor,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Mod {

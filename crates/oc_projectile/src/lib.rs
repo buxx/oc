@@ -82,8 +82,12 @@ impl Physic for Projectile {
         }
     }
 
-    fn volume(&self) -> &Volume {
-        &Volume::Point
+    fn volume(&self, ref_: [f32; 3]) -> Volume {
+        Volume::Point {
+            x: ref_[0],
+            y: ref_[1],
+            z: ref_[2],
+        }
     }
 }
 

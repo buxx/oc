@@ -1,6 +1,6 @@
 use rkyv::{Archive, Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, Eq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Xy(pub u64, pub u64);
 
