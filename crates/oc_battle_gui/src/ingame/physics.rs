@@ -83,12 +83,12 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
                 | (ObjectId::Tile(_), ObjectId::Individual(_))
                 | (ObjectId::Tile(_), ObjectId::Projectile(_))
                 | (ObjectId::Tile(_), ObjectId::Tile(_)) => {}
-                (ObjectId::Projectile(_projectile_id), ObjectId::Individual(_individual_index)) => {
+                (ObjectId::Projectile(_), ObjectId::Individual(_)) => {
                     // TODO: bam
                 }
-                (ObjectId::Projectile(_), ObjectId::Tile(_)) => {
-                    tracing::error!("FOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
+                (ObjectId::Projectile(i), ObjectId::Tile(_)) => {
                     // FIXME BS NOW: disapear + impact sound
+                    commands.trigger(ForgotProjectile(*i));
                 }
             }
         }

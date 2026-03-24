@@ -27,7 +27,7 @@ pub struct Processor<'x> {
 }
 
 impl<'x> Processor<'x> {
-    pub fn step(&self, i: usize) {
+    pub fn step(&self, i: usize) -> Vec<crate::runner::update::Update> {
         tracing::trace!(name = "physics-step", i = i);
 
         let (subject_upds, subject_events) = self.step_for(i, |w| w.individuals().with_ids());
@@ -39,8 +39,10 @@ impl<'x> Processor<'x> {
         self.apply(subject_effects);
         self.apply(projectile_effects);
 
-        self.react(subject_events);
-        self.react(projectile_events);
+        let mut updates = vec![];
+        updates.extend(self.react(subject_events));
+        updates.extend(self.react(projectile_events));
+        updates
     }
 
     fn step_for<F, I, T>(&self, i: usize, all: F) -> (Vec<(I, Vec<Update>)>, Vec<Event<ObjectId>>)
@@ -167,7 +169,9 @@ impl<'x> Processor<'x> {
         }
     }
 
-    fn react(&self, events: Vec<Event<ObjectId>>) {
+    fn react(&self, events: Vec<Event<ObjectId>>) -> Vec<crate::runner::update::Update> {
+        let mut updates = vec![];
+
         for event in events {
             match event {
                 Event::NoTile(id) => match id {
@@ -190,13 +194,15 @@ impl<'x> Processor<'x> {
                     ) => {
                         // FIXME: bam
                     }
-                    (ObjectId::Projectile(_), ObjectId::Tile(_)) => {
-                        tracing::error!("FOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
+                    (ObjectId::Projectile(id), ObjectId::Tile(_)) => {
                         // FIXME BS NOW: impact
+                        updates.push(crate::runner::update::Update::RemoveProjectile(id));
                     }
                 },
             }
         }
+
+        updates
     }
 }
 

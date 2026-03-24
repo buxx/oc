@@ -1,7 +1,7 @@
 use std::{
     sync::{
         Arc,
-        mpsc::{Receiver, Sender},
+        mpsc::{Receiver, Sender, channel},
     },
     time::{Duration, Instant},
 };
@@ -20,7 +20,8 @@ use crate::{
     utils::context::Context,
 };
 
-mod input;
+pub mod input;
+pub mod update;
 
 #[derive(Constructor)]
 pub struct Runner {
@@ -53,7 +54,11 @@ impl Runner {
                     let elapsed = last.elapsed().as_micros() as u64;
                     let wait = PHYSICS_TICK_INTERVAL_US - elapsed;
                     std::thread::sleep(Duration::from_micros(wait));
-                    physics::Processor::new(&ctx).step(i);
+
+                    for update in physics::Processor::new(&ctx).step(i) {
+                        ctx.state.update(update, &ctx.output);
+                    }
+
                     last = Instant::now();
                 }
             });
@@ -130,7 +135,9 @@ impl Runner {
                     }
                     Event::Disconnected(endpoint) => state.listeners_mut().remove(&endpoint),
                     Event::Message(endpoint, message) => {
-                        Dealer::new(&state, &output, endpoint).deal(message);
+                        for update in Dealer::new(&state, &output, endpoint).deal(message) {
+                            state.update(update, &output);
+                        }
                     }
                 }
             }

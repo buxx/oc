@@ -18,7 +18,6 @@ pub mod map;
 pub mod meta;
 pub mod physics;
 pub mod tile;
-pub mod update;
 
 #[derive(Constructor)]
 pub struct World {
