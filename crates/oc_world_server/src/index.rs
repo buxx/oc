@@ -81,6 +81,14 @@ impl Indexes {
         self.update_projectile_region(id, projectile.region().clone(), projectile.region().clone());
     }
 
+    pub fn remove_projectile(&mut self, id: &ProjectileId, projectile: &Projectile) {
+        let tile: WorldTileIndex = (*projectile.tile()).into();
+        self.tiles_projectiles[tile.0 as usize].retain(|p| p != id);
+
+        let region: WorldRegionIndex = (*projectile.region()).into();
+        self.regions_projectiles[region.0 as usize].retain(|p| p != id);
+    }
+
     fn update_individual_tile(&mut self, i: IndividualIndex, now: TileXy, before: TileXy) {
         let before_tile: WorldTileIndex = before.into();
         self.tiles_individuals[before_tile.0 as usize].retain(|i_| *i_ != i);
