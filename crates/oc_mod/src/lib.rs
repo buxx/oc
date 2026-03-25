@@ -9,7 +9,14 @@ use ron;
 use tar::Builder;
 use thiserror::Error;
 
-pub mod projectiles;
+use crate::{
+    ammunition::{Ammunition, AmmunitionIndex, IndexedAmmunition},
+    weapons::{Weapon, WeaponIndex},
+};
+
+pub mod ammunition;
+pub mod armament;
+pub mod weapons;
 
 pub const MOD_DIR: &str = "mods";
 pub const MOD_RON: &str = "mod.ron";
@@ -34,7 +41,9 @@ pub struct Mod {
     name: String,
     version: u32,
     #[serde(skip, default)]
-    pub projectiles: Vec<projectiles::IndexedProjectile>,
+    pub ammunitions: Vec<ammunition::IndexedAmmunition>,
+    #[serde(skip, default)]
+    pub weapons: Vec<weapons::IndexedWeapon>,
     // Below game specs
     #[serde(default = "default_human_default_stand_up_fire_meters")]
     pub human_default_stand_up_fire_meters: f32,
@@ -44,7 +53,8 @@ impl Mod {
     pub fn load(path: &PathBuf, cache_: Option<&PathBuf>) -> Result<Self, Error> {
         let mut mod_ = load_mod(&path)?;
 
-        mod_.projectiles = projectiles::load(&path)?;
+        mod_.ammunitions = ammunition::load(&path)?;
+        mod_.weapons = weapons::load(&path, &mod_)?;
 
         if let Some(cache_) = cache_ {
             cache(&mod_, &path, cache_)?;
@@ -59,6 +69,29 @@ impl Mod {
 
     pub fn archive(&self) -> String {
         format!("{}.tar.gz", self.canonical())
+    }
+
+    fn amunitions_from_names(
+        &self,
+        amunitions: Vec<String>,
+    ) -> Result<Vec<&IndexedAmmunition>, Error> {
+        amunitions
+            .iter()
+            .map(|amunition| {
+                self.ammunitions
+                    .iter()
+                    .find(|a| a.name() == amunition)
+                    .ok_or(Error::UnknownAmunitionName(amunition.clone()))
+            })
+            .collect::<Result<Vec<&IndexedAmmunition>, Error>>()
+    }
+
+    pub fn ammunition(&self, index: AmmunitionIndex) -> &Ammunition {
+        &self.ammunitions[index.0 as usize]
+    }
+
+    pub fn weapon(&self, index: WeaponIndex) -> &Weapon {
+        &self.weapons[index.0 as usize]
     }
 }
 
@@ -100,8 +133,12 @@ pub enum Error {
     Cache(#[from] CacheError),
     #[error("mod.ron: {0}")]
     Mod(#[from] ModError),
-    #[error("Projectiles: {0}")]
-    Projectiles(#[from] projectiles::Error),
+    #[error("Amunitions: {0}")]
+    Amunitions(#[from] ammunition::Error),
+    #[error("Unknown amunitions name: {0}")]
+    UnknownAmunitionName(String),
+    #[error("Weapons: {0}")]
+    Weapons(#[from] weapons::Error),
 }
 
 #[derive(Debug, Error)]

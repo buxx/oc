@@ -6,9 +6,11 @@ use derive_more::Constructor;
 use oc_individual::IndividualIndex;
 use oc_mod::{
     DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS, Mod,
-    projectiles::{IndexedProjectile, ProjectileType},
+    ammunition::IndexedAmmunition,
+    armament::ShotMode,
+    weapons::{IndexedWeapon, WeaponType},
 };
-use oc_projectile::{ProjectileId, spawn::SpawnProfile};
+use oc_projectile::ProjectileId;
 use strum_macros::{Display, EnumIter};
 
 pub mod component;
@@ -39,10 +41,12 @@ pub struct Context {
     projectiles: Vec<Subject<ProjectileId>>,
     // Left click
     left_click_mode: LeftClickModeType,
-    spawn_projectile_type: ProjectileType,
-    spawn_projectile: Option<IndexedProjectile>,
+    spawn_weapon_type: WeaponType,
+    spawn_weapon: Option<IndexedWeapon>,
+    spawn_ammunition: Option<IndexedAmmunition>,
+    spawn_shot_mode: Option<ShotMode>,
     spawn_projectile_click_mode: SpawnProjectileClickMode,
-    spawn_profile: SpawnProfile,
+    spawn_repeat: u8,
     spawn_projectile_plus_z: f32, // pixels
 }
 
@@ -56,10 +60,12 @@ impl Default for Context {
             individuals: Default::default(),
             projectiles: Default::default(),
             left_click_mode: Default::default(),
-            spawn_projectile_type: Default::default(),
-            spawn_projectile: Default::default(),
+            spawn_weapon_type: Default::default(),
+            spawn_weapon: Default::default(),
+            spawn_ammunition: Default::default(),
+            spawn_shot_mode: Default::default(),
             spawn_projectile_click_mode: Default::default(),
-            spawn_profile: Default::default(),
+            spawn_repeat: 1,
             spawn_projectile_plus_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS,
         }
     }

@@ -18,6 +18,7 @@ impl super::State {
         for message in match update {
             #[cfg(feature = "debug")]
             Update::SpawnProjectile(spawn) => self.spawn_projectile(spawn),
+            // FIXME BS NOW: code it
             Update::RemoveProjectile(id) => vec![],
         } {
             output.send(message).ok_or_log();

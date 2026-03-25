@@ -5042,6 +5042,8 @@ version = "0.1.0"
 dependencies = [
  "derive_more",
  "rkyv",
+ "serde",
+ "serde_derive",
 ]
 
 [[package]]

@@ -1,0 +1,26 @@
+[
+    Rifle((
+        name: "MosinNagantM1924",
+        amunitions: ["762x54R"],
+        shots: [Single],
+        velocity: MetersSeconds(Meters(600.0))
+    )),
+    Rifle((
+        name: "Mauser G41",
+        amunitions: ["792x57"],
+        shots: [Single],
+        velocity: MetersSeconds(Meters(600.0))
+    )),
+    MachineGun((
+        name: "Bren Mark2",
+        amunitions: ["303British"],
+        shots: [Single, Burst3(interval:0.2)],
+        velocity: MetersSeconds(Meters(600.0))
+    )),
+    MachineGun((
+        name: "Mg34",
+        amunitions: ["792x57"],
+        shots: [Single, Burst3(interval:0.2)],
+        velocity: MetersSeconds(Meters(600.0))
+    )),
+]

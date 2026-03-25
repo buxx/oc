@@ -1,14 +1,12 @@
 use bevy::prelude::*;
 use bevy_egui::prelude::*;
-use oc_mod::{Mod, projectiles::ProjectileType};
+use oc_mod::{Mod, weapons::WeaponType};
 use oc_root::physics::Meters;
 use strum::IntoEnumIterator;
 
 use crate::ingame::{
     debug::projectile::SpawnProjectileProfile,
-    input::left_click::{
-        LeftClickMode, LeftClickModeType, SetLeftClick, SetSpawnProjectileLeftClickMode,
-    },
+    input::left_click::{LeftClickMode, LeftClickModeType, SetLeftClick},
 };
 
 impl super::Context {
@@ -28,41 +26,67 @@ impl super::Context {
             });
 
         match left_click_mode {
-            LeftClickModeType::Select => {}
+            LeftClickModeType::Select => {
+                commands.trigger(SetLeftClick(LeftClickMode::Select));
+            }
             LeftClickModeType::SpawnProjectile => {
-                let projectile_type = &mut self.spawn_projectile_type;
-                let projectile_before = self.spawn_projectile.clone();
-                let projectile = &mut self.spawn_projectile;
-                let profile = &mut self.spawn_profile;
-                let click_mode_before = self.spawn_projectile_click_mode.clone();
+                let weapon_type = &mut self.spawn_weapon_type;
+                let weapon_before = self.spawn_weapon.clone();
+                let weapon = &mut self.spawn_weapon;
+                // let ammunition_before = self.spawn_ammunition.clone();
+                let ammunition = &mut self.spawn_ammunition;
+                // let shot_mode_before = self.spawn_shot_mode.clone();
+                let shot_mode = &mut self.spawn_shot_mode;
+                let repeat = &mut self.spawn_repeat;
                 let click_mode = &mut self.spawn_projectile_click_mode;
                 let plus_z = &mut self.spawn_projectile_plus_z;
 
                 ui.horizontal(|ui| {
-                    egui::ComboBox::from_label("Projectile type")
-                        .selected_text(projectile_type.name())
+                    egui::ComboBox::new("weapon_type", "")
+                        .selected_text(weapon_type.name())
                         .show_ui(ui, |ui| {
-                            for item in ProjectileType::iter() {
+                            for item in WeaponType::iter() {
                                 let name = item.name();
-                                ui.selectable_value(projectile_type, item, name);
+                                ui.selectable_value(weapon_type, item, name);
                             }
                         });
 
-                    egui::ComboBox::from_label("Projectile")
-                        .selected_text(projectile.as_ref().map(|p| p.label()).unwrap_or_default())
+                    egui::ComboBox::new("weapon", "")
+                        .selected_text(weapon.as_ref().map(|p| p.name()).unwrap_or_default())
                         .show_ui(ui, |ui| {
-                            let items = mod_
-                                .projectiles
-                                .iter()
-                                .filter(|p| p.is_type(*projectile_type));
+                            let items = mod_.weapons.iter().filter(|p| p.is_type(*weapon_type));
                             for item in items {
                                 let item = item.clone();
-                                let name = item.label();
-                                ui.selectable_value(projectile, Some(item.clone()), name);
+                                let name = item.name();
+                                ui.selectable_value(weapon, Some(item.clone()), name);
                             }
                         });
 
-                    egui::ComboBox::from_label("Click Mode")
+                    if let Some(weapon) = &weapon {
+                        egui::ComboBox::new("ammunition", "")
+                            .selected_text(
+                                ammunition.as_ref().map(|p| p.name()).unwrap_or_default(),
+                            )
+                            .show_ui(ui, |ui| {
+                                for item in weapon.ammunitions() {
+                                    let item = item.clone();
+                                    let name = item.name();
+                                    ui.selectable_value(ammunition, Some(item.clone()), name);
+                                }
+                            });
+
+                        egui::ComboBox::new("shot_mode", "")
+                            .selected_text(shot_mode.as_ref().map(|p| p.name()).unwrap_or_default())
+                            .show_ui(ui, |ui| {
+                                for item in weapon.shot_modes() {
+                                    let item = item.clone();
+                                    let name = item.name();
+                                    ui.selectable_value(shot_mode, Some(item.clone()), name);
+                                }
+                            });
+                    }
+
+                    egui::ComboBox::new("click_mode", "")
                         .selected_text(click_mode.to_string())
                         .show_ui(ui, |ui| {
                             for item in super::SpawnProjectileClickMode::iter() {
@@ -73,21 +97,8 @@ impl super::Context {
                 });
 
                 ui.horizontal(|ui| {
-                    ui.add(
-                        egui::DragValue::new(&mut profile.count)
-                            .range(1..=32)
-                            .speed(1),
-                    );
+                    ui.add(egui::DragValue::new(repeat).range(1..=255).speed(1));
                     ui.label("count");
-
-                    ui.separator();
-
-                    ui.add(
-                        egui::DragValue::new(&mut profile.interval_ms)
-                            .range(10..=5000)
-                            .speed(10),
-                    );
-                    ui.label("interval");
 
                     ui.separator();
 
@@ -95,19 +106,25 @@ impl super::Context {
                     ui.label("+z");
                 });
 
-                if projectile_before != self.spawn_projectile {
-                    if let Some(spawn_projectile) = &self.spawn_projectile {
-                        let projectile = spawn_projectile.clone();
-                        let profile = profile.clone();
-                        let plus_z = Meters(*plus_z);
-                        let profile = SpawnProjectileProfile::new(projectile, profile, plus_z);
-                        commands.trigger(SetLeftClick(LeftClickMode::SpawnProjectile(profile)));
-                    }
+                if weapon_before != self.spawn_weapon {
+                    self.spawn_ammunition = None;
+                    self.spawn_shot_mode = None;
                 }
 
-                let click_mode_now = click_mode.clone();
-                if click_mode_before != click_mode_now {
-                    commands.trigger(SetSpawnProjectileLeftClickMode(click_mode_now));
+                if let (Some(weapon), Some(ammunition), Some(shot_mode)) = (
+                    &self.spawn_weapon,
+                    &self.spawn_ammunition,
+                    &self.spawn_shot_mode,
+                ) {
+                    let plus_z = Meters(*plus_z);
+                    let spawn = SpawnProjectileProfile::new(
+                        weapon.index(),
+                        ammunition.index(),
+                        *shot_mode,
+                        *repeat,
+                        plus_z,
+                    );
+                    commands.trigger(SetLeftClick(LeftClickMode::SpawnProjectile(spawn)));
                 }
             }
         }

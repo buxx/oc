@@ -1,10 +1,9 @@
 #[cfg(feature = "debug")]
-use crate::world::World;
+use crate::ingame::debug::projectile::SpawnProjectileProfile;
 #[cfg(feature = "debug")]
-use crate::{
-    ingame::debug::projectile::SpawnProjectileProfile,
-    window::debug::battle::SpawnProjectileClickMode,
-};
+use crate::window::debug::battle::SpawnProjectileClickMode;
+#[cfg(feature = "debug")]
+use crate::world::World;
 #[cfg(feature = "debug")]
 use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
@@ -128,9 +127,12 @@ pub fn click_debug(
                         };
                         let end_z = end_tile.z as f32;
                         let end = [end.x, end.y, end_z];
-                        let projectile = profile.projectile.id();
-                        let profile = profile.profile.clone();
-                        let spawn = SpawnProjectile::new(projectile, profile, start, end);
+                        let weapon = profile.weapon;
+                        let ammunition = profile.ammunition;
+                        let shot_mode = profile.shot_mode;
+                        let repeat = profile.repeat;
+                        let spawn =
+                            SpawnProjectile::new(weapon, ammunition, shot_mode, repeat, start, end);
 
                         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
                         commands.trigger(DespawnClicksLine);
@@ -161,9 +163,12 @@ pub fn click_debug(
                         let end_z = end_tile.z as f32;
                         let end = [point.x, point.y, end_z];
 
-                        let projectile = profile.projectile.id();
-                        let profile = profile.profile.clone();
-                        let spawn = SpawnProjectile::new(projectile, profile, start, end);
+                        let weapon = profile.weapon;
+                        let ammunition = profile.ammunition;
+                        let shot_mode = profile.shot_mode;
+                        let repeat = profile.repeat;
+                        let spawn =
+                            SpawnProjectile::new(weapon, ammunition, shot_mode, repeat, start, end);
 
                         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
                     }

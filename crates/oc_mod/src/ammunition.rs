@@ -5,7 +5,7 @@ use rkyv::Archive;
 use strum_macros::EnumIter;
 use thiserror::Error;
 
-pub const PROJECTILES_RON: &str = "projectiles.ron";
+pub const PROJECTILES_RON: &str = "amunitions.ron";
 
 #[derive(
     Debug,
@@ -19,9 +19,9 @@ pub const PROJECTILES_RON: &str = "projectiles.ron";
     serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub struct ProjectileIndex(pub u32);
+pub struct AmmunitionIndex(pub u32);
 
-impl Deref for ProjectileIndex {
+impl Deref for AmmunitionIndex {
     type Target = u32;
 
     fn deref(&self) -> &Self::Target {
@@ -29,7 +29,6 @@ impl Deref for ProjectileIndex {
     }
 }
 
-// TODO: use something generic here
 #[derive(
     Debug,
     Clone,
@@ -41,22 +40,22 @@ impl Deref for ProjectileIndex {
     serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub struct IndexedProjectile(pub ProjectileIndex, pub Projectile);
+pub struct IndexedAmmunition(pub AmmunitionIndex, pub Ammunition);
 
-impl Deref for IndexedProjectile {
-    type Target = Projectile;
+impl Deref for IndexedAmmunition {
+    type Target = Ammunition;
 
     fn deref(&self) -> &Self::Target {
         &self.1
     }
 }
 
-impl IndexedProjectile {
-    pub fn id(&self) -> ProjectileIndex {
+impl IndexedAmmunition {
+    pub fn index(&self) -> AmmunitionIndex {
         self.0
     }
 
-    pub fn inner(&self) -> &Projectile {
+    pub fn inner(&self) -> &Ammunition {
         &self.1
     }
 }
@@ -72,34 +71,34 @@ impl IndexedProjectile {
     serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub enum Projectile {
-    Bullet(Bullet),
+pub enum Ammunition {
+    Cartridge(Cartridge),
 }
 
-impl Projectile {
-    pub fn label(&self) -> &str {
+impl Ammunition {
+    pub fn name(&self) -> &str {
         match self {
-            Projectile::Bullet(bullet) => &bullet.name,
+            Ammunition::Cartridge(bullet) => &bullet.name,
         }
     }
 
-    pub fn is_type(&self, type_: ProjectileType) -> bool {
+    pub fn is_type(&self, type_: AmmunitionType) -> bool {
         match self {
-            Projectile::Bullet(_) => matches!(type_, ProjectileType::Bullet),
+            Ammunition::Cartridge(_) => matches!(type_, AmmunitionType::Cartridge),
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter, Default)]
-pub enum ProjectileType {
+pub enum AmmunitionType {
     #[default]
-    Bullet,
+    Cartridge,
 }
 
-impl ProjectileType {
+impl AmmunitionType {
     pub fn name(&self) -> &str {
         match self {
-            ProjectileType::Bullet => "Bullet",
+            AmmunitionType::Cartridge => "Cartridge",
         }
     }
 }
@@ -115,27 +114,28 @@ impl ProjectileType {
     serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub struct Bullet {
+pub struct Cartridge {
     name: String,
 }
 
-pub fn load(path: &PathBuf) -> Result<Vec<IndexedProjectile>, Error> {
+// TODO: use something generic here (bullet/weapon/etc)
+pub fn load(path: &PathBuf) -> Result<Vec<IndexedAmmunition>, Error> {
     let path = path.join(PROJECTILES_RON);
-    let projectiles = std::fs::read_to_string(&path);
-    let projectiles = projectiles.context(format!("Read {}", path.display()))?;
-    let projectiles: Vec<Projectile> = ron::from_str(&projectiles)?;
+    let amunitions = std::fs::read_to_string(&path);
+    let amunitions = amunitions.context(format!("Read {}", path.display()))?;
+    let amunitions: Vec<Ammunition> = ron::from_str(&amunitions)?;
 
-    if projectiles.is_empty() {
+    if amunitions.is_empty() {
         return Err(Error::Empty);
     }
 
-    let projectiles = projectiles
+    let amunitions = amunitions
         .into_iter()
         .enumerate()
-        .map(|(i, p)| IndexedProjectile(ProjectileIndex(i as u32), p))
+        .map(|(i, p)| IndexedAmmunition(AmmunitionIndex(i as u32), p))
         .collect();
 
-    Ok(projectiles)
+    Ok(amunitions)
 }
 
 #[derive(Debug, Error)]
@@ -144,6 +144,6 @@ pub enum Error {
     Any(#[from] anyhow::Error),
     #[error("Format: {0}")]
     Format(#[from] ron::de::SpannedError),
-    #[error("No projectiles defined (require at least one)")]
+    #[error("No amunitions defined (require at least one)")]
     Empty,
 }

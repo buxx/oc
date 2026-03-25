@@ -6,3 +6,5 @@ edition = "2024"
 [dependencies]
 rkyv.workspace = true
 derive_more = { workspace = true, features = ["constructor"] }
+serde = "1.0"
+serde_derive = "1.0"

@@ -1,7 +1,7 @@
 use std::{
     sync::{
         Arc,
-        mpsc::{Receiver, Sender, channel},
+        mpsc::{Receiver, Sender},
     },
     time::{Duration, Instant},
 };

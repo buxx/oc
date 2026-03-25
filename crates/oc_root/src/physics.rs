@@ -1,10 +1,20 @@
 use std::ops::Deref;
 
-use rkyv::{Archive, Deserialize, Serialize};
+use rkyv::Archive;
 
 use crate::GEO_PIXELS_PER_METERS;
 
-#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[derive(
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    serde::Deserialize,
+    serde::Serialize,
+    Debug,
+    PartialEq,
+    Clone,
+    Copy,
+)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Meters(pub f32);
 
@@ -14,7 +24,17 @@ impl Meters {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[derive(
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    serde::Deserialize,
+    serde::Serialize,
+    Debug,
+    PartialEq,
+    Clone,
+    Copy,
+)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct MetersSeconds(pub Meters);
 
