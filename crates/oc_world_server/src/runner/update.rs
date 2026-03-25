@@ -1,4 +1,4 @@
-use std::sync::mpsc::Sender;
+use std::{sync::mpsc::Sender, time::Instant};
 
 use crate::projectile;
 use crate::routing::Listening;
@@ -11,6 +11,7 @@ use oc_projectile::spawn::SpawnProjectile;
 use oc_utils::error::OkOrLogError;
 
 pub enum Update {
+    Schedule(Instant, Box<Update>),
     #[cfg(feature = "debug")]
     SpawnProjectile(SpawnProjectile),
     RemoveProjectile(ProjectileId),
@@ -20,11 +21,17 @@ impl super::State {
     pub fn update(&self, update: Update, output: &Sender<(Endpoint, ToClient)>) {
         for message in match update {
             #[cfg(feature = "debug")]
+            Update::Schedule(instant, update) => self.schedule(instant, *update),
             Update::SpawnProjectile(spawn) => self.spawn_projectile(spawn),
             Update::RemoveProjectile(id) => self.remove_projectile(id),
         } {
             output.send(message).ok_or_log();
         }
+    }
+
+    fn schedule(&self, instant: Instant, update: Update) -> Vec<(Endpoint, ToClient)> {
+        self.scheduled().push((instant, update));
+        vec![]
     }
 
     #[cfg(feature = "debug")]

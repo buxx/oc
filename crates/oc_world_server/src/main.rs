@@ -63,11 +63,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mod_ = Mod::load(&mod_, Some(&cache))?;
     let world = WorldLoader::new(mod_.clone(), world.clone(), cache.clone()).load(&ids)?;
     let (input, output) = network::listen(args.host);
-    let state = Arc::new(State::new(
+    let state = State::new(
         #[cfg(feature = "debug")]
         ids,
         world,
-    ));
+    );
+    let state = Arc::new(state);
     let config = Config::new(args.static_.port());
 
     let state_ = state.clone();

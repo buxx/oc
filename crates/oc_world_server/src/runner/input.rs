@@ -1,9 +1,13 @@
-use std::sync::{Arc, mpsc::Sender};
+use std::{
+    sync::{Arc, mpsc::Sender},
+    time::{Duration, Instant},
+};
 
 use derive_more::Constructor;
 use message_io::network::Endpoint;
 use oc_geo::region::WorldRegionIndex;
 use oc_network::{ToClient, ToServer};
+use oc_projectile::spawn::SpawnProjectile;
 use oc_utils::error::OkOrLogError;
 use oc_world::tile::IntoTiles;
 
@@ -25,7 +29,7 @@ impl<'a> Dealer<'a> {
             ToServer::ForgotRegion(region) => self.forgot_region(region),
             ToServer::Refresh => self.refresh(),
             #[cfg(feature = "debug")]
-            ToServer::SpawnProjectile(spawn) => vec![Update::SpawnProjectile(spawn)],
+            ToServer::SpawnProjectile(spawn) => self.spawn_projectile(spawn),
         }
     }
 
@@ -81,5 +85,13 @@ impl<'a> Dealer<'a> {
         let tiles = ToClient::Tiles(region, tiles);
         let message = (self.endpoint.clone(), tiles);
         self.output.send(message).ok_or_log();
+    }
+
+    fn spawn_projectile(&self, spawn: SpawnProjectile) -> Vec<Update> {
+        // FIXME BS NOW
+        vec![Update::Schedule(
+            Instant::now() + Duration::from_secs(1),
+            Box::new(Update::SpawnProjectile(spawn)),
+        )]
     }
 }

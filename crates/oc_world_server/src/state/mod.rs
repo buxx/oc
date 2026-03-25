@@ -1,4 +1,7 @@
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::{
+    sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    time::Instant,
+};
 
 use message_io::network::Endpoint;
 use oc_geo::tile::WorldTileIndex;
@@ -8,7 +11,7 @@ use oc_projectile::ProjectileId;
 use oc_root::ids::Ids;
 use oc_world::World;
 
-use crate::{index::Indexes, perf::Perf, routing::Listeners};
+use crate::{index::Indexes, perf::Perf, routing::Listeners, runner::update::Update};
 
 #[derive(Clone)]
 pub struct State {
@@ -18,6 +21,7 @@ pub struct State {
     world: Arc<RwLock<World>>,
     indexes: Arc<RwLock<Indexes>>,
     listeners: Arc<RwLock<Listeners<Endpoint>>>,
+    scheduled: Arc<Mutex<Vec<(Instant, Update)>>>,
 }
 
 impl State {
@@ -26,6 +30,7 @@ impl State {
         let indexes = Arc::new(RwLock::new(Indexes::new(&world)));
         let world = Arc::new(RwLock::new(world));
         let listeners = Arc::new(RwLock::new(Listeners::new()));
+        let scheduled = Arc::new(Mutex::new(vec![]));
 
         Self {
             #[cfg(feature = "debug")]
@@ -34,6 +39,7 @@ impl State {
             world,
             indexes,
             listeners,
+            scheduled,
         }
     }
 
@@ -59,6 +65,10 @@ impl State {
 
     pub fn listeners_mut(&self) -> RwLockWriteGuard<'_, Listeners<Endpoint>> {
         self.listeners.write().expect("Assume lock")
+    }
+
+    pub fn scheduled(&self) -> MutexGuard<'_, Vec<(Instant, Update)>> {
+        self.scheduled.lock().expect("Assume lock")
     }
 
     #[cfg(feature = "debug")]

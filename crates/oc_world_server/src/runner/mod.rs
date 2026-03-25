@@ -36,6 +36,7 @@ impl Runner {
         self.listen_input(input);
         self.start_physics();
         self.start_individuals();
+        self.start_scheduler();
         self.track_perfs();
 
         Ok(())
@@ -140,6 +141,31 @@ impl Runner {
                         }
                     }
                 }
+            }
+        });
+    }
+
+    fn start_scheduler(&self) {
+        let state = self.state.clone();
+        let output = self.output.clone();
+
+        std::thread::spawn(move || {
+            loop {
+                {
+                    let now = Instant::now();
+                    let mut tasks = vec![];
+                    while let Some((instant, update)) = state.scheduled().pop() {
+                        if now >= instant {
+                            state.update(update, &output);
+                        } else {
+                            tasks.push((instant, update))
+                        }
+                    }
+                    *state.scheduled() = tasks;
+                }
+
+                // TODO: This is a very basic system of scheduler ...
+                std::thread::sleep(Duration::from_millis(10));
             }
         });
     }
