@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 
+use bevy::audio::{AudioPlugin, SpatialScale};
 use bevy::prelude::*;
 use bevy::sprite_render::Wireframe2dPlugin;
 use bevy_egui::EguiPlugin;
@@ -43,18 +44,30 @@ pub struct Args_ {
 #[derive(Resource)]
 pub struct Args(pub Args_);
 
+/// Spatial audio uses the distance to attenuate the sound volume. In 2D with the default camera,
+/// 1 pixel is 1 unit of distance, so we use a scale so that 100 pixels is 1 unit of distance for
+/// audio.
+const AUDIO_SCALE: f32 = 1. / 100.0;
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = App::new();
 
-    app.add_plugins(DefaultPlugins.set(WindowPlugin {
-        primary_window: Some(Window {
-            title: "Open Combat".into(),
-            resolution: (800, 800).into(),
-            // present_mode: PresentMode::AutoNoVsync,
-            ..default()
-        }),
-        ..default()
-    }))
+    app.add_plugins(
+        DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Open Combat".into(),
+                    resolution: (800, 800).into(),
+                    // present_mode: PresentMode::AutoNoVsync,
+                    ..default()
+                }),
+                ..default()
+            })
+            .set(AudioPlugin {
+                default_spatial_scale: SpatialScale::new_2d(AUDIO_SCALE),
+                ..default()
+            }),
+    )
     .add_plugins(EguiPlugin::default())
     .add_plugins(Wireframe2dPlugin::default())
     .add_plugins(ErrorPlugin)

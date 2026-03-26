@@ -58,6 +58,7 @@ impl super::State {
         let listeners = self.listeners();
         let sound = fx.then(|| self.mod_().pick_sound((spawn.weapon, spawn.shot)));
         let sound = sound.flatten();
+        let position = *projectile.position();
 
         listeners
             .find(Listening::Regions(vec![region]))
@@ -70,7 +71,7 @@ impl super::State {
                 messages.push((listener.clone(), insert));
 
                 if let Some(sound) = sound {
-                    let fx = fx::Fx::Audio(fx::Audio::PlayOnce(sound));
+                    let fx = fx::Fx::Audio(fx::Audio::PlayOnce(sound, position));
                     let fx = ToClient::Fx(fx);
                     messages.push((listener.clone(), fx));
                 }
