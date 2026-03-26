@@ -43,7 +43,7 @@ impl WorldLoader {
         let tiles: Vec<Tile> = (0..TILES_COUNT)
             .map(|i| Tile::new(WorldTileIndex(i as u64), Nature::ShortGrass, 0))
             .collect();
-        let individuals = hack_individuals();
+        let individuals = hack_individuals(&tiles);
         // TODO: when load from backup, regenerate ids
         let projectiles = FxHashMap::default();
         let world = World::new(self.mod_.clone(), meta, tiles, individuals, projectiles);
@@ -195,17 +195,20 @@ pub enum Error {
     Meta(#[from] MetaError),
 }
 
-fn hack_individuals() -> Vec<Individual> {
+fn hack_individuals(tiles: &Vec<Tile>) -> Vec<Individual> {
     (0..INDIVIDUALS_COUNT)
         .map(|i| {
-            let xy = TileXy::from(WorldTileIndex(i as u64));
+            let tile_i = WorldTileIndex(i as u64);
+            let tile_xy = TileXy::from(tile_i);
+            let tile = &tiles[tile_i.0 as usize];
+
             let position = [
-                ((xy.0.0 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
-                ((xy.0.1 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
-                0.0, // FIXME BS NOW: must be the tile z
+                ((tile_xy.0.0 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
+                ((tile_xy.0.1 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
+                tile.z as f32,
             ];
-            let region: RegionXy = xy.into();
-            Individual::new(position, xy, region, Behavior::Idle, vec![])
+            let region: RegionXy = tile_xy.into();
+            Individual::new(position, tile_xy, region, Behavior::Idle, vec![])
         })
         .collect()
 }
