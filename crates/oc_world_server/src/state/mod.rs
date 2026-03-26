@@ -8,7 +8,6 @@ use oc_geo::tile::WorldTileIndex;
 use oc_individual::IndividualIndex;
 use oc_mod::Mod;
 use oc_projectile::ProjectileId;
-#[cfg(feature = "debug")]
 use oc_root::ids::Ids;
 use oc_world::World;
 
@@ -16,7 +15,6 @@ use crate::{index::Indexes, perf::Perf, routing::Listeners, runner::update::Upda
 
 #[derive(Clone)]
 pub struct State {
-    #[cfg(feature = "debug")]
     ids: Ids,
     mod_: Mod,
     pub perf: Arc<Perf>,
@@ -27,7 +25,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(#[cfg(feature = "debug")] ids: Ids, mod_: Mod, world: World) -> Self {
+    pub fn new(ids: Ids, mod_: Mod, world: World) -> Self {
         let perf = Arc::new(Perf::default());
         let indexes = Arc::new(RwLock::new(Indexes::new(&world)));
         let world = Arc::new(RwLock::new(world));
@@ -35,7 +33,6 @@ impl State {
         let scheduled = Arc::new(Mutex::new(vec![]));
 
         Self {
-            #[cfg(feature = "debug")]
             ids,
             mod_,
             perf,
@@ -78,7 +75,6 @@ impl State {
         self.scheduled.lock().expect("Assume lock")
     }
 
-    #[cfg(feature = "debug")]
     pub fn new_projectile_id(&self) -> ProjectileId {
         let projectiles = &self.ids.projectiles;
         let id = projectiles.fetch_add(1, std::sync::atomic::Ordering::Relaxed);

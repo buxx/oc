@@ -5,16 +5,13 @@ use crate::routing::Listening;
 use message_io::network::Endpoint;
 use oc_geo::region::{Region, WorldRegionIndex};
 use oc_network::ToClient;
-#[cfg(feature = "debug")]
 use oc_physics::fx;
 use oc_projectile::ProjectileId;
-#[cfg(feature = "debug")]
 use oc_projectile::spawn::SpawnProjectile;
 use oc_utils::error::OkOrLogError;
 
 pub enum Update {
     Schedule(Instant, Box<Update>),
-    #[cfg(feature = "debug")]
     SpawnProjectile(SpawnProjectile, bool), // bool == fx
     RemoveProjectile(ProjectileId),
 }
@@ -22,7 +19,6 @@ pub enum Update {
 impl super::State {
     pub fn update(&self, update: Update, output: &Sender<(Endpoint, ToClient)>) {
         for message in match update {
-            #[cfg(feature = "debug")]
             Update::Schedule(instant, update) => self.schedule(instant, *update),
             Update::SpawnProjectile(spawn, fx) => self.spawn_projectile(spawn, fx),
             Update::RemoveProjectile(id) => self.remove_projectile(id),
@@ -36,7 +32,6 @@ impl super::State {
         vec![]
     }
 
-    #[cfg(feature = "debug")]
     fn spawn_projectile(&self, spawn: SpawnProjectile, fx: bool) -> Vec<(Endpoint, ToClient)> {
         use oc_mod::PickSound;
 
