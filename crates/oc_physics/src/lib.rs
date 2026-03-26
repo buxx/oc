@@ -8,6 +8,7 @@ use rkyv::{Archive, Deserialize, Serialize};
 use crate::{collision::Material, volume::Volume};
 
 pub mod collision;
+pub mod fx;
 pub mod line;
 pub mod reactive;
 pub mod translation;
@@ -76,7 +77,6 @@ pub trait UpdatePhysic: Physic + Material {
     fn set_volume(&self, value: Volume);
 }
 
-// FIXME BS NOW; delete it ?
 #[derive(Debug)]
 pub struct Corps<I: Clone + std::fmt::Debug> {
     pub i: I,
@@ -162,7 +162,7 @@ where
     'forces: for force in object.forces() {
         match force {
             Force::Translation(direction, speed) => {
-                let speed = speed.0.0 * laws.tick_coeff;
+                let speed = speed.0 * laws.tick_coeff;
                 let pixels = speed * laws.pixels_per_meters as f32;
                 let [x, y, z] = position;
                 let (x_, y_, z_) = (
@@ -241,7 +241,6 @@ where
 #[cfg(test)]
 mod tests {
     use oc_geo::tile::TileXy;
-    use oc_root::physics::Meters;
 
     use crate::collision::Materials;
 
@@ -312,7 +311,7 @@ mod tests {
             .bresenham_precision(100.)
             .pixels_per_meters(10.);
         let direction = [1.0, 0.0, 0.0]; // South
-        let speed = MetersSeconds(Meters(1.0));
+        let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction, speed);
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
 
@@ -334,7 +333,7 @@ mod tests {
             .bresenham_step(250)
             .pixels_per_meters(10.);
         let direction = [1.0, 0.0, 0.0]; // South
-        let speed = MetersSeconds(Meters(100.0));
+        let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
         let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Materials::Solid);
@@ -368,7 +367,7 @@ mod tests {
             .bresenham_precision(100.)
             .pixels_per_meters(10.);
         let direction = [1.0, 0.0, 0.0]; // South
-        let speed = MetersSeconds(Meters(10.0));
+        let speed = MetersSeconds(10.0);
         let force = Force::Translation(direction, speed);
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
 
@@ -390,7 +389,7 @@ mod tests {
             .bresenham_step(250)
             .pixels_per_meters(10.);
         let direction = [1.0, 0.0, 0.0]; // South
-        let speed = MetersSeconds(Meters(100.0));
+        let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
         let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Materials::Solid);
@@ -424,7 +423,7 @@ mod tests {
             .bresenham_precision(100.)
             .pixels_per_meters(10.);
         let direction = [1.0, 1.0, 0.0]; // South
-        let speed = MetersSeconds(Meters(1.0));
+        let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction, speed);
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
 

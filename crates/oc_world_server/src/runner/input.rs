@@ -1,23 +1,23 @@
-use std::{
-    sync::{Arc, mpsc::Sender},
-    time::{Duration, Instant},
-};
+use std::sync::{Arc, mpsc::Sender};
 
 use derive_more::Constructor;
 use message_io::network::Endpoint;
 use oc_geo::region::WorldRegionIndex;
+use oc_mod::Mod;
 use oc_network::{ToClient, ToServer};
 use oc_projectile::spawn::SpawnProjectile;
 use oc_utils::error::OkOrLogError;
 use oc_world::tile::IntoTiles;
 
 use crate::{
-    network::IntoNetworkInsert, runner::update::Update, state::State, utils::subject::IntoSubject,
+    network::IntoNetworkInsert, runner::update::Update, schedule::Schedule, state::State,
+    utils::subject::IntoSubject,
 };
 
 #[derive(Constructor)]
 pub struct Dealer<'a> {
     state: &'a Arc<State>,
+    mod_: &'a Mod,
     output: &'a Sender<(Endpoint, ToClient)>,
     endpoint: Endpoint,
 }
@@ -88,10 +88,15 @@ impl<'a> Dealer<'a> {
     }
 
     fn spawn_projectile(&self, spawn: SpawnProjectile) -> Vec<Update> {
-        // FIXME BS NOW
-        vec![Update::Schedule(
-            Instant::now() + Duration::from_secs(1),
-            Box::new(Update::SpawnProjectile(spawn)),
-        )]
+        spawn
+            .schedule(&self.mod_)
+            .iter()
+            .map(|(instant, fx)| {
+                Update::Schedule(
+                    instant.clone(),
+                    Box::new(Update::SpawnProjectile(spawn.clone(), *fx)),
+                )
+            })
+            .collect()
     }
 }

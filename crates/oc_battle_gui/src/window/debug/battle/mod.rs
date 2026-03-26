@@ -7,7 +7,7 @@ use oc_individual::IndividualIndex;
 use oc_mod::{
     DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS, Mod,
     ammunition::IndexedAmmunition,
-    armament::ShotMode,
+    armament::IndexedShotMode,
     weapons::{IndexedWeapon, WeaponType},
 };
 use oc_projectile::ProjectileId;
@@ -44,7 +44,7 @@ pub struct Context {
     spawn_weapon_type: WeaponType,
     spawn_weapon: Option<IndexedWeapon>,
     spawn_ammunition: Option<IndexedAmmunition>,
-    spawn_shot_mode: Option<ShotMode>,
+    spawn_shot: Option<IndexedShotMode>,
     spawn_projectile_click_mode: SpawnProjectileClickMode,
     spawn_repeat: u8,
     spawn_projectile_plus_z: f32, // pixels
@@ -63,7 +63,7 @@ impl Default for Context {
             spawn_weapon_type: Default::default(),
             spawn_weapon: Default::default(),
             spawn_ammunition: Default::default(),
-            spawn_shot_mode: Default::default(),
+            spawn_shot: Default::default(),
             spawn_projectile_click_mode: Default::default(),
             spawn_repeat: 1,
             spawn_projectile_plus_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS,

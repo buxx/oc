@@ -112,6 +112,7 @@ pub fn click_debug(
                         commands.trigger(SpawnClicksLine);
                     }
 
+                    // TODO: refactor (see bellow)
                     if state.clicks.len() == 2 {
                         let start = state.clicks.first().expect("len checked line before");
                         let start_tile_xy = TileXy::from((start.x, start.y));
@@ -128,11 +129,10 @@ pub fn click_debug(
                         let end_z = end_tile.z as f32;
                         let end = [end.x, end.y, end_z];
                         let weapon = profile.weapon;
-                        let ammunition = profile.ammunition;
-                        let shot_mode = profile.shot_mode;
+                        let ammo = profile.ammunition;
+                        let shot = profile.shot;
                         let repeat = profile.repeat;
-                        let spawn =
-                            SpawnProjectile::new(weapon, ammunition, shot_mode, repeat, start, end);
+                        let spawn = SpawnProjectile::new(weapon, ammo, shot, repeat, start, end);
 
                         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
                         commands.trigger(DespawnClicksLine);
@@ -147,6 +147,7 @@ pub fn click_debug(
                     commands.trigger(SpawnClicksLine);
                 }
 
+                // TODO: refactor (see before)
                 if buttons.just_released(MouseButton::Left) {
                     if let Some(start) = state.clicks.first() {
                         let start_tile_xy = TileXy::from((start.x, start.y));
@@ -164,11 +165,10 @@ pub fn click_debug(
                         let end = [point.x, point.y, end_z];
 
                         let weapon = profile.weapon;
-                        let ammunition = profile.ammunition;
-                        let shot_mode = profile.shot_mode;
+                        let ammo = profile.ammunition;
+                        let shot = profile.shot;
                         let repeat = profile.repeat;
-                        let spawn =
-                            SpawnProjectile::new(weapon, ammunition, shot_mode, repeat, start, end);
+                        let spawn = SpawnProjectile::new(weapon, ammo, shot, repeat, start, end);
 
                         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
                     }

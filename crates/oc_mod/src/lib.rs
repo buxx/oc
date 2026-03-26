@@ -11,11 +11,13 @@ use thiserror::Error;
 
 use crate::{
     ammunition::{Ammunition, AmmunitionIndex, IndexedAmmunition},
+    sound::IndexedSound,
     weapons::{Weapon, WeaponIndex},
 };
 
 pub mod ammunition;
 pub mod armament;
+pub mod sound;
 pub mod weapons;
 
 pub const MOD_DIR: &str = "mods";
@@ -41,6 +43,8 @@ pub struct Mod {
     name: String,
     version: u32,
     #[serde(skip, default)]
+    pub sounds: Vec<sound::IndexedSound>,
+    #[serde(skip, default)]
     pub ammunitions: Vec<ammunition::IndexedAmmunition>,
     #[serde(skip, default)]
     pub weapons: Vec<weapons::IndexedWeapon>,
@@ -53,6 +57,7 @@ impl Mod {
     pub fn load(path: &PathBuf, cache_: Option<&PathBuf>) -> Result<Self, Error> {
         let mut mod_ = load_mod(&path)?;
 
+        mod_.sounds = sound::load(&path)?;
         mod_.ammunitions = ammunition::load(&path)?;
         mod_.weapons = weapons::load(&path, &mod_)?;
 
@@ -61,6 +66,10 @@ impl Mod {
         }
 
         Ok(mod_)
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn canonical(&self) -> String {
@@ -92,6 +101,22 @@ impl Mod {
 
     pub fn weapon(&self, index: WeaponIndex) -> &Weapon {
         &self.weapons[index.0 as usize]
+    }
+
+    fn find_sounds(&self, sounds: &[String]) -> Result<Vec<&IndexedSound>, Error> {
+        sounds
+            .into_iter()
+            .map(|name| {
+                self.sounds
+                    .iter()
+                    .find(|s| &s.name == name)
+                    .ok_or(Error::UnknownSoundName(name.clone()))
+            })
+            .collect()
+    }
+
+    pub fn sound(&self, sound: sound::SoundIndex) -> &IndexedSound {
+        &self.sounds[sound.0 as usize]
     }
 }
 
@@ -127,6 +152,10 @@ fn cache(mod_: &Mod, path: &PathBuf, cache: &PathBuf) -> Result<(), CacheError> 
     Ok(())
 }
 
+pub trait PickSound<S> {
+    fn pick_sound(&self, specs: S) -> Option<sound::SoundIndex>;
+}
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Caching: {0}")]
@@ -137,8 +166,12 @@ pub enum Error {
     Amunitions(#[from] ammunition::Error),
     #[error("Unknown amunitions name: {0}")]
     UnknownAmunitionName(String),
+    #[error("Unknown sound name: {0}")]
+    UnknownSoundName(String),
     #[error("Weapons: {0}")]
     Weapons(#[from] weapons::Error),
+    #[error("Sounds: {0}")]
+    Sounds(#[from] sound::Error),
 }
 
 #[derive(Debug, Error)]

@@ -19,7 +19,7 @@ pub async fn get_region_background(
 ) -> impl IntoResponse {
     let region = path.region.background_file_name();
     let path = state.world().meta().folder_name();
-    let path = state.cache.join(path).join(region);
+    let path = state.cache.join("maps").join(path).join(region);
     let region = tokio::fs::File::open(path).await.unwrap();
     let region = tokio_util::io::ReaderStream::new(region);
 

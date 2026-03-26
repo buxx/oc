@@ -8,6 +8,7 @@ use clap::Parser;
 use crate::{
     downloading::DownloadingPlugin,
     error::ErrorPlugin,
+    fx::FxPlugin,
     home::HomePlugin,
     ingame::IngamePlugin,
     network::NetworkPlugin,
@@ -22,6 +23,7 @@ mod debug;
 mod downloading;
 mod entity;
 mod error;
+mod fx;
 mod home;
 mod ingame;
 mod network;
@@ -57,6 +59,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     .add_plugins(Wireframe2dPlugin::default())
     .add_plugins(ErrorPlugin)
     .add_plugins(NetworkPlugin)
+    .add_plugins(FxPlugin)
     .add_plugins(HomePlugin)
     .add_plugins(DownloadingPlugin)
     .add_plugins(IngamePlugin)

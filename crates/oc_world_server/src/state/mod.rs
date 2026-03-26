@@ -6,6 +6,7 @@ use std::{
 use message_io::network::Endpoint;
 use oc_geo::tile::WorldTileIndex;
 use oc_individual::IndividualIndex;
+use oc_mod::Mod;
 use oc_projectile::ProjectileId;
 #[cfg(feature = "debug")]
 use oc_root::ids::Ids;
@@ -17,6 +18,7 @@ use crate::{index::Indexes, perf::Perf, routing::Listeners, runner::update::Upda
 pub struct State {
     #[cfg(feature = "debug")]
     ids: Ids,
+    mod_: Mod,
     pub perf: Arc<Perf>,
     world: Arc<RwLock<World>>,
     indexes: Arc<RwLock<Indexes>>,
@@ -25,7 +27,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(#[cfg(feature = "debug")] ids: Ids, world: World) -> Self {
+    pub fn new(#[cfg(feature = "debug")] ids: Ids, mod_: Mod, world: World) -> Self {
         let perf = Arc::new(Perf::default());
         let indexes = Arc::new(RwLock::new(Indexes::new(&world)));
         let world = Arc::new(RwLock::new(world));
@@ -35,12 +37,17 @@ impl State {
         Self {
             #[cfg(feature = "debug")]
             ids,
+            mod_,
             perf,
             world,
             indexes,
             listeners,
             scheduled,
         }
+    }
+
+    pub fn mod_(&self) -> &Mod {
+        &self.mod_
     }
 
     pub fn world(&self) -> RwLockReadGuard<'_, World> {
@@ -84,5 +91,6 @@ impl State {
 pub enum ObjectId {
     Individual(IndividualIndex),
     Projectile(ProjectileId),
+    #[allow(unused)]
     Tile(WorldTileIndex),
 }

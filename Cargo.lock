@@ -4982,6 +4982,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "derive_more",
+ "fastrand",
  "flate2",
  "oc_root",
  "oc_utils",
@@ -5003,6 +5004,7 @@ dependencies = [
  "oc_geo",
  "oc_individual",
  "oc_mod",
+ "oc_physics",
  "oc_projectile",
  "oc_root",
  "oc_world",
@@ -5017,6 +5019,7 @@ dependencies = [
  "derive_more",
  "line_drawing",
  "oc_geo",
+ "oc_mod",
  "oc_root",
  "oc_utils",
  "rkyv",
@@ -5051,6 +5054,7 @@ name = "oc_utils"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "derive_more",
  "oc_root",
  "rkyv",
  "rustc-hash 2.1.1",

@@ -1,6 +1,7 @@
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_individual::network::Individual;
 use oc_mod::Mod;
+use oc_physics::fx::Fx;
 use oc_projectile::network::Projectile;
 #[cfg(feature = "debug")]
 use oc_projectile::spawn::SpawnProjectile;
@@ -17,6 +18,7 @@ pub enum ToClient {
     Individual(Individual),
     Projectile(Projectile),
     Tiles(WorldRegionIndex, Vec<(WorldTileIndex, Tile)>),
+    Fx(Fx),
 }
 
 impl From<Individual> for ToClient {

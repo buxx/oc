@@ -176,8 +176,8 @@ impl<'x> Processor<'x> {
             match event {
                 Event::NoTile(id) => match id {
                     ObjectId::Individual(_) | ObjectId::Tile(_) => {}
-                    ObjectId::Projectile(_) => {
-                        // FIXME BS NOW: Remove from world
+                    ObjectId::Projectile(id) => {
+                        updates.push(crate::runner::update::Update::RemoveProjectile(id));
                     }
                 },
                 Event::Collision(a, b) => match (a, b) {
@@ -192,10 +192,9 @@ impl<'x> Processor<'x> {
                         ObjectId::Projectile(_projectile_id),
                         ObjectId::Individual(_individual_index),
                     ) => {
-                        // FIXME: bam
+                        // TODO: bam
                     }
                     (ObjectId::Projectile(id), ObjectId::Tile(_)) => {
-                        // FIXME BS NOW: impact
                         updates.push(crate::runner::update::Update::RemoveProjectile(id));
                     }
                 },

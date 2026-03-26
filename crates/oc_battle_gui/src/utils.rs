@@ -16,7 +16,8 @@ impl OcPaths for PathBuf {
     }
 
     fn mods() -> PathBuf {
-        let path = PathBuf::from(".cache");
+        let path = Self::assets();
+        let path = path.join(".cache");
         path.join(MOD_DIR)
     }
 

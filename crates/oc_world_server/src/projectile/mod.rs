@@ -1,8 +1,12 @@
+use std::time::{Duration, Instant};
+
 use derive_more::Constructor;
 use glam::Vec3;
 use oc_mod::Mod;
 use oc_physics::Force;
 use oc_projectile::{Projectile, bullet::Bullet, spawn::SpawnProjectile};
+
+use crate::schedule::{Schedule, Scheduling};
 
 #[derive(Debug, Constructor)]
 pub struct Builder<'a> {
@@ -21,11 +25,34 @@ impl<'a> Builder<'a> {
         let speed = weapon.velocity();
         let forces = vec![Force::Translation(direction.into(), speed)];
 
-        // FIXME BS NOW: shot mode burst (to introduce dalayed spawn !)
         match ammunition {
             oc_mod::ammunition::Ammunition::Cartridge(_) => {
                 Projectile::Bullet(Bullet::new(position, forces))
             }
         }
+    }
+}
+
+impl Schedule<&Mod, (Instant, bool)> for SpawnProjectile {
+    fn schedule(&self, mod_: &Mod) -> Scheduling<(Instant, bool)> {
+        let weapon = mod_.weapon(self.weapon);
+        let repeat = self.repeat;
+        let shot = weapon.shot(self.shot);
+        let rounds = shot.rounds();
+        let mut instant = Instant::now();
+        let mut instants = vec![];
+
+        for _ in 0..repeat {
+            let mut fx = true;
+            for _ in 0..rounds {
+                instants.push((instant, fx));
+                instant += Duration::from_millis((shot.interval().0 * 1000.0) as u64);
+                fx = false;
+            }
+
+            instant += Duration::from_millis((weapon.interval().0 * 1000.0) as u64);
+        }
+
+        Scheduling(instants)
     }
 }

@@ -136,7 +136,7 @@ impl Runner {
                     }
                     Event::Disconnected(endpoint) => state.listeners_mut().remove(&endpoint),
                     Event::Message(endpoint, message) => {
-                        for update in Dealer::new(&state, &output, endpoint).deal(message) {
+                        for update in Dealer::new(&state, &mod_, &output, endpoint).deal(message) {
                             state.update(update, &output);
                         }
                     }

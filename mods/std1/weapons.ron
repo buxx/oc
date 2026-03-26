@@ -2,25 +2,49 @@
     Rifle((
         name: "MosinNagantM1924",
         amunitions: ["762x54R"],
-        shots: [Single],
-        velocity: MetersSeconds(Meters(600.0))
+        shots: [
+            Single(sounds:[
+                "MosinNagantFire1.ogg",
+                "MosinNagantFire2.ogg",
+                "MosinNagantFire3.ogg",
+                "MosinNagantFire4.ogg",
+                "MosinNagantFire5.ogg",
+            ])
+        ],
+        interval: Seconds(1.0),
+        velocity: MetersSeconds(600.0)
     )),
     Rifle((
         name: "Mauser G41",
         amunitions: ["792x57"],
-        shots: [Single],
-        velocity: MetersSeconds(Meters(600.0))
+        shots: [
+            Single(sounds:[
+                "MauserRiffleFire1.ogg",
+                "MauserRiffleFire2.ogg",
+                "MauserRiffleFire3.ogg",
+            ])
+        ],
+        interval: Seconds(1.0),
+        velocity: MetersSeconds(600.0)
     )),
     MachineGun((
         name: "Bren Mark2",
         amunitions: ["303British"],
-        shots: [Single, Burst3(interval:0.2)],
-        velocity: MetersSeconds(Meters(600.0))
+        shots: [
+            Single(sounds:["BrenMark2x1.ogg"]),
+            Burst3(interval:Seconds(0.2),sounds:["BrenMark2x3.ogg"])
+        ],
+        interval: Seconds(1.0),
+        velocity: MetersSeconds(600.0)
     )),
     MachineGun((
         name: "Mg34",
         amunitions: ["792x57"],
-        shots: [Single, Burst3(interval:0.2)],
-        velocity: MetersSeconds(Meters(600.0))
+        shots: [
+            Single(sounds:["Mg34x1.ogg"]),
+            Burst3(interval:Seconds(0.2),sounds:["Mg34x3.ogg"])
+        ],
+        interval: Seconds(1.0),
+        velocity: MetersSeconds(600.0)
     )),
 ]

@@ -1,4 +1,4 @@
 /target
 map.png
-.cache
+.cache*
 crates/oc_battle_gui/assets/.cache

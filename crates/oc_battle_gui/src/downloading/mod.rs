@@ -1,7 +1,6 @@
 use std::{fs::File, path::PathBuf};
 
 use bevy::prelude::*;
-use flate2::{Compression, read::GzEncoder};
 use oc_geo::region::WorldRegionIndex;
 use oc_root::REGIONS_COUNT;
 
@@ -40,38 +39,48 @@ fn download(
         return Ok(());
     };
 
-    tracing::info!(
-        "Start downloading ({} region backgrounds) ...",
-        REGIONS_COUNT
-    );
+    tracing::info!("Downloading...",);
 
     let static_ = format!("http://{}:{}", network.ip(), config.static_);
-    let mut counter = 0;
     let mods = PathBuf::mods();
     let moda = mods.join(mod_.archive());
+    let modd = mods.join(mod_.canonical());
     let path = PathBuf::maps().join(meta.folder_name());
     let minimap = PathBuf::minimap(&meta);
 
-    match moda.exists() {
-        true => {}
+    match modd.exists() {
+        true => {
+            tracing::info!(
+                "Mod {} already cached ({})",
+                mod_.canonical(),
+                modd.display()
+            );
+        }
         false => {
+            tracing::info!("Download mod {} ({})", mod_.canonical(), moda.display());
             http_to_file!(format!("{static_}/mod"), &moda);
-            let file = File::create(moda).unwrap(); // TODO
-            let encoder = GzEncoder::new(file, Compression::default());
-            let mut builder = tar::Builder::new(encoder);
-            let modd = mods.join(mod_.canonical());
-            builder.append_dir_all(modd, mod_.canonical()).unwrap(); // TODO
-            builder.finish().unwrap(); // TODO
+            let file = File::open(&moda).unwrap(); // TODO
+            tracing::info!(
+                "Decompress mod {} (into {})",
+                mod_.canonical(),
+                modd.display()
+            );
+            let decoder = flate2::read::GzDecoder::new(file);
+            let mut archive = tar::Archive::new(decoder);
+            archive.unpack(modd).unwrap(); // TODO
+            std::fs::remove_file(moda).unwrap() // TODO
         }
     }
 
     match minimap.exists() {
         true => {}
         false => {
+            tracing::info!("Download minimap");
             http_to_file!(format!("{static_}/minimap"), minimap);
         }
     }
 
+    tracing::info!("Download regions");
     for region in 0..REGIONS_COUNT {
         let region = WorldRegionIndex(region as u64);
         let path = path.join(region.background_file_name());
@@ -80,16 +89,11 @@ fn download(
             true => {}
             false => {
                 http_to_file!(format!("{static_}/region/{}/background", region.0), path);
-                counter += 1;
             }
         }
     }
 
-    tracing::info!(
-        "Download finished ({} downloaded, {} in cache)",
-        counter,
-        REGIONS_COUNT - counter
-    );
+    tracing::info!("Download finished");
     commands.trigger(Downloaded);
 
     Ok(())

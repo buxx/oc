@@ -30,13 +30,12 @@ impl super::Context {
                 commands.trigger(SetLeftClick(LeftClickMode::Select));
             }
             LeftClickModeType::SpawnProjectile => {
+                let weapon_type_before = self.spawn_weapon_type.clone();
                 let weapon_type = &mut self.spawn_weapon_type;
                 let weapon_before = self.spawn_weapon.clone();
                 let weapon = &mut self.spawn_weapon;
-                // let ammunition_before = self.spawn_ammunition.clone();
                 let ammunition = &mut self.spawn_ammunition;
-                // let shot_mode_before = self.spawn_shot_mode.clone();
-                let shot_mode = &mut self.spawn_shot_mode;
+                let shot = &mut self.spawn_shot;
                 let repeat = &mut self.spawn_repeat;
                 let click_mode = &mut self.spawn_projectile_click_mode;
                 let plus_z = &mut self.spawn_projectile_plus_z;
@@ -76,12 +75,12 @@ impl super::Context {
                             });
 
                         egui::ComboBox::new("shot_mode", "")
-                            .selected_text(shot_mode.as_ref().map(|p| p.name()).unwrap_or_default())
+                            .selected_text(shot.as_ref().map(|p| p.name()).unwrap_or_default())
                             .show_ui(ui, |ui| {
-                                for item in weapon.shot_modes() {
+                                for item in weapon.shots() {
                                     let item = item.clone();
                                     let name = item.name();
-                                    ui.selectable_value(shot_mode, Some(item.clone()), name);
+                                    ui.selectable_value(shot, Some(item.clone()), name);
                                 }
                             });
                     }
@@ -106,21 +105,25 @@ impl super::Context {
                     ui.label("+z");
                 });
 
-                if weapon_before != self.spawn_weapon {
+                if weapon_type_before != self.spawn_weapon_type {
+                    self.spawn_weapon = None;
                     self.spawn_ammunition = None;
-                    self.spawn_shot_mode = None;
+                    self.spawn_shot = None;
                 }
 
-                if let (Some(weapon), Some(ammunition), Some(shot_mode)) = (
-                    &self.spawn_weapon,
-                    &self.spawn_ammunition,
-                    &self.spawn_shot_mode,
-                ) {
+                if weapon_before != self.spawn_weapon {
+                    self.spawn_ammunition = None;
+                    self.spawn_shot = None;
+                }
+
+                if let (Some(weapon), Some(ammunition), Some(shot)) =
+                    (&self.spawn_weapon, &self.spawn_ammunition, &self.spawn_shot)
+                {
                     let plus_z = Meters(*plus_z);
                     let spawn = SpawnProjectileProfile::new(
                         weapon.index(),
                         ammunition.index(),
-                        *shot_mode,
+                        shot.index(),
                         *repeat,
                         plus_z,
                     );

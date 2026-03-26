@@ -84,10 +84,10 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
                 | (ObjectId::Tile(_), ObjectId::Projectile(_))
                 | (ObjectId::Tile(_), ObjectId::Tile(_)) => {}
                 (ObjectId::Projectile(_), ObjectId::Individual(_)) => {
-                    // TODO: bam
+                    // TODO: compute kill too ? or wait server
                 }
                 (ObjectId::Projectile(i), ObjectId::Tile(_)) => {
-                    // FIXME BS NOW: disapear + impact sound
+                    // TODO impact sound
                     commands.trigger(ForgotProjectile(*i));
                 }
             }
@@ -98,8 +98,10 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
 // TODO: move code (use same than server, refacto it)
 #[derive(Debug, Clone)]
 pub enum ObjectId {
+    #[allow(unused)]
     Individual(IndividualIndex),
     Projectile(ProjectileId),
+    #[allow(unused)]
     Tile(WorldTileIndex),
 }
 

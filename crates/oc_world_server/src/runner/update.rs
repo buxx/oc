@@ -5,6 +5,8 @@ use crate::routing::Listening;
 use message_io::network::Endpoint;
 use oc_geo::region::{Region, WorldRegionIndex};
 use oc_network::ToClient;
+#[cfg(feature = "debug")]
+use oc_physics::fx;
 use oc_projectile::ProjectileId;
 #[cfg(feature = "debug")]
 use oc_projectile::spawn::SpawnProjectile;
@@ -13,7 +15,7 @@ use oc_utils::error::OkOrLogError;
 pub enum Update {
     Schedule(Instant, Box<Update>),
     #[cfg(feature = "debug")]
-    SpawnProjectile(SpawnProjectile),
+    SpawnProjectile(SpawnProjectile, bool), // bool == fx
     RemoveProjectile(ProjectileId),
 }
 
@@ -22,7 +24,7 @@ impl super::State {
         for message in match update {
             #[cfg(feature = "debug")]
             Update::Schedule(instant, update) => self.schedule(instant, *update),
-            Update::SpawnProjectile(spawn) => self.spawn_projectile(spawn),
+            Update::SpawnProjectile(spawn, fx) => self.spawn_projectile(spawn, fx),
             Update::RemoveProjectile(id) => self.remove_projectile(id),
         } {
             output.send(message).ok_or_log();
@@ -35,13 +37,15 @@ impl super::State {
     }
 
     #[cfg(feature = "debug")]
-    fn spawn_projectile(&self, spawn: SpawnProjectile) -> Vec<(Endpoint, ToClient)> {
+    fn spawn_projectile(&self, spawn: SpawnProjectile, fx: bool) -> Vec<(Endpoint, ToClient)> {
+        use oc_mod::PickSound;
+
         let id = self.new_projectile_id();
 
         let projectile = {
             let world = self.world();
             let mod_ = world.mod_();
-            projectile::Builder::new(mod_, spawn).build()
+            projectile::Builder::new(mod_, spawn.clone()).build()
         };
 
         // Make both insert and update index at same clock to lock at the same time
@@ -57,14 +61,28 @@ impl super::State {
         // Broadcast the new projectile (TODO: normalize/refactor to not call loop manually ?)
         let region: WorldRegionIndex = projectile.region().clone().into();
         let listeners = self.listeners();
+        let sound = fx.then(|| self.mod_().pick_sound((spawn.weapon, spawn.shot)));
+        let sound = sound.flatten();
+
         listeners
             .find(Listening::Regions(vec![region]))
             .iter()
             .map(|listener| {
+                let mut messages = vec![];
+
                 let insert = oc_projectile::network::Projectile::Insert(id, projectile.clone());
-                let message = ToClient::Projectile(insert);
-                (listener.clone(), message)
+                let insert = ToClient::Projectile(insert);
+                messages.push((listener.clone(), insert));
+
+                if let Some(sound) = sound {
+                    let fx = fx::Fx::Audio(fx::Audio::PlayOnce(sound));
+                    let fx = ToClient::Fx(fx);
+                    messages.push((listener.clone(), fx));
+                }
+
+                messages
             })
+            .flatten()
             .collect()
     }
 

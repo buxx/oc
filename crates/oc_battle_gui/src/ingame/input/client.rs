@@ -4,6 +4,7 @@ use oc_network::ToClient;
 use oc_projectile::network::Projectile;
 
 use crate::{
+    fx::FxEvent,
     ingame::{
         individual::ForgotIndividual,
         input::{
@@ -72,6 +73,10 @@ pub fn on_to_client(
         ToClient::Tiles(region, tiles) => {
             tracing::trace!(name="ingame-input-tiles", region=?region);
             commands.trigger(InsertTiles(*region, tiles.clone()));
+        }
+        ToClient::Fx(fx) => {
+            tracing::trace!(name="ingame-input-fx", fx=?fx);
+            commands.trigger(FxEvent(fx.clone()));
         }
     }
 }

@@ -18,6 +18,7 @@ mod physics;
 mod projectile;
 mod routing;
 mod runner;
+mod schedule;
 mod state;
 mod static_;
 mod utils;
@@ -66,6 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = State::new(
         #[cfg(feature = "debug")]
         ids,
+        mod_.clone(),
         world,
     );
     let state = Arc::new(state);

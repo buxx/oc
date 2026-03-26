@@ -95,6 +95,7 @@ impl WorldLoader {
 
     fn cache(&self, meta: &Meta) -> Result<(), CacheError> {
         let cache = self.cache_path.clone();
+        let cache = cache.join("maps");
         let cache = cache.join(meta.folder_name());
         let minimap = cache.join("minimap.png"); // TODO: store this name at an unique place ?
         let image = image::open(self.world_path.background())?;

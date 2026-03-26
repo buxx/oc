@@ -1,12 +1,17 @@
 use std::{ops::Deref, path::PathBuf};
 
 use anyhow::Context;
-use oc_root::physics::MetersSeconds;
+use oc_root::physics::{MetersSeconds, Seconds};
 use rkyv::Archive;
 use strum_macros::EnumIter;
 use thiserror::Error;
 
-use crate::{Mod, ammunition::IndexedAmmunition, armament::ShotMode};
+use crate::{
+    Mod, PickSound,
+    ammunition::IndexedAmmunition,
+    armament::{IndexedShotMode, ShotMode, ShotModeIndex, ShotModeRaw},
+    sound::SoundIndex,
+};
 
 pub const WEAPONS_RON: &str = "weapons.ron";
 
@@ -62,6 +67,7 @@ impl IndexedWeapon {
         &self.1
     }
 }
+
 #[derive(
     Debug,
     Clone,
@@ -107,6 +113,13 @@ impl WeaponRaw {
             WeaponRaw::MachineGun(machine_gun) => &machine_gun.amunitions,
         }
     }
+
+    pub fn shots(&self) -> &Vec<ShotModeRaw> {
+        match self {
+            WeaponRaw::Rifle(rifle) => &rifle.shots,
+            WeaponRaw::MachineGun(machine_gun) => &machine_gun.shots,
+        }
+    }
 }
 
 impl Weapon {
@@ -140,7 +153,14 @@ impl Weapon {
         }
     }
 
-    pub fn shot_modes(&self) -> &Vec<ShotMode> {
+    pub fn interval(&self) -> Seconds {
+        match self {
+            Weapon::Rifle(rifle) => rifle.interval,
+            Weapon::MachineGun(machine_gun) => machine_gun.interval,
+        }
+    }
+
+    pub fn shots(&self) -> &Vec<IndexedShotMode> {
         match self {
             Weapon::Rifle(rifle) => &rifle.shots,
             Weapon::MachineGun(machine_gun) => &machine_gun.shots,
@@ -151,6 +171,20 @@ impl Weapon {
         match self {
             Weapon::Rifle(rifle) => rifle.velocity,
             Weapon::MachineGun(machine_gun) => machine_gun.velocity,
+        }
+    }
+
+    fn set_shots(&mut self, value: Vec<IndexedShotMode>) {
+        match self {
+            Weapon::Rifle(rifle) => rifle.shots = value,
+            Weapon::MachineGun(machine_gun) => machine_gun.shots = value,
+        }
+    }
+
+    pub fn shot(&self, index: ShotModeIndex) -> &ShotMode {
+        match self {
+            Weapon::Rifle(rifle) => &rifle.shots[index.0 as usize],
+            Weapon::MachineGun(machine_gun) => &machine_gun.shots[index.0 as usize],
         }
     }
 }
@@ -186,7 +220,8 @@ impl WeaponType {
 pub struct Rifle {
     name: String,
     amunitions: Vec<IndexedAmmunition>,
-    shots: Vec<ShotMode>,
+    shots: Vec<IndexedShotMode>,
+    interval: Seconds,
     velocity: MetersSeconds,
 }
 
@@ -195,7 +230,8 @@ pub struct Rifle {
 pub struct RifleRaw {
     name: String,
     amunitions: Vec<String>,
-    shots: Vec<ShotMode>,
+    shots: Vec<ShotModeRaw>,
+    interval: Seconds,
     velocity: MetersSeconds,
 }
 
@@ -204,7 +240,8 @@ impl Into<Rifle> for RifleRaw {
         Rifle {
             name: self.name,
             amunitions: vec![],
-            shots: self.shots,
+            shots: vec![],
+            interval: self.interval,
             velocity: self.velocity,
         }
     }
@@ -224,7 +261,8 @@ impl Into<Rifle> for RifleRaw {
 pub struct MachineGun {
     name: String,
     amunitions: Vec<IndexedAmmunition>,
-    shots: Vec<ShotMode>,
+    shots: Vec<IndexedShotMode>,
+    interval: Seconds,
     velocity: MetersSeconds,
 }
 
@@ -233,7 +271,8 @@ pub struct MachineGun {
 pub struct MachineGunRaw {
     name: String,
     amunitions: Vec<String>,
-    shots: Vec<ShotMode>,
+    shots: Vec<ShotModeRaw>,
+    interval: Seconds,
     velocity: MetersSeconds,
 }
 
@@ -242,7 +281,8 @@ impl Into<MachineGun> for MachineGunRaw {
         MachineGun {
             name: self.name,
             amunitions: vec![],
-            shots: self.shots,
+            shots: vec![],
+            interval: self.interval,
             velocity: self.velocity,
         }
     }
@@ -263,9 +303,21 @@ pub fn load(path: &PathBuf, mod_: &Mod) -> Result<Vec<IndexedWeapon>, Error> {
                 .into_iter()
                 .map(|a| a.clone())
                 .collect();
+            let shots = weapon_
+                .shots()
+                .iter()
+                .map(|mode| mode.clone().resolve_(mod_))
+                .collect::<Result<Vec<ShotMode>, super::Error>>()
+                .map_err(|e| Error::ShotMode(weapon_.name().to_string(), e.to_string()))?
+                .into_iter()
+                .enumerate()
+                .map(|(i, shot)| IndexedShotMode(ShotModeIndex(i as u32), shot))
+                .collect();
 
             let mut weapon: Weapon = weapon_.into();
+
             weapon.set_ammunitions(amunitions);
+            weapon.set_shots(shots);
 
             Ok(weapon)
         })
@@ -284,6 +336,16 @@ pub fn load(path: &PathBuf, mod_: &Mod) -> Result<Vec<IndexedWeapon>, Error> {
     Ok(weapons)
 }
 
+impl PickSound<(WeaponIndex, ShotModeIndex)> for Mod {
+    fn pick_sound(&self, (weapon, shot): (WeaponIndex, ShotModeIndex)) -> Option<SoundIndex> {
+        let weapon = self.weapon(weapon);
+        let shot = &weapon.shots()[shot.0 as usize];
+        let sounds = shot.sounds();
+        let i = fastrand::usize(..sounds.len());
+        sounds.get(i).cloned()
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("{0}")]
@@ -298,4 +360,6 @@ pub enum Error {
     Amunition(String, String),
     #[error("Amunition error ({0}): {1}")]
     AmunitionRef(String, String),
+    #[error("Invalid shot mode ({0}): {1}")]
+    ShotMode(String, String),
 }
