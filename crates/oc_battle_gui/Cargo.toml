@@ -46,3 +46,5 @@ strum_macros.workspace = true
 derive_more = { workspace = true, features = ["constructor"] }
 flate2.workspace = true
 tar.workspace = true
+bon.workspace = true
+fs_extra.workspace = true

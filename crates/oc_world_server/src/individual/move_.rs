@@ -1,18 +1,18 @@
 use derive_more::Constructor;
 use oc_individual::{IndividualIndex, Update, behavior::Behavior};
 use oc_physics::Force;
-use oc_root::{WORLD_HEIGHT, physics::MetersSeconds};
+use oc_root::{Client, WORLD_HEIGHT, physics::MetersSeconds};
 
 use crate::{individual::Processor, utils::context::Context};
 
 #[derive(Constructor)]
-pub struct Move<'a> {
-    ctx: &'a Context,
+pub struct Move<'a, E: Client> {
+    ctx: &'a Context<E>,
     i: IndividualIndex,
 }
 
-impl<'a> From<&'a Processor<'a>> for Move<'a> {
-    fn from(value: &'a Processor) -> Self {
+impl<'a, E: Client> From<&'a Processor<'a, E>> for Move<'a, E> {
+    fn from(value: &'a Processor<E>) -> Self {
         let ctx = value.ctx;
         let i = value.i;
 
@@ -20,7 +20,7 @@ impl<'a> From<&'a Processor<'a>> for Move<'a> {
     }
 }
 
-impl<'a> Move<'a> {
+impl<'a, E: Client> Move<'a, E> {
     pub fn read(&self) -> Vec<Update> {
         let world = self.ctx.state.world();
         let individual = world.individual(self.i);

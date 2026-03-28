@@ -1,7 +1,4 @@
-use std::{
-    net::SocketAddr,
-    sync::{Arc, Mutex, mpsc::channel},
-};
+use std::sync::{Arc, Mutex, mpsc::channel};
 
 use bevy::prelude::*;
 
@@ -11,10 +8,10 @@ use crate::states::AppState;
 use crate::{error::OkOrSendError, network::output::ToServerSender};
 
 #[derive(Event)]
-pub struct Connect(pub SocketAddr);
+pub struct Connect(pub crate::config::Connect);
 
 #[derive(Event)]
-pub struct Connected(pub SocketAddr);
+pub struct Connected;
 
 // TODO: manage reconnection
 #[derive(Event)]
@@ -29,23 +26,32 @@ pub fn on_connect(
     mut to_server: ResMut<ToServerSender>,
     mut network_message: ResMut<NetworkMessageReceiver>,
     commands: Commands,
+    mut network_state: ResMut<State>,
 ) {
-    let host = event.0;
-    let (input_tx, input_rx) = channel();
-    let (output_tx, output_rx) = channel();
+    network_state.server = Some(event.0.clone());
+    match &event.0 {
+        crate::config::Connect::Network(socket) => {
+            let (input_tx, input_rx) = channel();
+            let (output_tx, output_rx) = channel();
 
-    start_network(host, input_tx, output_rx).ok_or_send(commands);
+            start_network(socket.clone(), input_tx, output_rx).ok_or_send(commands);
 
-    to_server.0 = Some(output_tx);
-    network_message.0 = Some(Arc::new(Mutex::new(input_rx)));
+            to_server.0 = Some(output_tx);
+            network_message.0 = Some(Arc::new(Mutex::new(input_rx)));
+        }
+        crate::config::Connect::Embedded(output, input) => {
+            to_server.0 = Some(output.clone());
+            network_message.0 = Some(input.clone());
+        }
+    }
 }
 
 pub fn on_connected(
-    connected: On<Connected>,
+    _: On<Connected>,
     mut network_state: ResMut<State>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
-    network_state.connected = Some(connected.0.clone());
+    network_state.connected = true;
     tracing::debug!("Entering 'Downloading' state");
     *app_state = NextState::Pending(AppState::Downloading);
 }

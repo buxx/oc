@@ -19,7 +19,7 @@ pub struct NetworkMessageReceiver(pub Option<Arc<Mutex<Receiver<NetworkMessage>>
 
 #[derive(Debug)]
 pub enum NetworkMessage {
-    Connected(SocketAddr),
+    Connected,
     FailToConnect,
     Disconnected,
     Message(ToClient),
@@ -42,8 +42,8 @@ pub fn on_network_message(message: On<NetWorkMessageEvent>, mut commands: Comman
         NetworkMessage::FailToConnect => {
             commands.trigger(FailedToConnect);
         }
-        NetworkMessage::Connected(host) => {
-            commands.trigger(Connected(host.clone()));
+        NetworkMessage::Connected => {
+            commands.trigger(Connected);
         }
         NetworkMessage::Disconnected => {
             commands.trigger(Disconnected);

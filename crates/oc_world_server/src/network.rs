@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 use message_io::network::{Endpoint, NetEvent, Transport};
@@ -10,16 +11,29 @@ use rkyv::api::low::deserialize;
 use rkyv::rancor::Error;
 use rkyv::util::AlignedVec;
 
-pub fn listen(host: SocketAddr) -> (Receiver<Event>, Sender<(Endpoint, ToClient)>) {
+use crate::bridge::Event;
+
+#[derive(Debug, Clone)]
+pub struct NetworkConfig {
+    pub host: SocketAddr,
+    pub static_: SocketAddr,
+    pub cache: PathBuf,
+}
+
+pub fn listen(config: NetworkConfig) -> (Receiver<Event<Endpoint>>, Sender<(Endpoint, ToClient)>) {
     let (input_tx, input_rx) = channel();
     let (output_tx, output_rx) = channel();
 
-    std::thread::spawn(move || listen_(host, input_tx, output_rx));
+    std::thread::spawn(move || listen_(config.host, input_tx, output_rx));
 
     (input_rx, output_tx)
 }
 
-fn listen_(host: SocketAddr, input: Sender<Event>, output: Receiver<(Endpoint, ToClient)>) {
+fn listen_(
+    host: SocketAddr,
+    input: Sender<Event<Endpoint>>,
+    output: Receiver<(Endpoint, ToClient)>,
+) {
     tracing::info!("Start listening on {}", host);
     let (handler, listener) = node::split::<()>();
 
@@ -57,12 +71,6 @@ fn listen_(host: SocketAddr, input: Sender<Event>, output: Receiver<(Endpoint, T
     }
 
     tracing::debug!("Exit from listening");
-}
-
-pub enum Event {
-    Connected(Endpoint),
-    Disconnected(Endpoint),
-    Message(Endpoint, ToServer),
 }
 
 pub trait IntoNetworkUpdate {

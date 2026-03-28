@@ -3,28 +3,29 @@ use std::{
     time::Instant,
 };
 
-use message_io::network::Endpoint;
 use oc_geo::tile::WorldTileIndex;
 use oc_individual::IndividualIndex;
 use oc_mod::Mod;
 use oc_projectile::ProjectileId;
-use oc_root::ids::Ids;
-use oc_world::World;
+use oc_root::{Client, ids::Ids};
+use oc_world::{World, load::WorldLoader};
 
-use crate::{index::Indexes, perf::Perf, routing::Listeners, runner::update::Update};
+use crate::{
+    config::ServerConfig, index::Indexes, perf::Perf, routing::Listeners, runner::update::Update,
+};
 
 #[derive(Clone)]
-pub struct State {
+pub struct State<E: Client> {
     ids: Ids,
     mod_: Mod,
     pub perf: Arc<Perf>,
     world: Arc<RwLock<World>>,
     indexes: Arc<RwLock<Indexes>>,
-    listeners: Arc<RwLock<Listeners<Endpoint>>>,
+    listeners: Arc<RwLock<Listeners<E>>>,
     scheduled: Arc<Mutex<Vec<(Instant, Update)>>>,
 }
 
-impl State {
+impl<E: Client> State<E> {
     pub fn new(ids: Ids, mod_: Mod, world: World) -> Self {
         let perf = Arc::new(Perf::default());
         let indexes = Arc::new(RwLock::new(Indexes::new(&world)));
@@ -63,11 +64,11 @@ impl State {
         self.indexes.write().expect("Assume lock")
     }
 
-    pub fn listeners(&self) -> RwLockReadGuard<'_, Listeners<Endpoint>> {
+    pub fn listeners(&self) -> RwLockReadGuard<'_, Listeners<E>> {
         self.listeners.read().expect("Assume lock")
     }
 
-    pub fn listeners_mut(&self) -> RwLockWriteGuard<'_, Listeners<Endpoint>> {
+    pub fn listeners_mut(&self) -> RwLockWriteGuard<'_, Listeners<E>> {
         self.listeners.write().expect("Assume lock")
     }
 
@@ -89,4 +90,16 @@ pub enum ObjectId {
     Projectile(ProjectileId),
     #[allow(unused)]
     Tile(WorldTileIndex),
+}
+
+pub fn init<E: Client>(config: ServerConfig) -> Result<State<E>, Box<dyn std::error::Error>> {
+    let cache = config.cache.clone();
+    let world = config.world.clone();
+    let mod_ = config.mod_.clone();
+
+    let ids = Ids::default();
+    let mod_ = Mod::load(&mod_, Some(&cache))?;
+    let world = WorldLoader::new(mod_.clone(), world.clone(), cache.clone()).load(&ids)?;
+
+    Ok(State::new(ids, mod_.clone(), world))
 }

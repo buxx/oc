@@ -17,7 +17,7 @@ use crate::{
         projectile::ForgotProjectile,
     },
     network::input::ToClientEvent,
-    states::{Config, Meta, Mod},
+    states::{Meta, Mod, StaticSource},
     world::InsertTiles,
 };
 
@@ -26,14 +26,14 @@ pub fn on_to_client(
     mut commands: Commands,
     mut mod_: ResMut<Mod>,
     mut meta: ResMut<Meta>,
-    mut config: ResMut<Config>,
+    mut config: ResMut<StaticSource>,
 ) {
     tracing::trace!(name="ingame-input-client", message=?to_client.0);
 
     match &to_client.0 {
-        ToClient::Config(config_) => {
+        ToClient::StaticSource(static_) => {
             tracing::debug!("Set 'Config'");
-            config.0 = Some(config_.clone());
+            config.0 = Some(static_.clone());
         }
         ToClient::Mod(mod__) => {
             tracing::debug!("Set 'Mod'");

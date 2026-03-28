@@ -1,18 +1,19 @@
-pub mod config;
 pub mod ids;
 pub mod physics;
+pub mod static_;
 
+// TODO: we should not have default value. Just set default IDE config to permet code check
 pub const WORLD_WIDTH: usize = _usize(option_env!("WORLD_WIDTH"), "1000");
-pub const WORLD_HEIGHT: usize = _usize(option_env!("WORLD_WIDTH"), "1000");
-pub const REGION_WIDTH: usize = _usize(option_env!("WORLD_WIDTH"), "100");
-pub const REGION_HEIGHT: usize = _usize(option_env!("WORLD_WIDTH"), "100");
+pub const WORLD_HEIGHT: usize = _usize(option_env!("WORLD_HEIGHT"), "1000");
+pub const REGION_WIDTH: usize = _usize(option_env!("REGION_WIDTH"), "100");
+pub const REGION_HEIGHT: usize = _usize(option_env!("REGION_HEIGHT"), "100");
 
 pub const TILES_COUNT: usize = WORLD_WIDTH * WORLD_HEIGHT;
 pub const REGIONS_COUNT: usize = TILES_COUNT / (REGION_WIDTH * REGION_HEIGHT);
 pub const REGIONS_WIDTH: usize = WORLD_WIDTH / REGION_WIDTH;
 pub const REGIONS_HEIGHT: usize = WORLD_HEIGHT / REGION_HEIGHT;
 
-pub const INDIVIDUALS_COUNT: usize = _usize(option_env!("WORLD_WIDTH"), "10");
+pub const INDIVIDUALS_COUNT: usize = _usize(option_env!("INDIVIDUALS_COUNT"), "10");
 pub const INDIVIDUAL_TICK_INTERVAL_US: u64 = 1_000_000 / 4;
 
 pub const PHYSICS_TICK_PER_SECONDS: u64 = 10;
@@ -29,8 +30,8 @@ pub const WORLD_HEIGHT_PIXELS: u64 = WORLD_HEIGHT as u64 * GEO_PIXELS_PER_TILE;
 pub const REGION_WIDTH_PIXELS: u64 = REGION_WIDTH as u64 * GEO_PIXELS_PER_TILE;
 pub const REGION_HEIGHT_PIXELS: u64 = REGION_HEIGHT as u64 * GEO_PIXELS_PER_TILE;
 
-pub const MINIMAP_WIDTH_PIXELS: usize = _usize(option_env!("WORLD_WIDTH"), "2048");
-pub const MINIMAP_HEIGHT_PIXELS: usize = _usize(option_env!("WORLD_WIDTH"), "2048");
+pub const MINIMAP_WIDTH_PIXELS: usize = _usize(option_env!("MINIMAP_WIDTH_PIXELS"), "2048");
+pub const MINIMAP_HEIGHT_PIXELS: usize = _usize(option_env!("MINIMAP_HEIGHT_PIXELS"), "2048");
 
 const _: () = assert!(
     WORLD_WIDTH % REGION_WIDTH == 0,
@@ -55,3 +56,6 @@ const fn _usize(s: Option<&str>, s2: &str) -> usize {
     }
     result
 }
+
+pub trait Client: Clone + std::hash::Hash + Eq + std::fmt::Debug + Send + Sync + 'static {}
+impl<T: Clone + std::hash::Hash + Eq + std::fmt::Debug + Send + Sync + 'static> Client for T {}

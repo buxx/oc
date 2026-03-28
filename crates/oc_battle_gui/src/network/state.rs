@@ -1,8 +1,9 @@
-use std::net::SocketAddr;
-
 use bevy::prelude::*;
+
+use crate::config::Connect;
 
 #[derive(Debug, Default, Resource)]
 pub struct State {
-    pub connected: Option<SocketAddr>,
+    pub server: Option<Connect>,
+    pub connected: bool,
 }

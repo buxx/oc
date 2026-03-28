@@ -76,9 +76,7 @@ fn listen(
             NetEvent::Connected(_endpoint, ok) => {
                 tracing::info!("Connected to server ({host})");
                 if ok {
-                    input
-                        .send(NetworkMessage::Connected(host.clone()))
-                        .ok_or_log();
+                    input.send(NetworkMessage::Connected).ok_or_log();
                 } else {
                     input.send(NetworkMessage::FailToConnect).ok_or_log();
                 }

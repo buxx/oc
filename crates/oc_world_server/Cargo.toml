@@ -33,6 +33,7 @@ uuid.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 glam.workspace = true
+bon.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true

@@ -5,14 +5,14 @@ use oc_physics::fx::Fx;
 use oc_projectile::network::Projectile;
 #[cfg(feature = "debug")]
 use oc_projectile::spawn::SpawnProjectile;
-use oc_root::config::Config;
+use oc_root::static_::StaticSource;
 use oc_world::{meta::Meta, tile::Tile};
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum ToClient {
-    Config(Config),
+    StaticSource(StaticSource),
     Mod(Mod),
     Meta(Meta),
     Individual(Individual),

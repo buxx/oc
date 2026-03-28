@@ -1,14 +1,15 @@
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 
 use clap::Parser;
-use oc_mod::Mod;
-use oc_root::{config::Config, ids::Ids};
-use oc_world::load::WorldLoader;
+use message_io::network::Endpoint;
+use oc_root::static_::StaticSource;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-use crate::{runner::Runner, state::State, static_::Static};
+use crate::{config::ServerConfig, network::NetworkConfig, static_::Static};
 
+mod bridge;
+mod config;
 mod index;
 mod individual;
 mod network;
@@ -16,6 +17,7 @@ mod perf;
 mod physics;
 mod projectile;
 mod routing;
+mod run;
 mod runner;
 mod schedule;
 mod state;
@@ -46,10 +48,23 @@ pub struct Args {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    let cache = args.cache.clone();
-    let world = args.world.clone();
-    let mod_ = args.mod_.clone();
+    setup_logging()?;
 
+    let network_config: NetworkConfig = args.clone().into();
+    let server_config: ServerConfig = args.clone().into();
+    let state = state::init::<Endpoint>(server_config.clone())?;
+    let state = Arc::new(state);
+
+    let (input, output) = network::listen(network_config.clone());
+    {
+        let state = state.clone();
+        std::thread::spawn(move || Static::new(state, network_config.clone()).serve(args.static_));
+    }
+
+    run::run(server_config, state, input, output)
+}
+
+fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
         .with_target(false)
         .with_env_filter(
@@ -58,19 +73,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .from_env()?,
         )
         .init();
-
-    let ids = Ids::default();
-    let mod_ = Mod::load(&mod_, Some(&cache))?;
-    let world = WorldLoader::new(mod_.clone(), world.clone(), cache.clone()).load(&ids)?;
-    let (input, output) = network::listen(args.host);
-    let state = State::new(ids, mod_.clone(), world);
-    let state = Arc::new(state);
-    let config = Config::new(args.static_.port());
-
-    let state_ = state.clone();
-    std::thread::spawn(move || Static::new(state_, args.cache).serve(args.static_));
-
-    Runner::new(config, state, output, args.print_ticks).run(input)?;
-
     Ok(())
+}
+
+impl From<Args> for ServerConfig {
+    fn from(value: Args) -> Self {
+        Self {
+            world: value.world.clone(),
+            mod_: value.mod_.clone(),
+            cache: value.cache.clone(),
+            print_ticks: value.print_ticks,
+            static_: StaticSource::Remote(value.static_.port()),
+        }
+    }
+}
+
+impl From<Args> for NetworkConfig {
+    fn from(value: Args) -> Self {
+        Self {
+            host: value.host.clone(),
+            static_: value.static_.clone(),
+            cache: value.cache.clone(),
+        }
+    }
 }

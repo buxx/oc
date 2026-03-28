@@ -7,16 +7,13 @@ use std::{
 };
 
 use derive_more::Constructor;
-use message_io::network::Endpoint;
 use oc_network::ToClient;
-use oc_root::{
-    INDIVIDUAL_TICK_INTERVAL_US, INDIVIDUALS_COUNT, PHYSICS_TICK_INTERVAL_US, config::Config,
-};
+use oc_root::{Client, INDIVIDUAL_TICK_INTERVAL_US, INDIVIDUALS_COUNT, PHYSICS_TICK_INTERVAL_US};
 use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 use thiserror::Error;
 
 use crate::{
-    individual, network::Event, physics, runner::input::Dealer, state::State,
+    bridge::Event, config::ServerConfig, individual, physics, runner::input::Dealer, state::State,
     utils::context::Context,
 };
 
@@ -24,22 +21,21 @@ pub mod input;
 pub mod update;
 
 #[derive(Constructor)]
-pub struct Runner {
-    config: Config,
-    state: Arc<State>,
-    output: Sender<(Endpoint, ToClient)>,
-    print_ticks: bool,
+pub struct Runner<E: Client> {
+    config: ServerConfig,
+    state: Arc<State<E>>,
+    output: Sender<(E, ToClient)>,
 }
 
-impl Runner {
-    pub fn run(&self, input: Receiver<Event>) -> Result<(), RunError> {
+impl<E: Client> Runner<E> {
+    pub fn run(&self, input: Receiver<Event<E>>, ready: Sender<Result<(), String>>) {
         self.listen_input(input);
         self.start_physics();
         self.start_individuals();
         self.start_scheduler();
-        self.track_perfs();
 
-        Ok(())
+        let _ = ready.send(Ok(()));
+        self.track_perfs();
     }
 
     fn start_physics(&self) {
@@ -107,7 +103,7 @@ impl Runner {
         loop {
             std::thread::sleep(Duration::from_secs(1));
 
-            if self.print_ticks {
+            if self.config.print_ticks {
                 println!("{} tick/s", self.state.perf.ticks());
             }
 
@@ -115,12 +111,12 @@ impl Runner {
         }
     }
 
-    fn listen_input(&self, input: Receiver<Event>) {
+    fn listen_input(&self, input: Receiver<Event<E>>) {
         let state = self.state.clone();
         let output = self.output.clone();
         let mod_ = self.state.world().mod_().clone();
         let meta = self.state.world().meta().clone();
-        let config = self.config.clone();
+        let static_ = self.config.static_.clone();
 
         std::thread::spawn(move || {
             while let Ok(message) = input.recv() {
@@ -128,11 +124,11 @@ impl Runner {
                     Event::Connected(endpoint) => {
                         state.listeners_mut().push(endpoint.clone());
                         let mod_ = ToClient::Mod(mod_.clone());
-                        output.send((endpoint, mod_)).unwrap(); // TODO
+                        output.send((endpoint.clone(), mod_)).unwrap(); // TODO
                         let meta = ToClient::Meta(meta.clone());
-                        output.send((endpoint, meta)).unwrap(); // TODO
-                        let config = ToClient::Config(config.clone());
-                        output.send((endpoint, config)).unwrap(); // TODO
+                        output.send((endpoint.clone(), meta)).unwrap(); // TODO
+                        let config = ToClient::StaticSource(static_.clone());
+                        output.send((endpoint.clone(), config)).unwrap(); // TODO
                     }
                     Event::Disconnected(endpoint) => state.listeners_mut().remove(&endpoint),
                     Event::Message(endpoint, message) => {
@@ -170,6 +166,3 @@ impl Runner {
         });
     }
 }
-
-#[derive(Debug, Error)]
-pub enum RunError {}

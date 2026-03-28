@@ -7,6 +7,7 @@ use oc_geo::{
 use oc_individual::IndividualIndex;
 use oc_physics::{Event, Force, Laws, Physic, UpdatePhysic, update::Update};
 use oc_projectile::ProjectileId;
+use oc_root::Client;
 use oc_utils::collections::WithIds;
 use oc_world::World;
 
@@ -22,11 +23,11 @@ use crate::{
 };
 
 #[derive(Constructor)]
-pub struct Processor<'x> {
-    ctx: &'x Context,
+pub struct Processor<'x, E: Client> {
+    ctx: &'x Context<E>,
 }
 
-impl<'x> Processor<'x> {
+impl<'x, E: Client> Processor<'x, E> {
     pub fn step(&self, i: usize) -> Vec<crate::runner::update::Update> {
         tracing::trace!(name = "physics-step", i = i);
 

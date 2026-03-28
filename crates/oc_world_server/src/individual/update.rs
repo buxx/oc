@@ -1,8 +1,9 @@
 use oc_individual::{IndividualIndex, Update, network};
+use oc_root::Client;
 
 use crate::{routing::Listening, utils::context::Context};
 
-pub fn write(ctx: &Context, update: Update, i: IndividualIndex) {
+pub fn write<E: Client>(ctx: &Context<E>, update: Update, i: IndividualIndex) {
     let mut world = ctx.state.world_mut();
     let individual = world.individual_mut(i);
 

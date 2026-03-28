@@ -213,7 +213,7 @@ fn hack_individuals(tiles: &Vec<Tile>) -> Vec<Individual> {
         .collect()
 }
 
-trait WorldPath {
+pub trait WorldPath {
     fn background(&self) -> PathBuf;
     fn meta(&self) -> PathBuf;
 }

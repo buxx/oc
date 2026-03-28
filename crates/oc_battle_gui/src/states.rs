@@ -17,7 +17,7 @@ pub enum InGameState {
 }
 
 #[derive(Debug, Resource, Default)]
-pub struct Config(pub Option<oc_root::config::Config>);
+pub struct StaticSource(pub Option<oc_root::static_::StaticSource>);
 
 #[derive(Debug, Resource, Default)]
 pub struct Mod(pub Option<oc_mod::Mod>);

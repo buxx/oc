@@ -1,5 +1,6 @@
 use derive_more::Constructor;
 use oc_individual::IndividualIndex;
+use oc_root::Client;
 
 use crate::{individual::move_::Move, utils::context::Context};
 
@@ -8,12 +9,12 @@ pub mod physics;
 pub mod update;
 
 #[derive(Constructor)]
-pub struct Processor<'a> {
-    ctx: &'a Context,
+pub struct Processor<'a, E: Client> {
+    ctx: &'a Context<E>,
     i: IndividualIndex,
 }
 
-impl<'a> Processor<'a> {
+impl<'a, E: Client> Processor<'a, E> {
     pub fn step(self) {
         let mut updates = vec![];
 

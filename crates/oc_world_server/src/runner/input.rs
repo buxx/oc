@@ -1,11 +1,11 @@
 use std::sync::{Arc, mpsc::Sender};
 
 use derive_more::Constructor;
-use message_io::network::Endpoint;
 use oc_geo::region::WorldRegionIndex;
 use oc_mod::Mod;
 use oc_network::{ToClient, ToServer};
 use oc_projectile::spawn::SpawnProjectile;
+use oc_root::Client;
 use oc_utils::error::OkOrLogError;
 use oc_world::tile::IntoTiles;
 
@@ -15,14 +15,14 @@ use crate::{
 };
 
 #[derive(Constructor)]
-pub struct Dealer<'a> {
-    state: &'a Arc<State>,
+pub struct Dealer<'a, E: Client> {
+    state: &'a Arc<State<E>>,
     mod_: &'a Mod,
-    output: &'a Sender<(Endpoint, ToClient)>,
-    endpoint: Endpoint,
+    output: &'a Sender<(E, ToClient)>,
+    endpoint: E,
 }
 
-impl<'a> Dealer<'a> {
+impl<'a, E: Client> Dealer<'a, E> {
     pub fn deal(&self, message: ToServer) -> Vec<Update> {
         match message {
             ToServer::ListenRegion(region) => self.listen_region(region),

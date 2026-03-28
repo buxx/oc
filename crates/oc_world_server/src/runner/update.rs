@@ -2,12 +2,12 @@ use std::{sync::mpsc::Sender, time::Instant};
 
 use crate::projectile;
 use crate::routing::Listening;
-use message_io::network::Endpoint;
 use oc_geo::region::{Region, WorldRegionIndex};
 use oc_network::ToClient;
 use oc_physics::fx;
 use oc_projectile::ProjectileId;
 use oc_projectile::spawn::SpawnProjectile;
+use oc_root::Client;
 use oc_utils::error::OkOrLogError;
 
 pub enum Update {
@@ -16,8 +16,8 @@ pub enum Update {
     RemoveProjectile(ProjectileId),
 }
 
-impl super::State {
-    pub fn update(&self, update: Update, output: &Sender<(Endpoint, ToClient)>) {
+impl<E: Client> super::State<E> {
+    pub fn update(&self, update: Update, output: &Sender<(E, ToClient)>) {
         for message in match update {
             Update::Schedule(instant, update) => self.schedule(instant, *update),
             Update::SpawnProjectile(spawn, fx) => self.spawn_projectile(spawn, fx),
@@ -27,12 +27,12 @@ impl super::State {
         }
     }
 
-    fn schedule(&self, instant: Instant, update: Update) -> Vec<(Endpoint, ToClient)> {
+    fn schedule(&self, instant: Instant, update: Update) -> Vec<(E, ToClient)> {
         self.scheduled().push((instant, update));
         vec![]
     }
 
-    fn spawn_projectile(&self, spawn: SpawnProjectile, fx: bool) -> Vec<(Endpoint, ToClient)> {
+    fn spawn_projectile(&self, spawn: SpawnProjectile, fx: bool) -> Vec<(E, ToClient)> {
         use oc_mod::PickSound;
 
         let id = self.new_projectile_id();
@@ -82,7 +82,7 @@ impl super::State {
             .collect()
     }
 
-    fn remove_projectile(&self, id: ProjectileId) -> Vec<(Endpoint, ToClient)> {
+    fn remove_projectile(&self, id: ProjectileId) -> Vec<(E, ToClient)> {
         let projectile = {
             let mut world = self.world_mut();
             let mut indexes = self.indexes_mut();
