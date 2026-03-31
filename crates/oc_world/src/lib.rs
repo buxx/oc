@@ -17,6 +17,7 @@ pub mod load;
 pub mod map;
 pub mod meta;
 pub mod physics;
+pub mod snapshot;
 pub mod tile;
 
 #[derive(Constructor)]

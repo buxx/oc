@@ -10,6 +10,7 @@ use oc_physics::{
     collision::{Material, Materials},
     volume::Volume,
 };
+use oc_root::ids::Ids;
 use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -142,5 +143,18 @@ impl<'a> WithIds<ProjectileId, &'a Projectile> for Vec<(&'a ProjectileId, &'a Pr
         self.into_iter()
             .map(|(i, projectile)| (**i, *projectile))
             .collect()
+    }
+}
+
+pub trait NextProjectileId {
+    fn next_projectile_id(&self) -> ProjectileId;
+}
+
+impl NextProjectileId for Ids {
+    fn next_projectile_id(&self) -> ProjectileId {
+        ProjectileId(
+            self.projectiles
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+        )
     }
 }

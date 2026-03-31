@@ -6,25 +6,21 @@ use std::{
 
 use derive_more::Constructor;
 use image::imageops::FilterType;
-use oc_geo::{
-    region::{RegionXy, WorldRegionIndex},
-    tile::{TileXy, WorldTileIndex},
-};
-use oc_individual::{Individual, behavior::Behavior};
+use oc_geo::region::WorldRegionIndex;
 use oc_mod::Mod;
+use oc_projectile::NextProjectileId;
 use oc_root::{
-    GEO_PIXELS_PER_TILE, MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS, REGIONS_COUNT, TILES_COUNT,
-    WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS, ids::Ids,
+    MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS, REGIONS_COUNT, WORLD_HEIGHT_PIXELS,
+    WORLD_WIDTH_PIXELS, ids::Ids,
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use rustc_hash::FxHashMap;
 use thiserror::Error;
 
 use crate::{
     World,
     cache::{self, CacheRegionBackgroundError},
     meta::{self, Meta},
-    tile::{Nature, Tile},
+    snapshot::Snapshot,
 };
 
 #[derive(Debug, Constructor)]
@@ -35,18 +31,21 @@ pub struct WorldLoader {
 }
 
 impl WorldLoader {
-    pub fn load(&self, _ids: &Ids) -> Result<World, Error> {
+    pub fn load(&self, ids: &Ids, snapshot: Snapshot) -> Result<World, Error> {
         self.check()?;
         let meta = Meta::from_file(&self.world_path.meta()).map_err(|e| MetaError::Load(e))?;
         self.cache(&meta)?;
 
-        let tiles: Vec<Tile> = (0..TILES_COUNT)
-            .map(|i| Tile::new(WorldTileIndex(i as u64), Nature::ShortGrass, 0))
+        let mod_ = self.mod_.clone();
+        let tiles = snapshot.tiles;
+        let individuals = snapshot.individuals;
+        let projectiles = snapshot
+            .projectiles
+            .into_iter()
+            .map(|projectile| (ids.next_projectile_id(), projectile))
             .collect();
-        let individuals = hack_individuals(&tiles);
-        // TODO: when load from backup, regenerate ids
-        let projectiles = FxHashMap::default();
-        let world = World::new(self.mod_.clone(), meta, tiles, individuals, projectiles);
+
+        let world = World::new(mod_, meta, tiles, individuals, projectiles);
 
         Ok(world)
     }
@@ -193,24 +192,6 @@ pub enum Error {
     Cache(#[from] CacheError),
     #[error("Meta error: {0}")]
     Meta(#[from] MetaError),
-}
-
-fn hack_individuals(tiles: &Vec<Tile>) -> Vec<Individual> {
-    (0..10)
-        .map(|i| {
-            let tile_i = WorldTileIndex(i as u64);
-            let tile_xy = TileXy::from(tile_i);
-            let tile = &tiles[tile_i.0 as usize];
-
-            let position = [
-                ((tile_xy.0.0 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
-                ((tile_xy.0.1 * GEO_PIXELS_PER_TILE) + GEO_PIXELS_PER_TILE / 2) as f32,
-                tile.z as f32,
-            ];
-            let region: RegionXy = tile_xy.into();
-            Individual::new(position, tile_xy, region, Behavior::Idle, vec![])
-        })
-        .collect()
 }
 
 pub trait WorldPath {

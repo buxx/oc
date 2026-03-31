@@ -34,10 +34,13 @@ pub struct Args {
     pub static_: SocketAddr,
 
     #[clap()]
+    pub mod_: PathBuf,
+
+    #[clap()]
     pub world: PathBuf,
 
     #[clap()]
-    pub mod_: PathBuf,
+    pub snapshot: PathBuf,
 
     #[clap(long, action)]
     pub print_ticks: bool,
@@ -50,18 +53,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     setup_logging()?;
 
-    let network_config: NetworkConfig = args.clone().into();
-    let server_config: ServerConfig = args.clone().into();
-    let state = state::init::<Endpoint>(server_config.clone())?;
+    let network: NetworkConfig = args.clone().into();
+    let config: ServerConfig = args.clone().into();
+    let state = state::init::<Endpoint>(config.clone())?;
     let state = Arc::new(state);
 
-    let (input, output) = network::listen(network_config.clone());
+    let (input, output) = network::listen(network.clone());
     {
         let state = state.clone();
-        std::thread::spawn(move || Static::new(state, network_config.clone()).serve(args.static_));
+        std::thread::spawn(move || Static::new(state, network.clone()).serve(args.static_));
     }
 
-    run::run(server_config, state, input, output)
+    let (ready, _) = channel();
+    run::run(config, state, input, output, ready);
+    Ok(())
 }
 
 fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
@@ -84,6 +89,7 @@ impl From<Args> for ServerConfig {
             cache: value.cache.clone(),
             print_ticks: value.print_ticks,
             static_: StaticSource::Remote(value.static_.port()),
+            snapshot: value.snapshot,
         }
     }
 }

@@ -8,7 +8,7 @@ use oc_individual::IndividualIndex;
 use oc_mod::Mod;
 use oc_projectile::ProjectileId;
 use oc_root::{Client, ids::Ids};
-use oc_world::{World, load::WorldLoader};
+use oc_world::{World, load::WorldLoader, snapshot::Snapshot};
 
 use crate::{
     config::ServerConfig, index::Indexes, perf::Perf, routing::Listeners, runner::update::Update,
@@ -16,7 +16,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct State<E: Client> {
-    ids: Ids,
+    pub ids: Ids,
     mod_: Mod,
     pub perf: Arc<Perf>,
     world: Arc<RwLock<World>>,
@@ -75,12 +75,6 @@ impl<E: Client> State<E> {
     pub fn scheduled(&self) -> MutexGuard<'_, Vec<(Instant, Update)>> {
         self.scheduled.lock().expect("Assume lock")
     }
-
-    pub fn new_projectile_id(&self) -> ProjectileId {
-        let projectiles = &self.ids.projectiles;
-        let id = projectiles.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        ProjectileId(id)
-    }
 }
 
 // TODO: move code
@@ -99,7 +93,9 @@ pub fn init<E: Client>(config: ServerConfig) -> Result<State<E>, Box<dyn std::er
 
     let ids = Ids::default();
     let mod_ = Mod::load(&mod_, Some(&cache))?;
-    let world = WorldLoader::new(mod_.clone(), world.clone(), cache.clone()).load(&ids)?;
+    let snapshot = Snapshot::load(&config.snapshot)?;
+    let world = WorldLoader::new(mod_.clone(), world.clone(), cache.clone());
+    let world = world.load(&ids, snapshot)?;
 
     Ok(State::new(ids, mod_.clone(), world))
 }

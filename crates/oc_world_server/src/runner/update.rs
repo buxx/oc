@@ -5,6 +5,7 @@ use crate::routing::Listening;
 use oc_geo::region::{Region, WorldRegionIndex};
 use oc_network::ToClient;
 use oc_physics::fx;
+use oc_projectile::NextProjectileId;
 use oc_projectile::ProjectileId;
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::Client;
@@ -35,7 +36,7 @@ impl<E: Client> super::State<E> {
     fn spawn_projectile(&self, spawn: SpawnProjectile, fx: bool) -> Vec<(E, ToClient)> {
         use oc_mod::PickSound;
 
-        let id = self.new_projectile_id();
+        let id = self.ids.next_projectile_id();
 
         let projectile = {
             let world = self.world();

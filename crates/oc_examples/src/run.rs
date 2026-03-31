@@ -12,8 +12,9 @@ use crate::bridge;
 
 #[derive(Debug, Builder)]
 pub struct Example {
-    world: PathBuf,
     mod_: PathBuf,
+    world: PathBuf,
+    snapshot: PathBuf,
 }
 
 const SERVER_CACHE: &str = ".cache";
@@ -42,6 +43,7 @@ impl Example {
             .cache(cache.clone())
             .print_ticks(false)
             .static_(static_)
+            .snapshot(self.snapshot.clone())
             .build();
         let state = oc_world_server::state::init::<()>(config.clone())?;
         let state = Arc::new(state);

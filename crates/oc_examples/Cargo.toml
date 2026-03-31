@@ -11,7 +11,11 @@ oc_root = { path = "../oc_root" }
 oc_world_server = { path = "../oc_world_server" }
 oc_world = { path = "../oc_world" }
 oc_network = { path = "../oc_network" }
+oc_individual = { path = "../oc_individual" }
+oc_projectile = { path = "../oc_projectile" }
+oc_geo = { path = "../oc_geo" }
 oc_battle_gui = { path = "../oc_battle_gui" }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 bon.workspace = true
+tempfile.workspace = true
