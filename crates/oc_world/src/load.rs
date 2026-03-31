@@ -13,8 +13,8 @@ use oc_geo::{
 use oc_individual::{Individual, behavior::Behavior};
 use oc_mod::Mod;
 use oc_root::{
-    GEO_PIXELS_PER_TILE, INDIVIDUALS_COUNT, MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS,
-    REGIONS_COUNT, TILES_COUNT, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS, ids::Ids,
+    GEO_PIXELS_PER_TILE, MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS, REGIONS_COUNT, TILES_COUNT,
+    WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS, ids::Ids,
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rustc_hash::FxHashMap;
@@ -196,7 +196,7 @@ pub enum Error {
 }
 
 fn hack_individuals(tiles: &Vec<Tile>) -> Vec<Individual> {
-    (0..INDIVIDUALS_COUNT)
+    (0..10)
         .map(|i| {
             let tile_i = WorldTileIndex(i as u64);
             let tile_xy = TileXy::from(tile_i);

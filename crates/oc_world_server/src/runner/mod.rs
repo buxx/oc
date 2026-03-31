@@ -8,9 +8,8 @@ use std::{
 
 use derive_more::Constructor;
 use oc_network::ToClient;
-use oc_root::{Client, INDIVIDUAL_TICK_INTERVAL_US, INDIVIDUALS_COUNT, PHYSICS_TICK_INTERVAL_US};
+use oc_root::{Client, INDIVIDUAL_TICK_INTERVAL_US, PHYSICS_TICK_INTERVAL_US};
 use rayon::{iter::ParallelIterator, slice::ParallelSlice};
-use thiserror::Error;
 
 use crate::{
     bridge::Event, config::ServerConfig, individual, physics, runner::input::Dealer, state::State,
@@ -66,12 +65,16 @@ impl<E: Client> Runner<E> {
         tracing::debug!("Start individuals threads");
 
         let ctx = Context::new(self.state.clone(), self.output.clone());
-        let size = (INDIVIDUALS_COUNT as f32 / ctx.cpus as f32).ceil() as usize;
+        let individuals_count = {
+            let world = self.state.world();
+            world.individuals().len()
+        };
+        let size = (individuals_count as f32 / ctx.cpus as f32).ceil() as usize;
         if size == 0 {
             return;
         }
 
-        (0..INDIVIDUALS_COUNT)
+        (0..individuals_count)
             .collect::<Vec<usize>>()
             .par_chunks(size)
             .for_each(|indexes| {
