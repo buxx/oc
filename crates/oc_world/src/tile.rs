@@ -23,7 +23,7 @@ pub struct Tile {
     pub z: u8,
 }
 
-#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Nature {
     ShortGrass,
