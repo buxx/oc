@@ -1,12 +1,10 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, path::PathBuf};
 
-use oc_geo::tile::WorldTileIndex;
 use oc_individual::Individual;
 use oc_projectile::Projectile;
-use oc_root::TILES_COUNT;
 use oc_world::{
-    snapshot::Snapshot,
-    tile::{Nature, Tile},
+    snapshot::{SaveError, Snapshot},
+    tile::Tile,
 };
 
 pub mod individual;
@@ -38,17 +36,31 @@ where
         }
     }
 
-    pub fn build(&self) -> Snapshot {
+    pub fn build(&self) -> Result<PathBuf, Error> {
+        let (_, snapshot_path) = tempfile::NamedTempFile::new()?.keep()?;
         let tiles = self.tiles.tiles();
         let individuals = self.individuals.individuals(&tiles);
         let projectiles = self.projectiles.projectiles();
 
-        Snapshot {
+        let snapshot = Snapshot {
             tiles,
             individuals,
             projectiles,
-        }
+        };
+        snapshot.save(&snapshot_path)?;
+
+        Ok(snapshot_path)
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("Io error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Tempfile keep error: {0}")]
+    Keep(#[from] tempfile::PersistError),
+    #[error("Build error: {0}")]
+    Save(#[from] SaveError),
 }
 
 pub struct EmptyGenerator<T>(PhantomData<T>);

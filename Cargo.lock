@@ -5033,6 +5033,7 @@ dependencies = [
  "oc_world",
  "oc_world_server",
  "tempfile",
+ "thiserror 2.0.18",
  "tracing",
  "tracing-subscriber",
 ]

@@ -21,19 +21,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     logging::setup_logging()?;
 
-    let (_, snapshot_path) = tempfile::NamedTempFile::new()?.keep()?;
     let snapshot = SnapshotBuilder::new(
         SameTileFiller(Nature::ShortGrass),
         individuals,
         EmptyGenerator::<Projectile>::new(),
     )
-    .build();
-    snapshot.save(&snapshot_path)?;
+    .build()?;
 
     run::Example::builder()
         .world(PathBuf::from("examples/world1"))
         .mod_(PathBuf::from("mods/std1"))
-        .snapshot(snapshot_path)
+        .snapshot(snapshot)
         .build()
         .run()?;
 
