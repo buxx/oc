@@ -4,6 +4,7 @@ use oc_geo::{
     tile::TileXy,
 };
 use oc_network::ToServer;
+use oc_root::y::Y;
 use oc_utils::d2::Xy;
 
 use crate::{
@@ -70,6 +71,7 @@ pub fn on_update_regions(
 
 /// List regions to consider around given point
 pub fn regions(center: Vec2) -> Vec<WorldRegionIndex> {
+    let center = center.to_gui_y();
     let center: TileXy = [center.x, center.y].into();
     let center: RegionXy = center.into();
 

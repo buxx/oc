@@ -52,7 +52,7 @@ pub fn on_spawn_minimap(
         Minimap,
         Sprite::from_image(assets.load(path)),
         Transform {
-            scale: Vec3::new(scale_x, -scale_y, 1.0), // Mirror on Y-axis
+            scale: Vec3::new(scale_x, scale_y, 1.0),
             translation: Vec3::new(x, y, Z_WORLD_MAP_MINIMAP),
             ..default()
         },

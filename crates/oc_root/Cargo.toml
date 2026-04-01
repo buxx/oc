@@ -3,8 +3,13 @@ name = "oc_root"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+bevy = ["dep:bevy"]
+
 [dependencies]
 rkyv.workspace = true
 derive_more = { workspace = true, features = ["constructor"] }
 serde = "1.0"
 serde_derive = "1.0"
+glam.workspace = true
+bevy = { workspace = true, optional = true }

@@ -1,6 +1,7 @@
 pub mod ids;
 pub mod physics;
 pub mod static_;
+pub mod y;
 
 // TODO: we should not have default value. Just set default IDE config to permet code check
 pub const WORLD_WIDTH: usize = _usize(option_env!("WORLD_WIDTH"), "1000");

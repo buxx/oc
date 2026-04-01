@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use bevy::prelude::*;
 use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_physics::update::bevy::Region;
-use oc_root::{REGION_HEIGHT_PIXELS, REGION_WIDTH_PIXELS};
+use oc_root::{REGION_HEIGHT_PIXELS, REGION_WIDTH_PIXELS, y::Y};
 
 use crate::{
     entity::world::region::RegionBackground, ingame::draw::Z_REGION_BACKGROUND, states::Meta,
@@ -47,8 +47,8 @@ pub fn on_listening_region(
         Region(region),
         Sprite::from_image(assets.load(path)),
         Transform {
-            scale: Vec3::new(1.0, -1.0, 1.0), // Mirror on Y-axis
-            translation: Vec3::new(x as f32, y as f32, Z_REGION_BACKGROUND),
+            scale: Vec3::new(1.0, 1.0, 1.0),
+            translation: Vec3::new(x as f32, (y as f32).to_gui_y(), Z_REGION_BACKGROUND),
             ..default()
         },
     ));

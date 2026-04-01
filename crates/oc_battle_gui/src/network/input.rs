@@ -1,7 +1,4 @@
-use std::{
-    net::SocketAddr,
-    sync::{Arc, Mutex, mpsc::Receiver},
-};
+use std::sync::{Arc, Mutex, mpsc::Receiver};
 
 use bevy::prelude::*;
 use oc_network::ToClient;

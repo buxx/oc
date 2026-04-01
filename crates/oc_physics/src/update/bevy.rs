@@ -2,6 +2,7 @@ use std::hash::Hash;
 
 use bevy::prelude::*;
 use oc_geo::{region::RegionXy, tile::TileXy};
+use oc_root::y::Y as _;
 use oc_utils::bevy::EntityMapping;
 
 #[derive(Debug, Event)]
@@ -84,8 +85,9 @@ fn on_set_position_event<I: Hash + Eq + Send + Sync + 'static>(
     // tracing::trace!(name = "update-individual-position", i=?position.0.0, position=?position.1);
 
     position_.0 = event.1;
-    transform.translation.x = event.1[0];
-    transform.translation.y = event.1[1];
+    let translation = event.1.to_gui_y();
+    transform.translation.x = translation[0];
+    transform.translation.y = translation[1];
 }
 
 fn on_set_tile_event<I: Hash + Eq + Send + Sync + 'static>(

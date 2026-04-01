@@ -8,7 +8,7 @@ use std::{
 
 use bevy::prelude::*;
 use bon::Builder;
-use oc_network::{ToClient, ToServer};
+use oc_network::ToServer;
 
 use crate::network::input::NetworkMessage;
 
