@@ -71,7 +71,10 @@ impl Plugin for CameraPlugin {
         #[cfg(feature = "debug")]
         app.init_resource::<debug::tile::ShowTiles>()
             .add_observer(debug::tile::on_toggle_show_tiles)
-            .add_observer(debug::tile::on_camera_moved)
+            .add_observer(debug::tile::on_insert_tiles)
+            .add_observer(debug::tile::on_spawn_region_tiles)
+            .add_observer(debug::tile::on_forgotten_region)
+            .add_observer(debug::tile::on_despawn_region_tiles)
             .add_systems(OnEnter(AppState::InGame), debug::world::setup)
             .add_systems(
                 Update,

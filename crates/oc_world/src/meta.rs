@@ -41,6 +41,10 @@ impl Meta {
     pub fn folder_name(&self) -> String {
         format!("{}_{}", self.name, self.revision)
     }
+
+    pub fn archive(&self) -> String {
+        format!("{}.tar.gz", self.folder_name())
+    }
 }
 
 #[derive(Debug, Error)]

@@ -3,6 +3,8 @@ use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 
 use crate::ingame::camera;
+#[cfg(feature = "debug")]
+use crate::ingame::camera::debug::tile::ToggleShowTiles;
 use crate::ingame::camera::map::SaveCurrentWindowCenterAsBattleCenter;
 use crate::ingame::input::map::{SwitchToBattleMap, SwitchToWorldMap};
 use crate::window::ToggleWindow;
@@ -32,6 +34,10 @@ pub fn on_key_press(
             (ButtonState::Released, KeyCode::Escape) => {
                 let window = menu.0.clone().unwrap_or(BattleMenu::default());
                 commands.trigger(ToggleWindow(Window::BattleMenu(window)));
+            }
+            #[cfg(feature = "debug")]
+            (ButtonState::Released, KeyCode::F11) => {
+                commands.trigger(ToggleShowTiles);
             }
             #[cfg(feature = "debug")]
             (ButtonState::Released, KeyCode::F12) => {

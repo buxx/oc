@@ -34,6 +34,8 @@ impl WorldLoader {
     pub fn load(&self, ids: &Ids, snapshot: Snapshot) -> Result<World, Error> {
         self.check()?;
         let meta = Meta::from_file(&self.world_path.meta()).map_err(|e| MetaError::Load(e))?;
+
+        // TODO: centralize caching at server startup
         self.cache(&meta)?;
 
         let mod_ = self.mod_.clone();
@@ -92,6 +94,7 @@ impl WorldLoader {
         Ok(())
     }
 
+    // TODO: centralize caching at server startup
     fn cache(&self, meta: &Meta) -> Result<(), CacheError> {
         let cache = self.cache_path.clone();
         let cache = cache.join("maps");
@@ -145,6 +148,27 @@ impl WorldLoader {
         let cached = counter.load(std::sync::atomic::Ordering::Relaxed);
         let already = REGIONS_COUNT - cached as usize;
         tracing::info!("{} cached, {} already cached", cached, already);
+
+        let cache = self.cache_path.clone();
+        let cache = cache.join("world");
+        // TODO: no context on errors (use anyhow)
+        std::fs::create_dir_all(&cache)?;
+        let cache = cache.join(meta.archive());
+        if !std::fs::exists(&cache)? {
+            tracing::info!(
+                "Caching {} to {}",
+                &self.world_path.display(),
+                cache.display()
+            );
+
+            let file = std::fs::File::create(&cache)?;
+            let encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
+            let mut builder = tar::Builder::new(encoder);
+
+            builder.append_dir_all(&meta.name, &self.world_path)?;
+            builder.finish()?;
+            tracing::info!("Finished cache for world ({})", cache.display());
+        }
 
         Ok(())
     }

@@ -27,6 +27,45 @@ pub struct Tile {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Nature {
     ShortGrass,
+    MiddleGrass,
+    HighGrass,
+    Dirt,
+    Mud,
+    Concrete,
+    BrickWall,
+    Trunk,
+    Water,
+    DeepWater,
+    Underbrush,
+    LightUnderbrush,
+    MiddleWoodLogs,
+    Hedge,
+    MiddleRock,
+}
+
+impl std::str::FromStr for Nature {
+    type Err = NatureError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ShortGrass" => Ok(Self::ShortGrass),
+            "MiddleGrass" => Ok(Self::MiddleGrass),
+            "HighGrass" => Ok(Self::HighGrass),
+            "Dirt" => Ok(Self::Dirt),
+            "Mud" => Ok(Self::Mud),
+            "Concrete" => Ok(Self::Concrete),
+            "BrickWall" => Ok(Self::BrickWall),
+            "Trunk" => Ok(Self::Trunk),
+            "Water" => Ok(Self::Water),
+            "DeepWater" => Ok(Self::DeepWater),
+            "Underbrush" => Ok(Self::Underbrush),
+            "LightUnderbrush" => Ok(Self::LightUnderbrush),
+            "MiddleWoodLogs" => Ok(Self::MiddleWoodLogs),
+            "Hedge" => Ok(Self::Hedge),
+            "MiddleRock" => Ok(Self::MiddleRock),
+            _ => Result::Err(NatureError::UnknownId(s.to_string())),
+        }
+    }
 }
 
 pub trait AsTiles {
@@ -79,4 +118,10 @@ impl Physic for Tile {
             depth: f32::MAX,
         }
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum NatureError {
+    #[error("Unknown tile ID: {0}")]
+    UnknownId(String),
 }

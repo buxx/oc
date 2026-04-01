@@ -13,11 +13,17 @@ use rustc_hash::FxHashMap;
 use crate::{meta::Meta, tile::Tile};
 
 pub mod cache;
+pub mod control;
+pub mod decor;
+pub mod flag;
+pub mod interior;
 pub mod load;
 pub mod map;
 pub mod meta;
 pub mod physics;
+pub mod reader;
 pub mod snapshot;
+pub mod spawn;
 pub mod tile;
 
 #[derive(Constructor)]

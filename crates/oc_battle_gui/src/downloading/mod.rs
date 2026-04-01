@@ -133,34 +133,3 @@ fn on_downloaded(_: On<Downloaded>, mut app_state: ResMut<NextState<AppState>>) 
     tracing::debug!("Entering 'Ingame' state");
     *app_state = NextState::Pending(AppState::InGame);
 }
-
-// TODO: make something lean (and which centralize paths for server and client)
-// pub struct Synchronizer {
-//     source: oc_root::static_::StaticSource,
-// }
-
-// impl Synchronizer {
-//     pub fn from(source: oc_root::static_::StaticSource) -> Self {
-//         Self { source }
-//     }
-
-//     pub fn download_mod(&self) -> Result<(), std::io::Error> {
-//         let mods = PathBuf::mods();
-//         std::fs::create_dir_all(&mods)?;
-
-//         match self.source {
-//             oc_root::static_::StaticSource::Local { mod_, map } => {}
-//             oc_root::static_::StaticSource::Remote(port) => {}
-//         };
-
-//         Ok(())
-//     }
-
-//     pub fn download_minimap(&self) -> Result<(), std::io::Error> {
-//         Ok(())
-//     }
-
-//     pub fn download_regions(&self) -> Result<(), std::io::Error> {
-//         Ok(())
-//     }
-// }

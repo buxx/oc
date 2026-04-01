@@ -61,6 +61,7 @@ impl Mod {
         mod_.ammunitions = ammunition::load(&path)?;
         mod_.weapons = weapons::load(&path, &mod_)?;
 
+        // TODO: centralize caching at server startup
         if let Some(cache_) = cache_ {
             cache(&mod_, &path, cache_)?;
         }
@@ -127,6 +128,7 @@ fn load_mod(path: &PathBuf) -> Result<Mod, ModError> {
     Ok(ron::from_str(&mod_)?)
 }
 
+// TODO: centralize caching at server startup
 fn cache(mod_: &Mod, path: &PathBuf, cache: &PathBuf) -> Result<(), CacheError> {
     let cache = cache.join(MOD_DIR);
     std::fs::create_dir_all(&cache).context(format!("Create dirs {}", cache.display()))?;
