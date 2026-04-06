@@ -35,9 +35,12 @@ impl<E: Client> Runner<E> {
 
         let _ = ready.send(Ok(()));
         self.track_perfs();
+
+        tracing::debug!("Finished runner");
     }
 
     fn start_physics(&self) {
+        tracing::debug!("Start physics");
         let ctx = Context::new(self.state.clone(), self.output.clone());
 
         (0..ctx.cpus).for_each(|i| {
@@ -62,7 +65,7 @@ impl<E: Client> Runner<E> {
     }
 
     fn start_individuals(&self) {
-        tracing::debug!("Start individuals threads");
+        tracing::debug!("Start individuals");
 
         let ctx = Context::new(self.state.clone(), self.output.clone());
         let individuals_count = {
@@ -103,6 +106,7 @@ impl<E: Client> Runner<E> {
     }
 
     fn track_perfs(&self) {
+        tracing::debug!("Track perfs");
         loop {
             std::thread::sleep(Duration::from_secs(1));
 
@@ -115,6 +119,7 @@ impl<E: Client> Runner<E> {
     }
 
     fn listen_input(&self, input: Receiver<Event<E>>) {
+        tracing::debug!("Listen inputs");
         let state = self.state.clone();
         let output = self.output.clone();
         let mod_ = self.state.world().mod_().clone();
@@ -145,6 +150,7 @@ impl<E: Client> Runner<E> {
     }
 
     fn start_scheduler(&self) {
+        tracing::debug!("Start scheduler");
         let state = self.state.clone();
         let output = self.output.clone();
 

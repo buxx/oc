@@ -1,10 +1,4 @@
-use std::{
-    collections::HashMap,
-    fmt::Display,
-    path::{Path, PathBuf},
-    str::FromStr,
-    sync::Arc,
-};
+use std::{collections::HashMap, path::PathBuf, str::FromStr, sync::Arc};
 
 use crate::{
     spawn::{ParseOriginDirectionError, SpawnZoneName},
@@ -95,7 +89,7 @@ impl MapReader {
         })
     }
 
-    fn layer(&self, name: &str) -> Result<Layer, MapReaderError> {
+    fn layer(&self, name: &str) -> Result<Layer<'_>, MapReaderError> {
         match self
             .map
             .layers()
@@ -111,7 +105,7 @@ impl MapReader {
         }
     }
 
-    fn background_image_layer(&self) -> Result<ImageLayer, MapReaderError> {
+    fn background_image_layer(&self) -> Result<ImageLayer<'_>, MapReaderError> {
         match self.layer(BACKGROUND_IMAGE_LAYER_NAME)?.layer_type() {
             LayerType::ImageLayer(layer) => Ok(layer),
             _ => Result::Err(MapReaderError::InvalidLayer(format!(
@@ -131,7 +125,7 @@ impl MapReader {
         }
     }
 
-    fn interiors_image_layer(&self) -> Result<ImageLayer, MapReaderError> {
+    fn interiors_image_layer(&self) -> Result<ImageLayer<'_>, MapReaderError> {
         match self.layer(INTERIORS_IMAGE_LAYER_NAME)?.layer_type() {
             LayerType::ImageLayer(layer) => Ok(layer),
             _ => Result::Err(MapReaderError::InvalidLayer(format!(
@@ -151,7 +145,7 @@ impl MapReader {
         }
     }
 
-    fn interiors_zones_layer(&self) -> Result<ObjectLayer, MapReaderError> {
+    fn interiors_zones_layer(&self) -> Result<ObjectLayer<'_>, MapReaderError> {
         match self.layer(INTERIORS_ZONES_LAYER_NAME)?.layer_type() {
             LayerType::ObjectLayer(layer) => Ok(layer),
             _ => Result::Err(MapReaderError::InvalidLayer(format!(
@@ -161,7 +155,7 @@ impl MapReader {
         }
     }
 
-    fn spawn_zones_layer(&self) -> Result<ObjectLayer, MapReaderError> {
+    fn spawn_zones_layer(&self) -> Result<ObjectLayer<'_>, MapReaderError> {
         match self.layer(SPAWN_ZONES_LAYER_NAME)?.layer_type() {
             LayerType::ObjectLayer(layer) => Ok(layer),
             _ => Result::Err(MapReaderError::InvalidLayer(format!(
@@ -171,7 +165,7 @@ impl MapReader {
         }
     }
 
-    fn flags_layer(&self) -> Result<ObjectLayer, MapReaderError> {
+    fn flags_layer(&self) -> Result<ObjectLayer<'_>, MapReaderError> {
         match self.layer(FLAGS_LAYER_NAME)?.layer_type() {
             LayerType::ObjectLayer(layer) => Ok(layer),
             _ => Result::Err(MapReaderError::InvalidLayer(format!(
@@ -264,7 +258,7 @@ impl MapReader {
         Ok(flags)
     }
 
-    fn terrain_layer(&self) -> Result<FiniteTileLayer, MapReaderError> {
+    fn terrain_layer(&self) -> Result<FiniteTileLayer<'_>, MapReaderError> {
         match self.layer(TERRAIN_LAYER_NAME)?.layer_type() {
             LayerType::TileLayer(layer) => match layer {
                 TileLayer::Finite(layer) => Ok(layer),
@@ -280,7 +274,7 @@ impl MapReader {
         }
     }
 
-    fn decor_layer(&self) -> Result<(Layer, FiniteTileLayer), MapReaderError> {
+    fn decor_layer(&self) -> Result<(Layer<'_>, FiniteTileLayer<'_>), MapReaderError> {
         let decor_layer = self.layer(DECOR_LAYER_NAME)?;
         match decor_layer.layer_type() {
             LayerType::TileLayer(layer) => match layer {
@@ -303,14 +297,6 @@ impl MapReader {
 
     fn height(&self) -> Result<u32, MapReaderError> {
         Ok(self.terrain_layer()?.height())
-    }
-
-    fn tile_width(&self) -> Result<u32, MapReaderError> {
-        Ok(self.terrain_tileset()?.tile_width)
-    }
-
-    fn tile_height(&self) -> Result<u32, MapReaderError> {
-        Ok(self.terrain_tileset()?.tile_height)
     }
 
     fn terrain_tileset(&self) -> Result<&Arc<Tileset>, MapReaderError> {

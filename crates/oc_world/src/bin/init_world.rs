@@ -4,6 +4,7 @@ use ::image::{ImageBuffer, Rgba};
 use anyhow::Context;
 use clap::Parser;
 use oc_utils::image;
+use oc_world::{reader, snapshot::Snapshot};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
@@ -13,6 +14,10 @@ pub struct Args {
     /// Folder which contain (or already contain) world
     #[clap()]
     pub path: PathBuf,
+
+    /// File path to the snapshot file to initialize
+    #[clap()]
+    pub snapshot: PathBuf,
 
     /// World width in tiles (required if no background already present in folder)
     #[clap(long)]
@@ -101,20 +106,41 @@ fn main() -> Result<(), anyhow::Error> {
 
     let world_tpl_path = PathBuf::from("templates/world/world.tmx");
     let world_path = args.path.join("world.tmx");
-    world(world_tpl_path, world_path, width, height, args.tile_size)?;
+    world(&world_tpl_path, &world_path, width, height, args.tile_size)?;
+
+    let snapshot = &args.snapshot;
+    snapshot_(&args.path, snapshot)?;
 
     Ok(())
 }
 
+fn snapshot_(map: &PathBuf, snapshot: &PathBuf) -> Result<(), anyhow::Error> {
+    match std::fs::exists(snapshot).context(format!("Test if {} exists", snapshot.display()))? {
+        true => tracing::info!("{} already exist", snapshot.display()),
+        false => {
+            tracing::info!("Initialize snapshot ({})", snapshot.display());
+            let map = reader::MapReader::new(map)?;
+            let tiles = map.tiles()?;
+            let snapshot_ = Snapshot::new(tiles, vec![], vec![]);
+            let snapshot_ = snapshot_.save(&snapshot);
+            snapshot_.context(format!("Save snapshot ({})", snapshot.display()))?;
+        }
+    };
+    Ok(())
+}
+
 fn world(
-    world_tpl_path: PathBuf,
-    world_path: PathBuf,
+    world_tpl_path: &PathBuf,
+    world_path: &PathBuf,
     width: usize,
     height: usize,
     tile_size: usize,
 ) -> Result<(), anyhow::Error> {
     let mut world = match std::fs::read_to_string(&world_path) {
-        Ok(content) => content,
+        Ok(_) => {
+            tracing::info!("world.tmx already exists");
+            return Ok(());
+        }
         Err(error) => match error.kind() {
             std::io::ErrorKind::NotFound => {
                 tracing::info!("Create world.tmx");

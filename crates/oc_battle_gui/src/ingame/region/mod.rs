@@ -1,12 +1,13 @@
-use std::path::PathBuf;
-
 use bevy::prelude::*;
 use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_physics::update::bevy::Region;
-use oc_root::{REGION_HEIGHT_PIXELS, REGION_WIDTH_PIXELS, y::Y};
+use oc_root::{REGION_HEIGHT_PIXELS, REGION_WIDTH_PIXELS, files, y::Y};
 
 use crate::{
-    entity::world::region::RegionBackground, ingame::draw::Z_REGION_BACKGROUND, states::Meta,
+    entity::world::region::RegionBackground,
+    ingame::draw::Z_REGION_BACKGROUND,
+    network,
+    states::{Meta, Mod, StaticSource},
 };
 
 #[cfg(feature = "debug")]
@@ -23,15 +24,22 @@ pub fn on_listening_region(
     mut commands: Commands,
     assets: Res<AssetServer>,
     meta: Res<Meta>,
+    mod_: Res<Mod>,
+    static_: Res<StaticSource>,
+    network: Res<network::state::State>,
 ) {
-    let Some(meta) = &meta.0 else { return };
+    let (Some(static_), Some(connect), Some(meta), Some(mod_)) =
+        (&static_.0, &network.server, &meta.0, &mod_.0)
+    else {
+        return;
+    };
     tracing::debug!("Spawn region background {:?}", region.0);
 
     let region = region.0;
-    // TODO: normalize somewhere
-    let path = PathBuf::from(".cache").join("maps");
-    let path = path.join(meta.folder_name());
-    let path = path.join(region.background_file_name());
+    let mod_ = mod_.canonical();
+    let world = meta.canonical();
+    let files = files::Files::new(mod_, world).into_gui(static_.clone(), connect.clone().into());
+
     let region: RegionXy = region.into();
 
     let width = REGION_WIDTH_PIXELS as f32;
@@ -40,12 +48,14 @@ pub fn on_listening_region(
     let y = region.0.1 as f32 * height;
     let x = x + width / 2.;
     let y = y + height / 2.;
+    let i: WorldRegionIndex = region.into();
+    let background = files.assets_region(i.0);
 
-    tracing::trace!(name="spawn-region-background", region=?region, x=x, y=y, path=?path);
+    tracing::trace!(name="spawn-region-background", region=?region, x=x, y=y, path=?background);
     commands.spawn((
         RegionBackground,
         Region(region),
-        Sprite::from_image(assets.load(path)),
+        Sprite::from_image(assets.load(background)),
         Transform {
             scale: Vec3::new(1.0, 1.0, 1.0),
             translation: Vec3::new(x as f32, (y as f32).to_gui_y(), Z_REGION_BACKGROUND),

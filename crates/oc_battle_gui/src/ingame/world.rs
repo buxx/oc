@@ -1,7 +1,5 @@
-use std::path::PathBuf;
-
 use bevy::prelude::*;
-use oc_root::{MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS};
+use oc_root::{MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS, files};
 
 use crate::{
     entity::world::{VisibleBattleSquare, WorldMapBackground, minimap::Minimap},
@@ -12,7 +10,8 @@ use crate::{
             world::WorldMapDisplay,
         },
     },
-    states::Meta,
+    network,
+    states::{Meta, Mod, StaticSource},
 };
 
 #[derive(Debug, Event)]
@@ -36,13 +35,26 @@ pub fn on_spawn_minimap(
     window: Single<&Window>,
     assets: Res<AssetServer>,
     meta: Res<Meta>,
+    static_: Res<StaticSource>,
+    mod_: Res<Mod>,
+    network: Res<network::state::State>,
 ) {
-    let Some(meta) = &meta.0 else { return };
+    let (Some(static_), Some(mod_), Some(meta), Some(connect)) =
+        (&static_.0, &mod_.0, &meta.0, &network.server)
+    else {
+        return;
+    };
+    // let Some(mod_) = &mod_.0 else { return };
+    // let Some(meta) = &meta.0 else { return };
+    // let Some(connect) = network.server.clone() else {
+    //     return;
+    // };
 
     let display = WorldMapDisplay::from_env(window.size());
-    let path = PathBuf::from(".cache").join("maps");
-    let path = path.join(meta.folder_name());
-    let path = path.join("minimap.png");
+    let mod_ = mod_.canonical();
+    let world = meta.canonical();
+    let files = files::Files::new(mod_, world).into_gui(static_.clone(), connect.clone().into());
+    let minimap = files.assets_minimap();
 
     let x = display.center.x;
     let y = display.center.y;
@@ -50,7 +62,7 @@ pub fn on_spawn_minimap(
     let scale_y = display.size.y / MINIMAP_HEIGHT_PIXELS as f32;
     commands.spawn((
         Minimap,
-        Sprite::from_image(assets.load(path)),
+        Sprite::from_image(assets.load(minimap)),
         Transform {
             scale: Vec3::new(scale_x, scale_y, 1.0),
             translation: Vec3::new(x, y, Z_WORLD_MAP_MINIMAP),

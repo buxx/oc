@@ -1,10 +1,10 @@
-use std::{net::SocketAddr, ops::Deref, path::PathBuf, sync::Arc};
+use std::{net::SocketAddr, ops::Deref, sync::Arc};
 
 use axum::{Router, routing::get};
 use derive_more::Constructor;
 use message_io::network::Endpoint;
 
-use crate::network::NetworkConfig;
+use crate::{config::ServerConfig, network::NetworkConfig};
 
 mod minimap;
 mod mod_;
@@ -13,24 +13,28 @@ mod world;
 #[derive(Constructor)]
 pub struct Static {
     state: Arc<crate::state::State<Endpoint>>,
-    config: NetworkConfig,
+    network: NetworkConfig,
+    config: ServerConfig,
 }
 
 #[derive(Clone, Constructor)]
 pub struct State {
     pub state: Arc<crate::state::State<Endpoint>>,
-    pub cache: PathBuf,
+    network: NetworkConfig,
+    config: ServerConfig,
 }
 
 impl Static {
     pub fn serve(&self, host: SocketAddr) -> Result<(), std::io::Error> {
-        let state = State::new(self.state.clone(), self.config.cache.clone());
+        let state = State::new(
+            self.state.clone(),
+            self.network.clone(),
+            self.config.clone(),
+        );
         let app = Router::new()
             .route("/mod", get(mod_::get))
-            .route(
-                "/region/{region}/background",
-                get(world::get_region_background),
-            )
+            .route("/world", get(world::get))
+            .route("/region/{region}", get(world::get_region))
             .route("/minimap", get(minimap::get))
             .with_state(state);
 

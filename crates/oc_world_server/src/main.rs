@@ -6,7 +6,7 @@ use std::{
 
 use clap::Parser;
 use message_io::network::Endpoint;
-use oc_root::static_::StaticSource;
+use oc_root::{files, static_::StaticSource};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
@@ -57,6 +57,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     setup_logging()?;
 
+    let files = files::Files::new("".to_string(), "".to_string()).into_server(args.cache.clone());
+    std::fs::create_dir_all(files.mods()).unwrap(); // TODO
+    std::fs::create_dir_all(files.maps()).unwrap(); // TODO
+    std::fs::create_dir_all(files.worlds()).unwrap(); // TODO
+
     let network: NetworkConfig = args.clone().into();
     let config: ServerConfig = args.clone().into();
     let state = state::init::<Endpoint>(config.clone())?;
@@ -65,7 +70,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (input, output) = network::listen(network.clone());
     {
         let state = state.clone();
-        std::thread::spawn(move || Static::new(state, network.clone()).serve(args.static_));
+        let config = config.clone();
+        std::thread::spawn(move || Static::new(state, network.clone(), config).serve(args.static_));
     }
 
     let (ready, _) = channel();
@@ -102,8 +108,8 @@ impl From<Args> for NetworkConfig {
     fn from(value: Args) -> Self {
         Self {
             host: value.host.clone(),
-            static_: value.static_.clone(),
-            cache: value.cache.clone(),
+            // static_: value.static_.clone(),
+            // cache: value.cache.clone(),
         }
     }
 }

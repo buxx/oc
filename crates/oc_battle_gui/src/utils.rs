@@ -1,37 +1,5 @@
 use std::path::PathBuf;
 
-use oc_mod::MOD_DIR;
-use oc_world::meta::Meta;
-
-pub trait OcPaths {
-    fn assets() -> PathBuf;
-    fn mods() -> PathBuf;
-    fn maps() -> PathBuf;
-    fn minimap(meta: &Meta) -> PathBuf;
-}
-
-impl OcPaths for PathBuf {
-    fn assets() -> PathBuf {
-        Self::from("./assets")
-    }
-
-    fn mods() -> PathBuf {
-        let path = Self::assets();
-        let path = path.join(".cache");
-        path.join(MOD_DIR)
-    }
-
-    fn maps() -> PathBuf {
-        let path = Self::assets();
-        path.join(".cache").join("maps")
-    }
-
-    fn minimap(meta: &Meta) -> PathBuf {
-        let path = Self::maps().join(meta.folder_name());
-        path.join("minimap.png")
-    }
-}
-
 #[macro_export]
 macro_rules! http_to_file {
     ($url:expr, $path:expr) => {
@@ -42,4 +10,14 @@ macro_rules! http_to_file {
         let mut file = std::fs::File::create($path)?;
         std::io::copy(&mut resp, &mut file)?;
     };
+}
+
+pub fn untar(path: &PathBuf, destination: &PathBuf) -> Result<(), std::io::Error> {
+    let file = std::fs::File::open(&path)?;
+    tracing::info!("Decompress {} to {}", path.display(), destination.display());
+    let decoder = flate2::read::GzDecoder::new(file);
+    let mut archive = tar::Archive::new(decoder);
+    archive.unpack(destination)?;
+    std::fs::remove_file(path)?;
+    Ok(())
 }

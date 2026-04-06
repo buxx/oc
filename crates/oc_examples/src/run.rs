@@ -17,30 +17,27 @@ pub struct Example {
     snapshot: PathBuf,
 }
 
-const SERVER_CACHE: &str = ".cache";
-
 impl Example {
     pub fn run(&self) -> Result<(), Box<dyn std::error::Error + 'static>> {
         let (ready_tx, ready_rx) = channel::<Result<(), String>>();
         let (to_client_tx, to_client_rx) = channel();
         let (to_server_tx, to_server_rx) = channel();
         let world = Meta::from_file(&self.world.meta())?;
+        // TODO: heuuu
+        let world2 = PathBuf::from("examples").join(&world.name);
 
         tracing::info!("Start server");
 
-        let cache = PathBuf::from(SERVER_CACHE);
+        // FIXME BS NOW: use Files
         let static_ = StaticSource::Local {
             mod_: self.mod_.display().to_string(),
-            map: cache
-                .join("maps")
-                .join(world.folder_name())
-                .display()
-                .to_string(),
+            map: "TOTO".to_string(),
+            world: world2.display().to_string(),
         };
         let config = ServerConfig::builder()
             .world(self.world.clone())
             .mod_(self.mod_.clone())
-            .cache(cache.clone())
+            .cache(PathBuf::from(".cache"))
             .print_ticks(false)
             .static_(static_)
             .snapshot(self.snapshot.clone())

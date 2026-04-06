@@ -1,20 +1,9 @@
 use std::net::SocketAddr;
 
-use bevy::audio::{AudioPlugin, SpatialScale};
 use bevy::prelude::*;
-use bevy::sprite_render::Wireframe2dPlugin;
-use bevy_egui::EguiPlugin;
 use clap::Parser;
 
-use crate::{
-    downloading::DownloadingPlugin,
-    error::ErrorPlugin,
-    fx::FxPlugin,
-    home::HomePlugin,
-    ingame::IngamePlugin,
-    network::NetworkPlugin,
-    states::{AppState, InGameState, Meta, Mod, StaticSource},
-};
+use crate::config::{Config_, Connect};
 
 mod config;
 #[cfg(feature = "debug")]
@@ -33,6 +22,20 @@ mod utils;
 mod window;
 mod world;
 
+#[derive(Parser, Debug, Clone)]
+#[command(version, about, long_about = None)]
+pub struct Args {
+    #[clap(long)]
+    pub autoconnect: Option<SocketAddr>,
+}
+
+impl From<Args> for Config_ {
+    fn from(value: Args) -> Self {
+        let autoconnect = value.autoconnect.map(|addr| Connect::Network(addr));
+        Self { autoconnect }
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    run::run(config::Config_::default())
+    run::run(Args::parse().into())
 }

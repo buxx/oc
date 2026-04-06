@@ -37,7 +37,7 @@ pub fn move_battle(
             if diff != Vec2::ZERO {
                 camera.translation.x += diff.x;
                 camera.translation.y -= diff.y;
-                tracing::debug!("Trigger moved battle camera");
+                tracing::trace!(name = "ingame-camera-trigger-moved-battle-camera");
                 commands.trigger(MovedBattleCamera)
             }
         }

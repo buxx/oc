@@ -42,11 +42,19 @@ impl World {
 
     // TODO: unit test me
     pub fn region_tiles(&self, region: WorldRegionIndex) -> Vec<(WorldTileIndex, &Tile)> {
-        let region: RegionXy = region.into();
-        let start: TileXy = region.into();
-        let mut tiles = Vec::with_capacity(REGION_WIDTH * REGION_HEIGHT);
+        let region_: RegionXy = region.into();
+        let start: TileXy = region_.into();
+        let start_: WorldTileIndex = start.into();
+        let count = REGION_WIDTH * REGION_HEIGHT;
+        let mut tiles = Vec::with_capacity(count);
 
-        for y in region.0.1 as usize..REGION_HEIGHT {
+        tracing::info!(
+            "Extract region {} tiles (from tile {} to tile {})",
+            region.0,
+            start_.0,
+            start_.0 + count as u64
+        );
+        for y in region_.0.1 as usize..REGION_HEIGHT {
             let line_start = TileXy(Xy(start.0.0, start.0.1 + y as u64));
             let line_start: WorldTileIndex = line_start.into();
             let line_start = line_start.0 as usize;

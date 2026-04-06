@@ -11,7 +11,7 @@ use oc_mod::Mod;
 use oc_projectile::NextProjectileId;
 use oc_root::{
     MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS, REGIONS_COUNT, WORLD_HEIGHT_PIXELS,
-    WORLD_WIDTH_PIXELS, ids::Ids,
+    WORLD_WIDTH_PIXELS, files, ids::Ids,
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
@@ -26,14 +26,17 @@ use crate::{
 #[derive(Debug, Constructor)]
 pub struct WorldLoader {
     mod_: Mod,
-    world_path: PathBuf,
-    cache_path: PathBuf,
+    world: PathBuf,
+    cache: PathBuf,
 }
 
 impl WorldLoader {
     pub fn load(&self, ids: &Ids, snapshot: Snapshot) -> Result<World, Error> {
+        tracing::info!("Check world {}", self.world.display());
         self.check()?;
-        let meta = Meta::from_file(&self.world_path.meta()).map_err(|e| MetaError::Load(e))?;
+
+        tracing::info!("Load world meta {}", self.world.meta().display());
+        let meta = Meta::from_file(&self.world.meta()).map_err(|e| MetaError::Load(e))?;
 
         // TODO: centralize caching at server startup
         self.cache(&meta)?;
@@ -55,21 +58,21 @@ impl WorldLoader {
     fn check(&self) -> Result<(), Error> {
         self.check_meta().map_err(|e| Error::Meta(e))?;
         self.check_background()
-            .map_err(|e| Error::Background(self.world_path.background(), e))?;
+            .map_err(|e| Error::Background(self.world.background(), e))?;
 
         Ok(())
     }
 
     fn check_background(&self) -> Result<(), BackgroundError> {
-        if !self.world_path.background().exists() {
+        if !self.world.background().exists() {
             return Err(BackgroundError::NotFound);
         }
 
-        if !self.world_path.background().is_file() {
+        if !self.world.background().is_file() {
             return Err(BackgroundError::NotAFile);
         }
 
-        let (width, height) = image::image_dimensions(&self.world_path.background())?;
+        let (width, height) = image::image_dimensions(&self.world.background())?;
         if width != WORLD_WIDTH_PIXELS as u32 || height != WORLD_HEIGHT_PIXELS as u32 {
             return Err(BackgroundError::Dimensions(
                 width,
@@ -83,11 +86,11 @@ impl WorldLoader {
     }
 
     fn check_meta(&self) -> Result<(), MetaError> {
-        if !self.world_path.meta().exists() {
+        if !self.world.meta().exists() {
             return Err(MetaError::NotFound);
         }
 
-        if !self.world_path.meta().is_file() {
+        if !self.world.meta().is_file() {
             return Err(MetaError::NotAFile);
         }
 
@@ -96,13 +99,14 @@ impl WorldLoader {
 
     // TODO: centralize caching at server startup
     fn cache(&self, meta: &Meta) -> Result<(), CacheError> {
-        let cache = self.cache_path.clone();
-        let cache = cache.join("maps");
-        let cache = cache.join(meta.folder_name());
-        let minimap = cache.join("minimap.png"); // TODO: store this name at an unique place ?
-        let image = image::open(self.world_path.background())?;
+        let files = files::Files::new("".to_string(), meta.canonical());
+        let files = files.into_server(self.cache.clone());
+        let world = files.world();
+        let archive = files.world_archive();
+        let minimap = files.minimap();
 
-        std::fs::create_dir_all(&cache)?;
+        std::fs::create_dir_all(&world).unwrap(); // TODO
+        let image = image::open(self.world.background())?;
 
         match minimap.exists() {
             true => {}
@@ -127,19 +131,19 @@ impl WorldLoader {
         }
 
         let counter = Arc::new(AtomicU32::new(0));
-        tracing::info!("Prepare cache for regions ({})", cache.display());
+        tracing::info!("Prepare cache for regions");
 
         (0..REGIONS_COUNT)
             .into_par_iter()
             .map(|i| {
                 let i = WorldRegionIndex(i as u64);
-                let cache = cache.join(i.background_file_name());
+                let region = files.region(i.0);
 
-                match cache.exists() {
+                match region.exists() {
                     true => Ok(()),
                     false => {
                         counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                        cache::cache_region_background(&cache, &image, i)
+                        cache::cache_region_background(&region, &image, i)
                     }
                 }
             })
@@ -149,25 +153,16 @@ impl WorldLoader {
         let already = REGIONS_COUNT - cached as usize;
         tracing::info!("{} cached, {} already cached", cached, already);
 
-        let cache = self.cache_path.clone();
-        let cache = cache.join("world");
-        // TODO: no context on errors (use anyhow)
-        std::fs::create_dir_all(&cache)?;
-        let cache = cache.join(meta.archive());
-        if !std::fs::exists(&cache)? {
-            tracing::info!(
-                "Caching {} to {}",
-                &self.world_path.display(),
-                cache.display()
-            );
+        if !std::fs::exists(&archive)? {
+            tracing::info!("Caching {} to {}", &self.world.display(), archive.display());
 
-            let file = std::fs::File::create(&cache)?;
+            let file = std::fs::File::create(&archive)?;
             let encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
             let mut builder = tar::Builder::new(encoder);
 
-            builder.append_dir_all(&meta.name, &self.world_path)?;
+            builder.append_dir_all(&meta.name, &self.world)?;
             builder.finish()?;
-            tracing::info!("Finished cache for world ({})", cache.display());
+            tracing::info!("Finished cache for world ({})", archive.display());
         }
 
         Ok(())

@@ -66,6 +66,8 @@ pub fn run(config: Config_) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "debug")]
     app.add_plugins(DebugPlugin);
 
+    tracing::info!("Start app");
     app.run();
+
     Ok(())
 }

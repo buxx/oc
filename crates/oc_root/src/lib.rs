@@ -1,3 +1,4 @@
+pub mod files;
 pub mod ids;
 pub mod physics;
 pub mod static_;

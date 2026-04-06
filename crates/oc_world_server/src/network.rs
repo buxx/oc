@@ -16,8 +16,8 @@ use crate::bridge::Event;
 #[derive(Debug, Clone)]
 pub struct NetworkConfig {
     pub host: SocketAddr,
-    pub static_: SocketAddr,
-    pub cache: PathBuf,
+    // pub static_: SocketAddr,
+    // pub cache: PathBuf,
 }
 
 pub fn listen(config: NetworkConfig) -> (Receiver<Event<Endpoint>>, Sender<(Endpoint, ToClient)>) {

@@ -38,12 +38,12 @@ impl Meta {
         Ok(meta)
     }
 
-    pub fn folder_name(&self) -> String {
+    pub fn canonical(&self) -> String {
         format!("{}_{}", self.name, self.revision)
     }
 
     pub fn archive(&self) -> String {
-        format!("{}.tar.gz", self.folder_name())
+        format!("{}.tar.gz", self.canonical())
     }
 }
 

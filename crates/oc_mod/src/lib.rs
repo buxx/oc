@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::Context;
 use derive_more::Constructor;
 use flate2::{Compression, write::GzEncoder};
-use oc_root::{GEO_PIXELS_PER_METERS, physics::Meters};
+use oc_root::{GEO_PIXELS_PER_METERS, files, physics::Meters};
 use rkyv::{Archive, Deserialize, Serialize};
 use ron;
 use tar::Builder;
@@ -20,7 +20,6 @@ pub mod armament;
 pub mod sound;
 pub mod weapons;
 
-pub const MOD_DIR: &str = "mods";
 pub const MOD_RON: &str = "mod.ron";
 
 pub const DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS: Meters = Meters(1.5);
@@ -130,9 +129,8 @@ fn load_mod(path: &PathBuf) -> Result<Mod, ModError> {
 
 // TODO: centralize caching at server startup
 fn cache(mod_: &Mod, path: &PathBuf, cache: &PathBuf) -> Result<(), CacheError> {
-    let cache = cache.join(MOD_DIR);
-    std::fs::create_dir_all(&cache).context(format!("Create dirs {}", cache.display()))?;
-    let cache = cache.join(mod_.archive());
+    let files = files::Files::new(mod_.canonical(), "".to_string()).into_server(cache.clone());
+    let cache = files.mod_archive();
     if !std::fs::exists(&cache).context(format!("Test if {} exists", cache.display()))? {
         tracing::info!("Caching {} to {}", &mod_.name, cache.display());
 
