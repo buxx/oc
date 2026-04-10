@@ -24,6 +24,7 @@ pub mod physics;
 pub mod reader;
 pub mod snapshot;
 pub mod spawn;
+pub mod terrain;
 pub mod tile;
 
 #[derive(Constructor)]

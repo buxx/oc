@@ -4,7 +4,7 @@ use ::image::{ImageBuffer, Rgba};
 use anyhow::Context;
 use clap::Parser;
 use oc_utils::image;
-use oc_world::{reader, snapshot::Snapshot};
+use oc_world::{reader, snapshot::Snapshot, terrain::Terrain, tile::Nature};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
@@ -46,6 +46,10 @@ pub struct Args {
     /// Trees png source file
     #[clap(long)]
     pub trees_png: Option<PathBuf>,
+
+    /// Print analysis informations
+    #[clap(short, long)]
+    pub verbose: bool,
 }
 
 macro_rules! copy {
@@ -74,7 +78,7 @@ macro_rules! replace {
 
 fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
-    setup_logging()?;
+    setup_logging(args.verbose)?;
 
     std::fs::create_dir_all(&args.path).context(format!(
         "Create (if not exist) folder {}",
@@ -91,6 +95,8 @@ fn main() -> Result<(), anyhow::Error> {
     let terrain_tsx_tpl_path = PathBuf::from("templates/world/terrain.tsx");
     let terrain_tsx_path = args.path.join("terrain.tsx");
     copy!(&terrain_tsx_tpl_path, &terrain_tsx_path, "terrain.tsx");
+
+    analyze_terrain(&terrain_tsx_path)?;
 
     let terrain_png_tpl_path = PathBuf::from("templates/world/terrain.png");
     let terrain_png_path = args.path.join("terrain.png");
@@ -114,18 +120,44 @@ fn main() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn snapshot_(map: &PathBuf, snapshot: &PathBuf) -> Result<(), anyhow::Error> {
-    match std::fs::exists(snapshot).context(format!("Test if {} exists", snapshot.display()))? {
-        true => tracing::info!("{} already exist", snapshot.display()),
+fn analyze_terrain(path: &PathBuf) -> Result<(), anyhow::Error> {
+    let terrain = Terrain::load(path).context(format!("Load terrain {}", path.display()))?;
+    tracing::debug!("Terrain colums: {}", terrain.columns());
+    tracing::debug!("Terrain rows: {}", terrain.rows());
+
+    let mut natures: Vec<(Nature, u32)> = terrain.natures.iter().map(|(n, i)| (*n, *i)).collect();
+    natures.sort_by_key(|(_, i)| *i);
+
+    for (index, nature) in natures {
+        tracing::debug!("Terrain index {index} is: {nature}");
+    }
+
+    Ok(())
+}
+
+fn snapshot_(map: &PathBuf, path: &PathBuf) -> Result<(), anyhow::Error> {
+    match std::fs::exists(path).context(format!("Test if {} exists", path.display()))? {
+        true => tracing::info!("{} already exist", path.display()),
         false => {
-            tracing::info!("Initialize snapshot ({})", snapshot.display());
-            let map = reader::MapReader::new(map)?;
-            let tiles = map.tiles()?;
-            let snapshot_ = Snapshot::new(tiles, vec![], vec![]);
-            let snapshot_ = snapshot_.save(&snapshot);
-            snapshot_.context(format!("Save snapshot ({})", snapshot.display()))?;
+            tracing::info!("Initialize snapshot ({})", path.display());
+            let snapshot = Snapshot::new(vec![], vec![], vec![]);
+            let snapshot = snapshot.save(&path);
+            snapshot.context(format!("Save snapshot ({})", path.display()))?;
         }
     };
+
+    let snapshot = Snapshot::load(path);
+    let mut snapshot = snapshot.context(format!("Load snapshot from {}", path.display()))?;
+
+    tracing::info!("Update snapshot tiles");
+    let map = reader::MapReader::new(map)?;
+    let tiles = map.tiles()?;
+    snapshot.tiles = tiles;
+
+    tracing::info!("Save snapshot");
+    let snapshot = snapshot.save(&path);
+    snapshot.context(format!("Save snapshot ({})", path.display()))?;
+
     Ok(())
 }
 
@@ -285,12 +317,17 @@ fn interiors(
     Ok(())
 }
 
-fn setup_logging() -> Result<(), anyhow::Error> {
+fn setup_logging(verbose: bool) -> Result<(), anyhow::Error> {
+    let default_directive = match verbose {
+        true => LevelFilter::DEBUG,
+        false => LevelFilter::INFO,
+    };
+
     tracing_subscriber::fmt()
         .with_target(false)
         .with_env_filter(
             EnvFilter::builder()
-                .with_default_directive(LevelFilter::INFO.into())
+                .with_default_directive(default_directive.into())
                 .from_env()?,
         )
         .init();

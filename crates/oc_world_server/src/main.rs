@@ -59,7 +59,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let files = files::Files::new("".to_string(), "".to_string()).into_server(args.cache.clone());
     std::fs::create_dir_all(files.mods()).unwrap(); // TODO
-    std::fs::create_dir_all(files.maps()).unwrap(); // TODO
     std::fs::create_dir_all(files.worlds()).unwrap(); // TODO
 
     let network: NetworkConfig = args.clone().into();

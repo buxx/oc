@@ -7,6 +7,7 @@ Usage: $(basename "$0") [--debug] <example>
 
 Options:
   --debug    Enable debug features
+  --release  Enable release compilation
 
 Examples:
   walking_squad
@@ -22,6 +23,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --debug)
       DEBUG=1
+      shift
+      ;;
+    --release)
+      RELEASE=1
       shift
       ;;
     help|--help|-h)
@@ -47,6 +52,9 @@ fi
 CARGO_EXTRA_ARGS=""
 if [[ $DEBUG -eq 1 ]]; then
   CARGO_EXTRA_ARGS="--features debug"
+fi
+if [[ $RELEASE -eq 1 ]]; then
+  CARGO_EXTRA_ARGS="$CARGO_EXTRA_ARGS --release"
 fi
 
 case "$1" in

@@ -20,3 +20,4 @@ tracing-subscriber.workspace = true
 bon.workspace = true
 tempfile.workspace = true
 thiserror.workspace = true
+anyhow.workspace = true

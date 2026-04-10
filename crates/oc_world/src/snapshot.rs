@@ -18,7 +18,7 @@ pub struct Snapshot {
 
 impl Snapshot {
     pub fn load(path: &PathBuf) -> Result<Self, LoadError> {
-        tracing::debug!("Load snapshot from {}", path.display());
+        tracing::info!("Load snapshot from {}", path.display());
         let bytes_ = std::fs::read(path);
         let bytes_ = bytes_.map_err(|e| LoadError::SourceIo(path.clone(), e))?;
         let mut bytes: rkyv::util::AlignedVec = rkyv::util::AlignedVec::with_capacity(bytes_.len());

@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use anyhow::Context;
 use oc_examples::{
     logging, run,
     snapshot::{EmptyGenerator, SnapshotBuilder, tile::SameTileFiller},
@@ -11,7 +12,10 @@ use oc_geo::{
 use oc_individual::{Individual, behavior::Behavior};
 use oc_projectile::Projectile;
 use oc_root::{GEO_PIXELS_PER_TILE, REGION_HEIGHT, REGION_WIDTH, WORLD_HEIGHT, WORLD_WIDTH};
-use oc_world::tile::{Nature, Tile};
+use oc_world::{
+    reader,
+    tile::{Nature, Tile},
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: Find a way to automatize/standadize that
@@ -21,15 +25,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     logging::setup_logging()?;
 
-    let snapshot = SnapshotBuilder::new(
-        SameTileFiller(Nature::ShortGrass),
-        individuals,
-        EmptyGenerator::<Projectile>::new(),
-    )
-    .build()?;
+    let map_ = PathBuf::from("examples/minidblue");
+    let map = reader::MapReader::new(&map_);
+    let map = map.context(format!("Read map {}", map_.display()))?;
+    let projectiles = EmptyGenerator::<Projectile>::new();
+
+    let snapshot = SnapshotBuilder::new(map, individuals, projectiles).build()?;
 
     run::Example::builder()
-        .world(PathBuf::from("examples/minidblue"))
+        .world(map_)
         .mod_(PathBuf::from("mods/std1"))
         .snapshot(snapshot)
         .build()

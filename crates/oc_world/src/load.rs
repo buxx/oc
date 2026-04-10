@@ -21,6 +21,7 @@ use crate::{
     cache::{self, CacheRegionBackgroundError},
     meta::{self, Meta},
     snapshot::Snapshot,
+    tile::Nature,
 };
 
 #[derive(Debug, Constructor)]
@@ -50,11 +51,10 @@ impl WorldLoader {
             .map(|projectile| (ids.next_projectile_id(), projectile))
             .collect();
 
-        let world = World::new(mod_, meta, tiles, individuals, projectiles);
-
-        Ok(world)
+        Ok(World::new(mod_, meta, tiles, individuals, projectiles))
     }
 
+    // TODO: add checks
     fn check(&self) -> Result<(), Error> {
         self.check_meta().map_err(|e| Error::Meta(e))?;
         self.check_background()

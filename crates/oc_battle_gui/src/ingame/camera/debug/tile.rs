@@ -1,12 +1,17 @@
 use bevy::prelude::*;
+use bevy::sprite::Anchor;
 use oc_geo::region::{RegionXy, WorldRegionIndex};
-use oc_geo::tile::TileXy;
 use oc_physics::update::bevy::Region;
-use oc_root::GEO_PIXELS_PER_TILE;
+use oc_root::y::Y;
+use oc_root::{GEO_PIXELS_PER_TILE, files};
+use oc_utils::d2::Xy;
 
-use crate::ingame::region::{ForgottenRegion, ListeningRegion};
-use crate::ingame::{camera, draw};
-use crate::world::{InsertTiles, World};
+use crate::ingame::camera;
+use crate::ingame::draw::Z_TERRAIN_TILE;
+use crate::ingame::region::ForgottenRegion;
+use crate::network;
+use crate::states::{Meta, Mod, StaticSource};
+use crate::world::{InsertedTiles, World};
 
 #[derive(Debug, Event)]
 pub struct ToggleShowTiles;
@@ -20,21 +25,14 @@ pub struct SpawnRegionTiles(pub WorldRegionIndex);
 #[derive(Debug, Event, Deref)]
 pub struct DespawnRegionTiles(pub WorldRegionIndex);
 
-// FIXME BS NOW; rename
 #[derive(Debug, Component)]
-pub struct TileWire;
+pub struct TerrainTile;
 
 pub fn on_toggle_show_tiles(
     _: On<ToggleShowTiles>,
     mut commands: Commands,
     state: ResMut<camera::State>,
     mut showing: ResMut<ShowTiles>,
-    // wires: Query<(Entity, &TileWire)>,
-    // world: Res<World>,
-    // mut meshes: ResMut<Assets<Mesh>>,
-    // mut materials: ResMut<Assets<ColorMaterial>>,
-    // camera: Single<(&Camera, &GlobalTransform)>,
-    // window: Single<&Window>,
 ) -> Result {
     showing.0 = !showing.0;
 
@@ -47,52 +45,10 @@ pub fn on_toggle_show_tiles(
         }
     }
 
-    // if showing.0 {
-    //     for (entity, _) in wires {
-    //         commands.entity(entity).despawn();
-    //     }
-    // } else {
-    //     let (camera, transform) = *camera;
-    //     let window_width = window.width();
-    //     let window_height = window.height();
-
-    //     for (i, _) in world.tiles().iter() {
-    //         let region: WorldRegionIndex = (**i).into();
-    //         let tile: TileXy = (**i).into();
-    //         let width = GEO_PIXELS_PER_TILE as f32;
-    //         let height = GEO_PIXELS_PER_TILE as f32;
-    //         let x = tile.0.0 as f32 * width + width / 2.;
-    //         let y = tile.0.1 as f32 * height + height / 2.;
-    //         let rectangle = Rectangle::new(width, height);
-    //         let color = Color::srgba(0.1, 0.1, 0.6, 0.5);
-
-    //         if let Ok(screen_position) =
-    //             camera.world_to_viewport(transform, Vec3::new(x, y, draw::Z_TILE_WIREFRAME))
-    //         {
-    //             if !(screen_position.x >= 0.0
-    //                 && screen_position.x <= window_width
-    //                 && screen_position.y >= 0.0
-    //                 && screen_position.y <= window_height)
-    //             {
-    //                 continue;
-    //             }
-    //         }
-
-    //         commands.spawn((
-    //             TileWire,
-    //             Region(region.into()),
-    //             // FIXME BS NOW: sprite from terrain.png
-    //             Mesh2d(meshes.add(rectangle)),
-    //             MeshMaterial2d(materials.add(color)),
-    //             Transform::from_xyz(x, y, draw::Z_TILE_WIREFRAME),
-    //         ));
-    //     }
-    // }
-
     Ok(())
 }
 
-pub fn on_insert_tiles(tiles: On<InsertTiles>, mut commands: Commands) {
+pub fn on_insert_tiles(tiles: On<InsertedTiles>, mut commands: Commands) {
     commands.trigger(SpawnRegionTiles(tiles.0));
 }
 
@@ -100,12 +56,63 @@ pub fn on_spawn_region_tiles(
     region: On<SpawnRegionTiles>,
     mut commands: Commands,
     showing: Res<ShowTiles>,
+    mod_: Res<Mod>,
+    meta: Res<Meta>,
+    static_: Res<StaticSource>,
+    network: Res<network::state::State>,
+    world_: Res<World>,
+    asset_server: Res<AssetServer>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     if !showing.0 {
         return;
     }
 
-    tracing::info!("SPAWN {:?}", region.0);
+    let (Some(mod_), Some(meta), Some(static_), Some(connect), Some(terrain)) = (
+        &mod_.0,
+        &meta.0,
+        &static_.0,
+        &network.server,
+        &world_.terrain,
+    ) else {
+        return;
+    };
+    tracing::info!("Spawn region {:?} tiles", region.0);
+
+    let mod_ = mod_.canonical();
+    let world = meta.canonical();
+    let files = files::Files::new(mod_, world).into_gui(static_.clone(), connect.clone().into());
+    let terrain_png = files.terrain_png().display().to_string();
+
+    let texture = asset_server.load(&terrain_png);
+    let layout = terrain.layout();
+    let texture_atlas_layout = texture_atlas_layouts.add(layout);
+
+    if let Some(tiles) = world_.tiles().get(&region) {
+        for (i, tile) in tiles {
+            let xy: Xy = (*i).into();
+            // TODO (map terrain should be checked to avoid manage missing terrain here)
+            let index = (*terrain.natures.get(&tile.nature).unwrap()) as usize;
+            let x = xy.0 * GEO_PIXELS_PER_TILE;
+            let y = xy.1 * GEO_PIXELS_PER_TILE;
+            let point = Vec3::new(x as f32, (y as f32).to_gui_y(), Z_TERRAIN_TILE);
+
+            commands.spawn((
+                TerrainTile,
+                Region(region.0.into()),
+                Sprite {
+                    image: texture.clone(),
+                    texture_atlas: Some(TextureAtlas {
+                        layout: texture_atlas_layout.clone(),
+                        index,
+                    }),
+                    ..Default::default()
+                },
+                Transform::from_translation(point),
+                Anchor::BOTTOM_LEFT,
+            ));
+        }
+    }
 }
 
 pub fn on_forgotten_region(region: On<ForgottenRegion>, mut commands: Commands) {
@@ -115,10 +122,10 @@ pub fn on_forgotten_region(region: On<ForgottenRegion>, mut commands: Commands) 
 pub fn on_despawn_region_tiles(
     region: On<DespawnRegionTiles>,
     mut commands: Commands,
-    tiles: Query<(&TileWire, Entity, &Region)>,
+    tiles: Query<(&TerrainTile, Entity, &Region)>,
 ) {
+    tracing::info!("Despawn region {:?} tiles", region.0);
     let region: RegionXy = region.0.into();
-    tracing::info!("DESPAWN {:?}", region.0);
 
     for (_, entity, region_) in tiles {
         if region_.0 == region {

@@ -54,7 +54,7 @@ pub fn on_spawn_minimap(
     let mod_ = mod_.canonical();
     let world = meta.canonical();
     let files = files::Files::new(mod_, world).into_gui(static_.clone(), connect.clone().into());
-    let minimap = files.assets_minimap();
+    let minimap = files.minimap();
 
     let x = display.center.x;
     let y = display.center.y;

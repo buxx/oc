@@ -6,7 +6,7 @@
     "rust-analyzer": {
       "initialization_options": {
         "cargo": {
-          "features": ["debug"],
+          "features": ["debug", "bevy", "tiled"],
         },
       },
     },

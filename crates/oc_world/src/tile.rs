@@ -12,8 +12,9 @@ use oc_physics::{
 use oc_root::GEO_PIXELS_PER_TILE;
 
 use crate::World;
-use derive_more::Constructor;
+use derive_more::{Constructor, Display};
 use rkyv::{Archive, Deserialize, Serialize};
+use strum_macros::EnumIter;
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq, Constructor)]
 #[rkyv(compare(PartialEq), derive(Debug))]
@@ -23,7 +24,9 @@ pub struct Tile {
     pub z: u8,
 }
 
-#[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq)]
+#[derive(
+    Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, EnumIter, Display, Hash, Eq,
+)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Nature {
     ShortGrass,
@@ -46,6 +49,7 @@ pub enum Nature {
 impl std::str::FromStr for Nature {
     type Err = NatureError;
 
+    // TODO: use strum auto (or serde ?)
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "ShortGrass" => Ok(Self::ShortGrass),

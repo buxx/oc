@@ -5157,6 +5157,7 @@ dependencies = [
 name = "oc_examples"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bon",
  "oc_battle_gui",
  "oc_geo",
@@ -5275,6 +5276,7 @@ dependencies = [
 name = "oc_utils"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bevy",
  "derive_more",
  "geo",
@@ -5284,6 +5286,7 @@ dependencies = [
  "rustc-hash 2.1.1",
  "serde",
  "serde_derive",
+ "tiled",
  "tracing",
 ]
 
@@ -5292,6 +5295,7 @@ name = "oc_world"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bevy",
  "clap",
  "derive_more",
  "flate2",
@@ -5309,6 +5313,8 @@ dependencies = [
  "rstest",
  "rustc-hash 2.1.1",
  "serde",
+ "strum 0.28.0",
+ "strum_macros 0.28.0",
  "tar",
  "thiserror 2.0.18",
  "tiled",

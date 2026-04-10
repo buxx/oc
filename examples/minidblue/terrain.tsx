@@ -1,5 +1,13 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
-<tileset version="1.5" tiledversion="1.6.0" name="terrain" tilewidth="5" tileheight="5" tilecount="2000" columns="100">
+<?xml version="1.0" encoding="UTF-8" ?>
+<tileset
+    version="1.5"
+    tiledversion="1.6.0"
+    name="terrain"
+    tilewidth="5"
+    tileheight="5"
+    tilecount="2000"
+    columns="100"
+>
 <image source="terrain.png" width="500" height="100" />
 <tile id="0">
     <properties>

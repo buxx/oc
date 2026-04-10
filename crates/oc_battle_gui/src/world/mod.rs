@@ -17,6 +17,9 @@ pub mod tile;
 #[derive(Debug, Event)]
 pub struct InsertTiles(pub WorldRegionIndex, pub Vec<(WorldTileIndex, Tile)>);
 
+#[derive(Debug, Event)]
+pub struct InsertedTiles(pub WorldRegionIndex);
+
 pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
@@ -46,6 +49,7 @@ pub struct World {
     individuals: Index<WorldTileIndex, Vec<(IndividualIndex, Individual)>>,
     individuals_refs: FxHashMap<IndividualIndex, (WorldRegionIndex, WorldTileIndex)>,
     tiles: Index<WorldTileIndex, Tile>,
+    pub terrain: Option<oc_world::terrain::Terrain>,
 }
 
 impl World {
@@ -158,12 +162,7 @@ impl World {
         self.tiles.get(&region).and_then(|tiles| tiles.get(&i))
     }
 
-    #[cfg(feature = "debug")]
-    pub fn tiles(&self) -> Vec<(&WorldTileIndex, &Tile)> {
-        self.tiles
-            .iter()
-            .map(|(_, tiles)| tiles.iter())
-            .flatten()
-            .collect()
+    pub fn tiles(&self) -> &Index<WorldTileIndex, Tile> {
+        &self.tiles
     }
 }

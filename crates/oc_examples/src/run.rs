@@ -4,7 +4,7 @@ use std::{
 };
 
 use bon::Builder;
-use oc_root::static_::StaticSource;
+use oc_root::{files::Files, static_::StaticSource};
 use oc_world::{load::WorldPath, meta::Meta};
 use oc_world_server::config::ServerConfig;
 
@@ -19,6 +19,10 @@ pub struct Example {
 
 impl Example {
     pub fn run(&self) -> Result<(), Box<dyn std::error::Error + 'static>> {
+        let files = Files::new("".to_string(), "".to_string()).into_server(PathBuf::from(".cache"));
+        std::fs::create_dir_all(files.mods()).unwrap(); // TODO
+        std::fs::create_dir_all(files.worlds()).unwrap(); // TODO
+
         let (ready_tx, ready_rx) = channel::<Result<(), String>>();
         let (to_client_tx, to_client_rx) = channel();
         let (to_server_tx, to_server_rx) = channel();
@@ -31,8 +35,7 @@ impl Example {
         // FIXME BS NOW: use Files
         let static_ = StaticSource::Local {
             mod_: self.mod_.display().to_string(),
-            map: "TOTO".to_string(),
-            world: world2.display().to_string(),
+            world: world.name.clone(),
         };
         let config = ServerConfig::builder()
             .world(self.world.clone())

@@ -87,25 +87,22 @@ impl FilesAsServer {
         self.cache.join("mods")
     }
 
-    pub fn maps(&self) -> PathBuf {
-        self.cache.join("maps")
-    }
-
     pub fn worlds(&self) -> PathBuf {
         self.cache.join("worlds")
     }
 
     pub fn world(&self) -> PathBuf {
-        self.cache.join(format!("maps/{}", self.world))
+        self.cache.join(format!("worlds/{}", self.world))
     }
 
     pub fn minimap(&self) -> PathBuf {
-        self.cache.join(format!("maps/{}/minimap.png", self.world))
+        self.cache
+            .join(format!("worlds/{}/minimap.png", self.world))
     }
 
     pub fn region(&self, region: u64) -> PathBuf {
         self.cache
-            .join(format!("maps/{}/{}.png", self.world, region))
+            .join(format!("worlds/{}/region{}.png", self.world, region))
     }
 
     pub fn world_archive(&self) -> PathBuf {
@@ -122,37 +119,54 @@ impl FilesAsServer {
 }
 
 impl FilesAsGui {
-    pub fn assets_mod(&self) -> PathBuf {
+    pub fn mod_(&self) -> PathBuf {
         match &self.sources {
             StaticSource::Remote(_) => PathBuf::from(format!("cache/mods/{}", &self.mod_)),
-            StaticSource::Local {
-                mod_: _,
-                map,
-                world: _,
-            } => PathBuf::from(map).join("minimap.png"),
+            StaticSource::Local { mod_: _, world } => PathBuf::from(world).join("minimap.png"),
         }
     }
-    pub fn assets_world(&self) -> PathBuf {
+
+    pub fn world_(&self) -> PathBuf {
         match &self.sources {
             StaticSource::Remote(_) => PathBuf::from(format!("cache/worlds/{}", &self.world)),
-            StaticSource::Local {
-                mod_: _,
-                map,
-                world: _,
-            } => PathBuf::from(map).join("minimap.png"),
+            // FIXME BS NOW: not used ?
+            StaticSource::Local { mod_: _, world } => PathBuf::from(world).join("UNUSED"),
         }
     }
 
-    pub fn assets_minimap(&self) -> PathBuf {
-        self.sources
-            .cache()
-            .join(format!("maps/{}/minimap.png", &self.world))
+    pub fn terrain_png(&self) -> PathBuf {
+        match &self.sources {
+            StaticSource::Remote(_) => {
+                PathBuf::from(format!("cache/worlds/{}/terrain.png", &self.world))
+            }
+            StaticSource::Local { mod_: _, world } => {
+                PathBuf::from("worlds_").join(world).join("terrain.png")
+            }
+        }
     }
 
-    pub fn assets_region(&self, region: u64) -> PathBuf {
+    pub fn terrain_tsx(&self) -> PathBuf {
+        match &self.sources {
+            StaticSource::Remote(_) => {
+                PathBuf::from(format!("cache/worlds/{}/terrain.tsx", &self.world))
+            }
+            StaticSource::Local { mod_: _, world } => PathBuf::from("assets")
+                .join("worlds_")
+                .join(world)
+                .join("terrain.tsx"),
+        }
+    }
+
+    pub fn minimap(&self) -> PathBuf {
         self.sources
             .cache()
-            .join(format!("maps/{}/{}.png", &self.world, region))
+            .join(format!("worlds/{}/minimap.png", &self.world))
+    }
+
+    pub fn region(&self, region: u64) -> PathBuf {
+        self.sources
+            .cache()
+            .join(format!("worlds/{}/region{}.png", &self.world, region))
     }
 
     pub fn method(&self, file: File) -> Option<(Sync, PathBuf)> {
@@ -164,19 +178,19 @@ impl FilesAsGui {
                 Some(match file {
                     File::Mod => (
                         Sync::ArchiveDownload(format!("{base_url}/mod")),
-                        base_target.join(self.assets_mod()),
+                        base_target.join(self.mod_()),
                     ),
                     File::World => (
                         Sync::ArchiveDownload(format!("{base_url}/world")),
-                        base_target.join(self.assets_world()),
+                        base_target.join(self.world_()),
                     ),
                     File::Minimap => (
                         Sync::DirectDownload(format!("{base_url}/minimap")),
-                        base_target.join(self.assets_minimap()),
+                        base_target.join(self.minimap()),
                     ),
                     File::Region(i) => (
                         Sync::DirectDownload(format!("{base_url}/region/{i}")),
-                        base_target.join(self.assets_region(i)),
+                        base_target.join(self.region(i)),
                     ),
                 })
             }

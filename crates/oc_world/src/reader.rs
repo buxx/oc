@@ -375,7 +375,6 @@ impl MapReader {
                 let tile_x = tile_id - (tile_y * terrain_tileset.columns);
                 let nature = Nature::from_str(id)?;
                 let i: WorldTileIndex = TileXy(Xy(tile_x as u64, tile_y as u64)).into();
-
                 let tile = Tile { i, nature, z: 0 };
 
                 tiles.push(tile)
