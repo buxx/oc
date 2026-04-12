@@ -109,7 +109,7 @@ pub fn on_spawn_region_tiles(
                     ..Default::default()
                 },
                 Transform::from_translation(point),
-                Anchor::BOTTOM_LEFT,
+                Anchor::TOP_LEFT,
             ));
         }
     }
