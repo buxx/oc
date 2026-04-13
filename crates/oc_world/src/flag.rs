@@ -120,20 +120,15 @@ impl FlagsOwnership {
 
 #[cfg(test)]
 pub mod test {
-    use oc_core::spawn::SpawnZoneName;
     use rstest::*;
 
-    use crate::map::{decor::*, spawn::*, *};
-    use std::path::PathBuf;
+    use crate::{decor::Decor, spawn::SpawnZone};
 
     use super::*;
+    use std::path::PathBuf;
 
-    #[cfg(test)]
     fn map(spawn_zones: Vec<SpawnZone>, flags: Vec<Flag>) -> Map {
-        use crate::types::Offset;
-
         Map::new(
-            "TestMap".to_string(),
             PathBuf::from("."),
             PathBuf::from("."),
             PathBuf::from("."),
@@ -141,10 +136,7 @@ pub mod test {
             spawn_zones,
             10,
             10,
-            vec![],
-            1,
-            1,
-            Decor::new(vec![], vec![], Offset::new(0., 0.)),
+            Decor::new(vec![], vec![], Vec2::new(0., 0.)),
             flags,
         )
     }

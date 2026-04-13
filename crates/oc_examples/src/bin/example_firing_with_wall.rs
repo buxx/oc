@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::Context;
 use oc_examples::{
     logging, run,
-    snapshot::{EmptyGenerator, SnapshotBuilder, tile::SameTileFiller},
+    snapshot::{EmptyGenerator, SnapshotBuilder},
 };
 use oc_geo::{
     region::RegionXy,
@@ -12,10 +12,7 @@ use oc_geo::{
 use oc_individual::{Individual, behavior::Behavior};
 use oc_projectile::Projectile;
 use oc_root::{GEO_PIXELS_PER_TILE, REGION_HEIGHT, REGION_WIDTH, WORLD_HEIGHT, WORLD_WIDTH};
-use oc_world::{
-    reader,
-    tile::{Nature, Tile},
-};
+use oc_world::{reader, tile::Tile};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: Find a way to automatize/standadize that

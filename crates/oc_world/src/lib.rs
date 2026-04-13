@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn test_region_tiles() {
         // Given
-        let mod_ = Mod::new("MyMod".to_string(), 1, vec![], 1.5);
+        let mod_ = Mod::new("MyMod".to_string(), 1, vec![], vec![], vec![], 1.5);
         let meta = Meta::new("MyWorld".to_string(), 0);
         let tiles: Vec<Tile> = (0..TILES_COUNT)
             .map(|i| Tile::new(WorldTileIndex(i as u64), Nature::ShortGrass, 0))
