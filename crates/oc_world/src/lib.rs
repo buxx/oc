@@ -67,6 +67,11 @@ impl World {
                 .map(|(t, i)| (WorldTileIndex(i as u64), t))
                 .collect();
             tiles.extend(tiles_);
+            if region_ == RegionXy(Xy(0, 0)) {
+                if y == 99 {
+                    tracing::error!("{y}");
+                }
+            }
         }
 
         tiles

@@ -1,8 +1,9 @@
 use std::fmt::Display;
 
-use bevy::prelude::*;
+use bevy::{math::VectorSpace, prelude::*};
 use bevy_egui::egui;
 use derive_more::Constructor;
+use oc_geo::{region::RegionXy, tile::TileXy};
 use oc_individual::IndividualIndex;
 use oc_mod::{
     DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS, Mod,
@@ -11,9 +12,12 @@ use oc_mod::{
     weapons::{IndexedWeapon, WeaponType},
 };
 use oc_projectile::ProjectileId;
+use oc_utils::d2::Xy;
+use oc_world::tile::Tile;
 use strum_macros::{Display, EnumIter};
 
 pub mod component;
+pub mod cursor;
 pub mod left_click;
 pub mod refresh;
 pub mod window;
@@ -34,6 +38,11 @@ pub struct Refresh;
 pub struct Context {
     refresh: refresh::Refresh,
     show_tiles: bool,
+    // Cursor
+    cursor: Option<Vec2>,
+    point: Option<Vec2>,
+    tile: Option<(TileXy, String)>,
+    region: Option<RegionXy>,
     // Components
     view: View,
     regions: Vec<Region>,
@@ -55,6 +64,10 @@ impl Default for Context {
         Self {
             refresh: Default::default(),
             show_tiles: Default::default(),
+            cursor: Default::default(),
+            point: Default::default(),
+            tile: Default::default(),
+            region: Default::default(),
             view: Default::default(),
             regions: Default::default(),
             individuals: Default::default(),
@@ -88,6 +101,7 @@ pub enum SpawnProjectileClickMode {
 #[derive(Debug, Clone, EnumIter, Default)]
 pub enum Tab {
     #[default]
+    Cursor,
     Components,
     Leftclick,
 }
@@ -95,6 +109,7 @@ pub enum Tab {
 impl Display for Tab {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Tab::Cursor => f.write_str("Cursor"),
             Tab::Components => f.write_str("Components"),
             Tab::Leftclick => f.write_str("Left click"),
         }
@@ -123,6 +138,7 @@ impl<'a, 'b, 'w, 's> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's> {
         let mod_ = &self.mod_;
 
         match tab {
+            Tab::Cursor => context.ui_cursor(ui, commands, mod_),
             Tab::Components => context.ui_components(ui, commands, mod_),
             Tab::Leftclick => context.ui_left_click(ui, commands, mod_),
         }

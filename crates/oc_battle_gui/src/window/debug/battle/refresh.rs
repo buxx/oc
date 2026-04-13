@@ -1,8 +1,11 @@
 use std::time::Instant;
 
 use bevy::prelude::*;
+use oc_geo::{region::RegionXy, tile::TileXy};
 use oc_physics::update::bevy::{Forces, Position, Region, Tile};
+use oc_root::y::Y;
 
+use crate::world::World;
 use crate::{
     entity::{individual::IndividualIndex, projectile::ProjectileId},
     ingame::camera::State,
@@ -12,8 +15,8 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Refresh {
-    EachFrame,
     #[default]
+    EachFrame,
     X100ms,
     X1s,
 }
@@ -34,6 +37,9 @@ pub fn on_refresh(
     camera: Res<State>,
     individuals: Query<(&IndividualIndex, &Position, &Tile, &Region, &Forces)>,
     projectiles: Query<(&ProjectileId, &Position, &Tile, &Region, &Forces)>,
+    window_: Single<&bevy::window::Window>,
+    camera_: Single<(&Camera, &GlobalTransform)>,
+    world: Res<World>,
 ) {
     #[allow(irrefutable_let_patterns)] // TODO: no more irrefutable when more windows
     if let Some(crate::window::Window::BattleDebug(window)) = &mut window.0 {
@@ -66,6 +72,23 @@ pub fn on_refresh(
                 )
             })
             .collect();
+
+        let (camera, transform) = *camera_;
+        if let Some(cursor) = window_.cursor_position() {
+            if let Ok(worldp) = camera.viewport_to_world_2d(transform, cursor) {
+                let point = Vec2::new(worldp.x, worldp.y.to_gui_y());
+                let tile: TileXy = [point.x, point.y].into();
+                let tile_ = world.tile(tile);
+                let tile_ = tile_.map(|t| t.nature.to_string()).unwrap_or_default();
+                let region: RegionXy = tile.into();
+
+                window.context.cursor = Some(cursor);
+                window.context.point = Some(point);
+                window.context.tile = Some((tile, tile_));
+                window.context.region = Some(region);
+            };
+        };
+
         window.last = Instant::now();
     }
 }

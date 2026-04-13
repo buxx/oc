@@ -21,7 +21,6 @@ use crate::{
     cache::{self, CacheRegionBackgroundError},
     meta::{self, Meta},
     snapshot::Snapshot,
-    tile::Nature,
 };
 
 #[derive(Debug, Constructor)]

@@ -1,4 +1,8 @@
 use bevy::{prelude::*, window::WindowResized};
+#[cfg(feature = "debug")]
+use oc_geo::tile::WorldTileIndex;
+#[cfg(feature = "debug")]
+use oc_utils::bevy::EntityMapping;
 
 use crate::{
     ingame::{
@@ -70,6 +74,7 @@ impl Plugin for CameraPlugin {
 
         #[cfg(feature = "debug")]
         app.init_resource::<debug::tile::ShowTiles>()
+            .init_resource::<EntityMapping<WorldTileIndex>>()
             .add_observer(debug::tile::on_toggle_show_tiles)
             .add_observer(debug::tile::on_insert_tiles)
             .add_observer(debug::tile::on_spawn_region_tiles)
@@ -81,6 +86,12 @@ impl Plugin for CameraPlugin {
                 debug::world::cursor
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::World)),
+            )
+            .add_systems(
+                Update,
+                debug::tile::tile_under_cursor
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle)),
             );
     }
 }
@@ -92,6 +103,9 @@ pub struct State {
     pub focus: Focus,
     /// Previous camera translation before focus change
     pub previously: Option<Vec3>,
+    /// Tile currently under cursor
+    #[cfg(feature = "debug")]
+    pub tile: Option<WorldTileIndex>,
 }
 
 fn init(mut commands: Commands) {
