@@ -19,6 +19,7 @@ EOF
 
 # ── Parse flags ───────────────────────────────────────────────
 DEBUG=0
+RELEASE=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --debug)
