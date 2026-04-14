@@ -100,11 +100,12 @@ pub fn on_spawn_region_tiles(
             let y = xy.1 * GEO_PIXELS_PER_TILE;
             let point = Vec3::new(x as f32, (y as f32).to_gui_y(), Z_TERRAIN_TILE);
 
-            if region.0.0 == 0 {
-                if xy.1 == 99 {
-                    tracing::error!("spawn {} at {:?}", xy.1, (x, y));
-                }
-            }
+            // FIXME BS NOW
+            // if region.0.0 == 0 {
+            //     if xy.1 == 99 {
+            //         tracing::error!("spawn {} at {:?}", xy.1, (x, y));
+            //     }
+            // }
 
             let entity = commands
                 .spawn((
@@ -153,22 +154,35 @@ pub fn tile_under_cursor(
     window_: Single<&Window>,
     camera_: Single<(&Camera, &GlobalTransform)>,
     entities: Res<EntityMapping<WorldTileIndex>>,
+    mut tiles: Query<(&TerrainTile, &mut Sprite)>,
 ) {
     let (camera, transform) = *camera_;
     if let Some(cursor) = window_.cursor_position() {
         if let Ok(cursor) = camera.viewport_to_world_2d(transform, cursor) {
             let point = Vec2::new(cursor.x, cursor.y.to_gui_y());
             let tile: TileXy = [point.x, point.y].into();
-            let i: WorldTileIndex = tile.into();
+            let current: WorldTileIndex = tile.into();
 
             match state.tile {
-                Some(tile_) => {
-                    if tile_ != i {
+                Some(previous) => {
+                    if previous != current {
+                        if let Some(previous) = entities.get(&previous) {
+                            if let Ok((_, mut sprite)) = tiles.get_mut(*previous) {
+                                sprite.color = Color::WHITE;
+                            }
+                        }
+
+                        if let Some(current) = entities.get(&current) {
+                            if let Ok((_, mut sprite)) = tiles.get_mut(*current) {
+                                sprite.color = Color::BLACK;
+                            }
+                        }
+
                         tracing::info!("{:?}", tile);
-                        state.tile = Some(i);
+                        state.tile = Some(current);
                     }
                 }
-                None => state.tile = Some(i),
+                None => state.tile = Some(current),
             }
         };
     };
