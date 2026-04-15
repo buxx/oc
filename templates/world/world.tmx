@@ -14,8 +14,11 @@
 >
  <tileset firstgid="1" source="terrain.tsx" />
  <tileset firstgid="2001" source="trees.tsx" />
- <tileset firstgid="2021" source="terrain.tsx" />
+ <tileset firstgid="2021" source="height.tsx" />
  <layer id="1" name="terrain" width="{{width}}" height="{{height}}">
+  <data encoding="csv" />
+ </layer>
+ <layer id="6" name="height" width="200" height="200" visible="0">
   <data encoding="csv" />
  </layer>
  <objectgroup id="5" name="flags" />

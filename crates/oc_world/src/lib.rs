@@ -45,17 +45,11 @@ impl World {
     pub fn region_tiles(&self, region: WorldRegionIndex) -> Vec<(WorldTileIndex, &Tile)> {
         let region_: RegionXy = region.into();
         let start: TileXy = region_.into();
-        let start_: WorldTileIndex = start.into();
         let count = REGION_WIDTH * REGION_HEIGHT;
         let mut tiles = Vec::with_capacity(count);
 
-        tracing::info!(
-            "Extract region {} tiles (from tile {} to tile {})",
-            region.0,
-            start_.0,
-            start_.0 + count as u64
-        );
-        for y in region_.0.1 as usize..REGION_HEIGHT {
+        tracing::debug!("Extract region {} tiles", region.0,);
+        for y in 0..REGION_HEIGHT {
             let line_start = TileXy(Xy(start.0.0, start.0.1 + y as u64));
             let line_start: WorldTileIndex = line_start.into();
             let line_start = line_start.0 as usize;
@@ -67,11 +61,6 @@ impl World {
                 .map(|(t, i)| (WorldTileIndex(i as u64), t))
                 .collect();
             tiles.extend(tiles_);
-            if region_ == RegionXy(Xy(0, 0)) {
-                if y == 99 {
-                    tracing::error!("{y}");
-                }
-            }
         }
 
         tiles
@@ -124,6 +113,7 @@ mod tests {
 
     use super::*;
 
+    // TODO: this test is not very good ... To make precise things, we must drop constant usage
     #[test]
     fn test_region_tiles() {
         // Given

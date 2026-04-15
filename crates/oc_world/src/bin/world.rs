@@ -50,20 +50,23 @@ pub struct Args {
     /// Print analysis informations
     #[clap(short, long)]
     pub verbose: bool,
+
+    /// Replace files like terrain.tsx, etc
+    #[clap(long, action)]
+    pub replace: bool,
 }
 
-macro_rules! copy {
-    ($from:expr, $to:expr, $name:expr) => {
-        match std::fs::exists($to).context(format!("Test if {} exists", $to.display()))? {
-            true => {
-                tracing::info!("{} already exist", $name);
-            }
-            false => {
-                tracing::info!("Copy {} ({} -> {})", $name, $from.display(), $to.display());
-                std::fs::copy($from, $to).context(format!("Copy {}", $name))?;
-            }
-        }
-    };
+fn copy(from: &PathBuf, to: &PathBuf, name: &str, replace: bool) -> Result<(), anyhow::Error> {
+    let exist = std::fs::exists(to).context(format!("Test if {} exists", to.display()))?;
+
+    if !exist || replace {
+        tracing::info!("Copy {} ({} -> {})", name, from.display(), to.display());
+        std::fs::copy(from, to).context(format!("Copy {}", name))?;
+    } else {
+        tracing::info!("{} already exist", name);
+    }
+
+    Ok(())
 }
 
 macro_rules! replace {
@@ -85,6 +88,8 @@ fn main() -> Result<(), anyhow::Error> {
         args.path.display()
     ))?;
 
+    let f = args.replace;
+
     let background_path = args.path.join("background.png");
     let interiors_path = args.path.join("interiors.png");
     let (width, height) = background(&args, &background_path)?;
@@ -94,21 +99,29 @@ fn main() -> Result<(), anyhow::Error> {
 
     let terrain_tsx_tpl_path = PathBuf::from("templates/world/terrain.tsx");
     let terrain_tsx_path = args.path.join("terrain.tsx");
-    copy!(&terrain_tsx_tpl_path, &terrain_tsx_path, "terrain.tsx");
+    copy(&terrain_tsx_tpl_path, &terrain_tsx_path, "terrain.tsx", f)?;
 
     analyze_terrain(&terrain_tsx_path)?;
 
+    let height_tsx_tpl_path = PathBuf::from("templates/world/height.tsx");
+    let height_tsx_path = args.path.join("height.tsx");
+    copy(&height_tsx_tpl_path, &height_tsx_path, "height.tsx", f)?;
+
+    let height_png_tpl_path = PathBuf::from("templates/world/height.png");
+    let height_png_path = args.path.join("height.png");
+    copy(&height_png_tpl_path, &height_png_path, "height.png", f)?;
+
     let terrain_png_tpl_path = PathBuf::from("templates/world/terrain.png");
     let terrain_png_path = args.path.join("terrain.png");
-    copy!(&terrain_png_tpl_path, &terrain_png_path, "terrain.png");
+    copy(&terrain_png_tpl_path, &terrain_png_path, "terrain.png", f)?;
 
     let trees_tsx_tpl_path = PathBuf::from("templates/world/trees.tsx");
     let trees_tsx_path = args.path.join("trees.tsx");
-    copy!(&trees_tsx_tpl_path, &trees_tsx_path, "trees.tsx");
+    copy(&trees_tsx_tpl_path, &trees_tsx_path, "trees.tsx", f)?;
 
     let trees_png_tpl_path = PathBuf::from("templates/world/trees.png");
     let trees_png_path = args.path.join("trees.png");
-    copy!(&trees_png_tpl_path, &trees_png_path, "trees.png");
+    copy(&trees_png_tpl_path, &trees_png_path, "trees.png", f)?;
 
     let world_tpl_path = PathBuf::from("templates/world/world.tmx");
     let world_path = args.path.join("world.tmx");

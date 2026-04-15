@@ -80,7 +80,7 @@ pub fn on_spawn_region_tiles(
     ) else {
         return;
     };
-    tracing::info!("Spawn region {:?} tiles", region.0);
+    tracing::debug!("Spawn region {:?} tiles", region.0);
 
     let mod_ = mod_.canonical();
     let world = meta.canonical();
@@ -99,13 +99,6 @@ pub fn on_spawn_region_tiles(
             let x = xy.0 * GEO_PIXELS_PER_TILE;
             let y = xy.1 * GEO_PIXELS_PER_TILE;
             let point = Vec3::new(x as f32, (y as f32).to_gui_y(), Z_TERRAIN_TILE);
-
-            // FIXME BS NOW
-            // if region.0.0 == 0 {
-            //     if xy.1 == 99 {
-            //         tracing::error!("spawn {} at {:?}", xy.1, (x, y));
-            //     }
-            // }
 
             let entity = commands
                 .spawn((
@@ -138,7 +131,7 @@ pub fn on_despawn_region_tiles(
     tiles: Query<(&TerrainTile, Entity, &Region)>,
     mut entities: ResMut<EntityMapping<WorldTileIndex>>,
 ) {
-    tracing::info!("Despawn region {:?} tiles", region.0);
+    tracing::debug!("Despawn region {:?} tiles", region.0);
     let region: RegionXy = region.0.into();
 
     for (tile, entity, region_) in tiles {
@@ -178,7 +171,6 @@ pub fn tile_under_cursor(
                             }
                         }
 
-                        tracing::info!("{:?}", tile);
                         state.tile = Some(current);
                     }
                 }
