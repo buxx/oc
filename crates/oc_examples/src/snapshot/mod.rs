@@ -44,6 +44,7 @@ where
 
         let snapshot = Snapshot {
             tiles,
+            heights,
             individuals,
             projectiles,
         };

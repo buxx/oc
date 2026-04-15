@@ -153,7 +153,7 @@ fn snapshot_(map: &PathBuf, path: &PathBuf) -> Result<(), anyhow::Error> {
         true => tracing::info!("{} already exist", path.display()),
         false => {
             tracing::info!("Initialize snapshot ({})", path.display());
-            let snapshot = Snapshot::new(vec![], vec![], vec![]);
+            let snapshot = Snapshot::new(vec![], vec![], vec![], vec![]);
             let snapshot = snapshot.save(&path);
             snapshot.context(format!("Save snapshot ({})", path.display()))?;
         }

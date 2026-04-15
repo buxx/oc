@@ -10,12 +10,13 @@ use oc_root::{REGION_HEIGHT, REGION_WIDTH};
 use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
 
-use crate::{meta::Meta, tile::Tile};
+use crate::{height::Height, meta::Meta, tile::Tile};
 
 pub mod cache;
 pub mod control;
 pub mod decor;
 pub mod flag;
+pub mod height;
 pub mod interior;
 pub mod load;
 pub mod map;
@@ -32,8 +33,27 @@ pub struct World {
     mod_: Mod, // Maybe its place is not in world (when want to access, need to read lock World, but Mod never change)
     meta: Meta,
     tiles: Vec<Tile>,
+    heights: Vec<Height>,
     individuals: Vec<Individual>,
     projectiles: FxHashMap<ProjectileId, Projectile>,
+}
+
+macro_rules! region_data {
+    ($self:ident, $region:expr, $field:ident, $map:expr) => {{
+        let start: TileXy = RegionXy::from($region).into();
+        tracing::debug!("Extract region {} {}", $region.0, stringify!($field));
+        (0..REGION_HEIGHT)
+            .flat_map(move |y| {
+                let line_start =
+                    WorldTileIndex::from(TileXy(Xy(start.0.0, start.0.1 + y as u64))).0 as usize;
+                let line_end = line_start + REGION_WIDTH;
+                $self.$field[line_start..line_end]
+                    .iter()
+                    .zip(line_start..line_end)
+                    .map($map)
+            })
+            .collect()
+    }};
 }
 
 impl World {
@@ -43,27 +63,14 @@ impl World {
 
     // TODO: unit test me
     pub fn region_tiles(&self, region: WorldRegionIndex) -> Vec<(WorldTileIndex, &Tile)> {
-        let region_: RegionXy = region.into();
-        let start: TileXy = region_.into();
-        let count = REGION_WIDTH * REGION_HEIGHT;
-        let mut tiles = Vec::with_capacity(count);
+        region_data!(self, region, tiles, |(t, i)| (WorldTileIndex(i as u64), t))
+    }
 
-        tracing::debug!("Extract region {} tiles", region.0,);
-        for y in 0..REGION_HEIGHT {
-            let line_start = TileXy(Xy(start.0.0, start.0.1 + y as u64));
-            let line_start: WorldTileIndex = line_start.into();
-            let line_start = line_start.0 as usize;
-            let line_end = line_start + REGION_WIDTH;
-            let tiles_ = &self.tiles[line_start..line_end];
-            let tiles_: Vec<(WorldTileIndex, &Tile)> = tiles_
-                .iter()
-                .zip(line_start..line_end)
-                .map(|(t, i)| (WorldTileIndex(i as u64), t))
-                .collect();
-            tiles.extend(tiles_);
-        }
-
-        tiles
+    pub fn region_heights(&self, region: WorldRegionIndex) -> Vec<(WorldTileIndex, Height)> {
+        region_data!(self, region, heights, |(h, i)| (
+            WorldTileIndex(i as u64),
+            *h
+        ))
     }
 
     pub fn individuals(&self) -> &[Individual] {

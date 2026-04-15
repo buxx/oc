@@ -6,12 +6,14 @@ use oc_projectile::Projectile;
 use rkyv::rancor::Error;
 use rkyv::{Archive, Deserialize, Serialize};
 
+use crate::height::Height;
 use crate::tile::Tile;
 
 #[derive(Archive, Deserialize, Serialize, Constructor)]
 #[rkyv(compare(PartialEq))]
 pub struct Snapshot {
     pub tiles: Vec<Tile>,
+    pub heights: Vec<Height>,
     pub individuals: Vec<Individual>,
     pub projectiles: Vec<Projectile>,
 }
