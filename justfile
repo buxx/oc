@@ -1,5 +1,5 @@
 check:
-    cargo check && cargo check --features debug
+    cargo check && cargo check --features debug && cargo check --tests
 
 serve-minidblue:
     RUST_LOG=DEBUG WORLD_WIDTH=200 WORLD_HEIGHT=200 \
