@@ -30,7 +30,9 @@ const SPAWN_ZONES_LAYER_NAME: &str = "spawn_zones";
 const FLAGS_LAYER_NAME: &str = "flags";
 const DECOR_LAYER_NAME: &str = "decor";
 const TERRAIN_LAYER_NAME: &str = "terrain";
+const HEIGHT_LAYER_NAME: &str = "height";
 const TERRAIN_TILESET_NAME: &str = "terrain";
+const HEIGHT_TILESET_NAME: &str = "height";
 const TILE_ID_PROPERTY_KEY: &str = "ID";
 
 #[derive(Debug, thiserror::Error)]
@@ -274,6 +276,22 @@ impl MapReader {
         }
     }
 
+    fn height_layer(&self) -> Result<FiniteTileLayer<'_>, MapReaderError> {
+        match self.layer(HEIGHT_LAYER_NAME)?.layer_type() {
+            LayerType::TileLayer(layer) => match layer {
+                TileLayer::Finite(layer) => Ok(layer),
+                TileLayer::Infinite(_) => Result::Err(MapReaderError::InvalidLayer(format!(
+                    "Layer '{}' in map is an infinite tile layer, but on finite layer is supported",
+                    HEIGHT_LAYER_NAME,
+                ))),
+            },
+            _ => Result::Err(MapReaderError::InvalidLayer(format!(
+                "Layer '{}' in map is not an tile layer",
+                HEIGHT_LAYER_NAME,
+            ))),
+        }
+    }
+
     fn decor_layer(&self) -> Result<(Layer<'_>, FiniteTileLayer<'_>), MapReaderError> {
         let decor_layer = self.layer(DECOR_LAYER_NAME)?;
         match decor_layer.layer_type() {
@@ -315,6 +333,22 @@ impl MapReader {
         }
     }
 
+    fn height_tileset(&self) -> Result<&Arc<Tileset>, MapReaderError> {
+        match self
+            .map
+            .tilesets()
+            .iter()
+            .filter(|tileset| tileset.name == HEIGHT_TILESET_NAME)
+            .collect::<Vec<&Arc<Tileset>>>()
+            .first()
+        {
+            Some(tileset) => Ok(tileset),
+            None => Result::Err(MapReaderError::TileSetNotFound(format!(
+                "Can't found height tileset in map must exist but is not found",
+            ))),
+        }
+    }
+
     fn terrain_image(&self) -> Result<Image, MapReaderError> {
         match &self.terrain_tileset()?.image {
             Some(image) => Ok(image.clone()),
@@ -324,15 +358,27 @@ impl MapReader {
         }
     }
 
+    fn height_image(&self) -> Result<Image, MapReaderError> {
+        match &self.height_tileset()?.image {
+            Some(image) => Ok(image.clone()),
+            None => Result::Err(MapReaderError::InvalidTileSet(format!(
+                "Height tileset in map should contains image",
+            ))),
+        }
+    }
+
     pub fn tiles(&self) -> Result<Vec<Tile>, MapReaderError> {
-        let layer = self.terrain_layer()?;
+        let terrain_layer = self.terrain_layer()?;
+        let height_layer = self.height_layer()?;
         let terrain_tileset = self.terrain_tileset()?;
+        let height_tileset = self.height_tileset()?;
         let mut tiles = vec![];
 
-        for y in 0..layer.height() {
-            for x in 0..layer.width() {
-                let layer_tile_data = match layer.get_tile_data(x as i32, y as i32) {
-                    Some(layer_tile_data) => layer_tile_data,
+        for y in 0..terrain_layer.height() {
+            for x in 0..terrain_layer.width() {
+                let terrain_layer_tile_data = match terrain_layer.get_tile_data(x as i32, y as i32)
+                {
+                    Some(data) => data,
                     None => {
                         return Result::Err(MapReaderError::TileError(format!(
                             "Tile at '{}'x'{}' in terrain layer in map must exist but is not found",
@@ -340,23 +386,33 @@ impl MapReader {
                         )));
                     }
                 };
-                let tile_data = match terrain_tileset.get_tile(layer_tile_data.id()) {
+                let height_layer_tile_data = match height_layer.get_tile_data(x as i32, y as i32) {
+                    Some(data) => data,
+                    None => {
+                        return Result::Err(MapReaderError::TileError(format!(
+                            "Tile at '{}'x'{}' in height layer in map must exist but is not found",
+                            x, y,
+                        )));
+                    }
+                };
+                let terrain_tile_data = match terrain_tileset.get_tile(terrain_layer_tile_data.id())
+                {
                     Some(tile) => tile.clone(),
                     None => {
                         return Result::Err(MapReaderError::TileError(format!(
                             "Tile '{}' in terrain layer in map is not found in tilesets",
-                            layer_tile_data.id(),
+                            terrain_layer_tile_data.id(),
                         )));
                     }
                 };
 
-                let id = match tile_data.properties.get(TILE_ID_PROPERTY_KEY) {
+                let id = match terrain_tile_data.properties.get(TILE_ID_PROPERTY_KEY) {
                     Some(id) => match id {
                         tiled::PropertyValue::StringValue(id) => id,
                         _ => {
                             return Result::Err(MapReaderError::TileError(format!(
                                 "Tile '{}' in terrain layer in map should contains {} string property but it is not",
-                                layer_tile_data.id(),
+                                terrain_layer_tile_data.id(),
                                 TILE_ID_PROPERTY_KEY,
                             )));
                         }
@@ -364,18 +420,19 @@ impl MapReader {
                     None => {
                         return Result::Err(MapReaderError::TileError(format!(
                             "Tile '{}' in terrain layer in map should contains {} property",
-                            layer_tile_data.id(),
+                            terrain_layer_tile_data.id(),
                             TILE_ID_PROPERTY_KEY,
                         )));
                     }
                 };
 
-                let tile_id = layer_tile_data.id();
+                let z = height_layer_tile_data.id() as u8;
+                let tile_id = terrain_layer_tile_data.id();
                 let tile_y = tile_id / terrain_tileset.columns;
                 let tile_x = tile_id - (tile_y * terrain_tileset.columns);
                 let nature = Nature::from_str(id)?;
                 let i: WorldTileIndex = TileXy(Xy(tile_x as u64, tile_y as u64)).into();
-                let tile = Tile { i, nature, z: 0 };
+                let tile = Tile { i, nature, z };
 
                 tiles.push(tile)
             }

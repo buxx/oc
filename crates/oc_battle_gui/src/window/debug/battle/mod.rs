@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use bevy::{math::VectorSpace, prelude::*};
+use bevy::prelude::*;
 use bevy_egui::egui;
 use derive_more::Constructor;
 use oc_geo::{region::RegionXy, tile::TileXy};
@@ -12,8 +12,6 @@ use oc_mod::{
     weapons::{IndexedWeapon, WeaponType},
 };
 use oc_projectile::ProjectileId;
-use oc_utils::d2::Xy;
-use oc_world::tile::Tile;
 use strum_macros::{Display, EnumIter};
 
 pub mod component;

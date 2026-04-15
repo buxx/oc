@@ -79,7 +79,9 @@ pub fn on_refresh(
                 let point = Vec2::new(worldp.x, worldp.y.to_gui_y());
                 let tile: TileXy = [point.x, point.y].into();
                 let tile_ = world.tile(tile);
-                let tile_ = tile_.map(|t| t.nature.to_string()).unwrap_or_default();
+                let tile_ = tile_
+                    .map(|t| format!("{} ({})", t.nature, t.z))
+                    .unwrap_or_default();
                 let region: RegionXy = tile.into();
 
                 window.context.cursor = Some(cursor);
