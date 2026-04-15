@@ -145,6 +145,17 @@ impl FilesAsGui {
         }
     }
 
+    pub fn height_png(&self) -> PathBuf {
+        match &self.sources {
+            StaticSource::Remote(_) => {
+                PathBuf::from(format!("cache/worlds/{}/height.png", &self.world))
+            }
+            StaticSource::Local { mod_: _, world } => {
+                PathBuf::from("worlds_").join(world).join("height.png")
+            }
+        }
+    }
+
     pub fn terrain_tsx(&self) -> PathBuf {
         match &self.sources {
             StaticSource::Remote(_) => {

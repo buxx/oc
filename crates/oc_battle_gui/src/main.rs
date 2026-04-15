@@ -18,6 +18,7 @@ mod network;
 mod run;
 mod setup;
 mod states;
+mod tileset;
 mod utils;
 mod window;
 mod world;

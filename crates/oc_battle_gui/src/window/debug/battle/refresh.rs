@@ -52,7 +52,7 @@ pub fn on_refresh(
                     PhysicsRepr::new(
                         position.0.clone(),
                         // tile.0.clone(),
-                        region.0.clone(),
+                        region.0.clone().into(),
                         // forces.0.clone(),
                     ),
                 )
@@ -66,7 +66,7 @@ pub fn on_refresh(
                     PhysicsRepr::new(
                         position.0.clone(),
                         // tile.0.clone(),
-                        region.0.clone(),
+                        region.0.clone().into(),
                         // forces.0.clone(),
                     ),
                 )

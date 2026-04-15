@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use bevy::prelude::*;
-use oc_geo::{region::RegionXy, tile::TileXy};
+use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_root::y::Y as _;
 use oc_utils::bevy::EntityMapping;
 
@@ -9,10 +9,10 @@ use oc_utils::bevy::EntityMapping;
 pub struct SetPositionEvent<I>(pub I, pub [f32; 3], pub [f32; 3]); // new, before
 
 #[derive(Debug, Event)]
-pub struct SetTileEvent<I>(pub I, pub TileXy, pub TileXy); // new, before
+pub struct SetTileEvent<I>(pub I, pub WorldTileIndex, pub WorldTileIndex); // new, before
 
 #[derive(Debug, Event)]
-pub struct SetRegionEvent<I>(pub I, pub RegionXy, pub RegionXy); // new, before
+pub struct SetRegionEvent<I>(pub I, pub WorldRegionIndex, pub WorldRegionIndex); // new, before
 
 #[derive(Debug, Event)]
 pub struct PushForceEvent<I>(pub I, pub crate::Force);
@@ -27,10 +27,10 @@ pub struct SetVolumeEvent<I>(pub I, pub crate::volume::Volume, pub crate::volume
 pub struct Position(pub [f32; 3]);
 
 #[derive(Debug, Component)]
-pub struct Tile(pub TileXy);
+pub struct Tile(pub WorldTileIndex);
 
 #[derive(Debug, Component)]
-pub struct Region(pub RegionXy);
+pub struct Region(pub WorldRegionIndex);
 
 #[derive(Debug, Component)]
 pub struct Forces(pub Vec<crate::Force>);

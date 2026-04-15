@@ -1,11 +1,5 @@
 use std::{ops::Deref, path::PathBuf};
 
-#[cfg(feature = "bevy")]
-use bevy::image::TextureAtlasLayout;
-#[cfg(feature = "bevy")]
-use bevy::math::UVec2;
-#[cfg(feature = "bevy")]
-use oc_root::GEO_PIXELS_PER_TILE;
 use rustc_hash::FxHashMap;
 use strum::IntoEnumIterator;
 use tiled::TileId;
@@ -25,17 +19,6 @@ impl Terrain {
         let natures = natures.map_err(|e| Error::ExtractTiles(path.clone(), e))?;
         let natures = natures.into_iter().collect();
         Ok(Self { raw, natures })
-    }
-
-    #[cfg(feature = "bevy")]
-    pub fn layout(&self) -> TextureAtlasLayout {
-        TextureAtlasLayout::from_grid(
-            UVec2::splat(GEO_PIXELS_PER_TILE as u32),
-            self.columns(),
-            self.rows(),
-            None,
-            None,
-        )
     }
 
     pub fn columns(&self) -> u32 {

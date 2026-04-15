@@ -1,5 +1,5 @@
-use oc_geo::region::RegionXy;
 use oc_geo::tile::TileXy;
+use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_physics::Force;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -7,15 +7,16 @@ use rkyv::{Archive, Deserialize, Serialize};
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Bullet {
     pub position: [f32; 3],
-    pub tile: TileXy,
-    pub region: RegionXy,
+    pub tile: WorldTileIndex,
+    pub region: WorldRegionIndex,
     pub forces: Vec<Force>,
 }
 
 impl Bullet {
     pub fn new(position: [f32; 3], forces: Vec<Force>) -> Self {
         let tile: TileXy = position.into();
-        let region: RegionXy = tile.into();
+        let tile: WorldTileIndex = tile.into();
+        let region: WorldRegionIndex = tile.into();
 
         Self {
             position,

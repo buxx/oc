@@ -1,8 +1,10 @@
 use bevy::{prelude::*, window::WindowResized};
 #[cfg(feature = "debug")]
-use oc_geo::tile::WorldTileIndex;
+use oc_geo::tile::{WorldHeightIndex, WorldTileIndex};
 #[cfg(feature = "debug")]
 use oc_utils::bevy::EntityMapping;
+#[cfg(feature = "debug")]
+use oc_world::{terrain::Terrain, tile::Tile};
 
 use crate::{
     ingame::{
@@ -75,9 +77,25 @@ impl Plugin for CameraPlugin {
         #[cfg(feature = "debug")]
         app.init_resource::<debug::tile::ShowTiles>()
             .init_resource::<EntityMapping<WorldTileIndex>>()
+            .init_resource::<EntityMapping<WorldHeightIndex>>()
             .add_observer(debug::tile::on_toggle_show_tiles)
             .add_observer(debug::tile::on_insert_tiles)
-            .add_observer(debug::tile::on_spawn_region_tiles)
+            .add_observer(
+                debug::tile::on_spawn_region::<
+                    debug::tile::SpawnRegionTiles,
+                    WorldTileIndex,
+                    Tile,
+                    Terrain,
+                >,
+            )
+            .add_observer(
+                debug::tile::on_spawn_region::<
+                    debug::tile::SpawnRegionHeights,
+                    WorldHeightIndex,
+                    u8,
+                    Terrain,
+                >,
+            )
             .add_observer(debug::tile::on_forgotten_region)
             .add_observer(debug::tile::on_despawn_region_tiles)
             .add_systems(OnEnter(AppState::InGame), debug::world::setup)

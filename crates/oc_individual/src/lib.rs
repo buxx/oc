@@ -6,7 +6,9 @@ use oc_geo::Geo;
 use oc_geo::UpdateGeo;
 use oc_geo::region::Region;
 use oc_geo::region::RegionXy;
+use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::TileXy;
+use oc_geo::tile::WorldTileIndex;
 use oc_physics::Force;
 use oc_physics::Physic;
 use oc_physics::UpdatePhysic;
@@ -36,8 +38,8 @@ impl Display for IndividualIndex {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Individual {
     pub position: [f32; 3],
-    pub tile: TileXy,
-    pub region: RegionXy,
+    pub tile: WorldTileIndex,
+    pub region: WorldRegionIndex,
     pub behavior: Behavior,
     pub forces: Vec<Force>,
 }
@@ -50,11 +52,11 @@ pub enum Update {
 }
 
 impl Region for Individual {
-    fn region(&self) -> &RegionXy {
-        &self.region
+    fn region(&self) -> WorldRegionIndex {
+        self.region
     }
 
-    fn set_region(&mut self, value: RegionXy) {
+    fn set_region(&mut self, value: WorldRegionIndex) {
         self.region = value;
     }
 }
@@ -80,12 +82,12 @@ impl From<u64> for IndividualIndex {
 }
 
 impl Individual {
-    pub fn tile(&self) -> &TileXy {
-        &self.tile
+    pub fn tile(&self) -> WorldTileIndex {
+        self.tile
     }
 
-    pub fn region(&self) -> &RegionXy {
-        &self.region
+    pub fn region(&self) -> WorldRegionIndex {
+        self.region
     }
 }
 
@@ -129,13 +131,13 @@ impl UpdatePhysic for Individual {
 }
 
 impl Geo for Individual {
-    fn tile(&self) -> &TileXy {
-        &self.tile
+    fn tile(&self) -> WorldTileIndex {
+        self.tile
     }
 }
 
 impl UpdateGeo for Individual {
-    fn set_tile(&mut self, value: TileXy) {
+    fn set_tile(&mut self, value: WorldTileIndex) {
         self.tile = value;
     }
 }

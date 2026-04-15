@@ -1,7 +1,7 @@
 use derive_more::Constructor;
 use oc_geo::{
     Geo, UpdateGeo,
-    region::{Region, RegionXy},
+    region::{Region, RegionXy, WorldRegionIndex},
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::IndividualIndex;
@@ -111,7 +111,7 @@ impl<'x, E: Client> Processor<'x, E> {
     fn write<I, T>(
         &self,
         subjects: Vec<(I, Vec<Update>)>,
-    ) -> Vec<(I, (RegionXy, Option<Effect>), Update)>
+    ) -> Vec<(I, (WorldRegionIndex, Option<Effect>), Update)>
     where
         I: IntoSubjectMut<T> + std::fmt::Debug + Copy,
         T: Clone + Physic + UpdatePhysic + Geo + UpdateGeo + Region,
@@ -131,7 +131,7 @@ impl<'x, E: Client> Processor<'x, E> {
             .collect()
     }
 
-    fn apply<'a, I, T: 'a>(&self, effects: Vec<(I, (RegionXy, Option<Effect>), Update)>)
+    fn apply<'a, I, T: 'a>(&self, effects: Vec<(I, (WorldRegionIndex, Option<Effect>), Update)>)
     where
         I: Copy + IntoSubject<T> + IntoNetworkUpdate + IntoIndexEffect<Effect> + std::fmt::Debug,
         T: IntoNetworkInsert<I> + IntoNetworkForgot<I>,
@@ -220,12 +220,14 @@ where
 
         let tile: TileXy = position.clone().into();
         let region: RegionXy = tile.into();
+        let tile: WorldTileIndex = tile.into();
+        let region: WorldRegionIndex = region.into();
 
-        if subject.tile() != &tile {
+        if subject.tile() != tile {
             updates.push(Update::SetTile(tile, subject.tile().clone()));
         }
 
-        if subject.region() != &region {
+        if subject.region() != region {
             updates.push(Update::SetRegion(region, subject.region().clone()));
         }
     }
@@ -247,7 +249,7 @@ where
     updates
 }
 
-pub fn write<T>(update: &Update, subject: &mut T) -> (RegionXy, Option<Effect>)
+pub fn write<T>(update: &Update, subject: &mut T) -> (WorldRegionIndex, Option<Effect>)
 where
     T: Clone + Physic + UpdatePhysic + Geo + UpdateGeo + Region,
 {
@@ -292,8 +294,14 @@ where
 
 #[derive(Debug, Clone)]
 pub enum Effect {
-    Tile { before: TileXy, after: TileXy },
-    Region { before: RegionXy, after: RegionXy },
+    Tile {
+        before: WorldTileIndex,
+        after: WorldTileIndex,
+    },
+    Region {
+        before: WorldRegionIndex,
+        after: WorldRegionIndex,
+    },
 }
 
 impl IntoIndexEffect<Effect> for IndividualIndex {

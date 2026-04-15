@@ -65,6 +65,21 @@ impl From<TileXy> for [f32; 3] {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct WorldTileIndex(pub u64);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct WorldHeightIndex(pub u64);
+
+impl From<WorldHeightIndex> for WorldTileIndex {
+    fn from(value: WorldHeightIndex) -> Self {
+        Self(value.0)
+    }
+}
+
+impl From<WorldTileIndex> for WorldHeightIndex {
+    fn from(value: WorldTileIndex) -> Self {
+        Self(value.0)
+    }
+}
+
 impl From<WorldTileIndex> for TileXy {
     fn from(WorldTileIndex(i): WorldTileIndex) -> Self {
         let x = i % WORLD_WIDTH as u64;
@@ -75,6 +90,14 @@ impl From<WorldTileIndex> for TileXy {
 
 impl From<WorldTileIndex> for Xy {
     fn from(WorldTileIndex(i): WorldTileIndex) -> Self {
+        let x = i % WORLD_WIDTH as u64;
+        let y = i / WORLD_WIDTH as u64;
+        Xy(x as u64, y as u64)
+    }
+}
+
+impl From<WorldHeightIndex> for Xy {
+    fn from(WorldHeightIndex(i): WorldHeightIndex) -> Self {
         let x = i % WORLD_WIDTH as u64;
         let y = i / WORLD_WIDTH as u64;
         Xy(x as u64, y as u64)

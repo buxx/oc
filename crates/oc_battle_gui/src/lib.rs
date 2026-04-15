@@ -11,6 +11,7 @@ pub mod network;
 pub mod run;
 pub mod setup;
 pub mod states;
+pub mod tileset;
 pub mod utils;
 pub mod window;
 pub mod world;

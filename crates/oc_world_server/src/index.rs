@@ -74,44 +74,56 @@ impl Indexes {
     }
 
     pub fn insert_projectile(&mut self, id: ProjectileId, projectile: &Projectile) {
-        self.update_projectile_tile(id, projectile.tile().clone(), projectile.tile().clone());
-        self.update_projectile_region(id, projectile.region().clone(), projectile.region().clone());
+        self.update_projectile_tile(id, projectile.tile(), projectile.tile());
+        self.update_projectile_region(id, projectile.region(), projectile.region());
     }
 
     pub fn remove_projectile(&mut self, id: &ProjectileId, projectile: &Projectile) {
-        let tile: WorldTileIndex = (*projectile.tile()).into();
+        let tile = projectile.tile();
         self.tiles_projectiles[tile.0 as usize].retain(|p| p != id);
 
-        let region: WorldRegionIndex = (*projectile.region()).into();
+        let region = projectile.region();
         self.regions_projectiles[region.0 as usize].retain(|p| p != id);
     }
 
-    fn update_individual_tile(&mut self, i: IndividualIndex, now: TileXy, before: TileXy) {
-        let before_tile: WorldTileIndex = before.into();
-        self.tiles_individuals[before_tile.0 as usize].retain(|i_| *i_ != i);
-        let now_tile: WorldTileIndex = now.into();
-        self.tiles_individuals[now_tile.0 as usize].push(i);
+    fn update_individual_tile(
+        &mut self,
+        i: IndividualIndex,
+        now: WorldTileIndex,
+        before: WorldTileIndex,
+    ) {
+        self.tiles_individuals[before.0 as usize].retain(|i_| *i_ != i);
+        self.tiles_individuals[now.0 as usize].push(i);
     }
 
-    fn update_projectile_tile(&mut self, id: ProjectileId, now: TileXy, before: TileXy) {
-        let before_tile: WorldTileIndex = before.into();
-        self.tiles_projectiles[before_tile.0 as usize].retain(|id_| *id_ != id);
-        let now_tile: WorldTileIndex = now.into();
-        self.tiles_projectiles[now_tile.0 as usize].push(id);
+    fn update_projectile_tile(
+        &mut self,
+        id: ProjectileId,
+        now: WorldTileIndex,
+        before: WorldTileIndex,
+    ) {
+        self.tiles_projectiles[before.0 as usize].retain(|id_| *id_ != id);
+        self.tiles_projectiles[now.0 as usize].push(id);
     }
 
-    fn update_individual_region(&mut self, i: IndividualIndex, now: RegionXy, before: RegionXy) {
-        let before_region: WorldRegionIndex = before.into();
-        self.regions_individuals[before_region.0 as usize].retain(|i_| *i_ != i);
-        let now_region: WorldRegionIndex = now.into();
-        self.regions_individuals[now_region.0 as usize].push(i);
+    fn update_individual_region(
+        &mut self,
+        i: IndividualIndex,
+        now: WorldRegionIndex,
+        before: WorldRegionIndex,
+    ) {
+        self.regions_individuals[before.0 as usize].retain(|i_| *i_ != i);
+        self.regions_individuals[now.0 as usize].push(i);
     }
 
-    fn update_projectile_region(&mut self, id: ProjectileId, now: RegionXy, before: RegionXy) {
-        let before_region: WorldRegionIndex = before.into();
-        self.regions_projectiles[before_region.0 as usize].retain(|id_| *id_ != id);
-        let now_region: WorldRegionIndex = now.into();
-        self.regions_projectiles[now_region.0 as usize].push(id);
+    fn update_projectile_region(
+        &mut self,
+        id: ProjectileId,
+        now: WorldRegionIndex,
+        before: WorldRegionIndex,
+    ) {
+        self.regions_projectiles[before.0 as usize].retain(|id_| *id_ != id);
+        self.regions_projectiles[now.0 as usize].push(id);
     }
 
     pub fn tile_individuals(&self, tile: WorldTileIndex) -> &Vec<IndividualIndex> {

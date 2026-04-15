@@ -2,8 +2,8 @@ use std::fmt::Display;
 
 use oc_geo::{
     Geo, UpdateGeo,
-    region::{Region, RegionXy},
-    tile::TileXy,
+    region::{Region, RegionXy, WorldRegionIndex},
+    tile::{TileXy, WorldTileIndex},
 };
 use oc_physics::{
     Force, Physic, UpdatePhysic,
@@ -49,21 +49,21 @@ impl Projectile {
         }
     }
 
-    pub fn tile(&self) -> &TileXy {
+    pub fn tile(&self) -> WorldTileIndex {
         match self {
-            Projectile::Bullet(bullet) => &bullet.tile,
+            Projectile::Bullet(bullet) => bullet.tile,
         }
     }
 }
 
 impl Region for Projectile {
-    fn region(&self) -> &RegionXy {
+    fn region(&self) -> WorldRegionIndex {
         match self {
-            Projectile::Bullet(bullet) => &bullet.region,
+            Projectile::Bullet(bullet) => bullet.region,
         }
     }
 
-    fn set_region(&mut self, value: RegionXy) {
+    fn set_region(&mut self, value: WorldRegionIndex) {
         match self {
             Projectile::Bullet(bullet) => bullet.region = value,
         }
@@ -117,15 +117,15 @@ impl UpdatePhysic for Projectile {
 }
 
 impl Geo for Projectile {
-    fn tile(&self) -> &TileXy {
+    fn tile(&self) -> WorldTileIndex {
         match self {
-            Projectile::Bullet(bullet) => &bullet.tile,
+            Projectile::Bullet(bullet) => bullet.tile,
         }
     }
 }
 
 impl UpdateGeo for Projectile {
-    fn set_tile(&mut self, value: TileXy) {
+    fn set_tile(&mut self, value: WorldTileIndex) {
         match self {
             Projectile::Bullet(bullet) => bullet.tile = value,
         }

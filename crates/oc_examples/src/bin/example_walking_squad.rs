@@ -51,7 +51,13 @@ fn individuals(tiles: &Vec<Tile>) -> Vec<Individual> {
                 tile.z as f32,
             ];
             let region: RegionXy = tile_xy.into();
-            Individual::new(position, tile_xy, region, Behavior::Idle, vec![])
+            Individual::new(
+                position,
+                tile_xy.into(),
+                region.into(),
+                Behavior::Idle,
+                vec![],
+            )
         })
         .collect()
 }

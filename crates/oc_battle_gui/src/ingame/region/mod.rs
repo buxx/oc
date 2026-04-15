@@ -35,12 +35,12 @@ pub fn on_listening_region(
     };
     tracing::debug!("Spawn region background {:?}", region.0);
 
-    let region = region.0;
+    let region_ = region.0;
     let mod_ = mod_.canonical();
     let world = meta.canonical();
     let files = files::Files::new(mod_, world).into_gui(static_.clone(), connect.clone().into());
 
-    let region: RegionXy = region.into();
+    let region: RegionXy = region_.into();
 
     let width = REGION_WIDTH_PIXELS as f32;
     let height = REGION_HEIGHT_PIXELS as f32;
@@ -54,7 +54,7 @@ pub fn on_listening_region(
     tracing::trace!(name="spawn-region-background", region=?region, x=x, y=y, path=?background);
     commands.spawn((
         RegionBackground,
-        Region(region),
+        Region(region_),
         Sprite::from_image(assets.load(background)),
         Transform {
             scale: Vec3::new(1.0, 1.0, 1.0),

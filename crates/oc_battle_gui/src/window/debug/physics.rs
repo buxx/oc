@@ -16,7 +16,7 @@ impl<T: Geo + Physic + Region> From<T> for PhysicsRepr {
         Self {
             position: value.position().clone(),
             // tile: value.tile().clone(),
-            region: value.region().clone(),
+            region: value.region().clone().into(),
             // forces: value.forces().clone(),
         }
     }

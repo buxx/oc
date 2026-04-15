@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use oc_geo::{
     region::WorldRegionIndex,
-    tile::{TileXy, WorldTileIndex},
+    tile::{TileXy, WorldHeightIndex, WorldTileIndex},
 };
 use oc_individual::{Individual, IndividualIndex};
 use oc_physics::Physic;
@@ -9,7 +9,7 @@ use oc_utils::d2::Xy;
 use oc_world::tile::Tile;
 use rustc_hash::FxHashMap;
 
-use crate::ingame::physics::ObjectId;
+use crate::{ingame::physics::ObjectId, tileset::height};
 
 pub mod individual;
 pub mod tile;
@@ -49,11 +49,14 @@ pub struct World {
     individuals: Index<WorldTileIndex, Vec<(IndividualIndex, Individual)>>,
     individuals_refs: FxHashMap<IndividualIndex, (WorldRegionIndex, WorldTileIndex)>,
     tiles: Index<WorldTileIndex, Tile>,
+    heights: Index<WorldHeightIndex, u8>,
     pub terrain: Option<oc_world::terrain::Terrain>,
 }
 
 impl World {
     pub fn insert_tiles(&mut self, region: WorldRegionIndex, tiles: Vec<(WorldTileIndex, Tile)>) {
+        let heights: Vec<(WorldHeightIndex, u8)> =
+            tiles.iter().map(|(i, t)| ((*i).into(), t.z)).collect();
         self.tiles
             .entry(region)
             .and_modify(|tiles_| {
@@ -63,6 +66,15 @@ impl World {
                 }
             })
             .or_insert(tiles.into_iter().collect());
+        self.heights
+            .entry(region)
+            .and_modify(|heights_| {
+                // TODO: Damn, .clone() is pain here !
+                for (i, tile) in heights.clone().into_iter() {
+                    heights_.insert(i, tile);
+                }
+            })
+            .or_insert(heights.into_iter().collect());
     }
 
     pub fn remove_tiles(&mut self, region: WorldRegionIndex) {
@@ -164,5 +176,9 @@ impl World {
 
     pub fn tiles(&self) -> &Index<WorldTileIndex, Tile> {
         &self.tiles
+    }
+
+    pub fn heights(&self) -> &Index<WorldHeightIndex, u8> {
+        &self.heights
     }
 }
