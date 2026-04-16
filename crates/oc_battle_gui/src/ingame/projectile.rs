@@ -116,7 +116,7 @@ pub fn on_forgot_projectile(
     mut projectiles: ResMut<EntityMapping<oc_projectile::ProjectileId>>,
 ) {
     if let Some(entity) = projectiles.remove(&projectile.0) {
-        tracing::trace!(name = "remove-projectile", i=?projectile);
+        tracing::trace!(name = "remove-projectile", i=?projectile.0);
         commands.entity(entity).despawn();
     }
 }
