@@ -15,11 +15,22 @@
  <tileset firstgid="1" source="terrain.tsx" />
  <tileset firstgid="2001" source="trees.tsx" />
  <tileset firstgid="2021" source="height.tsx" />
- <layer id="1" name="terrain" width="{{width}}" height="{{height}}">
-  <data encoding="csv" />
+ <layer
+        id="1"
+        name="terrain"
+        width="{{terrain_width}}"
+        height="{{terrain_height}}"
+    >
+  <data encoding="csv">{{terrain}}</data>
  </layer>
- <layer id="6" name="height" width="200" height="200" visible="0">
-  <data encoding="csv" />
+ <layer
+        id="6"
+        name="height"
+        width="{{height_width}}"
+        height="{{height_height}}"
+        visible="0"
+    >
+  <data encoding="csv">{{height_}}</data>
  </layer>
  <objectgroup id="5" name="flags" />
  <imagelayer id="2" name="background_image">
@@ -39,6 +50,6 @@
  <objectgroup id="3" name="spawn_zones" />
  <objectgroup id="4" name="interiors_zones" visible="0" />
  <layer id="2" name="decor" width="{{decor_width}}" height="{{decor_height}}">
-  <data encoding="csv" />
+  <data encoding="csv">{{decor}}</data>
  </layer>
 </map>
