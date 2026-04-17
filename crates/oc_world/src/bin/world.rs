@@ -73,7 +73,7 @@ macro_rules! replace {
     ($string:expr, $pattern:expr, $value:expr) => {
         let start = $string
             .find($pattern)
-            .context(format!("Replace '{}' in world.tmx", $pattern))?;
+            .context(format!("Replace '{}' in world.tmx: not found", $pattern))?;
         let end = start + $pattern.len();
         $string.replace_range(start..end, $value);
     };
@@ -183,12 +183,12 @@ fn world(
 ) -> Result<(), anyhow::Error> {
     let mut world = match std::fs::read_to_string(&world_path) {
         Ok(_) => {
-            tracing::info!("world.tmx already exists");
+            tracing::info!("{} already exists", world_path.display());
             return Ok(());
         }
         Err(error) => match error.kind() {
             std::io::ErrorKind::NotFound => {
-                tracing::info!("Create world.tmx");
+                tracing::info!("Create {}", world_path.display());
                 std::fs::copy(&world_tpl_path, &world_path).context(format!(
                     "Copy {} to {}",
                     world_tpl_path.display(),
@@ -211,17 +211,37 @@ fn world(
     let heightpx = width * tile_size;
 
     replace!(world, "{{width}}", &width.to_string());
-    replace!(world, "{{width}}", &width.to_string());
     replace!(world, "{{height}}", &height.to_string());
-    replace!(world, "{{height}}", &height.to_string());
+    replace!(world, "{{terrain_width}}", &width.to_string());
+    replace!(world, "{{terrain_height}}", &height.to_string());
+    replace!(world, "{{decor_width}}", &width.to_string());
+    replace!(world, "{{decor_height}}", &height.to_string());
+    replace!(world, "{{height_width}}", &width.to_string());
+    replace!(world, "{{height_height}}", &height.to_string());
     replace!(world, "{{tile_width}}", &tile_size.to_string());
     replace!(world, "{{tile_height}}", &tile_size.to_string());
     replace!(world, "{{background_width}}", &(widthpx).to_string());
     replace!(world, "{{background_height}}", &(heightpx).to_string());
     replace!(world, "{{interiors_width}}", &(widthpx).to_string());
     replace!(world, "{{interiors_height}}", &(heightpx).to_string());
-    replace!(world, "{{decor_width}}", &width.to_string());
-    replace!(world, "{{decor_height}}", &height.to_string());
+
+    let terrain = (0..height)
+        .map(|y| vec!["1"; width].join(","))
+        .collect::<Vec<String>>()
+        .join(",\n");
+    replace!(world, "{{terrain}}", &terrain.to_string());
+
+    let height_ = (0..height)
+        .map(|y| vec!["2021"; width].join(","))
+        .collect::<Vec<String>>()
+        .join(",\n");
+    replace!(world, "{{height_}}", &height_.to_string());
+
+    let decor = (0..height)
+        .map(|y| vec!["0"; width].join(","))
+        .collect::<Vec<String>>()
+        .join(",\n");
+    replace!(world, "{{decor}}", &decor.to_string());
 
     tracing::info!("Write world.tmx content");
     std::fs::write(&world_path, world)
