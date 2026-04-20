@@ -12,6 +12,7 @@ Options:
 Examples:
   walking_squad
   firing_with_wall
+  wall
 
 EOF
   exit 0
@@ -72,6 +73,13 @@ case "$1" in
       export REGION_WIDTH=100
       export REGION_HEIGHT=100
       cargo run --bin example_firing_with_wall $CARGO_EXTRA_ARGS
+    ;;
+  wall)
+      export WORLD_WIDTH=10
+      export WORLD_HEIGHT=10
+      export REGION_WIDTH=10
+      export REGION_HEIGHT=10
+      cargo run --bin example_wall $CARGO_EXTRA_ARGS
     ;;
   *)
     echo "Error: unknown example '$1'" >&2

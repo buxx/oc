@@ -28,7 +28,7 @@ pub fn on_to_client(
     mut meta: ResMut<Meta>,
     mut config: ResMut<StaticSource>,
 ) {
-    tracing::trace!(name="ingame-input-client", message=?to_client.0);
+    tracing::trace!(name = "ingame-input-client");
 
     match &to_client.0 {
         ToClient::StaticSource(static_) => {

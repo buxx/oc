@@ -6,6 +6,7 @@ use oc_physics::collision::{Material_, Materials};
 use oc_physics::update::bevy::{
     Forces, PhysicsPlugin, Position, Region, SetPositionEvent, Tile, Volume,
 };
+use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
 
 use crate::entity::projectile::ProjectileId;
@@ -50,7 +51,10 @@ pub fn on_insert_projectile(
     tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position(), forces=?projectile.1.forces());
 
     let position = projectile.1.position();
-    let line = Polyline2d::new(vec![Vec2::new(position[0], position[1])]);
+    let line = Polyline2d::new(vec![Vec2::new(
+        position[0].to_gui_y(),
+        position[1].to_gui_y(),
+    )]);
     let entity = commands
         .spawn((
             ProjectileId(projectile.0),
@@ -64,7 +68,7 @@ pub fn on_insert_projectile(
             MeshMaterial2d(materials.add(Color::from(RED))),
             Transform::from_xyz(
                 projectile.1.position()[0],
-                projectile.1.position()[1],
+                projectile.1.position()[1].to_gui_y(),
                 Z_INDIVIDUAL,
             ),
         ))
@@ -92,6 +96,7 @@ fn on_update_position(
     let position = Vec2::new(position[0], position[1]);
     let previous = Vec2::new(previous[0], previous[1]);
     let relative = previous - position;
+    let relative = Vec2::new(relative.x, -relative.y);
     *mesh = Polyline2d::new(vec![Vec2::new(0.0, 0.0), relative]).into();
 }
 

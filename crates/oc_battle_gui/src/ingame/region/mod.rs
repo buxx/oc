@@ -48,6 +48,8 @@ pub fn on_listening_region(
     let y = region.0.1 as f32 * height;
     let x = x + width / 2.;
     let y = y + height / 2.;
+    let x = x as f32;
+    let y = (y as f32).to_gui_y();
     let i: WorldRegionIndex = region.into();
     let background = files.region(i.0);
 
@@ -58,7 +60,7 @@ pub fn on_listening_region(
         Sprite::from_image(assets.load(background)),
         Transform {
             scale: Vec3::new(1.0, 1.0, 1.0),
-            translation: Vec3::new(x as f32, (y as f32).to_gui_y(), Z_REGION_BACKGROUND),
+            translation: Vec3::new(x, y, Z_REGION_BACKGROUND),
             ..default()
         },
     ));

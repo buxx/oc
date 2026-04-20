@@ -123,6 +123,10 @@ fn main() -> Result<(), anyhow::Error> {
     let trees_png_path = args.path.join("trees.png");
     copy(&trees_png_tpl_path, &trees_png_path, "trees.png", f)?;
 
+    let meta_tpl_path = PathBuf::from("templates/world/meta.toml");
+    let meta_path = args.path.join("meta.toml");
+    copy(&meta_tpl_path, &meta_path, "meta.toml", f)?;
+
     let world_tpl_path = PathBuf::from("templates/world/world.tmx");
     let world_path = args.path.join("world.tmx");
     world(&world_tpl_path, &world_path, width, height, args.tile_size)?;

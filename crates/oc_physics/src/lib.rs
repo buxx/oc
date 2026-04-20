@@ -146,6 +146,7 @@ pub fn step<'a, I, O, F, Z>(
     laws: &Laws,
     object: (I, &'a O),
     at: F,
+    origin: &str,
 ) -> ([f32; 3], Vec<Force>, Vec<Event<Z>>)
 where
     I: Clone + Into<Z> + std::fmt::Debug,
@@ -157,7 +158,7 @@ where
     let mut events = vec![];
     let mut position = object.position().clone();
     let mut forces = vec![];
-    tracing::trace!(name="physics-step-start", p=?position, forces=?object.forces());
+    tracing::trace!(name="physics-step-start", origin=origin, i=?i, p=?position, forces=?object.forces());
 
     'forces: for force in object.forces() {
         match force {
@@ -172,7 +173,7 @@ where
                 );
 
                 tracing::trace!(
-                    name = "physics-step-translation-start",
+                    name = "physics-step-translation-start", origin=origin, i=?i,
                     x = x,
                     y = y,
                     z = z,
@@ -195,16 +196,16 @@ where
                             // Test new tile only when line on new tile
                             if step_tile != curent_tile {
                                 let volume = object.volume([step_x, step_y, step_z]);
-                                tracing::trace!(name="physics-step-translation-newtile", p=?position, xy=?step_tile);
+                                tracing::trace!(name="physics-step-translation-newtile", origin=origin, i=?i, p=?position, xy=?step_tile);
 
                                 for (o, other) in at(step_tile) {
                                     // if other.material().is_solid() {
                                     let [other_x, other_y, other_z] = other.position();
                                     let volume2 = other.volume([other_x, other_y, other_z]);
 
-                                    tracing::trace!(name="physics-step-translation-test-collide-with", p=?position, xy=?step_tile, o=?o);
+                                    tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?step_tile, o=?o, volume=?volume, volume2=?volume2);
                                     if volume.collide(&volume2) {
-                                        tracing::trace!(name="physics-step-translation-collide", p=?position, xy=?step_tile);
+                                        tracing::trace!(name="physics-step-translation-collide", origin=origin, i=?i, p=?position, xy=?step_tile);
 
                                         let left = i.clone().into();
                                         let collision = Event::Collision(left, o);
@@ -219,10 +220,10 @@ where
 
                             curent_tile = step_tile;
                             position = [step_x, step_y, step_z];
-                            tracing::trace!(name="physics-step-translation-updated", p=?position, xy=?step_tile);
+                            tracing::trace!(name="physics-step-translation-updated", origin=origin, i=?i, p=?position, xy=?step_tile);
                         }
                         line::Step::Outside => {
-                            tracing::trace!(name="physics-step-translation-no-tile", p=?position);
+                            tracing::trace!(name="physics-step-translation-no-tile", origin=origin, i=?i, p=?position);
                             events.push(Event::NoTile(i.clone().into()));
                             continue 'forces;
                         }
@@ -317,7 +318,7 @@ mod tests {
 
         // When
         let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&laws, (MyObjectId, &object), |_| vec![]);
+            step(&laws, (MyObjectId, &object), |_| vec![], "test");
 
         // Then
         let expected_new_position = [5.0, 0.0, 0.0];
@@ -350,7 +351,7 @@ mod tests {
 
         // When
         let (new_position, new_forces, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&laws, (MyObjectId, &object), objects);
+            step(&laws, (MyObjectId, &object), objects, "test");
 
         // Then
         let expected_new_position = [2.5, 0.0, 0.0];
@@ -373,7 +374,7 @@ mod tests {
 
         // When
         let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&laws, (MyObjectId, &object), |_| vec![]);
+            step(&laws, (MyObjectId, &object), |_| vec![], "test");
 
         // Then
         let expected_new_position = [50.0, 0.0, 0.0];
@@ -406,7 +407,7 @@ mod tests {
 
         // When
         let (new_position, new_forces, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&laws, (MyObjectId, &object), objects);
+            step(&laws, (MyObjectId, &object), objects, "test");
 
         // Then
         let expected_new_position = [2.5, 0.0, 0.0];
@@ -429,7 +430,7 @@ mod tests {
 
         // When
         let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&laws, (MyObjectId, &object), |_| vec![]);
+            step(&laws, (MyObjectId, &object), |_| vec![], "test");
 
         // Then
         let expected_new_position = [5.0, 5.0, 0.0];

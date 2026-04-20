@@ -45,7 +45,7 @@ impl From<(f32, f32)> for TileXy {
     fn from(value: (f32, f32)) -> Self {
         TileXy(Xy(
             value.0 as u64 / GEO_PIXELS_PER_TILE,
-            value.0 as u64 / GEO_PIXELS_PER_TILE,
+            value.1 as u64 / GEO_PIXELS_PER_TILE,
         ))
     }
 }

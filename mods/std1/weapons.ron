@@ -12,7 +12,7 @@
             ])
         ],
         interval: Seconds(1.0),
-        velocity: MetersSeconds(600.0)
+        velocity: MetersSeconds(50.0)
     )),
     Rifle((
         name: "Mauser G41",

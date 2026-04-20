@@ -101,7 +101,11 @@ impl super::Context {
 
                     ui.separator();
 
-                    ui.add(egui::DragValue::new(plus_z).range((0.0)..=(5.0)).speed(0.1));
+                    ui.add(
+                        egui::DragValue::new(&mut plus_z.0)
+                            .range((0.0)..=(5.0))
+                            .speed(0.1),
+                    );
                     ui.label("+z");
                 });
 
@@ -119,13 +123,12 @@ impl super::Context {
                 if let (Some(weapon), Some(ammunition), Some(shot)) =
                     (&self.spawn_weapon, &self.spawn_ammunition, &self.spawn_shot)
                 {
-                    let plus_z = Meters(*plus_z);
                     let spawn = SpawnProjectileProfile::new(
                         weapon.index(),
                         ammunition.index(),
                         shot.index(),
                         *repeat,
-                        plus_z,
+                        *plus_z,
                     );
                     commands.trigger(SetLeftClick(LeftClickMode::SpawnProjectile(spawn)));
                 }

@@ -15,6 +15,7 @@ mod fx;
 mod home;
 mod ingame;
 mod network;
+mod projectile;
 mod run;
 mod setup;
 mod states;
@@ -38,5 +39,6 @@ impl From<Args> for Config_ {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    run::run(Args::parse().into())
+    run::run(Args::parse().into());
+    Ok(())
 }

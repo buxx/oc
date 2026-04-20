@@ -81,9 +81,8 @@ impl<'x, E: Client> Processor<'x, E> {
             }
 
             if let Some(tile_) = world.tile(tile) {
-                let i: WorldTileIndex = tile.into();
                 let tile: Box<&dyn Physic> = Box::new(tile_);
-                objects.push((ObjectId::Tile(i), tile));
+                objects.push((ObjectId::Tile(tile_.i), tile));
             }
 
             objects
@@ -94,7 +93,7 @@ impl<'x, E: Client> Processor<'x, E> {
             .into_iter()
             .map(|(i, subject)| {
                 let laws = Laws::default();
-                let (position, forces, events_) = oc_physics::step(&laws, (i.clone(), *subject), objects);
+                let (position, forces, events_) = oc_physics::step(&laws, (i.clone(), *subject), objects, "server");
                 tracing::trace!(name="physics-subject", i=?i, position=?position, forces=?forces);
                 let updates = changes(i, *subject, &position, &forces);
 

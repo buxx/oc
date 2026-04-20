@@ -112,30 +112,19 @@ pub fn click_debug(
                         commands.trigger(SpawnClicksLine);
                     }
 
-                    // TODO: refactor (see bellow)
                     if state.clicks.len() == 2 {
                         let start = state.clicks.first().expect("len checked line before");
-                        let start_tile_xy = TileXy::from((start.x, start.y));
-                        let Some(start_tile) = world.tile(start_tile_xy) else {
-                            return;
-                        };
-                        let start_z = start_tile.z as f32 + profile.plus_z.pixels();
-                        let start = [start.x, start.y, start_z];
                         let end = state.clicks.last().expect("len checked line before");
-                        let end_tile_xy = TileXy::from((end.x, end.y));
-                        let Some(end_tile) = world.tile(end_tile_xy) else {
-                            return;
-                        };
-                        let end_z = end_tile.z as f32;
-                        let end = [end.x, end.y, end_z];
-                        let weapon = profile.weapon;
-                        let ammo = profile.ammunition;
-                        let shot = profile.shot;
-                        let repeat = profile.repeat;
-                        let spawn = SpawnProjectile::new(weapon, ammo, shot, repeat, start, end);
 
-                        commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
-                        commands.trigger(DespawnClicksLine);
+                        if let (Some(start), Some(end)) = (
+                            world.point2d_to_point3d(start, profile.plus_z),
+                            world.point2d_to_point3d(&end, profile.plus_z),
+                        ) {
+                            use crate::projectile::IntoSpawnProjectile;
+                            let spawn = profile.spawn(start, end);
+                            tracing::debug!("Spawn projectile {spawn:?}");
+                            commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                        }
 
                         state.clicks.clear();
                     }
@@ -147,30 +136,17 @@ pub fn click_debug(
                     commands.trigger(SpawnClicksLine);
                 }
 
-                // TODO: refactor (see before)
                 if buttons.just_released(MouseButton::Left) {
                     if let Some(start) = state.clicks.first() {
-                        let start_tile_xy = TileXy::from((start.x, start.y));
-                        let Some(start_tile) = world.tile(start_tile_xy) else {
-                            return;
-                        };
-                        let start_z = start_tile.z as f32 + profile.plus_z.pixels();
-                        let start = [start.x, start.y, start_z];
-
-                        let end_tile_xy = TileXy::from((point.x, point.y));
-                        let Some(end_tile) = world.tile(end_tile_xy) else {
-                            return;
-                        };
-                        let end_z = end_tile.z as f32;
-                        let end = [point.x, point.y, end_z];
-
-                        let weapon = profile.weapon;
-                        let ammo = profile.ammunition;
-                        let shot = profile.shot;
-                        let repeat = profile.repeat;
-                        let spawn = SpawnProjectile::new(weapon, ammo, shot, repeat, start, end);
-
-                        commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                        if let (Some(start), Some(end)) = (
+                            world.point2d_to_point3d(start, profile.plus_z),
+                            world.point2d_to_point3d(&point, profile.plus_z),
+                        ) {
+                            use crate::projectile::IntoSpawnProjectile;
+                            let spawn = profile.spawn(start, end);
+                            tracing::debug!("Spawn projectile {spawn:?}");
+                            commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                        }
                     }
 
                     commands.trigger(DespawnClicksLine);

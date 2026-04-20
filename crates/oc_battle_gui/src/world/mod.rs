@@ -5,11 +5,12 @@ use oc_geo::{
 };
 use oc_individual::{Individual, IndividualIndex};
 use oc_physics::Physic;
+use oc_root::{GEO_PIXELS_PER_METERS, physics::Meters, y::Y};
 use oc_utils::d2::Xy;
 use oc_world::tile::Tile;
 use rustc_hash::FxHashMap;
 
-use crate::{ingame::physics::ObjectId, tileset::height};
+use crate::ingame::physics::ObjectId;
 
 pub mod individual;
 pub mod tile;
@@ -48,7 +49,7 @@ impl<K, V> Default for Index<K, V> {
 pub struct World {
     individuals: Index<WorldTileIndex, Vec<(IndividualIndex, Individual)>>,
     individuals_refs: FxHashMap<IndividualIndex, (WorldRegionIndex, WorldTileIndex)>,
-    tiles: Index<WorldTileIndex, Tile>,
+    pub tiles: Index<WorldTileIndex, Tile>,
     heights: Index<WorldHeightIndex, u8>,
     pub terrain: Option<oc_world::terrain::Terrain>,
 }
@@ -180,5 +181,16 @@ impl World {
 
     pub fn heights(&self) -> &Index<WorldHeightIndex, u8> {
         &self.heights
+    }
+
+    pub fn point2d_to_point3d(&self, p: &Vec2, plus_z: Meters) -> Option<[f32; 3]> {
+        let p = (p.x, p.y.to_world_y());
+        let tile = TileXy::from(p);
+        let Some(tile) = self.tile(tile) else {
+            return None;
+        };
+        let z = (tile.z as f32 * 0.5 * GEO_PIXELS_PER_METERS) + plus_z.pixels();
+        let p = [p.0, p.1, z];
+        Some(p)
     }
 }

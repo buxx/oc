@@ -16,6 +16,8 @@ use derive_more::{Constructor, Display};
 use rkyv::{Archive, Deserialize, Serialize};
 use strum_macros::EnumIter;
 
+const DEPTH: f32 = 10_000.;
+
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq, Constructor)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Tile {
@@ -108,6 +110,7 @@ impl Physic for Tile {
     fn position(&self) -> [f32; 3] {
         let xy: TileXy = self.i.into();
         let point = xy.point();
+        // dbg!((self, xy, point));
         [point[0], point[1], self.z as f32]
     }
 
@@ -117,13 +120,14 @@ impl Physic for Tile {
     }
 
     fn volume(&self, ref_: [f32; 3]) -> Volume {
+        // tracing::trace!(name = "toto", ref_ = ?ref_, z =f32::MIN + ref_[2], zz = f32::MIN + ref_[2] + f32::MAX);
         Volume::Cube {
             x: ref_[0],
             y: ref_[1],
-            z: f32::MIN,
+            z: -DEPTH,
             width: GEO_PIXELS_PER_TILE as f32,
             height: GEO_PIXELS_PER_TILE as f32,
-            depth: f32::MAX,
+            depth: DEPTH + ref_[2],
         }
     }
 }

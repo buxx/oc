@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
-use oc_geo::region::{RegionXy, WorldRegionIndex};
+use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::{TileXy, WorldHeightIndex, WorldTileIndex};
 use oc_root::y::Y;
 use oc_root::{GEO_PIXELS_PER_TILE, files};
@@ -12,7 +12,6 @@ use oc_world::terrain::Terrain;
 use oc_world::tile::Tile;
 
 use crate::ingame::camera::{self, State};
-use crate::ingame::draw::Z_TERRAIN_TILE;
 use crate::ingame::region::ForgottenRegion;
 use crate::network;
 use crate::states::{Meta, Mod, StaticSource};

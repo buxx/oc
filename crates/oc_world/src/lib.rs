@@ -16,6 +16,7 @@ pub mod cache;
 pub mod control;
 pub mod decor;
 pub mod flag;
+pub mod glb;
 pub mod interior;
 pub mod load;
 pub mod map;
