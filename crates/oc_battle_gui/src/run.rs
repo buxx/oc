@@ -25,7 +25,7 @@ const AUDIO_SCALE: f32 = 1. / 100.0;
 #[cfg(feature = "debug")]
 use debug::DebugPlugin;
 
-pub fn run(config: Config_) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run(config: Config_) {
     let mut app = App::new();
 
     app.add_plugins(
@@ -68,6 +68,4 @@ pub fn run(config: Config_) -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::info!("Start app");
     app.run();
-
-    Ok(())
 }

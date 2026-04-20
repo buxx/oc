@@ -5347,6 +5347,7 @@ dependencies = [
 name = "oc_world_server"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "axum",
  "bon",
  "clap",

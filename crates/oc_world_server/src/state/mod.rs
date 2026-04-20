@@ -86,7 +86,7 @@ pub enum ObjectId {
     Tile(WorldTileIndex),
 }
 
-pub fn init<E: Client>(config: ServerConfig) -> Result<State<E>, Box<dyn std::error::Error>> {
+pub fn init<E: Client>(config: ServerConfig) -> Result<State<E>, anyhow::Error> {
     let cache = config.cache.clone();
     let world = config.world.clone();
     let mod_ = config.mod_.clone();

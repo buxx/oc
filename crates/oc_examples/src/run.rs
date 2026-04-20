@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, Mutex, mpsc::channel},
 };
 
+use anyhow::Context;
 use bon::Builder;
 use oc_root::{files::Files, static_::StaticSource};
 use oc_world::{load::WorldPath, meta::Meta};
@@ -18,17 +19,18 @@ pub struct Example {
 }
 
 impl Example {
-    pub fn run(&self) -> Result<(), Box<dyn std::error::Error + 'static>> {
+    pub fn run(&self) -> Result<(), anyhow::Error> {
         let files = Files::new("".to_string(), "".to_string()).into_server(PathBuf::from(".cache"));
-        std::fs::create_dir_all(files.mods()).unwrap(); // TODO
-        std::fs::create_dir_all(files.worlds()).unwrap(); // TODO
+        std::fs::create_dir_all(files.mods())
+            .context(format!("Create dir {}", files.mods().display()))?;
+        std::fs::create_dir_all(files.worlds())
+            .context(format!("Create dir {}", files.worlds().display()))?;
 
         let (ready_tx, ready_rx) = channel::<Result<(), String>>();
         let (to_client_tx, to_client_rx) = channel();
         let (to_server_tx, to_server_rx) = channel();
-        let world = Meta::from_file(&self.world.meta())?;
-        // TODO: heuuu
-        let world2 = PathBuf::from("examples").join(&world.name);
+        let world = Meta::from_file(&self.world.meta())
+            .context(format!("Read file {}", self.world.meta().display()))?;
 
         tracing::info!("Start server");
 
@@ -53,10 +55,7 @@ impl Example {
         });
 
         tracing::info!("Waiting server ...");
-        match ready_rx.recv()? {
-            Ok(_) => {}
-            Err(error) => return Err(format!("Failed to start server: {error}").into()),
-        };
+        let _ = ready_rx.recv().context("Wait server ready")?;
 
         let (client_tx2, server_rx2) = bridge::bridge(to_client_rx, to_server_tx);
 
@@ -67,7 +66,7 @@ impl Example {
             .autoconnect(connect)
             .build();
 
-        oc_battle_gui::run::run(config)?;
+        oc_battle_gui::run::run(config);
         Ok(())
     }
 }

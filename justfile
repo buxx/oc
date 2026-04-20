@@ -11,11 +11,14 @@ serve-world1:
       cargo run --bin oc_world_server --features debug -- \
       ./mods/std1 ./examples/world1 ./examples/world1.snapshot
 
-example1:
+example-walking:
     ./examples.sh --release --debug walking_squad
 
-example2:
+example-firing:
     ./examples.sh --release --debug firing_with_wall
+
+example-wall:
+    ./examples.sh --release --debug wall
 
 world-minidblue *args:
     cargo run --bin world -- examples/minidblue examples/minidblue.snapshot --verbose {{ args }}
