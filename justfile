@@ -1,6 +1,9 @@
 check:
     cargo check && cargo check --features debug && cargo check --tests
 
+test:
+    cargo test
+
 serve-minidblue:
     RUST_LOG=DEBUG WORLD_WIDTH=200 WORLD_HEIGHT=200 \
       cargo run --bin oc_world_server --features debug -- \

@@ -94,7 +94,7 @@ impl<'x, E: Client> Processor<'x, E> {
             .into_iter()
             .map(|(i, subject)| {
                 let laws = Laws::default();
-                let (position, forces, events_) = oc_physics::step(&laws, (i.clone(), *subject), objects);
+                let (position, forces, events_) = oc_physics::step(&laws, (i.clone(), *subject), objects, "server");
                 tracing::trace!(name="physics-subject", i=?i, position=?position, forces=?forces);
                 let updates = changes(i, *subject, &position, &forces);
 
