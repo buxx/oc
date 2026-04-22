@@ -114,26 +114,29 @@ pub fn click_debug(
 
                     // TODO: refactor (see bellow)
                     if state.clicks.len() == 2 {
+                        use oc_root::y::Y;
+
                         let start = state.clicks.first().expect("len checked line before");
-                        let start_tile_xy = TileXy::from((start.x, start.y));
+                        let start_tile_xy = TileXy::from((start.x, start.y.to_world_y()));
                         let Some(start_tile) = world.tile(start_tile_xy) else {
                             return;
                         };
                         let start_z = start_tile.z as f32 + profile.plus_z.pixels();
-                        let start = [start.x, start.y, start_z];
+                        let start = [start.x, start.y.to_world_y(), start_z];
                         let end = state.clicks.last().expect("len checked line before");
-                        let end_tile_xy = TileXy::from((end.x, end.y));
+                        let end_tile_xy = TileXy::from((end.x, end.y.to_world_y()));
                         let Some(end_tile) = world.tile(end_tile_xy) else {
                             return;
                         };
                         let end_z = end_tile.z as f32;
-                        let end = [end.x, end.y, end_z];
+                        let end = [end.x, end.y.to_world_y(), end_z];
                         let weapon = profile.weapon;
                         let ammo = profile.ammunition;
                         let shot = profile.shot;
                         let repeat = profile.repeat;
                         let spawn = SpawnProjectile::new(weapon, ammo, shot, repeat, start, end);
 
+                        tracing::debug!("Spawn projectile {spawn:?}");
                         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
                         commands.trigger(DespawnClicksLine);
 
@@ -150,19 +153,21 @@ pub fn click_debug(
                 // TODO: refactor (see before)
                 if buttons.just_released(MouseButton::Left) {
                     if let Some(start) = state.clicks.first() {
-                        let start_tile_xy = TileXy::from((start.x, start.y));
+                        use oc_root::y::Y;
+
+                        let start_tile_xy = TileXy::from((start.x, start.y.to_world_y()));
                         let Some(start_tile) = world.tile(start_tile_xy) else {
                             return;
                         };
                         let start_z = start_tile.z as f32 + profile.plus_z.pixels();
-                        let start = [start.x, start.y, start_z];
+                        let start = [start.x, start.y.to_world_y(), start_z];
 
-                        let end_tile_xy = TileXy::from((point.x, point.y));
+                        let end_tile_xy = TileXy::from((point.x, point.y.to_world_y()));
                         let Some(end_tile) = world.tile(end_tile_xy) else {
                             return;
                         };
                         let end_z = end_tile.z as f32;
-                        let end = [point.x, point.y, end_z];
+                        let end = [point.x, point.y.to_world_y(), end_z];
 
                         let weapon = profile.weapon;
                         let ammo = profile.ammunition;
@@ -170,6 +175,7 @@ pub fn click_debug(
                         let repeat = profile.repeat;
                         let spawn = SpawnProjectile::new(weapon, ammo, shot, repeat, start, end);
 
+                        tracing::debug!("Spawn projectile {spawn:?}");
                         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
                     }
 
