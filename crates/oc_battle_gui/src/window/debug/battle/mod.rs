@@ -6,12 +6,13 @@ use derive_more::Constructor;
 use oc_geo::{region::RegionXy, tile::TileXy};
 use oc_individual::IndividualIndex;
 use oc_mod::{
-    DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS, Mod,
+    DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS, Mod,
     ammunition::IndexedAmmunition,
     armament::IndexedShotMode,
     weapons::{IndexedWeapon, WeaponType},
 };
 use oc_projectile::ProjectileId;
+use oc_root::physics::Meters;
 use strum_macros::{Display, EnumIter};
 
 pub mod component;
@@ -54,7 +55,7 @@ pub struct Context {
     spawn_shot: Option<IndexedShotMode>,
     spawn_projectile_click_mode: SpawnProjectileClickMode,
     spawn_repeat: u8,
-    spawn_projectile_plus_z: f32, // pixels
+    spawn_projectile_plus_z: Meters,
 }
 
 impl Default for Context {
@@ -77,7 +78,7 @@ impl Default for Context {
             spawn_shot: Default::default(),
             spawn_projectile_click_mode: Default::default(),
             spawn_repeat: 1,
-            spawn_projectile_plus_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS,
+            spawn_projectile_plus_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS,
         }
     }
 }

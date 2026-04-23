@@ -6,6 +6,7 @@ use crate::{
 };
 use glam::Vec2;
 use oc_geo::tile::{TileXy, WorldTileIndex};
+use oc_root::GEO_PIXELS_PER_METERS;
 use oc_utils::d2::Xy;
 use tiled::{
     FiniteTileLayer, Image, ImageLayer, Layer, LayerType, Loader, Map as TiledMap, ObjectLayer,
@@ -371,9 +372,9 @@ impl MapReader {
         let terrain_layer = self.terrain_layer()?;
         let height_layer = self.height_layer()?;
         let terrain_tileset = self.terrain_tileset()?;
-        let height_tileset = self.height_tileset()?;
         let mut tiles = vec![];
 
+        let mut tile_id: u64 = 0;
         for y in 0..terrain_layer.height() {
             for x in 0..terrain_layer.width() {
                 let terrain_layer_tile_data = match terrain_layer.get_tile_data(x as i32, y as i32)
@@ -426,18 +427,17 @@ impl MapReader {
                     }
                 };
 
-                let z = height_layer_tile_data.id() as u8;
-                let tile_id = terrain_layer_tile_data.id();
-                let tile_y = tile_id / terrain_tileset.columns;
-                let tile_x = tile_id - (tile_y * terrain_tileset.columns);
+                let z = height_layer_tile_data.id() as f32;
+                // FIXME BS NOW: 0.5 must be config ratio (const ?) meters by height ID
+                let z = z * 0.5 * GEO_PIXELS_PER_METERS;
                 let nature = Nature::from_str(id)?;
-                let i: WorldTileIndex = TileXy(Xy(tile_x as u64, tile_y as u64)).into();
+                let i = WorldTileIndex(tile_id);
                 let tile = Tile { i, nature, z };
 
-                tiles.push(tile)
+                tiles.push(tile);
+                tile_id += 1;
             }
         }
-
         Ok(tiles)
     }
 

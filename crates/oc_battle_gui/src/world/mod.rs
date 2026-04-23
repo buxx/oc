@@ -49,13 +49,13 @@ pub struct World {
     individuals: Index<WorldTileIndex, Vec<(IndividualIndex, Individual)>>,
     individuals_refs: FxHashMap<IndividualIndex, (WorldRegionIndex, WorldTileIndex)>,
     tiles: Index<WorldTileIndex, Tile>,
-    heights: Index<WorldHeightIndex, u8>,
+    heights: Index<WorldHeightIndex, f32>,
     pub terrain: Option<oc_world::terrain::Terrain>,
 }
 
 impl World {
     pub fn insert_tiles(&mut self, region: WorldRegionIndex, tiles: Vec<(WorldTileIndex, Tile)>) {
-        let heights: Vec<(WorldHeightIndex, u8)> =
+        let heights: Vec<(WorldHeightIndex, f32)> =
             tiles.iter().map(|(i, t)| ((*i).into(), t.z)).collect();
         self.tiles
             .entry(region)
@@ -178,7 +178,7 @@ impl World {
         &self.tiles
     }
 
-    pub fn heights(&self) -> &Index<WorldHeightIndex, u8> {
+    pub fn heights(&self) -> &Index<WorldHeightIndex, f32> {
         &self.heights
     }
 }

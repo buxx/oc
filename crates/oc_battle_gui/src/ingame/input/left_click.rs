@@ -159,6 +159,12 @@ pub fn click_debug(
                         let Some(start_tile) = world.tile(start_tile_xy) else {
                             return;
                         };
+                        tracing::trace!(
+                            name = "debugg",
+                            tile_z = start_tile.z,
+                            pp = ?profile.plus_z,
+                            ppp = profile.plus_z.pixels()
+                        );
                         let start_z = start_tile.z as f32 + profile.plus_z.pixels();
                         let start = [start.x, start.y.to_world_y(), start_z];
 

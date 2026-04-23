@@ -75,8 +75,8 @@ pub fn on_refresh(
 
         let (camera, transform) = *camera_;
         if let Some(cursor) = window_.cursor_position() {
-            if let Ok(worldp) = camera.viewport_to_world_2d(transform, cursor) {
-                let point = Vec2::new(worldp.x, worldp.y.to_gui_y());
+            if let Ok(bevyp) = camera.viewport_to_world_2d(transform, cursor) {
+                let point = Vec2::new(bevyp.x, bevyp.y.to_world_y());
                 let tile: TileXy = [point.x, point.y].into();
                 let tile_ = world.tile(tile);
                 let tile_ = tile_

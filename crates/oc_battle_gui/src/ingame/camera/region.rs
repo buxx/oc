@@ -26,7 +26,7 @@ pub fn on_update_regions(
     mut commands: Commands,
     mut state: ResMut<super::State>,
 ) {
-    tracing::trace!(name="update-regions", point=?point);
+    tracing::trace!(name="update-regions", point=?point.0);
     static EMPTY: Vec<Region> = vec![];
     let current = state.regions.as_ref().unwrap_or(&EMPTY);
     let regions = regions(point.0);

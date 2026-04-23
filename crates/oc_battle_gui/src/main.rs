@@ -38,5 +38,6 @@ impl From<Args> for Config_ {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    run::run(Args::parse().into())
+    run::run(Args::parse().into());
+    Ok(())
 }

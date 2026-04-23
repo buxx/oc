@@ -81,9 +81,8 @@ impl<'x, E: Client> Processor<'x, E> {
             }
 
             if let Some(tile_) = world.tile(tile) {
-                let i: WorldTileIndex = tile.into();
                 let tile: Box<&dyn Physic> = Box::new(tile_);
-                objects.push((ObjectId::Tile(i), tile));
+                objects.push((ObjectId::Tile(tile_.i), tile));
             }
 
             objects

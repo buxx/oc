@@ -8,7 +8,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{ingame::draw::Z_TERRAIN_TILE, world::World};
 
-impl super::Tileset<WorldHeightIndex, u8> for Terrain {
+impl super::Tileset<WorldHeightIndex, f32> for Terrain {
     fn layout(&self) -> TextureAtlasLayout {
         TextureAtlasLayout::from_grid(
             UVec2::splat(GEO_PIXELS_PER_TILE as u32),
@@ -31,11 +31,11 @@ impl super::Tileset<WorldHeightIndex, u8> for Terrain {
         &self,
         world: &'a World,
         region: WorldRegionIndex,
-    ) -> Option<&'a FxHashMap<WorldHeightIndex, u8>> {
+    ) -> Option<&'a FxHashMap<WorldHeightIndex, f32>> {
         world.heights().get(&region)
     }
 
-    fn index(&self, height: &u8) -> Option<usize> {
+    fn index(&self, height: &f32) -> Option<usize> {
         Some((*height) as usize)
     }
 }

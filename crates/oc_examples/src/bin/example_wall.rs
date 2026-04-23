@@ -5,14 +5,8 @@ use oc_examples::{
     logging, run,
     snapshot::{EmptyGenerator, SnapshotBuilder},
 };
-use oc_geo::{
-    region::RegionXy,
-    tile::{TileXy, WorldTileIndex},
-};
-use oc_individual::{Individual, behavior::Behavior};
-use oc_projectile::Projectile;
-use oc_root::{GEO_PIXELS_PER_TILE, REGION_HEIGHT, REGION_WIDTH, WORLD_HEIGHT, WORLD_WIDTH};
-use oc_world::{reader, tile::Tile};
+use oc_root::{REGION_HEIGHT, REGION_WIDTH, WORLD_HEIGHT, WORLD_WIDTH};
+use oc_world::reader;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: Find a way to automatize/standadize that

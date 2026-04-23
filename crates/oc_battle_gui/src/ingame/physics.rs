@@ -7,6 +7,7 @@ use oc_physics::{
     update::bevy::{Forces, Position, Volume},
 };
 use oc_projectile::ProjectileId;
+use oc_root::y::Y;
 use oc_utils::d2::Xy;
 
 use crate::{ingame::projectile::ForgotProjectile, world::World};
@@ -30,7 +31,7 @@ pub fn physics_step<I, C>(
     I: Clone + Send + Sync + Into<ObjectId> + std::fmt::Debug + 'static,
     C: Component + AsRef<I>,
 {
-    tracing::trace!(name = "projectile-physics-start");
+    // tracing::trace!(name = "projectile-physics-start");
     let laws = Laws::default().tick_coeff(time.delta_secs() / 1.);
 
     for (object, mut position, mut forces, material, volume, mut transform) in query {
@@ -58,7 +59,7 @@ pub fn physics_step<I, C>(
         position.0 = position_;
         forces.0 = forces_;
         transform.translation.x = position.0[0];
-        transform.translation.y = position.0[1];
+        transform.translation.y = position.0[1].to_gui_y();
 
         for event in events {
             commands.trigger(PhysicEvent(event))

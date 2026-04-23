@@ -84,7 +84,7 @@ impl oc_geo::region::Region for SpawnRegionHeights {
     }
 }
 
-impl ConcernedTileset<WorldHeightIndex, u8, Terrain> for SpawnRegionHeights {
+impl ConcernedTileset<WorldHeightIndex, f32, Terrain> for SpawnRegionHeights {
     fn tileset<'a>(&self, world: &'a World) -> &'a Option<Terrain> {
         &world.terrain
     }

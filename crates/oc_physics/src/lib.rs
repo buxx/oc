@@ -203,7 +203,7 @@ where
                                     let [other_x, other_y, other_z] = other.position();
                                     let volume2 = other.volume([other_x, other_y, other_z]);
 
-                                    tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?step_tile, o=?o);
+                                    tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?step_tile, o=?o, volume=?volume, volume2=?volume2);
                                     if volume.collide(&volume2) {
                                         tracing::trace!(name="physics-step-translation-collide", origin=origin, i=?i, p=?position, xy=?step_tile);
 
