@@ -309,11 +309,11 @@ impl MapReader {
         }
     }
 
-    fn width(&self) -> Result<u32, MapReaderError> {
+    pub fn width(&self) -> Result<u32, MapReaderError> {
         Ok(self.terrain_layer()?.width())
     }
 
-    fn height(&self) -> Result<u32, MapReaderError> {
+    pub fn height(&self) -> Result<u32, MapReaderError> {
         Ok(self.terrain_layer()?.height())
     }
 

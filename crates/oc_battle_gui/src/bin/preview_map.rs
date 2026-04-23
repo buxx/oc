@@ -1,28 +1,39 @@
+use std::path::PathBuf;
+
 use bevy::{
     asset::RenderAssetUsages,
     mesh::{Indices, VertexAttributeValues},
     prelude::*,
     render::render_resource::PrimitiveTopology,
 };
+use oc_geo::tile::TileXy;
+use oc_world::reader::MapReader;
 
 #[derive(Component)]
 struct TerrainMesh;
 
 // ── Your data source ──────────────────────────────────────────────────────────
 
-/// Replace with your real data.
 /// Returns (points, width, height) — row-major, points[row * width + col].
 /// x = world X, y = height, z = world Z.
 fn world_points() -> (Vec<Vec3>, usize, usize) {
-    let (w, h) = (64usize, 64usize);
-    let pts = (0..h)
-        .flat_map(|row| {
-            (0..w).map(move |col| {
-                let x = col as f32;
-                let z = row as f32;
-                let y = ((x * 0.3).sin() + (z * 0.3).cos()) * 2.0;
-                Vec3::new(x, y, z)
-            })
+    let path = PathBuf::from("examples/minidblue");
+    let map = MapReader::new(&path).unwrap();
+
+    let (w, h) = (
+        map.width().unwrap() as usize,
+        map.height().unwrap() as usize,
+    );
+    let pts = map
+        .tiles()
+        .unwrap()
+        .iter()
+        .map(|tile| {
+            let xy: TileXy = tile.i.into();
+            let x = xy.0.0;
+            let y = xy.0.1;
+            let z = tile.z;
+            Vec3::new(x as f32, y as f32, z as f32)
         })
         .collect();
     (pts, w, h)
