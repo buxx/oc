@@ -114,7 +114,7 @@ pub fn click_debug(
 
                     // TODO: refactor (see bellow)
                     if state.clicks.len() == 2 {
-                        use oc_root::y::Y;
+                        use oc_root::{GEO_PIXELS_PER_METERS, y::Y};
 
                         let start = state.clicks.first().expect("len checked line before");
                         let start_tile_xy = TileXy::from((start.x, start.y.to_world_y()));
@@ -128,7 +128,8 @@ pub fn click_debug(
                         let Some(end_tile) = world.tile(end_tile_xy) else {
                             return;
                         };
-                        let end_z = end_tile.z as f32;
+                        // FIXME BS NOW: 0.5 must be config ratio (const ?) meters by height ID (same fixme in other place)
+                        let end_z = end_tile.z;
                         let end = [end.x, end.y.to_world_y(), end_z];
                         let weapon = profile.weapon;
                         let ammo = profile.ammunition;
