@@ -15,6 +15,7 @@ mod fx;
 mod home;
 mod ingame;
 mod network;
+#[cfg(feature = "debug")]
 mod projectile;
 mod run;
 mod setup;

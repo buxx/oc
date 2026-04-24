@@ -168,7 +168,6 @@ impl World {
         objects
     }
 
-    #[cfg(feature = "debug")]
     pub fn tile(&self, xy: TileXy) -> Option<&Tile> {
         let i: WorldTileIndex = xy.into();
         let region: WorldRegionIndex = i.into();

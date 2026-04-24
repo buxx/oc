@@ -28,6 +28,3 @@ world-minidblue *args:
 
 world-world1 *args:
     cargo run --bin world -- examples/world1 examples/world1.snapshot --verbose {{ args }}
-
-test:
-    cargo test

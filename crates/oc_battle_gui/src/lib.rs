@@ -8,6 +8,7 @@ pub mod fx;
 pub mod home;
 pub mod ingame;
 pub mod network;
+#[cfg(feature = "debug")]
 pub mod projectile;
 pub mod run;
 pub mod setup;
