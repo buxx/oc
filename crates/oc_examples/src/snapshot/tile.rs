@@ -21,6 +21,6 @@ impl TilesGenerator for SameTileFiller {
 
 impl TilesGenerator for MapReader {
     fn tiles(&self) -> Vec<Tile> {
-        MapReader::tiles(&self).unwrap() // TODO
+        MapReader::tiles(self).unwrap() // TODO
     }
 }

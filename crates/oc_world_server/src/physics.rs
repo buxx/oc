@@ -90,10 +90,10 @@ impl<'x, E: Client> Processor<'x, E> {
 
         let mut events = vec![];
         let updates = chunk
-            .into_iter()
+            .iter()
             .map(|(i, subject)| {
                 let laws = Laws::default();
-                let (position, forces, events_) = oc_physics::step(&laws, (i.clone(), *subject), objects, "server");
+                let (position, forces, events_) = oc_physics::step(&laws, (*i, *subject), objects, "server");
                 tracing::trace!(name="physics-subject", i=?i, position=?position, forces=?forces);
                 let updates = changes(i, *subject, &position, &forces);
 
@@ -137,7 +137,7 @@ impl<'x, E: Client> Processor<'x, E> {
     {
         for (i, (region, effect), update) in effects {
             // Broadcast the update
-            let filter = Listening::Regions(vec![region.into()]);
+            let filter = Listening::Regions(vec![region]);
             let messages = vec![i.into_network_update(update)];
             self.ctx.broadcast(filter, messages);
 
@@ -156,12 +156,12 @@ impl<'x, E: Client> Processor<'x, E> {
                     };
 
                     tracing::trace!(name="subject-update-write-broadast-insert", i=?i);
-                    let filter = Listening::EnterBorder(before.into(), after.into());
+                    let filter = Listening::EnterBorder(before, after);
                     let messages = vec![subject.into_network_insert(i)];
                     self.ctx.broadcast(filter, messages);
 
                     tracing::trace!(name="subject-update-write-broadast-forgot", i=?i);
-                    let filter = Listening::ExitBorder(before.into(), after.into());
+                    let filter = Listening::ExitBorder(before, after);
                     let messages = vec![subject.into_network_forgot(i)];
                     self.ctx.broadcast(filter, messages);
                 }
@@ -217,17 +217,17 @@ where
     if subject.position() != *position {
         updates.push(Update::SetPosition(*position, subject.position()));
 
-        let tile: TileXy = position.clone().into();
+        let tile: TileXy = (*position).into();
         let region: RegionXy = tile.into();
         let tile: WorldTileIndex = tile.into();
         let region: WorldRegionIndex = region.into();
 
         if subject.tile() != tile {
-            updates.push(Update::SetTile(tile, subject.tile().clone()));
+            updates.push(Update::SetTile(tile, subject.tile()));
         }
 
         if subject.region() != region {
-            updates.push(Update::SetRegion(region, subject.region().clone()));
+            updates.push(Update::SetRegion(region, subject.region()));
         }
     }
 
@@ -252,8 +252,8 @@ pub fn write<T>(update: &Update, subject: &mut T) -> (WorldRegionIndex, Option<E
 where
     T: Clone + Physic + UpdatePhysic + Geo + UpdateGeo + Region,
 {
-    let tile = subject.tile().clone();
-    let region = subject.region().clone();
+    let tile = subject.tile();
+    let region = subject.region();
 
     let effect = match update {
         Update::SetPosition(position, _) => {
@@ -279,7 +279,7 @@ where
             None
         }
         Update::RemoveForce(force) => {
-            subject.remove_force(&force);
+            subject.remove_force(force);
             None
         }
         Update::SetVolume(volume, _) => {

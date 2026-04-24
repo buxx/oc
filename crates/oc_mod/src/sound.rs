@@ -74,7 +74,7 @@ pub fn load(path: &PathBuf) -> Result<Vec<IndexedSound>, Error> {
     let files = files.map_err(|e| Error::CantReadSoundsFolder(path.clone(), e))?;
 
     for file in files {
-        let file = file.map_err(|e| Error::CantReadSoundsFile(e))?;
+        let file = file.map_err(Error::CantReadSoundsFile)?;
         let file = file.path();
         let name = file.file_name();
         let name = name.ok_or(Error::AbnormalSoundFileName(file.clone()))?;

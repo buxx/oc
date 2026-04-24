@@ -156,7 +156,7 @@ where
 {
     let (i, object) = object;
     let mut events = vec![];
-    let mut position = object.position().clone();
+    let mut position = object.position();
     let mut forces = vec![];
     tracing::trace!(name="physics-step-start", origin=origin, i=?i, p=?position, forces=?object.forces());
 
@@ -164,7 +164,7 @@ where
         match force {
             Force::Translation(direction, speed) => {
                 let speed = speed.0 * laws.tick_coeff;
-                let pixels = speed * laws.pixels_per_meters as f32;
+                let pixels = speed * laws.pixels_per_meters;
                 let [x, y, z] = position;
                 let (x_, y_, z_) = (
                     x + direction[0] * pixels,

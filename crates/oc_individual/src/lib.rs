@@ -148,7 +148,7 @@ impl Material for Individual {
 
 impl<'a> WithIds<IndividualIndex, &'a Individual> for &'a [Individual] {
     fn with_ids(&self) -> Vec<(IndividualIndex, &'a Individual)> {
-        self.into_iter()
+        self.iter()
             .enumerate()
             .map(|(i, individual)| (i.into(), individual))
             .collect()

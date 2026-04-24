@@ -59,8 +59,8 @@ pub fn on_insert_projectile(
         .spawn((
             ProjectileId(projectile.0),
             Position(*position),
-            Tile(projectile.1.tile().clone()),
-            Region(projectile.1.region().clone()),
+            Tile(projectile.1.tile()),
+            Region(projectile.1.region()),
             Forces(projectile.1.forces().clone()),
             Material_(Materials::Traversable),
             Volume(projectile.1.volume(*position).clone()),
@@ -107,7 +107,7 @@ fn on_forgotten_region(
     query: Query<(&Region, &ProjectileId)>,
 ) {
     for (region_, i) in query {
-        let region_: WorldRegionIndex = region_.0.into();
+        let region_: WorldRegionIndex = region_.0;
         if region_ == region.0 {
             tracing::trace!(name = "trigger-forgot-projectile", i=?i);
             commands.trigger(ForgotProjectile(i.0));

@@ -32,7 +32,7 @@ pub fn on_key_press(
                 camera::Focus::World => commands.trigger(SwitchToBattleMap),
             },
             (ButtonState::Released, KeyCode::Escape) => {
-                let window = menu.0.clone().unwrap_or(BattleMenu::default());
+                let window = menu.0.clone().unwrap_or(BattleMenu);
                 commands.trigger(ToggleWindow(Window::BattleMenu(window)));
             }
             #[cfg(feature = "debug")]

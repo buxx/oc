@@ -13,7 +13,7 @@ macro_rules! http_to_file {
 }
 
 pub fn untar(path: &PathBuf, destination: &PathBuf) -> Result<(), std::io::Error> {
-    let file = std::fs::File::open(&path)?;
+    let file = std::fs::File::open(path)?;
     tracing::info!("Decompress {} to {}", path.display(), destination.display());
     let decoder = flate2::read::GzDecoder::new(file);
     let mut archive = tar::Archive::new(decoder);

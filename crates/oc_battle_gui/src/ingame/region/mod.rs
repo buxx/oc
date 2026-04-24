@@ -48,8 +48,8 @@ pub fn on_listening_region(
     let y = region.0.1 as f32 * height;
     let x = x + width / 2.;
     let y = y + height / 2.;
-    let x = x as f32;
-    let y = (y as f32).to_gui_y();
+    let x = x;
+    let y = y.to_gui_y();
     let i: WorldRegionIndex = region.into();
     let background = files.region(i.0);
 

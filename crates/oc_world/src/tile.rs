@@ -89,11 +89,11 @@ impl AsTiles for WorldRegionIndex {
 }
 
 pub trait IntoTiles {
-    fn into_tiles<'a>(&self, world: &'a World) -> Vec<(WorldTileIndex, Tile)>;
+    fn into_tiles(&self, world: &World) -> Vec<(WorldTileIndex, Tile)>;
 }
 
 impl IntoTiles for WorldRegionIndex {
-    fn into_tiles<'a>(&self, world: &'a World) -> Vec<(WorldTileIndex, Tile)> {
+    fn into_tiles(&self, world: &World) -> Vec<(WorldTileIndex, Tile)> {
         let tiles = self.as_tiles(world);
         tiles.into_iter().map(|(i, t)| (i, t.clone())).collect()
     }

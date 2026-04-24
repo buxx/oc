@@ -69,7 +69,7 @@ fn ensure_file(
     files: &files::FilesAsGui,
     file: files::File,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let Some((sync, target)) = files.method(file.clone()) else {
+    let Some((sync, target)) = files.method(file) else {
         tracing::info!("Use local {file}");
         return Ok(());
     };
@@ -77,25 +77,22 @@ fn ensure_file(
     tracing::info!("Download {file}");
     tracing::debug!("Ensure file with sync {sync} ({})", target.display());
 
-    match target.exists() {
-        false => {
-            tracing::debug!("File {} doesn't exist", target.display());
-            std::fs::create_dir_all(target.parent().unwrap()).unwrap(); // TODO
+    if !target.exists() {
+        tracing::debug!("File {} doesn't exist", target.display());
+        std::fs::create_dir_all(target.parent().unwrap()).unwrap(); // TODO
 
-            match sync {
-                files::Sync::DirectDownload(url) => {
-                    tracing::debug!("Direct download from {url}");
-                    http_to_file!(url, &target);
-                }
-                files::Sync::ArchiveDownload(url) => {
-                    tracing::debug!("Download archive from {url}");
-                    let (_, path) = tempfile::NamedTempFile::new().unwrap().keep().unwrap(); // TODO
-                    http_to_file!(url, &path);
-                    untar(&path, &target)?;
-                }
+        match sync {
+            files::Sync::DirectDownload(url) => {
+                tracing::debug!("Direct download from {url}");
+                http_to_file!(url, &target);
+            }
+            files::Sync::ArchiveDownload(url) => {
+                tracing::debug!("Download archive from {url}");
+                let (_, path) = tempfile::NamedTempFile::new().unwrap().keep().unwrap(); // TODO
+                http_to_file!(url, &path);
+                untar(&path, &target)?;
             }
         }
-        true => {}
     };
 
     Ok(())

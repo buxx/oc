@@ -107,7 +107,7 @@ impl From<Args> for ServerConfig {
 impl From<Args> for NetworkConfig {
     fn from(value: Args) -> Self {
         Self {
-            host: value.host.clone(),
+            host: value.host,
             // static_: value.static_.clone(),
             // cache: value.cache.clone(),
         }

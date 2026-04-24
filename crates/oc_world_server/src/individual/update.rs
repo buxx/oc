@@ -9,15 +9,15 @@ pub fn write<E: Client>(ctx: &Context<E>, update: Update, i: IndividualIndex) {
 
     match &update {
         Update::SetBehavior(behavior) => {
-            individual.behavior = behavior.clone();
+            individual.behavior = *behavior;
         }
         Update::SetForces(forces) => {
             individual.forces = forces.clone();
         }
     }
 
-    let region = individual.region.clone();
-    let filter = Listening::Regions(vec![region.clone().into()]);
+    let region = individual.region;
+    let filter = Listening::Regions(vec![region]);
     let messages = vec![network::Individual::Update(i, update)];
     ctx.broadcast(filter, messages);
 }

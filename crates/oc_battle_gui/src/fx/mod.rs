@@ -47,7 +47,7 @@ fn on_fx(fx: On<FxEvent>, asset_server: Res<AssetServer>, mut commands: Commands
                     let sound = mod_.sound(*sound);
                     let path = path.join(&sound.name);
                     commands.spawn((
-                        Emitter::default(),
+                        Emitter,
                         Transform::from_translation(Vec3::new(position[0], position[1], 0.0)),
                         AudioPlayer::new(asset_server.load(path)),
                         PlaybackSettings::ONCE.with_spatial(true),

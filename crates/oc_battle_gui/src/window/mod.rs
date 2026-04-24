@@ -61,7 +61,7 @@ pub struct WindowPlugin;
 impl Plugin for WindowPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PointerInWindow>()
-            .add_plugins(BattleMenuWindowPlugin::default())
+            .add_plugins(BattleMenuWindowPlugin)
             .add_systems(EguiPrimaryContextPass, show)
             .add_observer(on_toggle_debug_window);
 
@@ -86,7 +86,7 @@ fn show(
         return Ok(());
     };
 
-    window.show(&mut contexts, &mut commands, &mod_)?;
+    window.show(&mut contexts, &mut commands, mod_)?;
     pointer.0 = contexts.ctx_mut()?.is_pointer_over_area();
 
     Ok(())

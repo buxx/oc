@@ -228,7 +228,7 @@ impl Vec3 {
 
 /// Pad a byte vec to a multiple of 4, filling with `pad_byte`.
 fn pad4(data: &mut Vec<u8>, pad_byte: u8) {
-    while data.len() % 4 != 0 {
+    while !data.len().is_multiple_of(4) {
         data.push(pad_byte);
     }
 }

@@ -54,7 +54,7 @@ pub fn physics_step<I, C>(
             volume.0.clone(),
         ); //, on_physics_event);
         let (position_, forces_, events) =
-            oc_physics::step(&laws, (i.clone(), &corps), &objects, "gui");
+            oc_physics::step(&laws, (i.clone(), &corps), objects, "gui");
 
         position.0 = position_;
         forces.0 = forces_;

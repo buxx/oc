@@ -35,11 +35,11 @@ pub const MINIMAP_WIDTH_PIXELS: usize = _usize(option_env!("MINIMAP_WIDTH_PIXELS
 pub const MINIMAP_HEIGHT_PIXELS: usize = _usize(option_env!("MINIMAP_HEIGHT_PIXELS"), "2048");
 
 const _: () = assert!(
-    WORLD_WIDTH % REGION_WIDTH == 0,
+    WORLD_WIDTH.is_multiple_of(REGION_WIDTH),
     "World width mut be divisible by region width"
 );
 const _: () = assert!(
-    WORLD_HEIGHT % REGION_HEIGHT == 0,
+    WORLD_HEIGHT.is_multiple_of(REGION_HEIGHT),
     "World height mut be divisible by region height"
 );
 

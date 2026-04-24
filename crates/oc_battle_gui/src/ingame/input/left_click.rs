@@ -1,45 +1,32 @@
-#[cfg(feature = "debug")]
-use crate::ingame::debug::projectile::SpawnProjectileProfile;
-#[cfg(feature = "debug")]
-use crate::window::debug::battle::SpawnProjectileClickMode;
-#[cfg(feature = "debug")]
-use crate::world::World;
-#[cfg(feature = "debug")]
 use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
-#[cfg(feature = "debug")]
 use oc_network::ToServer;
-#[cfg(feature = "debug")]
 use strum_macros::EnumIter;
 
-#[cfg(feature = "debug")]
+use crate::ingame::debug::projectile::SpawnProjectileProfile;
 use crate::window::PointerInWindow;
-#[cfg(feature = "debug")]
+use crate::window::debug::battle::SpawnProjectileClickMode;
+use crate::world::World;
 use crate::{ingame::draw, network::output::ToServerEvent};
 
 #[derive(Debug, Deref, DerefMut, Event)]
 pub struct SetLeftClick(pub LeftClickMode);
 
-#[cfg(feature = "debug")]
 #[derive(Debug, Deref, DerefMut, Event)]
 pub struct SetSpawnProjectileLeftClickMode(pub SpawnProjectileClickMode);
 
-#[cfg(feature = "debug")]
 #[derive(Debug, Event)]
 pub struct SpawnClicksLine;
 
-#[cfg(feature = "debug")]
 #[derive(Debug, Event)]
 pub struct DespawnClicksLine;
 
-#[cfg(feature = "debug")]
 #[derive(Debug, Component)]
 pub struct ClicksLine;
 
 #[derive(Debug, Deref, DerefMut, Resource, Default)]
 pub struct LeftClick(pub LeftClickMode);
 
-#[cfg(feature = "debug")]
 #[derive(Debug, Deref, DerefMut, Resource, Default)]
 pub struct SpawnProjectileLeftClick(pub SpawnProjectileClickMode);
 
@@ -47,20 +34,16 @@ pub struct SpawnProjectileLeftClick(pub SpawnProjectileClickMode);
 pub enum LeftClickMode {
     #[default]
     Select,
-    #[cfg(feature = "debug")]
     SpawnProjectile(SpawnProjectileProfile),
 }
 
-#[cfg(feature = "debug")]
 #[derive(Debug, Clone, Default, PartialEq, Eq, EnumIter)]
 pub enum LeftClickModeType {
     #[default]
     Select,
-    #[cfg(feature = "debug")]
     SpawnProjectile,
 }
 
-#[cfg(feature = "debug")]
 impl LeftClickModeType {
     pub fn name(&self) -> &str {
         match self {
@@ -70,7 +53,6 @@ impl LeftClickModeType {
     }
 }
 
-#[cfg(feature = "debug")]
 pub fn click_debug(
     mut commands: Commands,
     ignore: Res<PointerInWindow>,
@@ -98,7 +80,7 @@ pub fn click_debug(
         LeftClickMode::Select => {
             // TODO
         }
-        #[cfg(feature = "debug")]
+
         LeftClickMode::SpawnProjectile(profile) => match spawn_mode.0 {
             SpawnProjectileClickMode::TwoClicks => {
                 if buttons.just_released(MouseButton::Left) {
@@ -159,7 +141,6 @@ pub fn on_set_left_click(set: On<SetLeftClick>, mut left_click: ResMut<LeftClick
     left_click.0 = set.0.clone();
 }
 
-#[cfg(feature = "debug")]
 pub fn on_set_spawn_projectile_left_click(
     set: On<SetSpawnProjectileLeftClickMode>,
     mut left_click: ResMut<SpawnProjectileLeftClick>,
@@ -167,7 +148,6 @@ pub fn on_set_spawn_projectile_left_click(
     left_click.0 = set.0.clone();
 }
 
-#[cfg(feature = "debug")]
 pub fn on_spawn_clicks_line(
     _: On<SpawnClicksLine>,
     window: Single<&Window>,
@@ -197,7 +177,6 @@ pub fn on_spawn_clicks_line(
     ));
 }
 
-#[cfg(feature = "debug")]
 pub fn update_spawn_projectile_clicks_line(
     mut commands: Commands,
     mode: Res<LeftClick>,
@@ -214,7 +193,6 @@ pub fn update_spawn_projectile_clicks_line(
     }
 }
 
-#[cfg(feature = "debug")]
 pub fn on_despawn_clicks_line(
     _: On<DespawnClicksLine>,
     mut commands: Commands,

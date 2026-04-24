@@ -106,8 +106,8 @@ impl<'a> Iterator for Steps<'a> {
             self.z = (z as f32) / self.laws.bresenham_precision;
 
             return Some(Step::Inside(
-                [self.x as f32, self.y as f32, self.z as f32],
-                self.tile.clone(),
+                [self.x, self.y, self.z],
+                self.tile,
             ));
         }
 
@@ -121,7 +121,7 @@ impl<'a> Iterator for Steps<'a> {
                 x as u64 / self.laws.pixels_per_tile,
                 y as u64 / self.laws.pixels_per_tile,
             );
-            return Some(Step::Last([x as f32, y as f32, z as f32], tile));
+            return Some(Step::Last([x, y, z], tile));
         }
 
         None

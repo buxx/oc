@@ -21,7 +21,7 @@ impl<'a, E: Client> Processor<'a, E> {
         updates.extend(Move::from(&self).read());
 
         updates.into_iter().for_each(|update| {
-            update::write(&self.ctx, update, self.i);
+            update::write(self.ctx, update, self.i);
         });
     }
 }

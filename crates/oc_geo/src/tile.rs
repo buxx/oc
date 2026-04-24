@@ -11,8 +11,8 @@ pub struct TileXy(pub Xy);
 impl TileXy {
     pub fn clamped(&self) -> Self {
         Self(Xy(
-            self.0.0.max(0).min(WORLD_WIDTH as u64 - 1),
-            self.0.1.max(0).min(WORLD_HEIGHT as u64 - 1),
+            self.0.0.min(WORLD_WIDTH as u64 - 1),
+            self.0.1.min(WORLD_HEIGHT as u64 - 1),
         ))
     }
 
@@ -84,7 +84,7 @@ impl From<WorldTileIndex> for TileXy {
     fn from(WorldTileIndex(i): WorldTileIndex) -> Self {
         let x = i % WORLD_WIDTH as u64;
         let y = i / WORLD_WIDTH as u64;
-        Self(Xy(x as u64, y as u64))
+        Self(Xy(x, y))
     }
 }
 
@@ -92,7 +92,7 @@ impl From<WorldTileIndex> for Xy {
     fn from(WorldTileIndex(i): WorldTileIndex) -> Self {
         let x = i % WORLD_WIDTH as u64;
         let y = i / WORLD_WIDTH as u64;
-        Xy(x as u64, y as u64)
+        Xy(x, y)
     }
 }
 
@@ -100,7 +100,7 @@ impl From<WorldHeightIndex> for Xy {
     fn from(WorldHeightIndex(i): WorldHeightIndex) -> Self {
         let x = i % WORLD_WIDTH as u64;
         let y = i / WORLD_WIDTH as u64;
-        Xy(x as u64, y as u64)
+        Xy(x, y)
     }
 }
 

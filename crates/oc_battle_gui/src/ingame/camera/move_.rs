@@ -31,8 +31,8 @@ pub fn move_battle(
     let left = buttons.pressed(MouseButton::Left);
     let right = buttons.pressed(MouseButton::Right);
 
-    if right || (left && ctrl) {
-        if let (Some(cursor1), Some(cursor2)) = (&state.cursor, &cursor) {
+    if (right || (left && ctrl))
+        && let (Some(cursor1), Some(cursor2)) = (&state.cursor, &cursor) {
             let diff = cursor1 - cursor2;
             if diff != Vec2::ZERO {
                 camera.translation.x += diff.x;
@@ -41,7 +41,6 @@ pub fn move_battle(
                 commands.trigger(MovedBattleCamera)
             }
         }
-    }
 }
 
 pub fn on_moved_battle_camera(

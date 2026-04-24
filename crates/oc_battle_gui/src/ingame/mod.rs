@@ -42,7 +42,6 @@ impl Plugin for IngamePlugin {
             .add_plugins(ProjectilePlugin)
             // TODO: InputPlugin
             .init_resource::<input::State>()
-            .init_resource::<input::left_click::LeftClick>()
             .add_observer(on_to_client)
             .add_observer(on_update_battle_square)
             .add_observer(on_spawn_minimap)
@@ -54,7 +53,6 @@ impl Plugin for IngamePlugin {
             .add_observer(projectile::on_forgot_projectile)
             // .add_observer(on_forgotten_region)
             // TODO: InputPlugin
-            .add_observer(input::left_click::on_set_left_click)
             .add_observer(physics::on_physics_event)
             // TODO: despawn entities on OnExit(AppState::InGame)
             .add_systems(
@@ -65,6 +63,8 @@ impl Plugin for IngamePlugin {
 
         #[cfg(feature = "debug")]
         app.init_resource::<SpawnProjectileLeftClick>()
+            .init_resource::<input::left_click::LeftClick>()
+            .add_observer(input::left_click::on_set_left_click)
             .add_observer(region::debug::on_listening_region)
             .add_observer(region::debug::on_spawn_region_wire_frame_debug)
             .add_observer(region::debug::on_forgotten_region)

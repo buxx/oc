@@ -3,6 +3,7 @@ use bevy::prelude::*;
 pub mod client;
 pub mod individual;
 pub mod keyboard;
+#[cfg(feature = "debug")]
 pub mod left_click;
 pub mod map;
 pub mod projectile;

@@ -36,7 +36,7 @@ impl WorldLoader {
         self.check()?;
 
         tracing::info!("Load world meta {}", self.world.meta().display());
-        let meta = Meta::from_file(&self.world.meta()).map_err(|e| MetaError::Load(e))?;
+        let meta = Meta::from_file(&self.world.meta()).map_err(MetaError::Load)?;
 
         // TODO: centralize caching at server startup
         self.cache(&meta)?;
@@ -55,7 +55,7 @@ impl WorldLoader {
 
     // TODO: add checks
     fn check(&self) -> Result<(), Error> {
-        self.check_meta().map_err(|e| Error::Meta(e))?;
+        self.check_meta().map_err(Error::Meta)?;
         self.check_background()
             .map_err(|e| Error::Background(self.world.background(), e))?;
 
@@ -71,7 +71,7 @@ impl WorldLoader {
             return Err(BackgroundError::NotAFile);
         }
 
-        let (width, height) = image::image_dimensions(&self.world.background())?;
+        let (width, height) = image::image_dimensions(self.world.background())?;
         if width != WORLD_WIDTH_PIXELS as u32 || height != WORLD_HEIGHT_PIXELS as u32 {
             return Err(BackgroundError::Dimensions(
                 width,

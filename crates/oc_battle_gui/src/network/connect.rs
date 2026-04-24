@@ -34,7 +34,7 @@ pub fn on_connect(
             let (input_tx, input_rx) = channel();
             let (output_tx, output_rx) = channel();
 
-            start_network(socket.clone(), input_tx, output_rx).ok_or_send(commands);
+            start_network(*socket, input_tx, output_rx).ok_or_send(commands);
 
             to_server.0 = Some(output_tx);
             network_message.0 = Some(Arc::new(Mutex::new(input_rx)));

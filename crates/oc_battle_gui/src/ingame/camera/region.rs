@@ -33,7 +33,7 @@ pub fn on_update_regions(
 
     let new: Vec<Region> = regions
         .iter()
-        .filter(|region| !current.iter().find(|r| r.0 == **region).is_some())
+        .filter(|region| current.iter().find(|r| r.0 == **region).is_none())
         .map(|i| Region(*i))
         .collect();
 
@@ -49,7 +49,7 @@ pub fn on_update_regions(
 
     let old: Vec<WorldRegionIndex> = current
         .iter()
-        .filter(|region| !regions.iter().find(|i| **i == region.0).is_some())
+        .filter(|region| regions.iter().find(|i| **i == region.0).is_none())
         .map(|r| r.0)
         .collect();
 
@@ -65,7 +65,7 @@ pub fn on_update_regions(
         commands.trigger(ForgottenRegion(*old_));
     }
 
-    let now = vec![new, still].concat();
+    let now = [new, still].concat();
     state.regions = Some(now);
 }
 

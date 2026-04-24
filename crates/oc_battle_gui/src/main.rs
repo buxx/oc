@@ -35,7 +35,7 @@ pub struct Args {
 
 impl From<Args> for Config_ {
     fn from(value: Args) -> Self {
-        let autoconnect = value.autoconnect.map(|addr| Connect::Network(addr));
+        let autoconnect = value.autoconnect.map(Connect::Network);
         Self { autoconnect }
     }
 }

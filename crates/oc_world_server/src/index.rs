@@ -47,7 +47,7 @@ impl Indexes {
         let mut regions_projectiles = SizedIndex::new(REGIONS_COUNT);
 
         for (i, individual) in world.individuals().iter().enumerate() {
-            let tile: WorldTileIndex = individual.tile.into();
+            let tile: WorldTileIndex = individual.tile;
             let region: WorldRegionIndex = tile.into();
 
             tiles_individuals[tile.0 as usize].push(i.into());
@@ -55,7 +55,7 @@ impl Indexes {
         }
 
         for (id, projectile) in world.projectiles() {
-            let tile: WorldTileIndex = projectile.tile().clone().into();
+            let tile: WorldTileIndex = projectile.tile();
             let region: WorldRegionIndex = tile.into();
 
             tiles_projectiles[tile.0 as usize].push(*id);

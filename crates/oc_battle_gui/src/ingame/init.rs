@@ -14,7 +14,7 @@ pub fn init(mut commands: Commands) {
 }
 
 pub fn refresh(mut commands: Commands) {
-    commands.trigger(ToServerEvent(ToServer::Refresh.into()));
+    commands.trigger(ToServerEvent(ToServer::Refresh));
 }
 
 pub fn spawn_world_map(mut commands: Commands) {

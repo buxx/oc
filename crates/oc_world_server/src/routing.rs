@@ -12,6 +12,12 @@ pub struct Listeners<T: Clone + PartialEq + Hash + std::cmp::Eq> {
     listeners_regions: FxHashMap<T, Vec<WorldRegionIndex>>,
 }
 
+impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Default for Listeners<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
     pub fn new() -> Self {
         Self {
@@ -53,7 +59,7 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
             Listening::Regions(regions) => regions
                 .into_iter()
                 .map(|tile| {
-                    let region: WorldRegionIndex = tile.into();
+                    let region: WorldRegionIndex = tile;
                     self.regions_listeners[region.0 as usize].clone()
                 })
                 .collect::<Vec<_>>()

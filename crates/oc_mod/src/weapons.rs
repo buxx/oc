@@ -90,9 +90,9 @@ pub enum WeaponRaw {
     MachineGun(MachineGunRaw),
 }
 
-impl Into<Weapon> for WeaponRaw {
-    fn into(self) -> Weapon {
-        match self {
+impl From<WeaponRaw> for Weapon {
+    fn from(val: WeaponRaw) -> Self {
+        match val {
             WeaponRaw::Rifle(rifle) => Weapon::Rifle(rifle.into()),
             WeaponRaw::MachineGun(machine_gun) => Weapon::MachineGun(machine_gun.into()),
         }
@@ -235,14 +235,14 @@ pub struct RifleRaw {
     velocity: MetersSeconds,
 }
 
-impl Into<Rifle> for RifleRaw {
-    fn into(self) -> Rifle {
+impl From<RifleRaw> for Rifle {
+    fn from(val: RifleRaw) -> Self {
         Rifle {
-            name: self.name,
+            name: val.name,
             amunitions: vec![],
             shots: vec![],
-            interval: self.interval,
-            velocity: self.velocity,
+            interval: val.interval,
+            velocity: val.velocity,
         }
     }
 }
@@ -276,14 +276,14 @@ pub struct MachineGunRaw {
     velocity: MetersSeconds,
 }
 
-impl Into<MachineGun> for MachineGunRaw {
-    fn into(self) -> MachineGun {
+impl From<MachineGunRaw> for MachineGun {
+    fn from(val: MachineGunRaw) -> Self {
         MachineGun {
-            name: self.name,
+            name: val.name,
             amunitions: vec![],
             shots: vec![],
-            interval: self.interval,
-            velocity: self.velocity,
+            interval: val.interval,
+            velocity: val.velocity,
         }
     }
 }
@@ -300,8 +300,7 @@ pub fn load(path: &PathBuf, mod_: &Mod) -> Result<Vec<IndexedWeapon>, Error> {
             let amunitions = mod_
                 .amunitions_from_names(weapon_.amunitions().clone())
                 .map_err(|e| Error::AmunitionRef(weapon_.name().to_string(), e.to_string()))?
-                .into_iter()
-                .map(|a| a.clone())
+                .into_iter().cloned()
                 .collect();
             let shots = weapon_
                 .shots()

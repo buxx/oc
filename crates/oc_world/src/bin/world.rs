@@ -95,7 +95,7 @@ fn main() -> Result<(), anyhow::Error> {
     let (width, height) = background(&args, &background_path)?;
     tracing::info!("Assuming width of {} (tiles)", width);
     tracing::info!("Assuming height of {} (tiles)", height);
-    let _ = interiors(width, height, args.tile_size, &interiors_path)?;
+    interiors(width, height, args.tile_size, &interiors_path)?;
 
     let terrain_tsx_tpl_path = PathBuf::from("templates/world/terrain.tsx");
     let terrain_tsx_path = args.path.join("terrain.tsx");
@@ -158,7 +158,7 @@ fn snapshot_(map: &PathBuf, path: &PathBuf) -> Result<(), anyhow::Error> {
         false => {
             tracing::info!("Initialize snapshot ({})", path.display());
             let snapshot = Snapshot::new(vec![], vec![], vec![]);
-            let snapshot = snapshot.save(&path);
+            let snapshot = snapshot.save(path);
             snapshot.context(format!("Save snapshot ({})", path.display()))?;
         }
     };
@@ -172,7 +172,7 @@ fn snapshot_(map: &PathBuf, path: &PathBuf) -> Result<(), anyhow::Error> {
     snapshot.tiles = tiles;
 
     tracing::info!("Save snapshot");
-    let snapshot = snapshot.save(&path);
+    let snapshot = snapshot.save(path);
     snapshot.context(format!("Save snapshot ({})", path.display()))?;
 
     Ok(())
@@ -185,7 +185,7 @@ fn world(
     height: usize,
     tile_size: usize,
 ) -> Result<(), anyhow::Error> {
-    let mut world = match std::fs::read_to_string(&world_path) {
+    let mut world = match std::fs::read_to_string(world_path) {
         Ok(_) => {
             tracing::info!("{} already exists", world_path.display());
             return Ok(());
@@ -193,19 +193,19 @@ fn world(
         Err(error) => match error.kind() {
             std::io::ErrorKind::NotFound => {
                 tracing::info!("Create {}", world_path.display());
-                std::fs::copy(&world_tpl_path, &world_path).context(format!(
+                std::fs::copy(world_tpl_path, world_path).context(format!(
                     "Copy {} to {}",
                     world_tpl_path.display(),
                     world_path.display()
                 ))?;
-                std::fs::read_to_string(&world_path)
+                std::fs::read_to_string(world_path)
                     .context(format!("Read {}", world_path.display()))?
             }
             _ => {
                 return Err(anyhow::anyhow!(
                     "Can't read {}: {}",
                     world_path.display(),
-                    error.to_string()
+                    error
                 ));
             }
         },
@@ -248,18 +248,18 @@ fn world(
     replace!(world, "{{decor}}", &decor.to_string());
 
     tracing::info!("Write world.tmx content");
-    std::fs::write(&world_path, world)
+    std::fs::write(world_path, world)
         .context(format!("Write content in {}", world_path.display()))?;
 
     Ok(())
 }
 
 fn background(args: &Args, path: &PathBuf) -> Result<(usize, usize), anyhow::Error> {
-    let (width, height) = match std::fs::exists(&path)
+    let (width, height) = match std::fs::exists(path)
         .context(format!("Test if {} exists", path.display()))?
     {
         true => {
-            let (width, height) = image::get_png_dimensions(&path).unwrap(); // TODO
+            let (width, height) = image::get_png_dimensions(path).unwrap(); // TODO
 
             if let Some(width_) = args.width {
                 if width_ * args.tile_size != width as usize {
@@ -268,7 +268,7 @@ fn background(args: &Args, path: &PathBuf) -> Result<(usize, usize), anyhow::Err
                     );
                 }
 
-                if width as usize % args.tile_size != 0 {
+                if !(width as usize).is_multiple_of(args.tile_size) {
                     anyhow::bail!("Background width is not divisible by given tile size");
                 }
             }
@@ -279,7 +279,7 @@ fn background(args: &Args, path: &PathBuf) -> Result<(usize, usize), anyhow::Err
                     );
                 }
 
-                if height as usize % args.tile_size != 0 {
+                if !(height as usize).is_multiple_of(args.tile_size) {
                     anyhow::bail!("Background widheightth is not divisible by given tile size");
                 }
             }
@@ -306,7 +306,7 @@ fn background(args: &Args, path: &PathBuf) -> Result<(usize, usize), anyhow::Err
                 .context(format!("Create {}", path.display()))
                 .context(format!("Write {} file", path.display()))?;
 
-            (width as usize, height as usize)
+            (width, height)
         }
     };
 
@@ -319,14 +319,14 @@ fn interiors(
     tile_size: usize,
     path: &PathBuf,
 ) -> Result<(), anyhow::Error> {
-    match std::fs::exists(&path).context(format!("Test if {} exists", path.display()))? {
+    match std::fs::exists(path).context(format!("Test if {} exists", path.display()))? {
         true => {
-            let (width_, height_) = image::get_png_dimensions(&path).unwrap(); // TODO
+            let (width_, height_) = image::get_png_dimensions(path).unwrap(); // TODO
             if width_ as usize != width * tile_size {
                 anyhow::bail!("interiors.png size don't match with background");
             }
 
-            if width_ as usize % tile_size != 0 {
+            if !(width_ as usize).is_multiple_of(tile_size) {
                 anyhow::bail!("interiors.png width is not divisible by given tile size");
             }
 
@@ -334,7 +334,7 @@ fn interiors(
                 anyhow::bail!("interiors.png size don't match with background");
             }
 
-            if height_ as usize % tile_size != 0 {
+            if !(height_ as usize).is_multiple_of(tile_size) {
                 anyhow::bail!("interiors.png height is not divisible by given tile size");
             }
 

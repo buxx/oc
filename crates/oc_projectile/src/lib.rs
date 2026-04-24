@@ -144,7 +144,7 @@ impl Material for Projectile {
 
 impl<'a> WithIds<ProjectileId, &'a Projectile> for Vec<(&'a ProjectileId, &'a Projectile)> {
     fn with_ids(&self) -> Vec<(ProjectileId, &'a Projectile)> {
-        self.into_iter()
+        self.iter()
             .map(|(i, projectile)| (**i, *projectile))
             .collect()
     }

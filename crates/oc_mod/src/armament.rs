@@ -103,7 +103,7 @@ impl ShotModeRaw {
                     .collect(),
             },
             ShotModeRaw::Burst3 { interval, sounds } => ShotMode::Burst3 {
-                interval: interval,
+                interval,
                 sounds: mod_
                     .find_sounds(&sounds)?
                     .iter()

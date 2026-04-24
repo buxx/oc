@@ -5,7 +5,6 @@ use derive_more::Constructor;
 use flate2::{Compression, write::GzEncoder};
 use oc_root::{GEO_PIXELS_PER_METERS, files, physics::Meters};
 use rkyv::{Archive, Deserialize, Serialize};
-use ron;
 use tar::Builder;
 use thiserror::Error;
 
@@ -54,15 +53,15 @@ pub struct Mod {
 
 impl Mod {
     pub fn load(path: &PathBuf, cache_: Option<&PathBuf>) -> Result<Self, Error> {
-        let mut mod_ = load_mod(&path)?;
+        let mut mod_ = load_mod(path)?;
 
-        mod_.sounds = sound::load(&path)?;
-        mod_.ammunitions = ammunition::load(&path)?;
-        mod_.weapons = weapons::load(&path, &mod_)?;
+        mod_.sounds = sound::load(path)?;
+        mod_.ammunitions = ammunition::load(path)?;
+        mod_.weapons = weapons::load(path, &mod_)?;
 
         // TODO: centralize caching at server startup
         if let Some(cache_) = cache_ {
-            cache(&mod_, &path, cache_)?;
+            cache(&mod_, path, cache_)?;
         }
 
         Ok(mod_)
@@ -105,7 +104,7 @@ impl Mod {
 
     fn find_sounds(&self, sounds: &[String]) -> Result<Vec<&IndexedSound>, Error> {
         sounds
-            .into_iter()
+            .iter()
             .map(|name| {
                 self.sounds
                     .iter()
@@ -139,7 +138,7 @@ fn cache(mod_: &Mod, path: &PathBuf, cache: &PathBuf) -> Result<(), CacheError> 
         let encoder = GzEncoder::new(file, Compression::default());
         let mut builder = Builder::new(encoder);
 
-        builder.append_dir_all(&mod_.name, &path).context(format!(
+        builder.append_dir_all(&mod_.name, path).context(format!(
             "Create archive from under '{}' from '{}'",
             &mod_.name,
             &path.display()

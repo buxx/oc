@@ -41,7 +41,7 @@ impl From<WorldRegionIndex> for RegionXy {
     fn from(WorldRegionIndex(i): WorldRegionIndex) -> Self {
         let x = i % REGIONS_WIDTH as u64;
         let y = i / REGIONS_WIDTH as u64;
-        Self(Xy(x as u64, y as u64))
+        Self(Xy(x, y))
     }
 }
 
@@ -49,7 +49,7 @@ impl From<WorldRegionIndex> for Xy {
     fn from(WorldRegionIndex(i): WorldRegionIndex) -> Self {
         let x = i % REGIONS_WIDTH as u64;
         let y = i / REGIONS_WIDTH as u64;
-        Xy(x as u64, y as u64)
+        Xy(x, y)
     }
 }
 

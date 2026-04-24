@@ -27,9 +27,9 @@ pub fn network_message_router(mut commands: Commands, messages: Res<NetworkMessa
         return;
     };
     let messages = messages.lock().expect("Assume mutex");
-    let mut messages = messages.try_iter();
+    let messages = messages.try_iter();
 
-    while let Some(message) = messages.next() {
+    for message in messages {
         commands.trigger(NetWorkMessageEvent(message))
     }
 }

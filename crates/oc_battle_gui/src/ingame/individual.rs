@@ -126,7 +126,7 @@ fn on_forgotten_region(
     query: Query<(Entity, &Region, &IndividualIndex)>,
 ) {
     for (entity, region_, individual) in query {
-        let region_: WorldRegionIndex = region_.0.into();
+        let region_: WorldRegionIndex = region_.0;
         if region_ == region.0 {
             tracing::trace!(name = "remove-individual", i=?individual);
             commands.entity(entity).despawn();

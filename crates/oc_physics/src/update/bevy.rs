@@ -51,13 +51,13 @@ pub fn on_update_physics<I: Send + Sync + 'static, E: Event + UpdatePhysicsEvent
 
     match update {
         super::Update::SetPosition(position2, position1) => {
-            commands.trigger(SetPositionEvent(i, position2.clone(), position1.clone()));
+            commands.trigger(SetPositionEvent(i, *position2, *position1));
         }
         super::Update::SetTile(tile2, tile1) => {
-            commands.trigger(SetTileEvent(i, tile2.clone(), tile1.clone()));
+            commands.trigger(SetTileEvent(i, *tile2, *tile1));
         }
         super::Update::SetRegion(region2, region1) => {
-            commands.trigger(SetRegionEvent(i, region2.clone(), region1.clone()));
+            commands.trigger(SetRegionEvent(i, *region2, *region1));
         }
         super::Update::PushForce(force) => {
             commands.trigger(PushForceEvent(i, force.clone()));

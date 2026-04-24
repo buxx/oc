@@ -112,7 +112,7 @@ impl<E: Client> super::State<E> {
             let listeners = self.listeners();
 
             // Broadcast the new projectile (TODO: normalize/refactor to not call loop manually ?)
-            let region: WorldRegionIndex = projectile.region().clone().into();
+            let region: WorldRegionIndex = projectile.region();
             listeners
                 .find(Listening::Regions(vec![region]))
                 .iter()

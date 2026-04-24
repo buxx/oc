@@ -110,11 +110,10 @@ impl World {
         let tile: WorldTileIndex = position.into();
         let region: WorldRegionIndex = tile.into();
 
-        if let Some(tiles) = self.individuals.get_mut(&region) {
-            if let Some(individuals) = tiles.get_mut(&tile) {
+        if let Some(tiles) = self.individuals.get_mut(&region)
+            && let Some(individuals) = tiles.get_mut(&tile) {
                 individuals.retain(|(i_, _)| *i_ != i);
             }
-        }
         self.individuals_refs.remove(&i);
     }
 
@@ -133,7 +132,7 @@ impl World {
             .and_then(|individuals| {
                 individuals
                     .iter()
-                    .find_map(|(i_, individual)| (*i_ == i).then(|| individual))
+                    .find_map(|(i_, individual)| (*i_ == i).then_some(individual))
             })
     }
 
@@ -161,10 +160,10 @@ impl World {
         if let Some(tile_) = self
             .tiles
             .get(&region)
-            .and_then(|tiles| tiles.get(&tile.into()))
+            .and_then(|tiles| tiles.get(&tile))
         {
             let tile_: Box<&dyn Physic> = Box::new(tile_);
-            objects.push((ObjectId::Tile(tile.into()), tile_));
+            objects.push((ObjectId::Tile(tile), tile_));
         }
 
         objects

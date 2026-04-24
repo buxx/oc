@@ -65,6 +65,12 @@ pub enum Error {
 
 pub struct EmptyGenerator<T>(PhantomData<T>);
 
+impl<T> Default for EmptyGenerator<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> EmptyGenerator<T> {
     pub fn new() -> Self {
         Self(PhantomData)
