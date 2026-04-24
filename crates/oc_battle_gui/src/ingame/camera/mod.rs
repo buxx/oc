@@ -92,7 +92,7 @@ impl Plugin for CameraPlugin {
                 debug::tile::on_spawn_region::<
                     debug::tile::SpawnRegionHeights,
                     WorldHeightIndex,
-                    f32,
+                    u8,
                     Terrain,
                 >,
             )

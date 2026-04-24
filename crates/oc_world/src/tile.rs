@@ -23,7 +23,7 @@ const DEPTH: f32 = 10_000.;
 pub struct Tile {
     pub i: WorldTileIndex, // Should not be necessary, but oc_physics::step must take a reference ...
     pub nature: Nature,
-    pub z: f32,
+    pub z: u8,
 }
 
 #[derive(

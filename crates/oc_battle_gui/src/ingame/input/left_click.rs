@@ -121,15 +121,16 @@ pub fn click_debug(
                         let Some(start_tile) = world.tile(start_tile_xy) else {
                             return;
                         };
-                        let start_z = start_tile.z as f32 + profile.plus_z.pixels();
+                        // FIXME BS NOW: 0.5 must be config ratio (const ?) meters by height ID
+                        let start_z = start_tile.z as f32 * 0.5 * GEO_PIXELS_PER_METERS;
                         let start = [start.x, start.y.to_world_y(), start_z];
                         let end = state.clicks.last().expect("len checked line before");
                         let end_tile_xy = TileXy::from((end.x, end.y.to_world_y()));
                         let Some(end_tile) = world.tile(end_tile_xy) else {
                             return;
                         };
-                        // FIXME BS NOW: 0.5 must be config ratio (const ?) meters by height ID (same fixme in other place)
-                        let end_z = end_tile.z;
+                        // FIXME BS NOW: 0.5 must be config ratio (const ?) meters by height ID
+                        let end_z = end_tile.z as f32 * 0.5 * GEO_PIXELS_PER_METERS;
                         let end = [end.x, end.y.to_world_y(), end_z];
                         let weapon = profile.weapon;
                         let ammo = profile.ammunition;
@@ -151,29 +152,57 @@ pub fn click_debug(
                     commands.trigger(SpawnClicksLine);
                 }
 
-                // TODO: refactor (see before)
+                // TODO: refactor (see before) into function wich take world xy start, and xy end
                 if buttons.just_released(MouseButton::Left) {
                     if let Some(start) = state.clicks.first() {
-                        use oc_root::y::Y;
+                        use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
+                        use oc_root::{GEO_PIXELS_PER_METERS, y::Y};
 
-                        let start_tile_xy = TileXy::from((start.x, start.y.to_world_y()));
+                        // tracing::error!("DEBUGG: start={start:?}");
+                        // tracing::error!("DEBUGG: y {} => {}", start.y, start.y.to_world_y());
+                        let start_ = (start.x, start.y.to_world_y());
+                        let start_tile_xy = TileXy::from(start_);
+                        // tracing::error!("DEBUGG: start_tile_xy={start_tile_xy:?}");
                         let Some(start_tile) = world.tile(start_tile_xy) else {
                             return;
                         };
-                        tracing::trace!(
-                            name = "debugg",
-                            tile_z = start_tile.z,
-                            pp = ?profile.plus_z,
-                            ppp = profile.plus_z.pixels()
-                        );
-                        let start_z = start_tile.z as f32 + profile.plus_z.pixels();
+                        // tracing::error!(
+                        //     "DEBUGG start_={start_:?} start_tile_xy={start_tile_xy:?} start_tile={start_tile:?}"
+                        // );
+                        // tracing::error!("DEBUGG: start_tile={start_tile:?}");
+                        // tracing::trace!(
+                        //     name = "debugg",
+                        //     tile_z = start_tile.z,
+                        //     pp = ?profile.plus_z,
+                        //     ppp = profile.plus_z.pixels()
+                        // );
+                        // FIXME BS NOW: 0.5 must be config ratio (const ?) meters by height ID
+                        let start_z = (start_tile.z as f32 * 0.5 * GEO_PIXELS_PER_METERS)
+                            + profile.plus_z.pixels();
                         let start = [start.x, start.y.to_world_y(), start_z];
 
-                        let end_tile_xy = TileXy::from((point.x, point.y.to_world_y()));
+                        // tracing::error!("DEBUGG: end={point:?}");
+                        // tracing::error!("DEBUGG: y {} => {}", point.y, point.y.to_world_y());
+
+                        let end_ = (point.x, point.y.to_world_y());
+                        let end_tile_xy = TileXy::from(end_);
+                        let x: WorldTileIndex = end_tile_xy.into();
+                        // tracing::error!("DEBUGG: end_tile_xy={end_tile_xy:?} (==>{x:?})",);
                         let Some(end_tile) = world.tile(end_tile_xy) else {
                             return;
                         };
-                        let end_z = end_tile.z as f32;
+
+                        // tracing::error!(
+                        //     "DEBUGG end_={end_:?} end_tile_xy={end_tile_xy:?} end_tile={end_tile:?}"
+                        // );
+                        // dbg!((
+                        //     &world.tiles[&WorldRegionIndex(0)][&WorldTileIndex(0)],
+                        //     &world.tiles[&WorldRegionIndex(0)][&WorldTileIndex(1)]
+                        // ));
+
+                        // tracing::error!("DEBUGG: end_tile={end_tile:?}");
+                        // FIXME BS NOW: 0.5 must be config ratio (const ?) meters by height ID
+                        let end_z = end_tile.z as f32 * 0.5 * GEO_PIXELS_PER_METERS;
                         let end = [point.x, point.y.to_world_y(), end_z];
 
                         let weapon = profile.weapon;
@@ -182,6 +211,9 @@ pub fn click_debug(
                         let repeat = profile.repeat;
                         let spawn = SpawnProjectile::new(weapon, ammo, shot, repeat, start, end);
 
+                        // tracing::error!(
+                        //     "DEBUGG: start_tile={start_tile:?} end_tile={end_tile:?} start={start:?} end={end:?}"
+                        // );
                         tracing::debug!("Spawn projectile {spawn:?}");
                         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
                     }

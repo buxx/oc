@@ -427,9 +427,7 @@ impl MapReader {
                     }
                 };
 
-                let z = height_layer_tile_data.id() as f32;
-                // FIXME BS NOW: 0.5 must be config ratio (const ?) meters by height ID (same fixme in other place)
-                let z = z * 0.5 * GEO_PIXELS_PER_METERS;
+                let z = height_layer_tile_data.id() as u8;
                 let nature = Nature::from_str(id)?;
                 let i = WorldTileIndex(tile_id);
                 let tile = Tile { i, nature, z };

@@ -16,6 +16,10 @@ use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::bullet::Bullet;
 
+// FIXME BS NOW: projectiles hould have an forced life end.
+// As we don't compute la perte de vitesse et donc la chute,
+// une balle tiré en l'air avancera vers le ciel indéfiniement
+// ou alors on calcule la chute et le ralentissement ...
 pub mod bullet;
 pub mod network;
 pub mod spawn;
