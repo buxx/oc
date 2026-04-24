@@ -20,6 +20,7 @@ mod projectile;
 mod run;
 mod setup;
 mod states;
+#[cfg(feature = "debug")]
 mod tileset;
 mod utils;
 mod window;

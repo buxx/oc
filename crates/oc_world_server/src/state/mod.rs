@@ -16,13 +16,13 @@ use crate::{
 
 #[derive(Clone)]
 pub struct State<E: Client> {
-    pub ids: Ids,
-    mod_: Mod,
+    pub _ids: Ids,
+    pub _mod: Mod,
     pub perf: Arc<Perf>,
-    world: Arc<RwLock<World>>,
-    indexes: Arc<RwLock<Indexes>>,
-    listeners: Arc<RwLock<Listeners<E>>>,
-    scheduled: Arc<Mutex<Vec<(Instant, Update)>>>,
+    pub world: Arc<RwLock<World>>,
+    pub indexes: Arc<RwLock<Indexes>>,
+    pub listeners: Arc<RwLock<Listeners<E>>>,
+    pub scheduled: Arc<Mutex<Vec<(Instant, Update)>>>,
 }
 
 impl<E: Client> State<E> {
@@ -34,8 +34,8 @@ impl<E: Client> State<E> {
         let scheduled = Arc::new(Mutex::new(vec![]));
 
         Self {
-            ids,
-            mod_,
+            _ids: ids,
+            _mod: mod_,
             perf,
             world,
             indexes,
@@ -44,8 +44,8 @@ impl<E: Client> State<E> {
         }
     }
 
-    pub fn mod_(&self) -> &Mod {
-        &self.mod_
+    pub fn _mod(&self) -> &Mod {
+        &self._mod
     }
 
     pub fn world(&self) -> RwLockReadGuard<'_, World> {

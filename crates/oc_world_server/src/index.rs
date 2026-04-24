@@ -1,10 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use oc_geo::region::Region;
-use oc_geo::{
-    region::{RegionXy, WorldRegionIndex},
-    tile::{TileXy, WorldTileIndex},
-};
+use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_individual::IndividualIndex;
 use oc_projectile::Projectile;
 use oc_projectile::ProjectileId;
@@ -73,6 +70,7 @@ impl Indexes {
         }
     }
 
+    #[cfg(feature = "debug")]
     pub fn insert_projectile(&mut self, id: ProjectileId, projectile: &Projectile) {
         self.update_projectile_tile(id, projectile.tile(), projectile.tile());
         self.update_projectile_region(id, projectile.region(), projectile.region());

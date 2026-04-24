@@ -5,6 +5,7 @@ use oc_geo::{
 };
 use oc_individual::{Individual, IndividualIndex};
 use oc_physics::Physic;
+#[cfg(feature = "debug")]
 use oc_root::{GEO_PIXELS_PER_METERS, physics::Meters, y::Y};
 use oc_utils::d2::Xy;
 use oc_world::tile::Tile;
@@ -18,6 +19,7 @@ pub mod tile;
 #[derive(Debug, Event)]
 pub struct InsertTiles(pub WorldRegionIndex, pub Vec<(WorldTileIndex, Tile)>);
 
+#[allow(unused)]
 #[derive(Debug, Event)]
 pub struct InsertedTiles(pub WorldRegionIndex);
 
@@ -168,20 +170,24 @@ impl World {
         objects
     }
 
+    #[cfg(feature = "debug")]
     pub fn tile(&self, xy: TileXy) -> Option<&Tile> {
         let i: WorldTileIndex = xy.into();
         let region: WorldRegionIndex = i.into();
         self.tiles.get(&region).and_then(|tiles| tiles.get(&i))
     }
 
+    #[cfg(feature = "debug")]
     pub fn tiles(&self) -> &Index<WorldTileIndex, Tile> {
         &self.tiles
     }
 
+    #[cfg(feature = "debug")]
     pub fn heights(&self) -> &Index<WorldHeightIndex, u8> {
         &self.heights
     }
 
+    #[cfg(feature = "debug")]
     pub fn point2d_to_point3d(&self, p: &Vec2, plus_z: Meters) -> Option<[f32; 3]> {
         let p = (p.x, p.y.to_world_y());
         let tile = TileXy::from(p);

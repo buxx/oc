@@ -1,5 +1,4 @@
 use std::net::SocketAddr;
-use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 use message_io::network::{Endpoint, NetEvent, Transport};

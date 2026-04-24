@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::prelude::*;
 use oc_mod::{Mod, weapons::WeaponType};
-use oc_root::physics::Meters;
 use strum::IntoEnumIterator;
 
 use crate::ingame::{

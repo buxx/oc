@@ -5,6 +5,7 @@ pub mod individual;
 pub mod network;
 pub mod perf;
 pub mod physics;
+#[cfg(feature = "debug")]
 pub mod projectile;
 pub mod routing;
 pub mod run;

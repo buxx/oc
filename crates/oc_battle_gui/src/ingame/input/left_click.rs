@@ -8,11 +8,7 @@ use crate::world::World;
 use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
 #[cfg(feature = "debug")]
-use oc_geo::tile::TileXy;
-#[cfg(feature = "debug")]
 use oc_network::ToServer;
-#[cfg(feature = "debug")]
-use oc_projectile::spawn::SpawnProjectile;
 #[cfg(feature = "debug")]
 use strum_macros::EnumIter;
 

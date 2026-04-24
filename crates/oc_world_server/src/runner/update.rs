@@ -1,18 +1,26 @@
-use std::{sync::mpsc::Sender, time::Instant};
+use std::sync::mpsc::Sender;
+#[cfg(feature = "debug")]
+use std::time::Instant;
 
+#[cfg(feature = "debug")]
 use crate::projectile;
 use crate::routing::Listening;
 use oc_geo::region::{Region, WorldRegionIndex};
 use oc_network::ToClient;
+#[cfg(feature = "debug")]
 use oc_physics::fx;
+#[cfg(feature = "debug")]
 use oc_projectile::NextProjectileId;
 use oc_projectile::ProjectileId;
+#[cfg(feature = "debug")]
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::Client;
 use oc_utils::error::OkOrLogError;
 
 pub enum Update {
+    #[cfg(feature = "debug")]
     Schedule(Instant, Box<Update>),
+    #[cfg(feature = "debug")]
     SpawnProjectile(SpawnProjectile, bool), // bool == fx
     RemoveProjectile(ProjectileId),
 }
@@ -20,7 +28,9 @@ pub enum Update {
 impl<E: Client> super::State<E> {
     pub fn update(&self, update: Update, output: &Sender<(E, ToClient)>) {
         for message in match update {
+            #[cfg(feature = "debug")]
             Update::Schedule(instant, update) => self.schedule(instant, *update),
+            #[cfg(feature = "debug")]
             Update::SpawnProjectile(spawn, fx) => self.spawn_projectile(spawn, fx),
             Update::RemoveProjectile(id) => self.remove_projectile(id),
         } {
@@ -28,15 +38,17 @@ impl<E: Client> super::State<E> {
         }
     }
 
+    #[cfg(feature = "debug")]
     fn schedule(&self, instant: Instant, update: Update) -> Vec<(E, ToClient)> {
         self.scheduled().push((instant, update));
         vec![]
     }
 
+    #[cfg(feature = "debug")]
     fn spawn_projectile(&self, spawn: SpawnProjectile, fx: bool) -> Vec<(E, ToClient)> {
         use oc_mod::PickSound;
 
-        let id = self.ids.next_projectile_id();
+        let id = self._ids.next_projectile_id();
 
         let projectile = {
             let world = self.world();
@@ -57,7 +69,7 @@ impl<E: Client> super::State<E> {
         // Broadcast the new projectile (TODO: normalize/refactor to not call loop manually ?)
         let region: WorldRegionIndex = projectile.region().clone().into();
         let listeners = self.listeners();
-        let sound = fx.then(|| self.mod_().pick_sound((spawn.weapon, spawn.shot)));
+        let sound = fx.then(|| self._mod().pick_sound((spawn.weapon, spawn.shot)));
         let sound = sound.flatten();
         let position = *projectile.position();
 

@@ -230,19 +230,19 @@ fn world(
     replace!(world, "{{interiors_height}}", &(heightpx).to_string());
 
     let terrain = (0..height)
-        .map(|y| vec!["1"; width].join(","))
+        .map(|_| vec!["1"; width].join(","))
         .collect::<Vec<String>>()
         .join(",\n");
     replace!(world, "{{terrain}}", &terrain.to_string());
 
     let height_ = (0..height)
-        .map(|y| vec!["2021"; width].join(","))
+        .map(|_| vec!["2021"; width].join(","))
         .collect::<Vec<String>>()
         .join(",\n");
     replace!(world, "{{height_}}", &height_.to_string());
 
     let decor = (0..height)
-        .map(|y| vec!["0"; width].join(","))
+        .map(|_| vec!["0"; width].join(","))
         .collect::<Vec<String>>()
         .join(",\n");
     replace!(world, "{{decor}}", &decor.to_string());

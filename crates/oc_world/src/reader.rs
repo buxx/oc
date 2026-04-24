@@ -5,9 +5,7 @@ use crate::{
     tile::{Nature, NatureError, Tile},
 };
 use glam::Vec2;
-use oc_geo::tile::{TileXy, WorldTileIndex};
-use oc_root::GEO_PIXELS_PER_METERS;
-use oc_utils::d2::Xy;
+use oc_geo::tile::WorldTileIndex;
 use tiled::{
     FiniteTileLayer, Image, ImageLayer, Layer, LayerType, Loader, Map as TiledMap, ObjectLayer,
     TileLayer, Tileset,
@@ -33,7 +31,7 @@ const DECOR_LAYER_NAME: &str = "decor";
 const TERRAIN_LAYER_NAME: &str = "terrain";
 const HEIGHT_LAYER_NAME: &str = "height";
 const TERRAIN_TILESET_NAME: &str = "terrain";
-const HEIGHT_TILESET_NAME: &str = "height";
+// const HEIGHT_TILESET_NAME: &str = "height";
 const TILE_ID_PROPERTY_KEY: &str = "ID";
 
 #[derive(Debug, thiserror::Error)]
@@ -334,21 +332,21 @@ impl MapReader {
         }
     }
 
-    fn height_tileset(&self) -> Result<&Arc<Tileset>, MapReaderError> {
-        match self
-            .map
-            .tilesets()
-            .iter()
-            .filter(|tileset| tileset.name == HEIGHT_TILESET_NAME)
-            .collect::<Vec<&Arc<Tileset>>>()
-            .first()
-        {
-            Some(tileset) => Ok(tileset),
-            None => Result::Err(MapReaderError::TileSetNotFound(format!(
-                "Can't found height tileset in map must exist but is not found",
-            ))),
-        }
-    }
+    // fn height_tileset(&self) -> Result<&Arc<Tileset>, MapReaderError> {
+    //     match self
+    //         .map
+    //         .tilesets()
+    //         .iter()
+    //         .filter(|tileset| tileset.name == HEIGHT_TILESET_NAME)
+    //         .collect::<Vec<&Arc<Tileset>>>()
+    //         .first()
+    //     {
+    //         Some(tileset) => Ok(tileset),
+    //         None => Result::Err(MapReaderError::TileSetNotFound(format!(
+    //             "Can't found height tileset in map must exist but is not found",
+    //         ))),
+    //     }
+    // }
 
     fn terrain_image(&self) -> Result<Image, MapReaderError> {
         match &self.terrain_tileset()?.image {
@@ -359,14 +357,14 @@ impl MapReader {
         }
     }
 
-    fn height_image(&self) -> Result<Image, MapReaderError> {
-        match &self.height_tileset()?.image {
-            Some(image) => Ok(image.clone()),
-            None => Result::Err(MapReaderError::InvalidTileSet(format!(
-                "Height tileset in map should contains image",
-            ))),
-        }
-    }
+    // fn height_image(&self) -> Result<Image, MapReaderError> {
+    //     match &self.height_tileset()?.image {
+    //         Some(image) => Ok(image.clone()),
+    //         None => Result::Err(MapReaderError::InvalidTileSet(format!(
+    //             "Height tileset in map should contains image",
+    //         ))),
+    //     }
+    // }
 
     pub fn tiles(&self) -> Result<Vec<Tile>, MapReaderError> {
         let terrain_layer = self.terrain_layer()?;

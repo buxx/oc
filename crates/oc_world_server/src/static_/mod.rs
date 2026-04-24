@@ -20,8 +20,8 @@ pub struct Static {
 #[derive(Clone, Constructor)]
 pub struct State {
     pub state: Arc<crate::state::State<Endpoint>>,
-    network: NetworkConfig,
-    config: ServerConfig,
+    pub _network: NetworkConfig,
+    pub config: ServerConfig,
 }
 
 impl Static {

@@ -4,20 +4,22 @@ use derive_more::Constructor;
 use oc_geo::region::WorldRegionIndex;
 use oc_mod::Mod;
 use oc_network::{ToClient, ToServer};
+#[cfg(feature = "debug")]
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::Client;
 use oc_utils::error::OkOrLogError;
 use oc_world::tile::IntoTiles;
 
+#[cfg(feature = "debug")]
+use crate::schedule::Schedule;
 use crate::{
-    network::IntoNetworkInsert, runner::update::Update, schedule::Schedule, state::State,
-    utils::subject::IntoSubject,
+    network::IntoNetworkInsert, runner::update::Update, state::State, utils::subject::IntoSubject,
 };
 
 #[derive(Constructor)]
 pub struct Dealer<'a, E: Client> {
     state: &'a Arc<State<E>>,
-    mod_: &'a Mod,
+    _mod: &'a Mod,
     output: &'a Sender<(E, ToClient)>,
     endpoint: E,
 }
@@ -87,9 +89,10 @@ impl<'a, E: Client> Dealer<'a, E> {
         self.output.send(message).ok_or_log();
     }
 
+    #[cfg(feature = "debug")]
     fn spawn_projectile(&self, spawn: SpawnProjectile) -> Vec<Update> {
         spawn
-            .schedule(&self.mod_)
+            .schedule(&self._mod)
             .iter()
             .map(|(instant, fx)| {
                 Update::Schedule(

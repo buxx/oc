@@ -2,8 +2,8 @@ use std::fmt::Display;
 
 use oc_geo::{
     Geo, UpdateGeo,
-    region::{Region, RegionXy, WorldRegionIndex},
-    tile::{TileXy, WorldTileIndex},
+    region::{Region, WorldRegionIndex},
+    tile::WorldTileIndex,
 };
 use oc_physics::{
     Force, Physic, UpdatePhysic,
