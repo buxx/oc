@@ -28,12 +28,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .build()?;
 
-    run::Example::builder()
+    let example = run::Example::builder()
         .world(PathBuf::from("examples/world1"))
         .mod_(PathBuf::from("mods/std1"))
-        .snapshot(snapshot)
-        .build()
-        .run()?;
+        .snapshot(snapshot);
+    #[cfg(feature = "test")]
+    let example = example.projectiles(vec![]);
+    let _ = example.build().run()?;
 
     Ok(())
 }

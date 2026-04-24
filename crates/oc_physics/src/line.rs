@@ -105,10 +105,7 @@ impl<'a> Iterator for Steps<'a> {
             self.y = (y as f32) / self.laws.bresenham_precision;
             self.z = (z as f32) / self.laws.bresenham_precision;
 
-            return Some(Step::Inside(
-                [self.x, self.y, self.z],
-                self.tile,
-            ));
+            return Some(Step::Inside([self.x, self.y, self.z], self.tile));
         }
 
         if let Some([x, y, z]) = self.target.take() {

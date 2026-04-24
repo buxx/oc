@@ -78,11 +78,10 @@ impl<E: Client> State<E> {
 }
 
 // TODO: move code
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ObjectId {
     Individual(IndividualIndex),
     Projectile(ProjectileId),
-    #[allow(unused)]
     Tile(WorldTileIndex),
 }
 

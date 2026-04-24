@@ -1,10 +1,11 @@
+pub mod end;
 pub mod files;
 pub mod ids;
 pub mod physics;
 pub mod static_;
 pub mod y;
 
-// TODO: we should not have default value. Just set default IDE config to permet code check
+// TODO: we should not have default value. Just set default IDE config to permet code check.
 pub const WORLD_WIDTH: usize = _usize(option_env!("WORLD_WIDTH"), "1000");
 pub const WORLD_HEIGHT: usize = _usize(option_env!("WORLD_HEIGHT"), "1000");
 pub const REGION_WIDTH: usize = _usize(option_env!("REGION_WIDTH"), "100");

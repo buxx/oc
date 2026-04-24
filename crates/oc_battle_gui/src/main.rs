@@ -20,6 +20,8 @@ mod projectile;
 mod run;
 mod setup;
 mod states;
+#[cfg(feature = "test")]
+mod tests;
 #[cfg(feature = "debug")]
 mod tileset;
 mod utils;
@@ -36,7 +38,13 @@ pub struct Args {
 impl From<Args> for Config_ {
     fn from(value: Args) -> Self {
         let autoconnect = value.autoconnect.map(Connect::Network);
-        Self { autoconnect }
+        Self {
+            autoconnect,
+            #[cfg(feature = "test")]
+            projectiles: vec![],
+            #[cfg(feature = "test")]
+            end: None,
+        }
     }
 }
 

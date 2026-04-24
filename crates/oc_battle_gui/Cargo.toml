@@ -5,6 +5,7 @@ edition = "2024"
 
 [features]
 debug = ["bevy/bevy_dev_tools", "oc_network/debug"]
+test = []
 
 # [profile.dev]
 # opt-level = 1

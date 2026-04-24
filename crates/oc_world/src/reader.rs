@@ -326,7 +326,9 @@ impl MapReader {
             .first()
         {
             Some(tileset) => Ok(tileset),
-            None => Result::Err(MapReaderError::TileSetNotFound("Can't found terrain tileset in map must exist but is not found".to_string())),
+            None => Result::Err(MapReaderError::TileSetNotFound(
+                "Can't found terrain tileset in map must exist but is not found".to_string(),
+            )),
         }
     }
 
@@ -349,7 +351,9 @@ impl MapReader {
     fn terrain_image(&self) -> Result<Image, MapReaderError> {
         match &self.terrain_tileset()?.image {
             Some(image) => Ok(image.clone()),
-            None => Result::Err(MapReaderError::InvalidTileSet("Terrain tileset in map should contains image".to_string())),
+            None => Result::Err(MapReaderError::InvalidTileSet(
+                "Terrain tileset in map should contains image".to_string(),
+            )),
         }
     }
 
@@ -442,9 +446,10 @@ impl MapReader {
         for x in 0..layer_.width() {
             for y in 0..layer_.height() {
                 if let Some(layer_tile_data) = layer_.get_tile_data(x as i32, y as i32)
-                    && !tileset_indexes.contains(&layer_tile_data.tileset_index()) {
-                        tileset_indexes.push(layer_tile_data.tileset_index());
-                    };
+                    && !tileset_indexes.contains(&layer_tile_data.tileset_index())
+                {
+                    tileset_indexes.push(layer_tile_data.tileset_index());
+                };
             }
         }
 
@@ -466,7 +471,9 @@ impl MapReader {
             match &tileset.image {
                 Some(image) => images.push(image.clone()),
                 None => {
-                    return Result::Err(MapReaderError::InvalidTileSet("All decor tileset in map must contais image".to_string()));
+                    return Result::Err(MapReaderError::InvalidTileSet(
+                        "All decor tileset in map must contais image".to_string(),
+                    ));
                 }
             };
         }

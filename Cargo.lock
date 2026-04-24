@@ -5159,10 +5159,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bon",
+ "derive_more",
  "oc_battle_gui",
  "oc_geo",
  "oc_individual",
+ "oc_mod",
  "oc_network",
+ "oc_physics",
  "oc_projectile",
  "oc_root",
  "oc_world",

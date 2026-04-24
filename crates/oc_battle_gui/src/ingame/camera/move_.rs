@@ -32,15 +32,16 @@ pub fn move_battle(
     let right = buttons.pressed(MouseButton::Right);
 
     if (right || (left && ctrl))
-        && let (Some(cursor1), Some(cursor2)) = (&state.cursor, &cursor) {
-            let diff = cursor1 - cursor2;
-            if diff != Vec2::ZERO {
-                camera.translation.x += diff.x;
-                camera.translation.y -= diff.y;
-                tracing::trace!(name = "ingame-camera-trigger-moved-battle-camera");
-                commands.trigger(MovedBattleCamera)
-            }
+        && let (Some(cursor1), Some(cursor2)) = (&state.cursor, &cursor)
+    {
+        let diff = cursor1 - cursor2;
+        if diff != Vec2::ZERO {
+            camera.translation.x += diff.x;
+            camera.translation.y -= diff.y;
+            tracing::trace!(name = "ingame-camera-trigger-moved-battle-camera");
+            commands.trigger(MovedBattleCamera)
         }
+    }
 }
 
 pub fn on_moved_battle_camera(

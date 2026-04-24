@@ -13,6 +13,7 @@ Examples:
   walking_squad
   firing_with_wall
   wall
+  test_projectile_wall
 
 EOF
   exit 0
@@ -52,6 +53,7 @@ fi
 
 # ── Build cargo extra args ────────────────────────────────────
 CARGO_EXTRA_ARGS=""
+
 if [[ $DEBUG -eq 1 ]]; then
   CARGO_EXTRA_ARGS="--features debug"
 fi
@@ -80,6 +82,13 @@ case "$1" in
       export REGION_WIDTH=10
       export REGION_HEIGHT=10
       cargo run --bin example_wall $CARGO_EXTRA_ARGS
+    ;;
+  test_projectile_wall)
+      export WORLD_WIDTH=10
+      export WORLD_HEIGHT=10
+      export REGION_WIDTH=10
+      export REGION_HEIGHT=10
+      cargo run --bin test_projectile_wall --features test
     ;;
   *)
     echo "Error: unknown example '$1'" >&2

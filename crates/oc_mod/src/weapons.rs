@@ -300,7 +300,8 @@ pub fn load(path: &PathBuf, mod_: &Mod) -> Result<Vec<IndexedWeapon>, Error> {
             let amunitions = mod_
                 .amunitions_from_names(weapon_.amunitions().clone())
                 .map_err(|e| Error::AmunitionRef(weapon_.name().to_string(), e.to_string()))?
-                .into_iter().cloned()
+                .into_iter()
+                .cloned()
                 .collect();
             let shots = weapon_
                 .shots()

@@ -6,6 +6,9 @@ use bevy_egui::EguiPlugin;
 use crate::config::{Config, Config_};
 #[cfg(feature = "debug")]
 use crate::debug;
+use crate::states::Game;
+#[cfg(feature = "test")]
+use crate::tests;
 use crate::{
     downloading::DownloadingPlugin,
     error::ErrorPlugin,
@@ -25,7 +28,7 @@ const AUDIO_SCALE: f32 = 1. / 100.0;
 #[cfg(feature = "debug")]
 use debug::DebugPlugin;
 
-pub fn run(config: Config_) {
+pub fn run(config: Config_) -> AppExit {
     let mut app = App::new();
 
     app.add_plugins(
@@ -55,6 +58,7 @@ pub fn run(config: Config_) {
     .add_plugins(window::WindowPlugin)
     .add_plugins(ingame::camera::CameraPlugin)
     .insert_state(AppState::Home)
+    .init_resource::<Game>()
     .init_resource::<Mod>()
     .init_resource::<Meta>()
     .init_resource::<StaticSource>()
@@ -66,6 +70,9 @@ pub fn run(config: Config_) {
     #[cfg(feature = "debug")]
     app.add_plugins(DebugPlugin);
 
+    #[cfg(feature = "test")]
+    app.add_plugins(tests::TestsPlugin);
+
     tracing::info!("Start app");
-    app.run();
+    app.run()
 }

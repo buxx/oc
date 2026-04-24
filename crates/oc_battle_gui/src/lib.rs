@@ -13,6 +13,8 @@ pub mod projectile;
 pub mod run;
 pub mod setup;
 pub mod states;
+#[cfg(feature = "test")]
+pub mod tests;
 #[cfg(feature = "debug")]
 pub mod tileset;
 pub mod utils;

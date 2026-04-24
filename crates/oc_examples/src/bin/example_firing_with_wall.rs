@@ -29,12 +29,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let snapshot = SnapshotBuilder::new(map, individuals, projectiles).build()?;
 
-    run::Example::builder()
+    let example = run::Example::builder()
         .world(map_)
         .mod_(PathBuf::from("mods/std1"))
-        .snapshot(snapshot)
-        .build()
-        .run()?;
+        .snapshot(snapshot);
+    #[cfg(feature = "test")]
+    let example = example.projectiles(vec![]);
+    let _ = example.build().run()?;
 
     Ok(())
 }

@@ -10,7 +10,9 @@ use oc_root::{files, static_::StaticSource};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-use crate::{config::ServerConfig, network::NetworkConfig, static_::Static};
+#[cfg(feature = "tracker")]
+use crate::tracker::Tracker;
+use crate::{config::ServerConfig, network::NetworkConfig, runner::Runner, static_::Static};
 
 mod bridge;
 mod config;
@@ -22,11 +24,12 @@ mod physics;
 #[cfg(feature = "debug")]
 mod projectile;
 mod routing;
-mod run;
 mod runner;
 mod schedule;
 mod state;
 mod static_;
+#[cfg(feature = "tracker")]
+pub mod tracker;
 mod utils;
 
 #[derive(Parser, Debug, Clone)]
@@ -62,6 +65,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(files.mods()).unwrap(); // TODO
     std::fs::create_dir_all(files.worlds()).unwrap(); // TODO
 
+    #[cfg(feature = "tracker")]
+    let tracker = Tracker::default();
+
     let network: NetworkConfig = args.clone().into();
     let config: ServerConfig = args.clone().into();
     let state = state::init::<Endpoint>(config.clone())?;
@@ -75,7 +81,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let (ready, _) = channel();
-    run::run(config, state, input, output, ready);
+    Runner::new(
+        config,
+        state,
+        output,
+        #[cfg(feature = "tracker")]
+        tracker,
+    )
+    .run(input, ready);
     Ok(())
 }
 

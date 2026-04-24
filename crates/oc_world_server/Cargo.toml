@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-debug = ["oc_network/debug", "oc_projectile/debug"]
+debug = ["oc_network/debug", "oc_projectile/debug", "tracker"]
+tracker = []
 
 [dependencies]
 oc_root = { path = "../oc_root" }

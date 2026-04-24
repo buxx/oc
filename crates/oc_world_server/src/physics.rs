@@ -104,6 +104,11 @@ impl<'x, E: Client> Processor<'x, E> {
             })
             .collect::<Vec<_>>();
 
+        #[cfg(feature = "tracker")]
+        {
+            self.ctx.tracker.take().physics.extend(events.clone());
+        }
+
         (updates, events)
     }
 

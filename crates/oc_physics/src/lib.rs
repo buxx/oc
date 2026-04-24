@@ -131,7 +131,7 @@ pub enum Force {
     Translation([f32; 3], MetersSeconds),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Event<T> {
     NoTile(T),
     Collision(T, T),

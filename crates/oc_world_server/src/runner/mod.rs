@@ -11,6 +11,8 @@ use oc_network::ToClient;
 use oc_root::{Client, INDIVIDUAL_TICK_INTERVAL_US, PHYSICS_TICK_INTERVAL_US};
 use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 
+#[cfg(feature = "tracker")]
+use crate::tracker::Tracker;
 use crate::{
     bridge::Event, config::ServerConfig, individual, physics, runner::input::Dealer, state::State,
     utils::context::Context,
@@ -24,6 +26,8 @@ pub struct Runner<E: Client> {
     config: ServerConfig,
     state: Arc<State<E>>,
     output: Sender<(E, ToClient)>,
+    #[cfg(feature = "tracker")]
+    tracker: Tracker,
 }
 
 impl<E: Client> Runner<E> {
@@ -41,7 +45,12 @@ impl<E: Client> Runner<E> {
 
     fn start_physics(&self) {
         tracing::debug!("Start physics");
-        let ctx = Context::new(self.state.clone(), self.output.clone());
+        let ctx = Context::new(
+            self.state.clone(),
+            self.output.clone(),
+            #[cfg(feature = "tracker")]
+            self.tracker.clone(),
+        );
 
         (0..ctx.cpus).for_each(|i| {
             let ctx = ctx.clone();
@@ -67,7 +76,12 @@ impl<E: Client> Runner<E> {
     fn start_individuals(&self) {
         tracing::debug!("Start individuals");
 
-        let ctx = Context::new(self.state.clone(), self.output.clone());
+        let ctx = Context::new(
+            self.state.clone(),
+            self.output.clone(),
+            #[cfg(feature = "tracker")]
+            self.tracker.clone(),
+        );
         let individuals_count = {
             let world = self.state.world();
             world.individuals().len()
