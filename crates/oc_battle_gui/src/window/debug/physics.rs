@@ -2,6 +2,7 @@ use derive_more::Constructor;
 use oc_geo::region::Region;
 use oc_geo::{Geo, region::RegionXy};
 use oc_physics::Physic;
+use oc_root::{WcfgFrom, WcfgInto, WorldConfig};
 
 #[derive(Debug, Clone, Constructor)]
 pub struct PhysicsRepr {
@@ -11,12 +12,12 @@ pub struct PhysicsRepr {
     // pub forces: Vec<Force>,
 }
 
-impl<T: Geo + Physic + Region> From<T> for PhysicsRepr {
-    fn from(value: T) -> Self {
+impl<T: Geo + Physic + Region> WcfgFrom<T> for PhysicsRepr {
+    fn from_(value: T, w: &WorldConfig) -> Self {
         Self {
-            position: value.position().clone(),
+            position: value.position(w).clone(),
             // tile: value.tile().clone(),
-            region: value.region().clone().into(),
+            region: value.region().clone().into_(w),
             // forces: value.forces().clone(),
         }
     }

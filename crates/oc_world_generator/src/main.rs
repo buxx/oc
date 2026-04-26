@@ -3,16 +3,15 @@ use std::path::PathBuf;
 use clap::Parser;
 use image::{ImageBuffer, Rgb};
 use noise::{NoiseFn, Perlin};
-use oc_root::{WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct Args {
-    #[clap(long, default_value_t = WORLD_WIDTH_PIXELS)]
+    #[clap(long)]
     pub width: u64,
 
-    #[clap(long, default_value_t = WORLD_HEIGHT_PIXELS)]
+    #[clap(long)]
     pub height: u64,
 
     #[clap()]

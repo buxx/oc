@@ -6,7 +6,7 @@ use oc_geo::{
 use oc_individual::{Individual, IndividualIndex};
 use oc_mod::Mod;
 use oc_projectile::{Projectile, ProjectileId};
-use oc_root::{REGION_HEIGHT, REGION_WIDTH};
+use oc_root::{WcfgInto, WorldConfig};
 use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
 
@@ -30,6 +30,7 @@ pub mod tile;
 
 #[derive(Constructor)]
 pub struct World {
+    pub w: WorldConfig,
     mod_: Mod, // Maybe its place is not in world (when want to access, need to read lock World, but Mod never change)
     meta: Meta,
     tiles: Vec<Tile>,
@@ -38,24 +39,24 @@ pub struct World {
 }
 
 impl World {
-    pub fn tile(&self, xy: TileXy) -> Option<&Tile> {
-        self.tiles.get(WorldTileIndex::from(xy).0 as usize)
+    pub fn tile(&self, i: WorldTileIndex) -> Option<&Tile> {
+        self.tiles.get(i.0 as usize)
     }
 
     // TODO: unit test me
     pub fn region_tiles(&self, region: WorldRegionIndex) -> Vec<(WorldTileIndex, &Tile)> {
-        let region_: RegionXy = region.into();
-        let start: TileXy = region_.into();
-        let count = REGION_WIDTH * REGION_HEIGHT;
-        let mut tiles = Vec::with_capacity(count);
+        let region_: RegionXy = region.into_(&self.w);
+        let start: TileXy = region_.into_(&self.w);
+        let count = self.w.region_width * self.w.region_height;
+        let mut tiles = Vec::with_capacity(count as usize);
 
         tracing::debug!("Extract region {} tiles", region.0,);
-        for y in 0..REGION_HEIGHT {
+        for y in 0..self.w.region_height {
             let line_start = TileXy(Xy(start.0.0, start.0.1 + y as u64));
-            let line_start: WorldTileIndex = line_start.into();
-            let line_start = line_start.0 as usize;
-            let line_end = line_start + REGION_WIDTH;
-            let tiles_ = &self.tiles[line_start..line_end];
+            let line_start: WorldTileIndex = line_start.into_(&self.w);
+            let line_start = line_start.0 as u64;
+            let line_end = line_start + self.w.region_width;
+            let tiles_ = &self.tiles[line_start as usize..line_end as usize];
             let tiles_: Vec<(WorldTileIndex, &Tile)> = tiles_
                 .iter()
                 .zip(line_start..line_end)
@@ -108,8 +109,6 @@ impl World {
 mod tests {
     use std::collections::HashMap;
 
-    use oc_root::TILES_COUNT;
-
     use crate::tile::Nature;
 
     use super::*;
@@ -118,12 +117,13 @@ mod tests {
     #[test]
     fn test_region_tiles() {
         // Given
+        let w = WorldConfig::new(1000, 1000);
         let mod_ = Mod::new("MyMod".to_string(), 1, vec![], vec![], vec![], 1.5);
         let meta = Meta::new("MyWorld".to_string(), 0);
-        let tiles: Vec<Tile> = (0..TILES_COUNT)
+        let tiles: Vec<Tile> = (0..w.tiles_count)
             .map(|i| Tile::new(WorldTileIndex(i as u64), Nature::ShortGrass, 0))
             .collect();
-        let world = World::new(mod_, meta, tiles, vec![], HashMap::default());
+        let world = World::new(w.clone(), mod_, meta, tiles, vec![], HashMap::default());
 
         // When
         let tiles = world.region_tiles(WorldRegionIndex(0));
@@ -132,9 +132,9 @@ mod tests {
 
         // Then
         let mut expected = vec![];
-        for y in 0..REGION_HEIGHT {
-            for x in 0..REGION_WIDTH {
-                let i: WorldTileIndex = TileXy(Xy(x as u64, y as u64)).into();
+        for y in 0..w.region_height as usize {
+            for x in 0..w.region_width as usize {
+                let i: WorldTileIndex = TileXy(Xy(x as u64, y as u64)).into_(&w);
                 expected.push((i, Tile::new(i, Nature::ShortGrass, 0)));
             }
         }

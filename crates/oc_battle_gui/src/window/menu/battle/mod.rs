@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
 use oc_mod::Mod;
+use oc_root::WorldConfig;
 
 use crate::window::UnmountedWindow;
 
@@ -17,6 +18,7 @@ impl Window {
         contexts: &mut EguiContexts,
         _commands: &mut Commands,
         _mod_: &Mod,
+        _wcfg: &WorldConfig,
     ) -> Result {
         bevy_egui::egui::Window::new("Hello").show(contexts.ctx_mut()?, |ui| {
             ui.label("world");

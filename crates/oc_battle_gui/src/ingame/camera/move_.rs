@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use oc_root::Wcfg;
 
 use crate::{
     ingame::camera::{
@@ -65,6 +66,7 @@ pub fn on_moved_battle_camera(
 pub fn move_in_world_map(
     ignore: Res<PointerInWindow>,
     mut commands: Commands,
+    w: Res<Wcfg>,
     window: Single<&Window>,
     buttons: Res<ButtonInput<MouseButton>>,
     mut state: ResMut<camera::State>,
@@ -72,13 +74,14 @@ pub fn move_in_world_map(
     if ignore.0 {
         return;
     }
+    let Some(w) = &w.0 else { return };
 
     if buttons.just_released(MouseButton::Left) {
         let Some(cursor) = window.cursor_position() else {
             return;
         };
 
-        let point = window_point_to_world_map_point(cursor, window.size());
+        let point = window_point_to_world_map_point(w, cursor, window.size());
         let center = Vec3::new(
             point.x - window.width() / 2.,
             point.y - window.height() / 2.,

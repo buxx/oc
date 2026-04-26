@@ -10,7 +10,7 @@ use oc_physics::{
     collision::{Material, Materials},
     volume::Volume,
 };
-use oc_root::ids::Ids;
+use oc_root::{WorldConfig, ids::Ids};
 use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -75,19 +75,19 @@ impl Region for Projectile {
 }
 
 impl Physic for Projectile {
-    fn position(&self) -> [f32; 3] {
+    fn position(&self, _: &WorldConfig) -> [f32; 3] {
         match self {
             Projectile::Bullet(bullet) => bullet.position,
         }
     }
 
-    fn forces(&self) -> &Vec<Force> {
+    fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
         match self {
             Projectile::Bullet(bullet) => &bullet.forces,
         }
     }
 
-    fn volume(&self, ref_: [f32; 3]) -> Volume {
+    fn volume(&self, ref_: [f32; 3], _: &WorldConfig) -> Volume {
         Volume::Point {
             x: ref_[0],
             y: ref_[1],

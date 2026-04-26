@@ -6,6 +6,7 @@ use crate::{
 };
 use glam::Vec2;
 use oc_geo::tile::WorldTileIndex;
+use oc_root::WorldConfig;
 use tiled::{
     FiniteTileLayer, Image, ImageLayer, Layer, LayerType, Loader, Map as TiledMap, ObjectLayer,
     TileLayer, Tileset,
@@ -308,11 +309,11 @@ impl MapReader {
         }
     }
 
-    fn width(&self) -> Result<u32, MapReaderError> {
+    pub fn width(&self) -> Result<u32, MapReaderError> {
         Ok(self.terrain_layer()?.width())
     }
 
-    fn height(&self) -> Result<u32, MapReaderError> {
+    pub fn height(&self) -> Result<u32, MapReaderError> {
         Ok(self.terrain_layer()?.height())
     }
 
@@ -366,7 +367,7 @@ impl MapReader {
     //     }
     // }
 
-    pub fn tiles(&self) -> Result<Vec<Tile>, MapReaderError> {
+    pub fn tiles(&self, _: &WorldConfig) -> Result<Vec<Tile>, MapReaderError> {
         let terrain_layer = self.terrain_layer()?;
         let height_layer = self.height_layer()?;
         let terrain_tileset = self.terrain_tileset()?;

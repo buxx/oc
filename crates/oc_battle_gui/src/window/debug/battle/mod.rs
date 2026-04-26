@@ -12,7 +12,7 @@ use oc_mod::{
     weapons::{IndexedWeapon, WeaponType},
 };
 use oc_projectile::ProjectileId;
-use oc_root::physics::Meters;
+use oc_root::{WorldConfig, physics::Meters};
 use strum_macros::{Display, EnumIter};
 
 pub mod component;
@@ -84,10 +84,11 @@ impl Default for Context {
 }
 
 #[derive(Constructor)]
-pub struct InContext<'a, 'b, 'w, 's> {
+pub struct InContext<'a, 'b, 'w, 's, 'c> {
     pub context: &'a mut Context,
     pub commands: &'b mut Commands<'w, 's>,
     pub mod_: &'a Mod,
+    pub w: &'c WorldConfig,
 }
 
 #[derive(Debug, Clone, Copy, Default, Display, EnumIter, PartialEq, Eq)]
@@ -124,7 +125,7 @@ pub enum View {
     Projectiles,
 }
 
-impl<'a, 'b, 'w, 's> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's> {
+impl<'a, 'b, 'w, 's, 'c> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's, 'c> {
     type Tab = Tab;
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
@@ -134,12 +135,13 @@ impl<'a, 'b, 'w, 's> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's> {
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         let context = &mut self.context;
         let commands = &mut self.commands;
-        let mod_ = &self.mod_;
+        let mod_ = self.mod_;
+        let w = self.w;
 
         match tab {
-            Tab::Cursor => context.ui_cursor(ui, commands, mod_),
-            Tab::Components => context.ui_components(ui, commands, mod_),
-            Tab::Leftclick => context.ui_left_click(ui, commands, mod_),
+            Tab::Cursor => context.ui_cursor(w, ui, commands, mod_),
+            Tab::Components => context.ui_components(w, ui, commands, mod_),
+            Tab::Leftclick => context.ui_left_click(w, ui, commands, mod_),
         }
     }
 }

@@ -5,9 +5,9 @@ use oc_geo::{
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::IndividualIndex;
-use oc_physics::{Event, Force, Laws, Physic, UpdatePhysic, update::Update};
+use oc_physics::{Event, Force, Physic, UpdatePhysic, update::Update};
 use oc_projectile::ProjectileId;
-use oc_root::Client;
+use oc_root::{Client, WcfgInto, WorldConfig};
 use oc_utils::collections::WithIds;
 use oc_world::World;
 
@@ -68,7 +68,7 @@ impl<'x, E: Client> Processor<'x, E> {
         // Move code (wich must take worl and indexes as ref because RwReadLockGuard lifetime)
         let objects = |xy| {
             let tile = TileXy(xy);
-            let i: WorldTileIndex = tile.into();
+            let i: WorldTileIndex = tile.into_(&self.ctx.state.w);
             let individuals = indexes.tile_individuals(i);
             // let tile = world.tile(tile);
 
@@ -80,7 +80,7 @@ impl<'x, E: Client> Processor<'x, E> {
                 objects.push((ObjectId::Individual(*i), individual));
             }
 
-            if let Some(tile_) = world.tile(tile) {
+            if let Some(tile_) = world.tile(tile.into_(&self.ctx.state.w)) {
                 let tile: Box<&dyn Physic> = Box::new(tile_);
                 objects.push((ObjectId::Tile(tile_.i), tile));
             }
@@ -92,10 +92,9 @@ impl<'x, E: Client> Processor<'x, E> {
         let updates = chunk
             .iter()
             .map(|(i, subject)| {
-                let laws = Laws::default();
-                let (position, forces, events_) = oc_physics::step(&laws, (*i, *subject), objects, "server");
+                let (position, forces, events_) = oc_physics::step(&self.ctx.state.w, self.ctx.state.w.physics_coeff_per_tick, (*i, *subject), objects, "server");
                 tracing::trace!(name="physics-subject", i=?i, position=?position, forces=?forces);
-                let updates = changes(i, *subject, &position, &forces);
+                let updates = changes(&self.ctx.state.w, i, *subject, &position, &forces);
 
                 tracing::trace!(name = "physics-step-for", i = ?i, updates=?updates, events=events_.len());
 
@@ -210,7 +209,13 @@ impl<'x, E: Client> Processor<'x, E> {
     }
 }
 
-pub fn changes<I, T>(i: I, subject: &T, position: &[f32; 3], forces: &Vec<Force>) -> Vec<Update>
+pub fn changes<I, T>(
+    w: &WorldConfig,
+    i: I,
+    subject: &T,
+    position: &[f32; 3],
+    forces: &Vec<Force>,
+) -> Vec<Update>
 where
     I: std::fmt::Debug,
     T: Physic + Geo + Region,
@@ -219,13 +224,13 @@ where
     let mut updates = vec![];
 
     // TODO: to improve perfs, maybe these updates sould be known at physics::step ?
-    if subject.position() != *position {
-        updates.push(Update::SetPosition(*position, subject.position()));
+    if subject.position(w) != *position {
+        updates.push(Update::SetPosition(*position, subject.position(w)));
 
-        let tile: TileXy = (*position).into();
-        let region: RegionXy = tile.into();
-        let tile: WorldTileIndex = tile.into();
-        let region: WorldRegionIndex = region.into();
+        let tile: TileXy = (*position).into_(w);
+        let region: RegionXy = tile.into_(w);
+        let tile: WorldTileIndex = tile.into_(w);
+        let region: WorldRegionIndex = region.into_(w);
 
         if subject.tile() != tile {
             updates.push(Update::SetTile(tile, subject.tile()));
@@ -236,14 +241,14 @@ where
         }
     }
 
-    for force in subject.forces() {
+    for force in subject.forces(w) {
         if !forces.contains(force) {
             updates.push(Update::RemoveForce(force.clone()));
         }
     }
 
     for force in forces {
-        if !subject.forces().contains(force) {
+        if !subject.forces(w).contains(force) {
             updates.push(Update::PushForce(force.clone()));
         }
     }

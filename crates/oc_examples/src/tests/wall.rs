@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::Context;
 use oc_projectile::spawn::SpawnProjectile;
-use oc_root::{REGION_HEIGHT, REGION_WIDTH, WORLD_HEIGHT, WORLD_WIDTH, end::End};
+use oc_root::{WorldConfig, end::End};
 use oc_world::reader;
 #[cfg(feature = "test")]
 use oc_world_server::tracker::Tracker;
@@ -19,18 +19,14 @@ type Result_ = Result<(), Box<dyn std::error::Error>>;
 
 // TODO: its ugly to give directly the projectiles
 pub fn run(_projectiles: Vec<SpawnProjectile>, _end: End) -> Result_ {
-    // TODO: Find a way to automatize/standadize that
-    if WORLD_WIDTH != 10 || WORLD_HEIGHT != 10 || REGION_WIDTH != 10 || REGION_HEIGHT != 10 {
-        panic!("Examples must be started from ./examples.sh script");
-    }
-
     logging::setup_logging()?;
 
     let map_ = PathBuf::from("examples/wall");
     let map = reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
+    let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64);
     let snapshot =
-        SnapshotBuilder::new(map, EmptyGenerator::new(), EmptyGenerator::new()).build()?;
+        SnapshotBuilder::new(map, EmptyGenerator::new(), EmptyGenerator::new()).build(w)?;
 
     let example = run::Example::builder()
         .world(map_)

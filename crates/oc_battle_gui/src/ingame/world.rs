@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use oc_root::{MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS, files};
+use oc_root::{Wcfg, files};
 
 use crate::{
     entity::world::{VisibleBattleSquare, WorldMapBackground, minimap::Minimap},
@@ -32,6 +32,7 @@ pub struct DespawnWorldMapBackground;
 pub fn on_spawn_minimap(
     _: On<SpawnMinimap>,
     mut commands: Commands,
+    w: Res<Wcfg>,
     window: Single<&Window>,
     assets: Res<AssetServer>,
     meta: Res<Meta>,
@@ -39,6 +40,7 @@ pub fn on_spawn_minimap(
     mod_: Res<Mod>,
     network: Res<network::state::State>,
 ) {
+    let Some(w) = &w.0 else { return };
     let (Some(static_), Some(mod_), Some(meta), Some(connect)) =
         (&static_.0, &mod_.0, &meta.0, &network.server)
     else {
@@ -50,7 +52,7 @@ pub fn on_spawn_minimap(
     //     return;
     // };
 
-    let display = WorldMapDisplay::from_env(window.size());
+    let display = WorldMapDisplay::from_env(w, window.size());
     let mod_ = mod_.canonical();
     let world = meta.canonical();
     let files = files::Files::new(mod_, world).into_gui(static_.clone(), connect.clone().into());
@@ -58,8 +60,8 @@ pub fn on_spawn_minimap(
 
     let x = display.center.x;
     let y = display.center.y;
-    let scale_x = display.size.x / MINIMAP_WIDTH_PIXELS as f32;
-    let scale_y = display.size.y / MINIMAP_HEIGHT_PIXELS as f32;
+    let scale_x = display.size.x / w.minimap_width_pixels as f32;
+    let scale_y = display.size.y / w.minimap_height_pixels as f32;
     commands.spawn((
         Minimap,
         Sprite::from_image(assets.load(minimap)),
@@ -73,14 +75,16 @@ pub fn on_spawn_minimap(
 
 pub fn on_adjust_minimap(
     _: On<AdjustMinimap>,
+    w: Res<Wcfg>,
     mut minimap: Single<&mut Transform, With<Minimap>>,
     window: Single<&Window>,
 ) {
-    let display = WorldMapDisplay::from_env(window.size());
+    let Some(w) = &w.0 else { return };
+    let display = WorldMapDisplay::from_env(w, window.size());
     let x = display.center.x;
     let y = display.center.y;
-    let scale_x = display.size.x / MINIMAP_WIDTH_PIXELS as f32;
-    let scale_y = display.size.y / MINIMAP_HEIGHT_PIXELS as f32;
+    let scale_x = display.size.x / w.minimap_width_pixels as f32;
+    let scale_y = display.size.y / w.minimap_height_pixels as f32;
 
     minimap.translation.x = x;
     minimap.translation.y = y;
@@ -91,11 +95,13 @@ pub fn on_adjust_minimap(
 pub fn on_spawn_visible_battle_square(
     _: On<SpawnVisibleBattleSquare>,
     mut commands: Commands,
+    w: Res<Wcfg>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     window: Single<&Window>,
 ) {
-    let display = WorldMapDisplay::from_env(window.size());
+    let Some(w) = &w.0 else { return };
+    let display = WorldMapDisplay::from_env(w, window.size());
 
     commands.spawn((
         VisibleBattleSquare,
@@ -108,11 +114,13 @@ pub fn on_spawn_visible_battle_square(
 pub fn on_spawn_world_map_background(
     _: On<SpawnWorldMapBackground>,
     mut commands: Commands,
+    w: Res<Wcfg>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     window: Single<&Window>,
 ) {
-    let display = WorldMapDisplay::from_env(window.size());
+    let Some(w) = &w.0 else { return };
+    let display = WorldMapDisplay::from_env(w, window.size());
 
     commands.spawn((
         WorldMapBackground,
@@ -132,13 +140,15 @@ pub fn on_despawn_world_map_background(
 
 pub fn on_update_battle_square(
     center: On<UpdateVisibleBattleSquare>,
+    w: Res<Wcfg>,
     window: Single<&Window>,
     square: Single<(&mut Transform, &mut Mesh2d), With<VisibleBattleSquare>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
+    let Some(w) = &w.0 else { return };
     let (mut transform, mut mesh) = square.into_inner();
-    let display = WorldMapDisplay::from_env(window.size());
-    let point = world_map_point_to_bevy_world_point(center.0, window.size());
+    let display = WorldMapDisplay::from_env(w, window.size());
+    let point = world_map_point_to_bevy_world_point(w, center.0, window.size());
 
     transform.translation.x = point.x;
     transform.translation.y = point.y;

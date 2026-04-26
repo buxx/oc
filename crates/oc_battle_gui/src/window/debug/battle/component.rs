@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy_egui::prelude::*;
 use oc_geo::region::RegionXy;
 use oc_mod::Mod;
+use oc_root::{WcfgInto, WorldConfig};
 
 use crate::{
     ingame::camera::{GoToPoint, region::Region},
@@ -11,7 +12,13 @@ use crate::{
 };
 
 impl super::Context {
-    pub fn ui_components(&mut self, ui: &mut egui::Ui, commands: &mut Commands, _mod_: &Mod) {
+    pub fn ui_components(
+        &mut self,
+        w: &WorldConfig,
+        ui: &mut egui::Ui,
+        commands: &mut Commands,
+        _mod_: &Mod,
+    ) {
         ui.horizontal(|ui| {
             if ui.button("x").clicked() {
                 self.view = View::None;
@@ -38,9 +45,9 @@ impl super::Context {
 
         if let Some(action) = match self.view {
             View::None => None,
-            View::Regions => self.ui_regions(ui, &self.regions),
-            View::Individuals => self.ui_subjects(ui, &self.individuals),
-            View::Projectiles => self.ui_subjects(ui, &self.projectiles),
+            View::Regions => self.ui_regions(w, ui, &self.regions),
+            View::Individuals => self.ui_subjects(w, ui, &self.individuals),
+            View::Projectiles => self.ui_subjects(w, ui, &self.projectiles),
         } {
             match action {
                 Action::GoToPoint(point) => {
@@ -50,10 +57,15 @@ impl super::Context {
         }
     }
 
-    fn ui_regions(&self, ui: &mut egui::Ui, regions: &Vec<Region>) -> Option<Action> {
+    fn ui_regions(
+        &self,
+        w: &WorldConfig,
+        ui: &mut egui::Ui,
+        regions: &Vec<Region>,
+    ) -> Option<Action> {
         ui.vertical(|ui| {
             for region in regions {
-                let region: RegionXy = region.0.into();
+                let region: RegionXy = region.0.into_(w);
                 ui.label(&format!("{}.{}", region.0.0, region.0.1));
             }
         });
@@ -62,6 +74,7 @@ impl super::Context {
 
     fn ui_subjects<I: Display>(
         &self,
+        _: &WorldConfig,
         ui: &mut egui::Ui,
         subjects: &Vec<Subject<I>>,
     ) -> Option<Action> {

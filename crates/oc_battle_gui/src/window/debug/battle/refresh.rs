@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use oc_geo::{region::RegionXy, tile::TileXy};
 use oc_physics::update::bevy::{Forces, Position, Region, Tile};
 use oc_root::y::Y;
+use oc_root::{Wcfg, WcfgInto};
 
 use crate::world::World;
 use crate::{
@@ -33,6 +34,7 @@ impl Refresh {
 
 pub fn on_refresh(
     _: On<super::Refresh>,
+    w: Res<Wcfg>,
     mut window: ResMut<states::Window>,
     camera: Res<State>,
     individuals: Query<(&IndividualIndex, &Position, &Tile, &Region, &Forces)>,
@@ -41,6 +43,8 @@ pub fn on_refresh(
     camera_: Single<(&Camera, &GlobalTransform)>,
     world: Res<World>,
 ) {
+    let Some(w) = &w.0 else { return };
+
     #[allow(irrefutable_let_patterns)] // TODO: no more irrefutable when more windows
     if let Some(crate::window::Window::BattleDebug(window)) = &mut window.0 {
         window.context.regions = camera.regions.clone().unwrap_or(vec![]);
@@ -52,7 +56,7 @@ pub fn on_refresh(
                     PhysicsRepr::new(
                         position.0.clone(),
                         // tile.0.clone(),
-                        region.0.clone().into(),
+                        region.0.clone().into_(w),
                         // forces.0.clone(),
                     ),
                 )
@@ -66,7 +70,7 @@ pub fn on_refresh(
                     PhysicsRepr::new(
                         position.0.clone(),
                         // tile.0.clone(),
-                        region.0.clone().into(),
+                        region.0.clone().into_(w),
                         // forces.0.clone(),
                     ),
                 )
@@ -76,11 +80,11 @@ pub fn on_refresh(
         let (camera, transform) = *camera_;
         if let Some(cursor) = window_.cursor_position() {
             if let Ok(bevyp) = camera.viewport_to_world_2d(transform, cursor) {
-                let point = Vec2::new(bevyp.x, bevyp.y.to_world_y());
-                let tile: TileXy = [point.x, point.y].into();
-                let tile_ = world.tile(tile);
+                let point = Vec2::new(bevyp.x, bevyp.y.to_world_y(w));
+                let tile: TileXy = [point.x, point.y].into_(w);
+                let tile_ = world.tile(w, tile);
                 let tile_ = tile_.map(|t| format!("{t:?}")).unwrap_or_default();
-                let region: RegionXy = tile.into();
+                let region: RegionXy = tile.into_(w);
 
                 window.context.cursor = Some(cursor);
                 window.context.point = Some(point);

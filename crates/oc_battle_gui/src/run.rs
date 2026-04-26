@@ -2,6 +2,7 @@ use bevy::audio::{AudioPlugin, SpatialScale};
 use bevy::prelude::*;
 use bevy::sprite_render::Wireframe2dPlugin;
 use bevy_egui::EguiPlugin;
+use oc_root::Wcfg;
 
 use crate::config::{Config, Config_};
 #[cfg(feature = "debug")]
@@ -59,6 +60,7 @@ pub fn run(config: Config_) -> AppExit {
     .add_plugins(ingame::camera::CameraPlugin)
     .insert_state(AppState::Home)
     .init_resource::<Game>()
+    .init_resource::<Wcfg>()
     .init_resource::<Mod>()
     .init_resource::<Meta>()
     .init_resource::<StaticSource>()

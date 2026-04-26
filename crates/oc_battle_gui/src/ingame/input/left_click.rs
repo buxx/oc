@@ -1,6 +1,7 @@
 use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
 use oc_network::ToServer;
+use oc_root::Wcfg;
 use strum_macros::EnumIter;
 
 use crate::ingame::debug::projectile::SpawnProjectileProfile;
@@ -55,6 +56,7 @@ impl LeftClickModeType {
 
 pub fn click_debug(
     mut commands: Commands,
+    w: Res<Wcfg>,
     ignore: Res<PointerInWindow>,
     window: Single<&Window>,
     camera: Single<(&Camera, &GlobalTransform)>,
@@ -68,6 +70,7 @@ pub fn click_debug(
     if ignore.0 {
         return;
     }
+    let Some(w) = &w.0 else { return };
     let Some(cursor) = window.cursor_position() else {
         return;
     };
@@ -95,8 +98,8 @@ pub fn click_debug(
                         let end = state.clicks.last().expect("len checked line before");
 
                         if let (Some(start), Some(end)) = (
-                            world.point2d_to_point3d(start, profile.plus_z),
-                            world.point2d_to_point3d(&end, profile.plus_z),
+                            world.point2d_to_point3d(w, start, profile.plus_z),
+                            world.point2d_to_point3d(w, &end, profile.plus_z),
                         ) {
                             use crate::projectile::IntoSpawnProjectile;
                             let spawn = profile.spawn(start, end);
@@ -117,8 +120,8 @@ pub fn click_debug(
                 if buttons.just_released(MouseButton::Left) {
                     if let Some(start) = state.clicks.first() {
                         if let (Some(start), Some(end)) = (
-                            world.point2d_to_point3d(start, profile.plus_z),
-                            world.point2d_to_point3d(&point, profile.plus_z),
+                            world.point2d_to_point3d(w, start, profile.plus_z),
+                            world.point2d_to_point3d(w, &point, profile.plus_z),
                         ) {
                             use crate::projectile::IntoSpawnProjectile;
                             let spawn = profile.spawn(start, end);

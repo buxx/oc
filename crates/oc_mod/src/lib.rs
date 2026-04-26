@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::Context;
 use derive_more::Constructor;
 use flate2::{Compression, write::GzEncoder};
-use oc_root::{GEO_PIXELS_PER_METERS, files, physics::Meters};
+use oc_root::{files, physics::Meters};
 use rkyv::{Archive, Deserialize, Serialize};
 use tar::Builder;
 use thiserror::Error;
@@ -22,8 +22,6 @@ pub mod weapons;
 pub const MOD_RON: &str = "mod.ron";
 
 pub const DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS: Meters = Meters(1.5);
-pub const DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS_PIXELS: f32 =
-    DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS.0 * GEO_PIXELS_PER_METERS;
 
 #[derive(
     Debug,

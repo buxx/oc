@@ -3,7 +3,7 @@ use std::ops::Deref;
 use derive_more::Deref;
 use rkyv::Archive;
 
-use crate::GEO_PIXELS_PER_METERS;
+use crate::WorldConfig;
 
 #[derive(
     Archive,
@@ -35,8 +35,8 @@ pub struct Seconds(pub f32);
 pub struct Meters(pub f32);
 
 impl Meters {
-    pub const fn pixels(&self) -> f32 {
-        self.0 * GEO_PIXELS_PER_METERS
+    pub const fn pixels(&self, w: &WorldConfig) -> f32 {
+        self.0 * w.geo_pixels_per_meters
     }
 }
 

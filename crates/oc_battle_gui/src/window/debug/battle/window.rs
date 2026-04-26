@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy_egui::EguiContexts;
 use egui_dock::{DockArea, DockState, Style, TabIndex};
 use oc_mod::{Mod, weapons::WeaponType};
+use oc_root::WorldConfig;
 use strum::IntoEnumIterator;
 
 use crate::ingame::{camera::debug::tile::ToggleShowTiles, input::left_click::LeftClickModeType};
@@ -31,10 +32,11 @@ impl Window {
         contexts: &mut EguiContexts,
         commands: &mut Commands,
         mod_: &Mod,
+        w: &WorldConfig,
     ) -> Result {
         let ctx = contexts.ctx_mut()?;
         let size = bevy_egui::egui::vec2(600.0, 400.0);
-        let mut context = super::InContext::new(&mut self.context, commands, mod_);
+        let mut context = super::InContext::new(&mut self.context, commands, mod_, w);
         let mut shortcut = None;
 
         bevy_egui::egui::Window::new("Dock window")

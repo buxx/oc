@@ -5,7 +5,7 @@ use bevy::sprite::Anchor;
 use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::{TileXy, WorldHeightIndex, WorldTileIndex};
 use oc_root::y::Y;
-use oc_root::{GEO_PIXELS_PER_TILE, files};
+use oc_root::{Wcfg, WcfgFrom, WcfgInto, files};
 use oc_utils::bevy::EntityMapping;
 use oc_utils::d2::Xy;
 use oc_world::terrain::Terrain;
@@ -144,6 +144,7 @@ pub fn on_insert_tiles(tiles: On<InsertedTiles>, mut commands: Commands, showing
 pub fn on_spawn_region<'a, E, I, T, S>(
     event: On<E>,
     mut commands: Commands,
+    w: Res<Wcfg>,
     mod_: Res<Mod>,
     meta: Res<Meta>,
     static_: Res<StaticSource>,
@@ -154,9 +155,9 @@ pub fn on_spawn_region<'a, E, I, T, S>(
     mut entities: ResMut<EntityMapping<I>>,
 ) where
     E: Event + crate::tileset::ConcernedTileset<I, T, S> + oc_geo::region::Region,
-    I: From<WorldTileIndex>
-        + Into<WorldTileIndex>
-        + Into<Xy>
+    I: WcfgFrom<WorldTileIndex>
+        + WcfgInto<WorldTileIndex>
+        + WcfgInto<Xy>
         + Clone
         + Eq
         + Hash
@@ -165,6 +166,7 @@ pub fn on_spawn_region<'a, E, I, T, S>(
         + 'static,
     S: crate::tileset::Tileset<I, T>,
 {
+    let Some(w) = &w.0 else { return };
     let (Some(mod_), Some(meta), Some(static_), Some(connect), Some(tileset)) = (
         &mod_.0,
         &meta.0,
@@ -188,15 +190,15 @@ pub fn on_spawn_region<'a, E, I, T, S>(
 
     if let Some(tiles) = tileset.tiles(&world_, region) {
         for (i, tile) in tiles {
-            let i: WorldTileIndex = (i.clone()).into();
-            let xy: Xy = i.into();
+            let i: WorldTileIndex = (i.clone()).into_(w);
+            let xy: Xy = i.into_(w);
             // TODO (map terrain should be checked to avoid manage missing terrain here)
             let index = tileset.index(&tile).unwrap();
             // let index = (*tileset.natures.get(&tile.nature).unwrap()) as usize;
-            let x = xy.0 * GEO_PIXELS_PER_TILE;
-            let y = xy.1 * GEO_PIXELS_PER_TILE;
+            let x = xy.0 * w.geo_pixels_per_tile;
+            let y = xy.1 * w.geo_pixels_per_tile;
             let z = tileset.z();
-            let point = Vec3::new(x as f32, (y as f32).to_gui_y(), z);
+            let point = Vec3::new(x as f32, (y as f32).to_gui_y(w), z);
 
             let entity = commands
                 .spawn((
@@ -214,7 +216,7 @@ pub fn on_spawn_region<'a, E, I, T, S>(
                     Anchor::TOP_LEFT,
                 ))
                 .id();
-            entities.insert(i.into(), entity);
+            entities.insert(i.into_(w), entity);
         }
     }
 }
@@ -303,18 +305,20 @@ pub fn on_despawn_region_tiles(
 }
 
 pub fn tile_under_cursor(
+    w: Res<Wcfg>,
     mut state: ResMut<State>,
     window_: Single<&Window>,
     camera_: Single<(&Camera, &GlobalTransform)>,
     entities: Res<EntityMapping<WorldTileIndex>>,
     mut tiles: Query<(&TerrainTile, &mut Sprite)>,
 ) {
+    let Some(w) = &w.0 else { return };
     let (camera, transform) = *camera_;
     if let Some(cursor) = window_.cursor_position() {
         if let Ok(cursor) = camera.viewport_to_world_2d(transform, cursor) {
-            let point = Vec2::new(cursor.x, cursor.y.to_gui_y());
-            let tile: TileXy = [point.x, point.y].into();
-            let current: WorldTileIndex = tile.into();
+            let point = Vec2::new(cursor.x, cursor.y.to_gui_y(w));
+            let tile: TileXy = [point.x, point.y].into_(w);
+            let current: WorldTileIndex = tile.into_(w);
 
             match state.tile {
                 Some(previous) => {

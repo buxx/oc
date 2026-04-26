@@ -6,6 +6,7 @@ use oc_physics::collision::{Material_, Materials};
 use oc_physics::update::bevy::{
     Forces, PhysicsPlugin, Position, Region, SetPositionEvent, Tile, Volume,
 };
+use oc_root::Wcfg;
 use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
 
@@ -44,16 +45,18 @@ impl Plugin for ProjectilePlugin {
 pub fn on_insert_projectile(
     projectile: On<InsertProjectileEvent>,
     mut commands: Commands,
+    w: Res<Wcfg>,
     mut state: ResMut<EntityMapping<oc_projectile::ProjectileId>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position(), forces=?projectile.1.forces());
+    let Some(w) = &w.0 else { return };
+    tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position(), forces=?projectile.1.forces(w));
 
     let position = projectile.1.position();
     let line = Polyline2d::new(vec![Vec2::new(
-        position[0].to_gui_y(),
-        position[1].to_gui_y(),
+        position[0].to_gui_y(w),
+        position[1].to_gui_y(w),
     )]);
     let entity = commands
         .spawn((
@@ -61,14 +64,14 @@ pub fn on_insert_projectile(
             Position(*position),
             Tile(projectile.1.tile()),
             Region(projectile.1.region()),
-            Forces(projectile.1.forces().clone()),
+            Forces(projectile.1.forces(w).clone()),
             Material_(Materials::Traversable),
-            Volume(projectile.1.volume(*position).clone()),
+            Volume(projectile.1.volume(*position, w).clone()),
             Mesh2d(meshes.add(line)),
             MeshMaterial2d(materials.add(Color::from(RED))),
             Transform::from_xyz(
                 projectile.1.position()[0],
-                projectile.1.position()[1].to_gui_y(),
+                projectile.1.position()[1].to_gui_y(w),
                 Z_INDIVIDUAL,
             ),
         ))

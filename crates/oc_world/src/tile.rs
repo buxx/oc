@@ -9,7 +9,7 @@ use oc_physics::{
     collision::{Material, Materials},
     volume::Volume,
 };
-use oc_root::GEO_PIXELS_PER_TILE;
+use oc_root::{WcfgInto, WorldConfig};
 
 use crate::World;
 use derive_more::{Constructor, Display};
@@ -107,26 +107,26 @@ impl Material for Tile {
 }
 
 impl Physic for Tile {
-    fn position(&self) -> [f32; 3] {
-        let xy: TileXy = self.i.into();
-        let point = xy.point();
+    fn position(&self, w: &WorldConfig) -> [f32; 3] {
+        let xy: TileXy = self.i.into_(w);
+        let point = xy.point(w);
         // dbg!((self, xy, point));
         [point[0], point[1], self.z as f32]
     }
 
-    fn forces(&self) -> &Vec<Force> {
+    fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
         static EMPTY: Vec<Force> = vec![];
         &EMPTY
     }
 
-    fn volume(&self, ref_: [f32; 3]) -> Volume {
+    fn volume(&self, ref_: [f32; 3], w: &WorldConfig) -> Volume {
         // tracing::trace!(name = "toto", ref_ = ?ref_, z =f32::MIN + ref_[2], zz = f32::MIN + ref_[2] + f32::MAX);
         Volume::Cube {
             x: ref_[0],
             y: ref_[1],
             z: -DEPTH,
-            width: GEO_PIXELS_PER_TILE as f32,
-            height: GEO_PIXELS_PER_TILE as f32,
+            width: w.geo_pixels_per_tile as f32,
+            height: w.geo_pixels_per_tile as f32,
             depth: DEPTH + ref_[2],
         }
     }

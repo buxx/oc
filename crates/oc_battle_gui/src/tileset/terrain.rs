@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use bevy::{image::TextureAtlasLayout, math::UVec2};
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
-use oc_root::{GEO_PIXELS_PER_TILE, files::FilesAsGui};
+use oc_root::files::FilesAsGui;
 use oc_world::{terrain::Terrain, tile::Tile};
 use rustc_hash::FxHashMap;
 
@@ -12,7 +12,7 @@ use crate::{ingame::draw::Z_TERRAIN_TILE, world::World};
 impl super::Tileset<WorldTileIndex, Tile> for Terrain {
     fn layout(&self) -> TextureAtlasLayout {
         TextureAtlasLayout::from_grid(
-            UVec2::splat(GEO_PIXELS_PER_TILE as u32),
+            UVec2::splat(self.w.geo_pixels_per_tile as u32),
             self.columns(),
             self.rows(),
             None,

@@ -8,7 +8,7 @@ use std::{
 
 use derive_more::Constructor;
 use oc_network::ToClient;
-use oc_root::{Client, INDIVIDUAL_TICK_INTERVAL_US, PHYSICS_TICK_INTERVAL_US};
+use oc_root::Client;
 use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 
 #[cfg(feature = "tracker")]
@@ -60,7 +60,7 @@ impl<E: Client> Runner<E> {
 
                 loop {
                     let elapsed = last.elapsed().as_micros() as u64;
-                    let wait = PHYSICS_TICK_INTERVAL_US - elapsed;
+                    let wait = ctx.state.w.physics_tick_interval_us - elapsed;
                     std::thread::sleep(Duration::from_micros(wait));
 
                     for update in physics::Processor::new(&ctx).step(i) {
@@ -103,7 +103,7 @@ impl<E: Client> Runner<E> {
 
                     loop {
                         let elapsed = last.elapsed().as_micros() as u64;
-                        let wait = INDIVIDUAL_TICK_INTERVAL_US - elapsed;
+                        let wait = ctx.state.w.individual_tick_interval_us - elapsed;
                         std::thread::sleep(Duration::from_micros(wait));
 
                         for i in &indexes {
@@ -136,6 +136,7 @@ impl<E: Client> Runner<E> {
         tracing::debug!("Listen inputs");
         let state = self.state.clone();
         let output = self.output.clone();
+        let w = self.state.w.clone();
         let mod_ = self.state.world().mod_().clone();
         let meta = self.state.world().meta().clone();
         let static_ = self.config.static_.clone();
@@ -145,6 +146,8 @@ impl<E: Client> Runner<E> {
                 match message {
                     Event::Connected(endpoint) => {
                         state.listeners_mut().push(endpoint.clone());
+                        let w = ToClient::Wcfg(w.clone());
+                        output.send((endpoint.clone(), w)).unwrap(); // TODO
                         let mod_ = ToClient::Mod(mod_.clone());
                         output.send((endpoint.clone(), mod_)).unwrap(); // TODO
                         let meta = ToClient::Meta(meta.clone());

@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::{EguiContexts, EguiPrimaryContextPass};
 use oc_mod::Mod;
+use oc_root::{Wcfg, WorldConfig};
 
 use crate::{states, window::menu::battle::BattleMenuWindowPlugin};
 
@@ -20,11 +21,17 @@ pub enum Window {
 }
 
 impl Window {
-    fn show(&mut self, contexts: &mut EguiContexts, commands: &mut Commands, mod_: &Mod) -> Result {
+    fn show(
+        &mut self,
+        contexts: &mut EguiContexts,
+        commands: &mut Commands,
+        mod_: &Mod,
+        w: &WorldConfig,
+    ) -> Result {
         match self {
-            Window::BattleMenu(window) => window.show(contexts, commands, mod_)?,
+            Window::BattleMenu(window) => window.show(contexts, commands, mod_, w)?,
             #[cfg(feature = "debug")]
-            Window::BattleDebug(window) => window.show(contexts, commands, mod_)?,
+            Window::BattleDebug(window) => window.show(contexts, commands, mod_, w)?,
         }
 
         Ok(())
@@ -77,6 +84,7 @@ fn show(
     mut window: ResMut<states::Window>,
     mut commands: Commands,
     mod_: Res<states::Mod>,
+    w: Res<Wcfg>,
     mut pointer: ResMut<PointerInWindow>,
 ) -> Result {
     let Some(window) = &mut window.0 else {
@@ -85,8 +93,9 @@ fn show(
     let Some(mod_) = &mod_.0 else {
         return Ok(());
     };
+    let Some(w) = &w.0 else { return Ok(()) };
 
-    window.show(&mut contexts, &mut commands, mod_)?;
+    window.show(&mut contexts, &mut commands, mod_, w)?;
     pointer.0 = contexts.ctx_mut()?.is_pointer_over_area();
 
     Ok(())

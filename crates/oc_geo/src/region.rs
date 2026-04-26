@@ -1,4 +1,4 @@
-use oc_root::{REGION_HEIGHT, REGION_WIDTH, REGIONS_WIDTH};
+use oc_root::{WcfgFrom, WcfgInto, WorldConfig};
 use oc_utils::d2::Xy;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -37,49 +37,49 @@ impl WorldRegionIndex {
     }
 }
 
-impl From<WorldRegionIndex> for RegionXy {
-    fn from(WorldRegionIndex(i): WorldRegionIndex) -> Self {
-        let x = i % REGIONS_WIDTH as u64;
-        let y = i / REGIONS_WIDTH as u64;
+impl WcfgFrom<WorldRegionIndex> for RegionXy {
+    fn from_(WorldRegionIndex(i): WorldRegionIndex, w: &WorldConfig) -> Self {
+        let x = i % w.regions_width as u64;
+        let y = i / w.regions_width as u64;
         Self(Xy(x, y))
     }
 }
 
-impl From<WorldRegionIndex> for Xy {
-    fn from(WorldRegionIndex(i): WorldRegionIndex) -> Self {
-        let x = i % REGIONS_WIDTH as u64;
-        let y = i / REGIONS_WIDTH as u64;
+impl WcfgFrom<WorldRegionIndex> for Xy {
+    fn from_(WorldRegionIndex(i): WorldRegionIndex, w: &WorldConfig) -> Self {
+        let x = i % w.regions_width as u64;
+        let y = i / w.regions_width as u64;
         Xy(x, y)
     }
 }
 
-impl From<RegionXy> for WorldRegionIndex {
-    fn from(RegionXy(Xy(x, y)): RegionXy) -> Self {
-        Self(y * REGIONS_WIDTH as u64 + x)
+impl WcfgFrom<RegionXy> for WorldRegionIndex {
+    fn from_(RegionXy(Xy(x, y)): RegionXy, w: &WorldConfig) -> Self {
+        Self(y * w.regions_width as u64 + x)
     }
 }
 
-impl From<WorldTileIndex> for WorldRegionIndex {
-    fn from(tile: WorldTileIndex) -> Self {
-        let tile_xy: TileXy = tile.into();
-        let region_xy: RegionXy = tile_xy.into();
-        region_xy.into()
+impl WcfgFrom<WorldTileIndex> for WorldRegionIndex {
+    fn from_(tile: WorldTileIndex, w: &WorldConfig) -> Self {
+        let tile_xy: TileXy = tile.into_(w);
+        let region_xy: RegionXy = tile_xy.into_(w);
+        region_xy.into_(w)
     }
 }
 
-impl From<TileXy> for RegionXy {
-    fn from(value: TileXy) -> Self {
+impl WcfgFrom<TileXy> for RegionXy {
+    fn from_(value: TileXy, w: &WorldConfig) -> Self {
         Self(Xy(
-            value.0.0 / REGION_WIDTH as u64,
-            value.0.1 / REGION_HEIGHT as u64,
+            value.0.0 / w.region_width as u64,
+            value.0.1 / w.region_height as u64,
         ))
     }
 }
 
-impl From<TileXy> for WorldRegionIndex {
-    fn from(tile: TileXy) -> Self {
-        let region_xy: RegionXy = tile.into();
-        region_xy.into()
+impl WcfgFrom<TileXy> for WorldRegionIndex {
+    fn from_(tile: TileXy, w: &WorldConfig) -> Self {
+        let region_xy: RegionXy = tile.into_(w);
+        region_xy.into_(w)
     }
 }
 
@@ -95,17 +95,22 @@ mod tests {
     use super::*;
 
     #[rstest]
-    #[case(REGIONS_WIDTH as u64 - 1, 0, REGIONS_WIDTH as u64 - 1)]
-    #[case(REGIONS_WIDTH as u64, 0, REGIONS_WIDTH as u64)]
-    #[case(REGIONS_WIDTH as u64, 1, REGIONS_WIDTH as u64 * 2)]
-    #[case(REGIONS_WIDTH as u64 + 1, 1, REGIONS_WIDTH as u64 * 2 + 1)]
+    #[case(9, 0, 9)]
+    #[case(10, 0, 10)]
+    #[case(9, 1, 19)]
+    #[case(11, 1, 21)]
     pub fn test_world_region_index_from_world_region_xy(
         #[case] x: u64,
         #[case] y: u64,
         #[case] i: u64,
     ) {
+        // Given
+        let w = WorldConfig::new(1000, 1000)
+            .region_width(100)
+            .region_height(100);
+
         // When
-        let index = WorldRegionIndex::from(RegionXy(Xy(x as u64, y)));
+        let index = WorldRegionIndex::from_(RegionXy(Xy(x, y)), &w);
 
         // Then
         assert_eq!(index.0, i);
@@ -113,17 +118,22 @@ mod tests {
 
     #[rstest]
     #[case(0, 0, 0)] // Top left tile is de facto in first region
-    #[case(REGION_WIDTH as u64, 0, 1)] // First tile in second region
+    #[case(100, 0, 1)] // First tile in second region
     #[case(0, 1, 0)] // First tile in second world row is first region of world
-    #[case(0, REGION_HEIGHT as u64, REGIONS_WIDTH as u64)]
+    #[case(0, 100, 10)]
     pub fn test_world_region_index_from_world_tile_index(
         #[case] x: u64,
         #[case] y: u64,
         #[case] i: u64,
     ) {
+        // Given
+        let w = WorldConfig::new(1000, 1000)
+            .region_width(100)
+            .region_height(100);
+
         // When
-        let tile_index = WorldTileIndex::from(TileXy(Xy(x as u64, y)));
-        let region_index = WorldRegionIndex::from(tile_index);
+        let tile_index = WorldTileIndex::from_(TileXy(Xy(x as u64, y)), &w);
+        let region_index = WorldRegionIndex::from_(tile_index, &w);
 
         // Then
         assert_eq!(region_index.0, i);

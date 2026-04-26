@@ -5,16 +5,18 @@ use glam::Vec3;
 use oc_mod::Mod;
 use oc_physics::Force;
 use oc_projectile::{Projectile, bullet::Bullet, spawn::SpawnProjectile};
+use oc_root::WorldConfig;
 
 use crate::schedule::{Schedule, Scheduling};
 
 #[derive(Debug, Constructor)]
-pub struct Builder<'a> {
+pub struct Builder<'a, 'b> {
+    w: &'b WorldConfig,
     mod_: &'a Mod,
     spawn: SpawnProjectile,
 }
 
-impl<'a> Builder<'a> {
+impl<'a, 'b> Builder<'a, 'b> {
     pub fn build(&self) -> Projectile {
         let weapon = self.mod_.weapon(self.spawn.weapon);
         let ammunition = self.mod_.ammunition(self.spawn.ammunition);
@@ -27,7 +29,7 @@ impl<'a> Builder<'a> {
 
         match ammunition {
             oc_mod::ammunition::Ammunition::Cartridge(_) => {
-                Projectile::Bullet(Bullet::new(position, forces))
+                Projectile::Bullet(Bullet::new(position, forces, &self.w))
             }
         }
     }

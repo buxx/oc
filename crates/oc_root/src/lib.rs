@@ -1,3 +1,8 @@
+#[cfg(feature = "bevy")]
+use bevy::prelude::*;
+
+use rkyv::{Archive, Deserialize, Serialize};
+
 pub mod end;
 pub mod files;
 pub mod ids;
@@ -5,59 +10,140 @@ pub mod physics;
 pub mod static_;
 pub mod y;
 
-// TODO: we should not have default value. Just set default IDE config to permet code check.
-pub const WORLD_WIDTH: usize = _usize(option_env!("WORLD_WIDTH"), "1000");
-pub const WORLD_HEIGHT: usize = _usize(option_env!("WORLD_HEIGHT"), "1000");
-pub const REGION_WIDTH: usize = _usize(option_env!("REGION_WIDTH"), "100");
-pub const REGION_HEIGHT: usize = _usize(option_env!("REGION_HEIGHT"), "100");
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct WorldConfig {
+    pub world_width: u64,
+    pub world_height: u64,
+    pub region_width: u64,
+    pub region_height: u64,
+    pub tiles_count: u64,
+    pub regions_count: u64,
+    pub regions_width: u64,
+    pub regions_height: u64,
+    pub world_width_pixels: u64,
+    pub world_height_pixels: u64,
+    pub region_width_pixels: u64,
+    pub region_height_pixels: u64,
+    pub individual_tick_interval_us: u64,
+    pub physics_tick_per_seconds: u64,
+    pub physics_tick_interval_us: u64,
+    pub physics_coeff_per_tick: f32,
+    pub geo_pixels_per_meters: f32,
+    pub geo_pixels_per_tile: u64,
+    pub geo_bresenham_precision: f32,
+    pub geo_bresenham_step: u64,
+    pub minimap_width_pixels: u64,
+    pub minimap_height_pixels: u64,
+}
 
-pub const TILES_COUNT: usize = WORLD_WIDTH * WORLD_HEIGHT;
-pub const REGIONS_COUNT: usize = TILES_COUNT / (REGION_WIDTH * REGION_HEIGHT);
-pub const REGIONS_WIDTH: usize = WORLD_WIDTH / REGION_WIDTH;
-pub const REGIONS_HEIGHT: usize = WORLD_HEIGHT / REGION_HEIGHT;
+impl WorldConfig {
+    pub fn new(world_width: u64, world_height: u64) -> Self {
+        let region_width = 1000.min(world_width);
+        let region_height = 1000.min(world_height);
+        let individual_tick_interval_us: u64 = 1_000_000 / 4;
+        let physics_tick_per_seconds: u64 = 10;
+        let physics_tick_interval_us: u64 = 1_000_000 / physics_tick_per_seconds;
+        let physics_coeff_per_tick: f32 = 1. / physics_tick_per_seconds as f32;
+        let geo_pixels_per_meters: f32 = 5.;
+        let geo_pixels_per_tile: u64 = geo_pixels_per_meters as u64;
+        let geo_bresenham_precision: f32 = 100.;
+        let geo_bresenham_step: u64 = 250;
 
-pub const INDIVIDUAL_TICK_INTERVAL_US: u64 = 1_000_000 / 4;
+        let tiles_count = world_width * world_height;
+        let regions_count = tiles_count / (region_width * region_height);
+        let regions_width = world_width / region_width;
+        let regions_height = world_height / region_height;
+        let world_width_pixels = world_width as u64 * geo_pixels_per_tile;
+        let world_height_pixels = world_height as u64 * geo_pixels_per_tile;
+        let region_width_pixels = region_width as u64 * geo_pixels_per_tile;
+        let region_height_pixels = region_height as u64 * geo_pixels_per_tile;
+        let minimap_width_pixels: u64 = 2048;
+        let minimap_height_pixels: u64 = 2048;
 
-pub const PHYSICS_TICK_PER_SECONDS: u64 = 10;
-pub const PHYSICS_TICK_INTERVAL_US: u64 = 1_000_000 / PHYSICS_TICK_PER_SECONDS;
-pub const PHYSICS_COEFF_PER_TICK: f32 = 1. / PHYSICS_TICK_PER_SECONDS as f32;
-
-pub const GEO_PIXELS_PER_METERS: f32 = 5.;
-pub const GEO_PIXELS_PER_TILE: u64 = GEO_PIXELS_PER_METERS as u64;
-pub const GEO_BRESENHAM_PRECISION: f32 = 100.;
-pub const GEO_BRESENHAM_STEP: usize = 250;
-
-pub const WORLD_WIDTH_PIXELS: u64 = WORLD_WIDTH as u64 * GEO_PIXELS_PER_TILE;
-pub const WORLD_HEIGHT_PIXELS: u64 = WORLD_HEIGHT as u64 * GEO_PIXELS_PER_TILE;
-pub const REGION_WIDTH_PIXELS: u64 = REGION_WIDTH as u64 * GEO_PIXELS_PER_TILE;
-pub const REGION_HEIGHT_PIXELS: u64 = REGION_HEIGHT as u64 * GEO_PIXELS_PER_TILE;
-
-pub const MINIMAP_WIDTH_PIXELS: usize = _usize(option_env!("MINIMAP_WIDTH_PIXELS"), "2048");
-pub const MINIMAP_HEIGHT_PIXELS: usize = _usize(option_env!("MINIMAP_HEIGHT_PIXELS"), "2048");
-
-const _: () = assert!(
-    WORLD_WIDTH.is_multiple_of(REGION_WIDTH),
-    "World width mut be divisible by region width"
-);
-const _: () = assert!(
-    WORLD_HEIGHT.is_multiple_of(REGION_HEIGHT),
-    "World height mut be divisible by region height"
-);
-
-const fn _usize(s: Option<&str>, s2: &str) -> usize {
-    let s = match s {
-        Some(s) => s,
-        None => s2,
-    };
-    let bytes = s.as_bytes();
-    let mut result = 0usize;
-    let mut i = 0;
-    while i < bytes.len() {
-        result = result * 10 + (bytes[i] - b'0') as usize;
-        i += 1;
+        Self {
+            world_width,
+            world_height,
+            region_width,
+            region_height,
+            tiles_count,
+            regions_count,
+            regions_width,
+            regions_height,
+            world_width_pixels,
+            world_height_pixels,
+            region_width_pixels,
+            region_height_pixels,
+            individual_tick_interval_us,
+            physics_tick_per_seconds,
+            physics_tick_interval_us,
+            physics_coeff_per_tick,
+            geo_pixels_per_meters,
+            geo_pixels_per_tile,
+            geo_bresenham_precision,
+            geo_bresenham_step,
+            minimap_width_pixels,
+            minimap_height_pixels,
+        }
     }
-    result
+
+    pub fn region_width(mut self, value: u64) -> Self {
+        self.region_width = value;
+        self.regions_count = self.tiles_count / (self.region_width * self.region_height);
+        self.regions_width = self.world_width / self.region_width;
+        self.region_width_pixels = self.region_width as u64 * self.geo_pixels_per_tile;
+        self
+    }
+
+    pub fn region_height(mut self, value: u64) -> Self {
+        self.region_height = value;
+        self.regions_count = self.tiles_count / (self.region_width * self.region_height);
+        self.regions_height = self.world_height / self.region_height;
+        self.region_height_pixels = self.region_height as u64 * self.geo_pixels_per_tile;
+        self
+    }
+
+    pub fn physics_coeff_per_tick(mut self, value: f32) -> Self {
+        self.physics_coeff_per_tick = value;
+        self
+    }
+
+    pub fn geo_bresenham_precision(mut self, value: f32) -> Self {
+        self.geo_bresenham_precision = value;
+        self
+    }
+
+    pub fn geo_bresenham_step(mut self, value: u64) -> Self {
+        self.geo_bresenham_step = value;
+        self
+    }
+
+    pub fn geo_pixels_per_meters(mut self, value: f32) -> Self {
+        self.geo_pixels_per_meters = value;
+        self
+    }
 }
 
 pub trait Client: Clone + std::hash::Hash + Eq + std::fmt::Debug + Send + Sync + 'static {}
 impl<T: Clone + std::hash::Hash + Eq + std::fmt::Debug + Send + Sync + 'static> Client for T {}
+
+pub trait WcfgFrom<T>: Sized {
+    fn from_(value: T, w: &WorldConfig) -> Self;
+}
+
+pub trait WcfgInto<T>: Sized {
+    fn into_(self, w: &WorldConfig) -> T;
+}
+
+impl<T, U> WcfgInto<U> for T
+where
+    U: WcfgFrom<T>,
+{
+    fn into_(self, w: &WorldConfig) -> U {
+        U::from_(self, w)
+    }
+}
+
+#[cfg(feature = "bevy")]
+#[derive(Debug, Resource, Deref, Default)]
+pub struct Wcfg(pub Option<WorldConfig>);

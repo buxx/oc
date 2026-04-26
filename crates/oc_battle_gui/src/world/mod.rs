@@ -5,8 +5,9 @@ use oc_geo::{
 };
 use oc_individual::{Individual, IndividualIndex};
 use oc_physics::Physic;
+use oc_root::{WcfgInto, WorldConfig};
 #[cfg(feature = "debug")]
-use oc_root::{GEO_PIXELS_PER_METERS, physics::Meters, y::Y};
+use oc_root::{physics::Meters, y::Y};
 use oc_utils::d2::Xy;
 use oc_world::tile::Tile;
 use rustc_hash::FxHashMap;
@@ -84,11 +85,16 @@ impl World {
         self.tiles.remove(&region);
     }
 
-    pub fn insert_individual(&mut self, i: IndividualIndex, individual: Individual) {
-        let position = individual.position();
+    pub fn insert_individual(
+        &mut self,
+        w: &WorldConfig,
+        i: IndividualIndex,
+        individual: Individual,
+    ) {
+        let position = individual.position(w);
         let tile_xy = TileXy(Xy(position[0] as u64, position[1] as u64));
-        let tile: WorldTileIndex = tile_xy.into();
-        let region: WorldRegionIndex = tile.into();
+        let tile: WorldTileIndex = tile_xy.into_(w);
+        let region: WorldRegionIndex = tile.into_(w);
 
         tracing::trace!(name = "world-individual-insert", i=?i, region=?region, tile=?tile);
 
@@ -105,10 +111,15 @@ impl World {
         self.individuals_refs.insert(i, (region, tile));
     }
 
-    pub fn remove_individual(&mut self, i: IndividualIndex, position: [f32; 3]) {
+    pub fn remove_individual(
+        &mut self,
+        w: &WorldConfig,
+        i: IndividualIndex,
+        position: [f32; 3],
+    ) {
         let position = TileXy(Xy(position[0] as u64, position[1] as u64));
-        let tile: WorldTileIndex = position.into();
-        let region: WorldRegionIndex = tile.into();
+        let tile: WorldTileIndex = position.into_(w);
+        let region: WorldRegionIndex = tile.into_(w);
 
         if let Some(tiles) = self.individuals.get_mut(&region)
             && let Some(individuals) = tiles.get_mut(&tile)
@@ -137,9 +148,9 @@ impl World {
             })
     }
 
-    pub fn at(&self, tile: TileXy) -> Vec<(ObjectId, Box<&dyn Physic>)> {
-        let region: WorldRegionIndex = tile.into();
-        let tile: WorldTileIndex = tile.into();
+    pub fn at(&self, w: &WorldConfig, tile: TileXy) -> Vec<(ObjectId, Box<&dyn Physic>)> {
+        let region: WorldRegionIndex = tile.into_(w);
+        let tile: WorldTileIndex = tile.into_(w);
 
         let mut objects = vec![];
 
@@ -167,9 +178,9 @@ impl World {
     }
 
     #[cfg(feature = "debug")]
-    pub fn tile(&self, xy: TileXy) -> Option<&Tile> {
-        let i: WorldTileIndex = xy.into();
-        let region: WorldRegionIndex = i.into();
+    pub fn tile(&self, w: &WorldConfig, xy: TileXy) -> Option<&Tile> {
+        let i: WorldTileIndex = xy.into_(w);
+        let region: WorldRegionIndex = i.into_(w);
         self.tiles.get(&region).and_then(|tiles| tiles.get(&i))
     }
 
@@ -184,13 +195,20 @@ impl World {
     }
 
     #[cfg(feature = "debug")]
-    pub fn point2d_to_point3d(&self, p: &Vec2, plus_z: Meters) -> Option<[f32; 3]> {
-        let p = (p.x, p.y.to_world_y());
-        let tile = TileXy::from(p);
-        let Some(tile) = self.tile(tile) else {
+    pub fn point2d_to_point3d(
+        &self,
+        w: &WorldConfig,
+        p: &Vec2,
+        plus_z: Meters,
+    ) -> Option<[f32; 3]> {
+        use oc_root::WcfgFrom;
+
+        let p = (p.x, p.y.to_world_y(w));
+        let tile = TileXy::from_(p, w);
+        let Some(tile) = self.tile(w, tile) else {
             return None;
         };
-        let z = (tile.z as f32 * 0.5 * GEO_PIXELS_PER_METERS) + plus_z.pixels();
+        let z = (tile.z as f32 * 0.5 * w.geo_pixels_per_meters) + plus_z.pixels(w);
         let p = [p.0, p.1, z];
         Some(p)
     }

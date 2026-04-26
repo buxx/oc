@@ -13,6 +13,7 @@ use oc_physics::UpdatePhysic;
 use oc_physics::collision::Material;
 use oc_physics::collision::Materials;
 use oc_physics::volume::Volume;
+use oc_root::WorldConfig;
 use oc_root::physics::Meters;
 use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
@@ -90,22 +91,22 @@ impl Individual {
 }
 
 impl Physic for Individual {
-    fn position(&self) -> [f32; 3] {
+    fn position(&self, _: &WorldConfig) -> [f32; 3] {
         self.position
     }
 
-    fn forces(&self) -> &Vec<Force> {
+    fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
         &self.forces
     }
 
-    fn volume(&self, ref_: [f32; 3]) -> Volume {
+    fn volume(&self, ref_: [f32; 3], w: &WorldConfig) -> Volume {
         Volume::Cube {
             x: ref_[0],
             y: ref_[1],
             z: ref_[2],
-            width: Meters(0.5).pixels(),
-            height: Meters(0.5).pixels(),
-            depth: Meters(1.8).pixels(),
+            width: Meters(0.5).pixels(w),
+            height: Meters(0.5).pixels(w),
+            depth: Meters(1.8).pixels(w),
         }
     }
 }

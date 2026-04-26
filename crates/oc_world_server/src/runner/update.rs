@@ -53,7 +53,7 @@ impl<E: Client> super::State<E> {
         let projectile = {
             let world = self.world();
             let mod_ = world.mod_();
-            projectile::Builder::new(mod_, spawn.clone()).build()
+            projectile::Builder::new(&self.w, mod_, spawn.clone()).build()
         };
 
         // Make both insert and update index at same clock to lock at the same time

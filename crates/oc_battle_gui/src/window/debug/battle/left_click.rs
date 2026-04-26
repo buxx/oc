@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::prelude::*;
 use oc_mod::{Mod, weapons::WeaponType};
+use oc_root::WorldConfig;
 use strum::IntoEnumIterator;
 
 use crate::ingame::{
@@ -10,7 +11,13 @@ use crate::ingame::{
 
 impl super::Context {
     // TODO: seems we can improve this code
-    pub fn ui_left_click(&mut self, ui: &mut egui::Ui, commands: &mut Commands, mod_: &Mod) {
+    pub fn ui_left_click(
+        &mut self,
+        _: &WorldConfig,
+        ui: &mut egui::Ui,
+        commands: &mut Commands,
+        mod_: &Mod,
+    ) {
         let left_click_mode_before = self.left_click_mode.clone();
         let left_click_mode = &mut self.left_click_mode;
 

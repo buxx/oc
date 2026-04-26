@@ -2,7 +2,7 @@ use derive_more::Constructor;
 use oc_geo::tile::TileXy;
 use oc_individual::{IndividualIndex, Update, behavior::Behavior};
 use oc_physics::Force;
-use oc_root::{Client, WORLD_HEIGHT, physics::MetersSeconds};
+use oc_root::{Client, WcfgInto, physics::MetersSeconds};
 
 use crate::{individual::Processor, utils::context::Context};
 
@@ -25,7 +25,7 @@ impl<'a, E: Client> Move<'a, E> {
     pub fn read(&self) -> Vec<Update> {
         let world = self.ctx.state.world();
         let individual = world.individual(self.i);
-        let tile: TileXy = individual.tile.into();
+        let tile: TileXy = individual.tile.into_(&self.ctx.state.w);
         let (x, _): (u64, u64) = tile.into();
 
         let (pulse, behavior) = match individual.behavior {
@@ -40,7 +40,7 @@ impl<'a, E: Client> Move<'a, E> {
                 }
             }
             Behavior::MovingSouth => {
-                if x == WORLD_HEIGHT as u64 - 1 {
+                if x == self.ctx.state.w.world_height as u64 - 1 {
                     (
                         Some(Force::Translation([0.0, -1.0, 0.0], MetersSeconds(0.5))),
                         Some(Behavior::MovingNorth),

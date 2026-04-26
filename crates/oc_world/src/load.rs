@@ -9,10 +9,7 @@ use image::imageops::FilterType;
 use oc_geo::region::WorldRegionIndex;
 use oc_mod::Mod;
 use oc_projectile::NextProjectileId;
-use oc_root::{
-    MINIMAP_HEIGHT_PIXELS, MINIMAP_WIDTH_PIXELS, REGIONS_COUNT, WORLD_HEIGHT_PIXELS,
-    WORLD_WIDTH_PIXELS, files, ids::Ids,
-};
+use oc_root::{WorldConfig, files, ids::Ids};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
 
@@ -25,6 +22,7 @@ use crate::{
 
 #[derive(Debug, Constructor)]
 pub struct WorldLoader {
+    w: WorldConfig,
     mod_: Mod,
     world: PathBuf,
     cache: PathBuf,
@@ -41,6 +39,7 @@ impl WorldLoader {
         // TODO: centralize caching at server startup
         self.cache(&meta)?;
 
+        let w = self.w.clone();
         let mod_ = self.mod_.clone();
         let tiles = snapshot.tiles;
         let individuals = snapshot.individuals;
@@ -50,7 +49,14 @@ impl WorldLoader {
             .map(|projectile| (ids.next_projectile_id(), projectile))
             .collect();
 
-        Ok(World::new(mod_, meta, tiles, individuals, projectiles))
+        Ok(World::new(
+            w,
+            mod_,
+            meta,
+            tiles,
+            individuals,
+            projectiles,
+        ))
     }
 
     // TODO: add checks
@@ -72,12 +78,14 @@ impl WorldLoader {
         }
 
         let (width, height) = image::image_dimensions(self.world.background())?;
-        if width != WORLD_WIDTH_PIXELS as u32 || height != WORLD_HEIGHT_PIXELS as u32 {
+        if width != self.w.world_width_pixels as u32
+            || height != self.w.world_height_pixels as u32
+        {
             return Err(BackgroundError::Dimensions(
                 width,
                 height,
-                WORLD_WIDTH_PIXELS as u32,
-                WORLD_HEIGHT_PIXELS as u32,
+                self.w.world_width_pixels as u32,
+                self.w.world_height_pixels as u32,
             ));
         }
 
@@ -111,8 +119,8 @@ impl WorldLoader {
             true => {}
             false => {
                 // TODO: size in config/args ?
-                let width = MINIMAP_WIDTH_PIXELS as f32;
-                let height = MINIMAP_HEIGHT_PIXELS as f32;
+                let width = self.w.minimap_width_pixels as f32;
+                let height = self.w.minimap_height_pixels as f32;
                 tracing::info!(
                     "Prepare cache for minimap {} ({}x{})",
                     minimap.display(),
@@ -132,7 +140,7 @@ impl WorldLoader {
         let counter = Arc::new(AtomicU32::new(0));
         tracing::info!("Prepare cache for regions");
 
-        (0..REGIONS_COUNT)
+        (0..self.w.regions_count)
             .into_par_iter()
             .map(|i| {
                 let i = WorldRegionIndex(i as u64);
@@ -142,14 +150,14 @@ impl WorldLoader {
                     true => Ok(()),
                     false => {
                         counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                        cache::cache_region_background(&region, &image, i)
+                        cache::cache_region_background(&self.w, &region, &image, i)
                     }
                 }
             })
             .collect::<Result<Vec<()>, CacheRegionBackgroundError>>()?;
 
         let cached = counter.load(std::sync::atomic::Ordering::Relaxed);
-        let already = REGIONS_COUNT - cached as usize;
+        let already = self.w.regions_count - cached as u64;
         tracing::info!("{} cached, {} already cached", cached, already);
 
         if !std::fs::exists(&archive)? {

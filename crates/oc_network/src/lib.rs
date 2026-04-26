@@ -5,7 +5,7 @@ use oc_physics::fx::Fx;
 use oc_projectile::network::Projectile;
 #[cfg(feature = "debug")]
 use oc_projectile::spawn::SpawnProjectile;
-use oc_root::static_::StaticSource;
+use oc_root::{WorldConfig, static_::StaticSource};
 use oc_world::{meta::Meta, tile::Tile};
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -13,6 +13,7 @@ use rkyv::{Archive, Deserialize, Serialize};
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum ToClient {
     StaticSource(StaticSource),
+    Wcfg(WorldConfig),
     Mod(Mod),
     Meta(Meta),
     Individual(Individual),

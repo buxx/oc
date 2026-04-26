@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use oc_root::{
-    REGIONS_COUNT,
+    Wcfg,
     files::{self},
 };
 
@@ -27,6 +27,7 @@ impl Plugin for DownloadingPlugin {
 // TODO: refact this ugly non refactored download / cache / assets code
 fn download(
     mut commands: Commands,
+    w: Res<Wcfg>,
     mod_: Res<Mod>,
     meta: Res<Meta>,
     static_: Res<StaticSource>,
@@ -36,6 +37,7 @@ fn download(
     let Some(static_) = &static_.0 else {
         return Ok(());
     };
+    let Some(w) = &w.0 else { return Ok(()) };
     let Some(mod_) = &mod_.0 else { return Ok(()) };
     let Some(meta) = &meta.0 else { return Ok(()) };
     let Some(connect) = network.server.clone() else {
@@ -51,12 +53,12 @@ fn download(
     ensure_file(&files, files::File::Mod).unwrap(); // TODO
     ensure_file(&files, files::File::World).unwrap(); // TODO
     ensure_file(&files, files::File::Minimap).unwrap(); // TODO
-    for region in 0..REGIONS_COUNT {
+    for region in 0..w.regions_count {
         ensure_file(&files, files::File::Region(region as u64)).unwrap(); // TODO
     }
 
     // FIXME: check tile size
-    let terrain = oc_world::terrain::Terrain::load(&files.terrain_tsx()).unwrap(); // TODO
+    let terrain = oc_world::terrain::Terrain::load(&files.terrain_tsx(), w.clone()).unwrap(); // TODO
     tracing::trace!(name="downloading-terrain", terrain=?terrain);
     world_.terrain = Some(terrain); // TODO
 

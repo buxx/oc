@@ -2,12 +2,12 @@ use bevy::prelude::*;
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::IndividualIndex;
 use oc_physics::{
-    Corps, Laws,
+    Corps,
     collision::Material_,
     update::bevy::{Forces, Position, Volume},
 };
 use oc_projectile::ProjectileId;
-use oc_root::y::Y;
+use oc_root::{Wcfg, y::Y};
 use oc_utils::d2::Xy;
 
 use crate::{ingame::projectile::ForgotProjectile, world::World};
@@ -17,6 +17,8 @@ pub struct PhysicEvent(oc_physics::Event<ObjectId>);
 
 pub fn physics_step<I, C>(
     mut commands: Commands,
+    w: Res<Wcfg>,
+
     time: Res<Time>,
     query: Query<(
         &C,
@@ -31,8 +33,10 @@ pub fn physics_step<I, C>(
     I: Clone + Send + Sync + Into<ObjectId> + std::fmt::Debug + 'static,
     C: Component + AsRef<I>,
 {
+    let Some(w) = &w.0 else { return };
+
     // tracing::trace!(name = "projectile-physics-start");
-    let laws = Laws::default().tick_coeff(time.delta_secs() / 1.);
+    let delta = time.delta_secs() / 1.;
 
     for (object, mut position, mut forces, material, volume, mut transform) in query {
         let i = object.as_ref();
@@ -42,7 +46,7 @@ pub fn physics_step<I, C>(
         let objects = |xy: Xy| {
             // NOTE: We must use the given tile xy and not the component position because it is the real position (computed by physics just now).
             // let region: WorldRegionIndex = TileXy(xy).into();
-            index.at(TileXy(xy))
+            index.at(w, TileXy(xy))
         };
 
         // FIXME: test perf with references in Corps
@@ -54,12 +58,12 @@ pub fn physics_step<I, C>(
             volume.0.clone(),
         ); //, on_physics_event);
         let (position_, forces_, events) =
-            oc_physics::step(&laws, (i.clone(), &corps), objects, "gui");
+            oc_physics::step(w, delta, (i.clone(), &corps), objects, "gui");
 
         position.0 = position_;
         forces.0 = forces_;
         transform.translation.x = position.0[0];
-        transform.translation.y = position.0[1].to_gui_y();
+        transform.translation.y = position.0[1].to_gui_y(w);
 
         for event in events {
             commands.trigger(PhysicEvent(event))

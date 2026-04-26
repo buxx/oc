@@ -1,13 +1,11 @@
 use line_drawing::Bresenham3d;
-use oc_root::{GEO_PIXELS_PER_TILE, WORLD_HEIGHT_PIXELS, WORLD_WIDTH_PIXELS};
+use oc_root::WorldConfig;
 use oc_utils::d2::Xy;
 
-use crate::Laws;
-
 pub struct Steps<'a> {
-    laws: &'a Laws,
+    w: &'a WorldConfig,
     bresenham: Bresenham3d<isize>,
-    step: usize,
+    step: u64,
     x: f32,
     y: f32,
     z: f32,
@@ -18,31 +16,31 @@ pub struct Steps<'a> {
 
 impl<'a> Steps<'a> {
     pub fn new(
-        laws: &'a Laws,
+        w: &'a WorldConfig,
         (from_x, from_y, from_z): (f32, f32, f32),
         (to_x, to_y, to_z): (f32, f32, f32),
     ) -> Self {
         let start = (
-            (from_x * laws.bresenham_precision) as isize,
-            (from_y * laws.bresenham_precision) as isize,
-            (from_z * laws.bresenham_precision) as isize,
+            (from_x * w.geo_bresenham_precision) as isize,
+            (from_y * w.geo_bresenham_precision) as isize,
+            (from_z * w.geo_bresenham_precision) as isize,
         );
         let end = (
-            (to_x * laws.bresenham_precision) as isize,
-            (to_y * laws.bresenham_precision) as isize,
-            (to_z * laws.bresenham_precision) as isize,
+            (to_x * w.geo_bresenham_precision) as isize,
+            (to_y * w.geo_bresenham_precision) as isize,
+            (to_z * w.geo_bresenham_precision) as isize,
         );
         let tile = Xy(
-            from_x as u64 / GEO_PIXELS_PER_TILE,
-            from_y as u64 / GEO_PIXELS_PER_TILE,
+            from_x as u64 / w.geo_pixels_per_tile,
+            from_y as u64 / w.geo_pixels_per_tile,
         );
         let bresenham = Bresenham3d::new(start, end);
         let distance = Xy::from(start).distance(Xy::from(end));
-        let step = (laws.bresenham_step).min(distance as usize);
+        let step = (w.geo_bresenham_step).min(distance as u64);
         let target = Some([end.0, end.1, end.2]);
 
         Self {
-            laws,
+            w,
             bresenham,
             x: start.0 as f32,
             y: start.1 as f32,
@@ -67,56 +65,56 @@ impl<'a> Iterator for Steps<'a> {
     type Item = Step;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let world_width = WORLD_WIDTH_PIXELS as f32 * self.laws.bresenham_precision;
-        let world_height = WORLD_HEIGHT_PIXELS as f32 * self.laws.bresenham_precision;
+        let world_width = self.w.world_width_pixels as f32 * self.w.geo_bresenham_precision;
+        let world_height = self.w.world_height_pixels as f32 * self.w.geo_bresenham_precision;
 
         if self.first {
             self.first = false;
 
             let tile = Xy(
-                (self.x / self.laws.bresenham_precision) as u64 / self.laws.pixels_per_tile,
-                (self.y / self.laws.bresenham_precision) as u64 / self.laws.pixels_per_tile,
+                (self.x / self.w.geo_bresenham_precision) as u64 / self.w.geo_pixels_per_tile,
+                (self.y / self.w.geo_bresenham_precision) as u64 / self.w.geo_pixels_per_tile,
             );
             return Some(Step::First(
                 [
-                    self.x / self.laws.bresenham_precision,
-                    self.y / self.laws.bresenham_precision,
-                    self.z / self.laws.bresenham_precision,
+                    self.x / self.w.geo_bresenham_precision,
+                    self.y / self.w.geo_bresenham_precision,
+                    self.z / self.w.geo_bresenham_precision,
                 ],
                 tile,
             ));
         }
 
-        if let Some((x, y, z)) = self.bresenham.nth(self.step) {
+        if let Some((x, y, z)) = self.bresenham.nth(self.step as usize) {
             // TODO: maximum z ?
             if x < 0 || y < 0 || x + 1 >= world_width as isize || y + 1 >= world_height as isize {
                 return Some(Step::Outside);
             }
 
             let tile = Xy(
-                (x as f32 / self.laws.bresenham_precision) as u64 / self.laws.pixels_per_tile,
-                (y as f32 / self.laws.bresenham_precision) as u64 / self.laws.pixels_per_tile,
+                (x as f32 / self.w.geo_bresenham_precision) as u64 / self.w.geo_pixels_per_tile,
+                (y as f32 / self.w.geo_bresenham_precision) as u64 / self.w.geo_pixels_per_tile,
             );
             if tile != self.tile {
                 self.tile = tile;
             };
 
-            self.x = (x as f32) / self.laws.bresenham_precision;
-            self.y = (y as f32) / self.laws.bresenham_precision;
-            self.z = (z as f32) / self.laws.bresenham_precision;
+            self.x = (x as f32) / self.w.geo_bresenham_precision;
+            self.y = (y as f32) / self.w.geo_bresenham_precision;
+            self.z = (z as f32) / self.w.geo_bresenham_precision;
 
             return Some(Step::Inside([self.x, self.y, self.z], self.tile));
         }
 
         if let Some([x, y, z]) = self.target.take() {
             let (x, y, z) = (
-                x as f32 / self.laws.bresenham_precision,
-                y as f32 / self.laws.bresenham_precision,
-                z as f32 / self.laws.bresenham_precision,
+                x as f32 / self.w.geo_bresenham_precision,
+                y as f32 / self.w.geo_bresenham_precision,
+                z as f32 / self.w.geo_bresenham_precision,
             );
             let tile = Xy(
-                x as u64 / self.laws.pixels_per_tile,
-                y as u64 / self.laws.pixels_per_tile,
+                x as u64 / self.w.geo_pixels_per_tile,
+                y as u64 / self.w.geo_pixels_per_tile,
             );
             return Some(Step::Last([x, y, z], tile));
         }
@@ -132,10 +130,10 @@ mod tests {
     #[test]
     fn test_steps_in_rectiline_line() {
         // Given
-        let laws = Laws::default()
-            .bresenham_precision(100.)
-            .bresenham_step(250);
-        let mut steps = Steps::new(&laws, (0., 0., 0.), (10.0, 10.0, 0.));
+        let w = WorldConfig::new(1000, 1000)
+            .geo_bresenham_precision(100.)
+            .geo_bresenham_step(250);
+        let mut steps = Steps::new(&w, (0., 0., 0.), (10.0, 10.0, 0.));
 
         // When-Then
         assert_eq!(steps.next(), Some(Step::First([0.0, 0.0, 0.0], Xy(0, 0))));
@@ -155,8 +153,8 @@ mod tests {
     #[test]
     fn test_steps_in_diag() {
         // Given
-        let laws = Laws::default();
-        let mut steps = Steps::new(&laws, (10., 10., 0.), (15.0, 15.0, 0.));
+        let w = WorldConfig::new(1000, 1000);
+        let mut steps = Steps::new(&w, (10., 10., 0.), (15.0, 15.0, 0.));
 
         // When-Then
         assert_eq!(steps.next(), Some(Step::First([10.0, 10.0, 0.], Xy(2, 2))));

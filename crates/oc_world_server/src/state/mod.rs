@@ -7,7 +7,7 @@ use oc_geo::tile::WorldTileIndex;
 use oc_individual::IndividualIndex;
 use oc_mod::Mod;
 use oc_projectile::ProjectileId;
-use oc_root::{Client, ids::Ids};
+use oc_root::{Client, WorldConfig, ids::Ids};
 use oc_world::{World, load::WorldLoader, snapshot::Snapshot};
 
 use crate::{
@@ -16,6 +16,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct State<E: Client> {
+    pub w: WorldConfig,
     pub _ids: Ids,
     pub _mod: Mod,
     pub perf: Arc<Perf>,
@@ -26,14 +27,15 @@ pub struct State<E: Client> {
 }
 
 impl<E: Client> State<E> {
-    pub fn new(ids: Ids, mod_: Mod, world: World) -> Self {
+    pub fn new(w: WorldConfig, ids: Ids, mod_: Mod, world: World) -> Self {
         let perf = Arc::new(Perf::default());
         let indexes = Arc::new(RwLock::new(Indexes::new(&world)));
         let world = Arc::new(RwLock::new(world));
-        let listeners = Arc::new(RwLock::new(Listeners::new()));
+        let listeners = Arc::new(RwLock::new(Listeners::new(&w)));
         let scheduled = Arc::new(Mutex::new(vec![]));
 
         Self {
+            w,
             _ids: ids,
             _mod: mod_,
             perf,
@@ -93,8 +95,9 @@ pub fn init<E: Client>(config: ServerConfig) -> Result<State<E>, anyhow::Error> 
     let ids = Ids::default();
     let mod_ = Mod::load(&mod_, Some(&cache))?;
     let snapshot = Snapshot::load(&config.snapshot)?;
-    let world = WorldLoader::new(mod_.clone(), world.clone(), cache.clone());
+    let w = snapshot.w.clone();
+    let world = WorldLoader::new(w.clone(), mod_.clone(), world.clone(), cache.clone());
     let world = world.load(&ids, snapshot)?;
 
-    Ok(State::new(ids, mod_.clone(), world))
+    Ok(State::new(w.clone(), ids, mod_.clone(), world))
 }

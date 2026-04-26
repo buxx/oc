@@ -5,7 +5,7 @@ use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_individual::IndividualIndex;
 use oc_projectile::Projectile;
 use oc_projectile::ProjectileId;
-use oc_root::{REGIONS_COUNT, TILES_COUNT};
+use oc_root::WcfgInto;
 use oc_world::World;
 
 use crate::physics;
@@ -41,14 +41,14 @@ pub struct Indexes {
 
 impl Indexes {
     pub fn new(world: &World) -> Self {
-        let mut tiles_individuals = SizedIndex::new(TILES_COUNT);
-        let mut tiles_projectiles = SizedIndex::new(TILES_COUNT);
-        let mut regions_individuals = SizedIndex::new(REGIONS_COUNT);
-        let mut regions_projectiles = SizedIndex::new(REGIONS_COUNT);
+        let mut tiles_individuals = SizedIndex::new(world.w.tiles_count as usize);
+        let mut tiles_projectiles = SizedIndex::new(world.w.tiles_count as usize);
+        let mut regions_individuals = SizedIndex::new(world.w.regions_count as usize);
+        let mut regions_projectiles = SizedIndex::new(world.w.regions_count as usize);
 
         for (i, individual) in world.individuals().iter().enumerate() {
             let tile: WorldTileIndex = individual.tile;
-            let region: WorldRegionIndex = tile.into();
+            let region: WorldRegionIndex = tile.into_(&world.w);
 
             tiles_individuals[tile.0 as usize].push(i.into());
             regions_individuals[region.0 as usize].push(i.into());
@@ -56,7 +56,7 @@ impl Indexes {
 
         for (id, projectile) in world.projectiles() {
             let tile: WorldTileIndex = projectile.tile();
-            let region: WorldRegionIndex = tile.into();
+            let region: WorldRegionIndex = tile.into_(&world.w);
 
             tiles_projectiles[tile.0 as usize].push(*id);
             regions_projectiles[region.0 as usize].push(*id);

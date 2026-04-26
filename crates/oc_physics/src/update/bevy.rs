@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use bevy::prelude::*;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
-use oc_root::y::Y as _;
+use oc_root::{Wcfg, y::Y as _};
 use oc_utils::bevy::EntityMapping;
 
 #[derive(Debug, Event)]
@@ -75,7 +75,9 @@ fn on_set_position_event<I: Hash + Eq + Send + Sync + 'static>(
     event: On<SetPositionEvent<I>>,
     mut query: Query<(&mut Position, &mut Transform)>,
     state: Res<EntityMapping<I>>,
+    w: Res<Wcfg>,
 ) {
+    let Some(w) = &w.0 else { return };
     let Some(entity) = state.get(&event.0) else {
         return;
     };
@@ -85,7 +87,7 @@ fn on_set_position_event<I: Hash + Eq + Send + Sync + 'static>(
     // tracing::trace!(name = "update-individual-position", i=?position.0.0, position=?position.1);
 
     position_.0 = event.1;
-    let translation = event.1.to_gui_y();
+    let translation = event.1.to_gui_y(&w);
     transform.translation.x = translation[0];
     transform.translation.y = translation[1];
 }

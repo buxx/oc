@@ -1,7 +1,4 @@
-use oc_root::{
-    GEO_BRESENHAM_PRECISION, GEO_BRESENHAM_STEP, GEO_PIXELS_PER_METERS, GEO_PIXELS_PER_TILE,
-    PHYSICS_COEFF_PER_TICK, physics::MetersSeconds,
-};
+use oc_root::{WorldConfig, physics::MetersSeconds};
 use oc_utils::d2::Xy;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -15,59 +12,11 @@ pub mod translation;
 pub mod update;
 pub mod volume;
 
-pub struct Laws {
-    /// For units in x/s, this value is coeff per tick, to obtain 1.0 after the number of tick done in one second
-    pub tick_coeff: f32,
-    pub bresenham_precision: f32,
-    pub bresenham_step: usize,
-    pub pixels_per_tile: u64,
-    pub pixels_per_meters: f32,
-}
-
-impl Laws {
-    pub fn tick_coeff(mut self, value: f32) -> Self {
-        self.tick_coeff = value;
-        self
-    }
-
-    pub fn bresenham_precision(mut self, tick_coeff: f32) -> Self {
-        self.bresenham_precision = tick_coeff;
-        self
-    }
-
-    pub fn bresenham_step(mut self, value: usize) -> Self {
-        self.bresenham_step = value;
-        self
-    }
-
-    pub fn pixels_per_tile(mut self, value: u64) -> Self {
-        self.pixels_per_tile = value;
-        self
-    }
-
-    pub fn pixels_per_meters(mut self, value: f32) -> Self {
-        self.pixels_per_meters = value;
-        self
-    }
-}
-
-impl Default for Laws {
-    fn default() -> Self {
-        Self {
-            tick_coeff: PHYSICS_COEFF_PER_TICK,
-            bresenham_precision: GEO_BRESENHAM_PRECISION,
-            bresenham_step: GEO_BRESENHAM_STEP,
-            pixels_per_tile: GEO_PIXELS_PER_TILE,
-            pixels_per_meters: GEO_PIXELS_PER_METERS,
-        }
-    }
-}
-
 pub trait Physic: Material {
     // TODO: maby position should be `Geo` instead `Physics`...
-    fn position(&self) -> [f32; 3];
-    fn forces(&self) -> &Vec<Force>;
-    fn volume(&self, ref_: [f32; 3]) -> Volume;
+    fn position(&self, w: &WorldConfig) -> [f32; 3];
+    fn forces(&self, w: &WorldConfig) -> &Vec<Force>;
+    fn volume(&self, ref_: [f32; 3], w: &WorldConfig) -> Volume;
 }
 
 pub trait UpdatePhysic: Physic + Material {
@@ -105,15 +54,15 @@ impl<I: Clone + std::fmt::Debug> Corps<I> {
 }
 
 impl<I: Clone + std::fmt::Debug> Physic for Corps<I> {
-    fn position(&self) -> [f32; 3] {
+    fn position(&self, _: &WorldConfig) -> [f32; 3] {
         self.position
     }
 
-    fn forces(&self) -> &Vec<Force> {
+    fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
         &self.forces
     }
 
-    fn volume(&self, ref_: [f32; 3]) -> Volume {
+    fn volume(&self, ref_: [f32; 3], _: &WorldConfig) -> Volume {
         self.volume.clone().with_ref(ref_)
     }
 }
@@ -143,7 +92,8 @@ pub trait World<Z> {
 
 #[inline]
 pub fn step<'a, I, O, F, Z>(
-    laws: &Laws,
+    w: &WorldConfig,
+    delta: f32,
     object: (I, &'a O),
     at: F,
     origin: &str,
@@ -156,15 +106,15 @@ where
 {
     let (i, object) = object;
     let mut events = vec![];
-    let mut position = object.position();
+    let mut position = object.position(w);
     let mut forces = vec![];
-    tracing::trace!(name="physics-step-start", origin=origin, i=?i, p=?position, forces=?object.forces());
+    tracing::trace!(name="physics-step-start", origin=origin, i=?i, p=?position, forces=?object.forces(w));
 
-    'forces: for force in object.forces() {
+    'forces: for force in object.forces(w) {
         match force {
             Force::Translation(direction, speed) => {
-                let speed = speed.0 * laws.tick_coeff;
-                let pixels = speed * laws.pixels_per_meters;
+                let speed = speed.0 * delta;
+                let pixels = speed * w.geo_pixels_per_meters;
                 let [x, y, z] = position;
                 let (x_, y_, z_) = (
                     x + direction[0] * pixels,
@@ -184,24 +134,24 @@ where
                 );
 
                 let mut curent_tile = Xy(
-                    x as u64 / GEO_PIXELS_PER_TILE,
-                    y as u64 / GEO_PIXELS_PER_TILE,
+                    x as u64 / w.geo_pixels_per_tile,
+                    y as u64 / w.geo_pixels_per_tile,
                 );
 
-                for step in line::Steps::new(laws, (x, y, z), (x_, y_, z_)) {
+                for step in line::Steps::new(w, (x, y, z), (x_, y_, z_)) {
                     match step {
                         line::Step::First([step_x, step_y, step_z], step_tile)
                         | line::Step::Inside([step_x, step_y, step_z], step_tile)
                         | line::Step::Last([step_x, step_y, step_z], step_tile) => {
                             // Test new tile only when line on new tile
                             if step_tile != curent_tile {
-                                let volume = object.volume([step_x, step_y, step_z]);
+                                let volume = object.volume([step_x, step_y, step_z], w);
                                 tracing::trace!(name="physics-step-translation-newtile", origin=origin, i=?i, p=?position, xy=?step_tile);
 
                                 for (o, other) in at(step_tile) {
                                     // if other.material().is_solid() {
-                                    let [other_x, other_y, other_z] = other.position();
-                                    let volume2 = other.volume([other_x, other_y, other_z]);
+                                    let [other_x, other_y, other_z] = other.position(w);
+                                    let volume2 = other.volume([other_x, other_y, other_z], w);
 
                                     tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?step_tile, o=?o, volume=?volume, volume2=?volume2);
                                     if volume.collide(&volume2) {
@@ -242,6 +192,7 @@ where
 #[cfg(test)]
 mod tests {
     use oc_geo::tile::TileXy;
+    use oc_root::WcfgInto;
 
     use crate::collision::Materials;
 
@@ -252,14 +203,14 @@ mod tests {
     struct MyObjectId;
 
     impl Physic for MyObject {
-        fn position(&self) -> [f32; 3] {
+        fn position(&self, _: &WorldConfig) -> [f32; 3] {
             self.0
         }
-        fn forces(&self) -> &Vec<Force> {
+        fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
             &self.1
         }
 
-        fn volume(&self, ref_: [f32; 3]) -> Volume {
+        fn volume(&self, ref_: [f32; 3], _: &WorldConfig) -> Volume {
             Volume::Point {
                 x: ref_[0],
                 y: ref_[1],
@@ -277,22 +228,22 @@ mod tests {
     struct MyTile(TileXy, Materials);
 
     impl Physic for MyTile {
-        fn position(&self) -> [f32; 3] {
-            self.0.into()
+        fn position(&self, w: &WorldConfig) -> [f32; 3] {
+            self.0.into_(w)
         }
 
-        fn forces(&self) -> &Vec<Force> {
+        fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
             static EMPTY: Vec<Force> = vec![];
             &EMPTY
         }
 
-        fn volume(&self, ref_: [f32; 3]) -> Volume {
+        fn volume(&self, ref_: [f32; 3], w: &WorldConfig) -> Volume {
             Volume::Cube {
                 x: ref_[0],
                 y: ref_[1],
                 z: ref_[2],
-                width: GEO_PIXELS_PER_TILE as f32,
-                height: GEO_PIXELS_PER_TILE as f32,
+                width: w.geo_pixels_per_tile as f32,
+                height: w.geo_pixels_per_tile as f32,
                 depth: f32::MAX,
             }
         }
@@ -307,10 +258,11 @@ mod tests {
     #[test]
     fn test_unidirectional_translation() {
         // Given
-        let laws = Laws::default()
-            .tick_coeff(0.5)
-            .bresenham_precision(100.)
-            .pixels_per_meters(10.);
+        let w = WorldConfig::new(1000, 1000)
+            .physics_coeff_per_tick(0.5)
+            .geo_bresenham_precision(100.)
+            .geo_pixels_per_meters(10.);
+        let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction, speed);
@@ -318,7 +270,7 @@ mod tests {
 
         // When
         let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&laws, (MyObjectId, &object), |_| vec![], "test");
+            step(&w, delta, (MyObjectId, &object), |_| vec![], "test");
 
         // Then
         let expected_new_position = [5.0, 0.0, 0.0];
@@ -328,11 +280,12 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_collision() {
         // Given
-        let laws = Laws::default()
-            .tick_coeff(0.5)
-            .bresenham_precision(100.)
-            .bresenham_step(250)
-            .pixels_per_meters(10.);
+        let w = WorldConfig::new(1000, 1000)
+            .physics_coeff_per_tick(0.5)
+            .geo_bresenham_precision(100.)
+            .geo_bresenham_step(250)
+            .geo_pixels_per_meters(10.);
+        let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
@@ -351,7 +304,7 @@ mod tests {
 
         // When
         let (new_position, new_forces, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&laws, (MyObjectId, &object), objects, "test");
+            step(&w, delta, (MyObjectId, &object), objects, "test");
 
         // Then
         let expected_new_position = [2.5, 0.0, 0.0];
@@ -363,10 +316,11 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_high_speed() {
         // Given
-        let laws = Laws::default()
-            .tick_coeff(0.5)
-            .bresenham_precision(100.)
-            .pixels_per_meters(10.);
+        let w = WorldConfig::new(1000, 1000)
+            .physics_coeff_per_tick(0.5)
+            .geo_bresenham_precision(100.)
+            .geo_pixels_per_meters(10.);
+        let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(10.0);
         let force = Force::Translation(direction, speed);
@@ -374,7 +328,7 @@ mod tests {
 
         // When
         let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&laws, (MyObjectId, &object), |_| vec![], "test");
+            step(&w, delta, (MyObjectId, &object), |_| vec![], "test");
 
         // Then
         let expected_new_position = [50.0, 0.0, 0.0];
@@ -384,11 +338,12 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_high_speed_collision() {
         // Given
-        let laws = Laws::default()
-            .tick_coeff(0.5)
-            .bresenham_precision(100.)
-            .bresenham_step(250)
-            .pixels_per_meters(10.);
+        let w = WorldConfig::new(1000, 1000)
+            .physics_coeff_per_tick(0.5)
+            .geo_bresenham_precision(100.)
+            .geo_bresenham_step(250)
+            .geo_pixels_per_meters(10.);
+        let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
@@ -407,7 +362,7 @@ mod tests {
 
         // When
         let (new_position, new_forces, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&laws, (MyObjectId, &object), objects, "test");
+            step(&w, delta, (MyObjectId, &object), objects, "test");
 
         // Then
         let expected_new_position = [2.5, 0.0, 0.0];
@@ -419,10 +374,11 @@ mod tests {
     #[test]
     fn test_bidirectional_translation() {
         // Given
-        let laws = Laws::default()
-            .tick_coeff(0.5)
-            .bresenham_precision(100.)
-            .pixels_per_meters(10.);
+        let w = WorldConfig::new(1000, 1000)
+            .physics_coeff_per_tick(0.5)
+            .geo_bresenham_precision(100.)
+            .geo_pixels_per_meters(10.);
+        let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 1.0, 0.0]; // South
         let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction, speed);
@@ -430,7 +386,7 @@ mod tests {
 
         // When
         let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&laws, (MyObjectId, &object), |_| vec![], "test");
+            step(&w, delta, (MyObjectId, &object), |_| vec![], "test");
 
         // Then
         let expected_new_position = [5.0, 5.0, 0.0];

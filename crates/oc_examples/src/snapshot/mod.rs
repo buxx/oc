@@ -2,6 +2,7 @@ use std::{marker::PhantomData, path::PathBuf};
 
 use oc_individual::Individual;
 use oc_projectile::Projectile;
+use oc_root::WorldConfig;
 use oc_world::{
     snapshot::{SaveError, Snapshot},
     tile::Tile,
@@ -36,13 +37,14 @@ where
         }
     }
 
-    pub fn build(&self) -> Result<PathBuf, Error> {
+    pub fn build(&self, w: WorldConfig) -> Result<PathBuf, Error> {
         let (_, snapshot_path) = tempfile::NamedTempFile::new()?.keep()?;
-        let tiles = self.tiles.tiles();
-        let individuals = self.individuals.individuals(&tiles);
-        let projectiles = self.projectiles.projectiles();
+        let tiles = self.tiles.tiles(&w);
+        let individuals = self.individuals.individuals(&w, &tiles);
+        let projectiles = self.projectiles.projectiles(&w);
 
         let snapshot = Snapshot {
+            w,
             tiles,
             individuals,
             projectiles,
@@ -78,31 +80,31 @@ impl<T> EmptyGenerator<T> {
 }
 
 impl individual::IndividualsGenerator for EmptyGenerator<Individual> {
-    fn individuals(&self, _: &Vec<Tile>) -> Vec<Individual> {
+    fn individuals(&self, _: &WorldConfig, _: &Vec<Tile>) -> Vec<Individual> {
         vec![]
     }
 }
 
 impl projectile::ProjectilesGenerator for EmptyGenerator<Projectile> {
-    fn projectiles(&self) -> Vec<Projectile> {
+    fn projectiles(&self, _: &WorldConfig) -> Vec<Projectile> {
         vec![]
     }
 }
 
 impl individual::IndividualsGenerator for Vec<Individual> {
-    fn individuals(&self, _: &Vec<Tile>) -> Vec<Individual> {
+    fn individuals(&self, _: &WorldConfig, _: &Vec<Tile>) -> Vec<Individual> {
         self.clone()
     }
 }
 
 impl projectile::ProjectilesGenerator for Vec<Projectile> {
-    fn projectiles(&self) -> Vec<Projectile> {
+    fn projectiles(&self, _: &WorldConfig) -> Vec<Projectile> {
         self.clone()
     }
 }
 
-impl<T: Fn(&Vec<Tile>) -> Vec<Individual>> individual::IndividualsGenerator for T {
-    fn individuals(&self, tiles: &Vec<Tile>) -> Vec<Individual> {
-        self(tiles)
+impl<T: Fn(&WorldConfig, &Vec<Tile>) -> Vec<Individual>> individual::IndividualsGenerator for T {
+    fn individuals(&self, w: &WorldConfig, tiles: &Vec<Tile>) -> Vec<Individual> {
+        self(w, tiles)
     }
 }

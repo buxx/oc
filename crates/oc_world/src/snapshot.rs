@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use derive_more::Constructor;
 use oc_individual::Individual;
 use oc_projectile::Projectile;
+use oc_root::WorldConfig;
 use rkyv::rancor::Error;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -11,6 +12,7 @@ use crate::tile::Tile;
 #[derive(Archive, Deserialize, Serialize, Constructor)]
 #[rkyv(compare(PartialEq))]
 pub struct Snapshot {
+    pub w: WorldConfig,
     pub tiles: Vec<Tile>,
     pub individuals: Vec<Individual>,
     pub projectiles: Vec<Projectile>,

@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use oc_individual::network::Individual;
 use oc_network::ToClient;
 use oc_projectile::network::Projectile;
+use oc_root::Wcfg;
 
 use crate::{
     fx::FxEvent,
@@ -24,6 +25,7 @@ use crate::{
 pub fn on_to_client(
     to_client: On<ToClientEvent>,
     mut commands: Commands,
+    mut w: ResMut<Wcfg>,
     mut mod_: ResMut<Mod>,
     mut meta: ResMut<Meta>,
     mut config: ResMut<StaticSource>,
@@ -34,6 +36,10 @@ pub fn on_to_client(
         ToClient::StaticSource(static_) => {
             tracing::debug!("Set 'Config'");
             config.0 = Some(static_.clone());
+        }
+        ToClient::Wcfg(wcfg_) => {
+            tracing::debug!("Set 'Wcfg'");
+            w.0 = Some(wcfg_.clone());
         }
         ToClient::Mod(mod__) => {
             tracing::debug!("Set 'Mod'");

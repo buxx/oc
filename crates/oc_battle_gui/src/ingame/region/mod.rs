@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_physics::update::bevy::Region;
-use oc_root::{REGION_HEIGHT_PIXELS, REGION_WIDTH_PIXELS, files, y::Y};
+use oc_root::{Wcfg, WcfgInto, files, y::Y};
 
 use crate::{
     entity::world::region::RegionBackground,
@@ -22,14 +22,15 @@ pub struct ForgottenRegion(pub WorldRegionIndex);
 pub fn on_listening_region(
     region: On<ListeningRegion>,
     mut commands: Commands,
+    w: Res<Wcfg>,
     assets: Res<AssetServer>,
     meta: Res<Meta>,
     mod_: Res<Mod>,
     static_: Res<StaticSource>,
     network: Res<network::state::State>,
 ) {
-    let (Some(static_), Some(connect), Some(meta), Some(mod_)) =
-        (&static_.0, &network.server, &meta.0, &mod_.0)
+    let (Some(static_), Some(connect), Some(meta), Some(mod_), Some(w)) =
+        (&static_.0, &network.server, &meta.0, &mod_.0, &w.0)
     else {
         return;
     };
@@ -40,17 +41,17 @@ pub fn on_listening_region(
     let world = meta.canonical();
     let files = files::Files::new(mod_, world).into_gui(static_.clone(), connect.clone().into());
 
-    let region: RegionXy = region_.into();
+    let region: RegionXy = region_.into_(w);
 
-    let width = REGION_WIDTH_PIXELS as f32;
-    let height = REGION_HEIGHT_PIXELS as f32;
+    let width = w.region_width_pixels as f32;
+    let height = w.region_height_pixels as f32;
     let x = region.0.0 as f32 * width;
     let y = region.0.1 as f32 * height;
     let x = x + width / 2.;
     let y = y + height / 2.;
     let x = x;
-    let y = y.to_gui_y();
-    let i: WorldRegionIndex = region.into();
+    let y = y.to_gui_y(w);
+    let i: WorldRegionIndex = region.into_(w);
     let background = files.region(i.0);
 
     tracing::trace!(name="spawn-region-background", region=?region, x=x, y=y, path=?background);

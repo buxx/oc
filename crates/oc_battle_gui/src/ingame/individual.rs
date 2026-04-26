@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use oc_geo::region::WorldRegionIndex;
 use oc_physics::Physic;
 use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volume};
+use oc_root::Wcfg;
 use oc_utils::bevy::EntityMapping;
 
 use crate::entity::individual::{Behavior, IndividualIndex};
@@ -27,10 +28,12 @@ pub struct SetForcesEvent(oc_individual::IndividualIndex, Vec<oc_physics::Force>
 pub fn on_insert_individual(
     individual: On<InsertIndividualEvent>,
     mut commands: Commands,
+    w: Res<Wcfg>,
     mut state: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
+    let Some(w) = &w.0 else { return };
     tracing::trace!(name="spawn-individual", i=?individual.0, position=?individual.1.position);
     let position = individual.1.position;
     let entity = commands
@@ -41,7 +44,7 @@ pub fn on_insert_individual(
             Region(individual.1.region),
             Behavior(individual.1.behavior),
             Forces(individual.1.forces.clone()),
-            Volume(individual.1.volume(position).clone()),
+            Volume(individual.1.volume(position, w).clone()),
             Mesh2d(meshes.add(Circle::new(2.5))),
             MeshMaterial2d(materials.add(Color::from(PURPLE))),
             Transform::from_xyz(

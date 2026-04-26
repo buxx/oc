@@ -1,5 +1,5 @@
 use oc_geo::region::WorldRegionIndex;
-use oc_root::REGIONS_COUNT;
+use oc_root::WorldConfig;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::hash::Hash;
 
@@ -12,17 +12,11 @@ pub struct Listeners<T: Clone + PartialEq + Hash + std::cmp::Eq> {
     listeners_regions: FxHashMap<T, Vec<WorldRegionIndex>>,
 }
 
-impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Default for Listeners<T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
-    pub fn new() -> Self {
+    pub fn new(w: &WorldConfig) -> Self {
         Self {
             all: vec![],
-            regions_listeners: vec![vec![]; REGIONS_COUNT],
+            regions_listeners: vec![vec![]; w.regions_count as usize],
             listeners_regions: FxHashMap::default(),
         }
     }
