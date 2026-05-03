@@ -32,6 +32,7 @@ oc_world = { path = "../oc_world", features = ["bevy"] }
 oc_physics = { path = "../oc_physics", features = ["bevy"] }
 oc_individual = { path = "../oc_individual" }
 oc_projectile = { path = "../oc_projectile" }
+bevy_heightmap = { path = "../bevy_heightmap" }
 bevy.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
