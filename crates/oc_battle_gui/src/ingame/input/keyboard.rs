@@ -2,11 +2,11 @@ use bevy::input::ButtonState;
 use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 
-use crate::ingame::camera;
 #[cfg(feature = "debug")]
 use crate::ingame::camera::debug::tile::ToggleShowTiles;
 use crate::ingame::camera::map::SaveCurrentWindowCenterAsBattleCenter;
-use crate::ingame::input::map::{SwitchToBattleMap, SwitchToWorldMap};
+use crate::ingame::{SwitchToBattleMap, SwitchToWorldMap};
+use crate::ingame::{SwitchToHeightMap, camera};
 use crate::window::ToggleWindow;
 use crate::window::Window;
 #[cfg(feature = "debug")]
@@ -26,10 +26,33 @@ pub fn on_key_press(
         match (event.state, event.key_code) {
             (ButtonState::Released, KeyCode::F1) => match camera.focus {
                 camera::Focus::Battle => {
+                    tracing::debug!("Trigger switch to world map (from battle map)");
                     commands.trigger(SaveCurrentWindowCenterAsBattleCenter);
                     commands.trigger(SwitchToWorldMap);
                 }
-                camera::Focus::World => commands.trigger(SwitchToBattleMap),
+                camera::Focus::Height => {
+                    tracing::debug!("Trigger switch to battle map (from height map)");
+                    commands.trigger(SwitchToBattleMap) // Todo refact and trigger unmount height
+                }
+                camera::Focus::World => {
+                    tracing::debug!("Trigger switch to battle map (from world map)");
+                    commands.trigger(SwitchToBattleMap); // Todo refact and trigger unmount world
+                }
+            },
+            (ButtonState::Released, KeyCode::F2) => match camera.focus {
+                camera::Focus::Battle => {
+                    tracing::debug!("Trigger switch to height map (from battle map)");
+                    commands.trigger(SaveCurrentWindowCenterAsBattleCenter);
+                    commands.trigger(SwitchToHeightMap);
+                }
+                camera::Focus::Height => {
+                    tracing::debug!("Trigger switch to battle map (from height map)");
+                    commands.trigger(SwitchToBattleMap); // Todo refact and trigger unmount height
+                }
+                camera::Focus::World => {
+                    tracing::debug!("Trigger switch to height map (from world map)");
+                    commands.trigger(SwitchToHeightMap); // Todo refact and trigger unmount world
+                }
             },
             (ButtonState::Released, KeyCode::Escape) => {
                 let window = menu.0.clone().unwrap_or(BattleMenu);

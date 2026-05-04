@@ -7,21 +7,6 @@ edition = "2024"
 debug = ["bevy/bevy_dev_tools", "oc_network/debug"]
 test = []
 
-# [profile.dev]
-# opt-level = 1
-
-# [profile.dev.package."*"]
-# opt-level = 3
-
-# [profile.release]
-# codegen-units = 1
-# lto = "thin"
-
-# [profile.wasm-release]
-# inherits = "release"
-# opt-level = "s"
-# strip = "debuginfo"
-
 [dependencies]
 oc_root = { path = "../oc_root", features = ["bevy"] }
 oc_network = { path = "../oc_network" }
@@ -51,3 +36,4 @@ tar.workspace = true
 bon.workspace = true
 fs_extra.workspace = true
 tempfile.workspace = true
+image.workspace = true

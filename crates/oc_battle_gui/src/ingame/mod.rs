@@ -1,20 +1,22 @@
 use bevy::prelude::*;
+use oc_root::Wcfg;
 
 #[cfg(feature = "debug")]
 use crate::ingame::input::left_click::SpawnProjectileLeftClick;
 use crate::{
     ingame::{
+        draw::world::WorldMapDisplay,
+        height::HeightPlugin,
         individual::IndividualPlugin,
         input::{client::on_to_client, keyboard::on_key_press},
         projectile::ProjectilePlugin,
-        // region::{on_forgotten_region, on_listening_region},
         region::on_listening_region,
         world::{
             on_adjust_minimap, on_despawn_world_map_background, on_spawn_minimap,
             on_spawn_visible_battle_square, on_spawn_world_map_background, on_update_battle_square,
         },
     },
-    states::AppState,
+    states::{AppState, InGameState},
     world::WorldPlugin,
 };
 
@@ -22,6 +24,7 @@ pub mod camera;
 #[cfg(feature = "debug")]
 pub mod debug;
 pub mod draw;
+pub mod height;
 pub mod individual;
 pub mod init;
 pub mod input;
@@ -35,9 +38,19 @@ pub struct IngamePlugin;
 #[derive(Debug, Event)]
 pub struct FirstIngameEnter;
 
+#[derive(Debug, Event)]
+pub struct SwitchToWorldMap;
+
+#[derive(Debug, Event)]
+pub struct SwitchToBattleMap;
+
+#[derive(Debug, Event)]
+pub struct SwitchToHeightMap;
+
 impl Plugin for IngamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(WorldPlugin)
+            .add_plugins(HeightPlugin)
             .add_plugins(IndividualPlugin)
             .add_plugins(ProjectilePlugin)
             // TODO: InputPlugin
@@ -51,6 +64,9 @@ impl Plugin for IngamePlugin {
             .add_observer(on_despawn_world_map_background)
             .add_observer(on_listening_region)
             .add_observer(projectile::on_forgot_projectile)
+            .add_observer(on_switch_to_world_map)
+            .add_observer(on_switch_to_battle_map)
+            .add_observer(on_switch_to_height_map)
             // .add_observer(on_forgotten_region)
             // TODO: InputPlugin
             .add_observer(physics::on_physics_event)
@@ -83,4 +99,73 @@ impl Plugin for IngamePlugin {
             );
         // .add_observer(init::on_first_ingame_enter)
     }
+}
+
+pub fn on_switch_to_battle_map(
+    _: On<SwitchToBattleMap>,
+    mut camera: Single<&mut Transform, With<Camera2d>>,
+    mut state: ResMut<camera::State>,
+    mut ingame: ResMut<NextState<InGameState>>,
+) {
+    tracing::debug!("Switch to battle map");
+    let Some(previously) = state.previously else {
+        return;
+    };
+
+    state.focus = camera::Focus::Battle;
+    camera.translation.x = previously.x;
+    camera.translation.y = previously.y;
+    camera.translation.z = previously.z;
+
+    tracing::debug!("Set game state to battle");
+    *ingame = NextState::Pending(InGameState::Battle);
+}
+
+pub fn on_switch_to_height_map(
+    _: On<SwitchToHeightMap>,
+    mut commands: Commands,
+    camera_entity: Single<Entity, With<Camera2d>>,
+    camera: Single<(&Camera, &GlobalTransform)>,
+    window: Single<&Window>,
+    mut ingame: ResMut<NextState<InGameState>>,
+) {
+    tracing::debug!("Switch to height map");
+
+    let (camera, transform) = *camera;
+    let width = window.resolution.width();
+    let height = window.resolution.height();
+    let center = Vec2::new(width / 2., height / 2.);
+    let Ok(center) = camera.viewport_to_world_2d(transform, center) else {
+        return;
+    };
+
+    commands.entity(*camera_entity).despawn();
+    *ingame = NextState::Pending(InGameState::Height);
+    height::setup_camera(&mut commands);
+
+    tracing::debug!("Set game state to height");
+    *ingame = NextState::Pending(InGameState::Height);
+
+    tracing::debug!("Trigger spawn height (center={center:?}");
+    commands.trigger(height::Spawn(center));
+}
+
+pub fn on_switch_to_world_map(
+    _: On<SwitchToWorldMap>,
+    w: Res<Wcfg>,
+    mut camera: Single<&mut Transform, With<Camera2d>>,
+    mut state: ResMut<camera::State>,
+    window: Single<&Window>,
+    mut ingame: ResMut<NextState<InGameState>>,
+) {
+    tracing::debug!("Switch to world map");
+    let Some(w) = &w.0 else { return };
+
+    let display = WorldMapDisplay::from_env(w, window.size());
+    state.focus = camera::Focus::World;
+    camera.translation.x = display.center.x;
+    camera.translation.y = display.center.y;
+
+    tracing::debug!("Set game state to world");
+    *ingame = NextState::Pending(InGameState::World);
 }

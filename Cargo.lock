@@ -5306,6 +5306,7 @@ dependencies = [
  "egui_dock",
  "flate2",
  "fs_extra",
+ "image 0.25.9",
  "message-io",
  "oc_geo",
  "oc_individual",

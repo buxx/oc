@@ -8,11 +8,11 @@ use oc_world::{terrain::Terrain, tile::Tile};
 
 use crate::{
     ingame::{
+        SwitchToWorldMap,
         camera::{
             move_::{MovedBattleCamera, UpdateVisibleBattleSquare},
             region::Region,
         },
-        input::map::SwitchToWorldMap,
         world::{AdjustMinimap, DespawnWorldMapBackground, SpawnWorldMapBackground},
     },
     states::{AppState, InGameState},
@@ -36,15 +36,14 @@ pub struct GoToPoint(pub [f32; 2]);
 pub enum Focus {
     #[default]
     Battle,
+    Height,
     World,
 }
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<State>()
-            .add_observer(map::on_switch_to_world_map)
             .add_observer(map::on_save_current_window_center_as_battle_center)
-            .add_observer(map::on_switch_to_battle_map)
             .add_observer(region::on_update_regions)
             .add_observer(move_::on_moved_battle_camera)
             .add_observer(move_::on_go_to_point)
