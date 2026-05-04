@@ -10,15 +10,20 @@ use crate::{
 };
 
 pub fn init(mut commands: Commands) {
+    tracing::debug!("Trigger FirstIngameEnter");
     commands.trigger(FirstIngameEnter);
 }
 
 pub fn refresh(mut commands: Commands) {
+    tracing::debug!("Trigger ToServerEvent(ToServer::Refresh)");
     commands.trigger(ToServerEvent(ToServer::Refresh));
 }
 
 pub fn spawn_world_map(mut commands: Commands) {
+    tracing::debug!("Trigger SpawnMinimap");
     commands.trigger(SpawnMinimap);
+    tracing::debug!("Trigger SpawnWorldMapBackground");
     commands.trigger(SpawnWorldMapBackground);
+    tracing::debug!("Trigger SpawnVisibleBattleSquare");
     commands.trigger(SpawnVisibleBattleSquare);
 }

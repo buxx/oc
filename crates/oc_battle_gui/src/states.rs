@@ -15,6 +15,7 @@ pub enum AppState {
 pub enum InGameState {
     #[default]
     Battle,
+    Height,
     World,
 }
 

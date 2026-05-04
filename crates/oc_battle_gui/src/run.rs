@@ -37,7 +37,7 @@ pub fn run(config: Config_) -> AppExit {
             .set(WindowPlugin {
                 primary_window: Some(Window {
                     title: "Open Combat".into(),
-                    resolution: (800, 800).into(),
+                    resolution: (1280, 900).into(),
                     // present_mode: PresentMode::AutoNoVsync,
                     ..default()
                 }),

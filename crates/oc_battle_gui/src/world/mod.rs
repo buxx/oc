@@ -53,7 +53,7 @@ pub struct World {
     individuals: Index<WorldTileIndex, Vec<(IndividualIndex, Individual)>>,
     individuals_refs: FxHashMap<IndividualIndex, (WorldRegionIndex, WorldTileIndex)>,
     pub tiles: Index<WorldTileIndex, Tile>,
-    heights: Index<WorldHeightIndex, u8>,
+    pub heights: Index<WorldHeightIndex, u8>,
     pub terrain: Option<oc_world::terrain::Terrain>,
 }
 
@@ -111,12 +111,7 @@ impl World {
         self.individuals_refs.insert(i, (region, tile));
     }
 
-    pub fn remove_individual(
-        &mut self,
-        w: &WorldConfig,
-        i: IndividualIndex,
-        position: [f32; 3],
-    ) {
+    pub fn remove_individual(&mut self, w: &WorldConfig, i: IndividualIndex, position: [f32; 3]) {
         let position = TileXy(Xy(position[0] as u64, position[1] as u64));
         let tile: WorldTileIndex = position.into_(w);
         let region: WorldRegionIndex = tile.into_(w);
