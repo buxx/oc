@@ -90,6 +90,7 @@ fn camera_control(
     mouse_scroll: Res<AccumulatedMouseScroll>,
     keyboard: Res<ButtonInput<KeyCode>>,
 ) {
+    return;
     let delta = mouse_motion.delta;
 
     let panning = mouse_buttons.pressed(MouseButton::Right)
@@ -140,169 +141,89 @@ fn on_spawn(
     tracing::trace!(name="ingame-height-on-spawn-center", center=?center);
 
     let regions: Vec<WorldRegionIndex> = world.tiles.keys().cloned().collect();
-    // FIXME BS NOW: compute size
-    let regions_size = {
-        let region_xys: Vec<RegionXy> =
-            world.tiles.keys().map(|i| RegionXy::from_(*i, w)).collect();
+    let grid_size = UVec2::new(w.region_width as u32, w.region_height as u32);
 
-        let min_x = region_xys.iter().map(|xy| xy.0.0).min();
-        let max_x = region_xys.iter().map(|xy| xy.0.0).max();
-        let min_y = region_xys.iter().map(|xy| xy.0.1).min();
-        let max_y = region_xys.iter().map(|xy| xy.0.1).max();
-
-        match (min_x, max_x, min_y, max_y) {
-            (Some(min_x), Some(max_x), Some(min_y), Some(max_y)) => {
-                Some((max_x - min_x, max_y - min_y))
-            }
-            _ => None,
-        }
-    };
-
-    let (regions_width, regions_height) = match regions_size {
-        Some((regions_width, regions_height)) => (regions_width + 1, regions_height + 1),
-        None => return,
-    };
-    let (tiles_width, tiles_height) = (
-        regions_width * w.region_width,
-        regions_height * w.region_height,
-    );
-    let (background_width, background_height) = (
-        tiles_width * w.geo_pixels_per_tile,
-        tiles_height * w.geo_pixels_per_tile,
-    );
-    let (world_width, world_height) = (w.world_width_pixels, w.world_height_pixels);
-    let tiles = &world.tiles;
-    let tiles_size = UVec2::new(tiles_width as u32, tiles_height as u32);
-
-    // FIXME paths ...
-    let background = regions
-        .iter()
-        .map(|i| i.0.to_string())
-        .collect::<Vec<String>>()
-        .join("_");
-    let background = PathBuf::from("cache_")
-        .join("worlds")
-        .join(meta.canonical())
-        .join(format!("background_{}.png", background));
-
-    tracing::trace!(
-        name = "ingame-height-on-spawn-values",
-        tiles_width = tiles_width,
-        tiles_height = tiles_height,
-        background_width = background_width,
-        background_height = background_height,
-        world_width = world_width,
-        world_height = world_height,
-        regions = ?regions,
-        tiles_size = ?tiles_size,
-        background = background.display().to_string(),
-    );
-
-    // FIXME refact ...
-    // FIXME must be done in background task when move on battle or world map
-    match std::fs::exists(PathBuf::from("assets").join(&background)).unwrap() {
-        true => {
-            tracing::trace!(name = "ingame-height-on-spawn-background-already-exist");
-        }
-        false => {
-            tracing::trace!(name = "ingame-height-on-spawn-background-generate");
-            let mut canvas: ImageBuffer<image::Rgba<u8>, Vec<u8>> = ImageBuffer::from_pixel(
-                background_width as u32,
-                background_height as u32,
-                image::Rgba([0, 0, 0, 255]),
+    for region in regions {
+        // FIXME Files
+        let texture = PathBuf::from("cache_")
+            .join("worlds")
+            .join(meta.canonical())
+            .join(format!("region{}.png", region.0));
+        if !std::fs::exists(PathBuf::from("assets").join(&texture)).unwrap() {
+            tracing::warn!(
+                "Can't build heigh map for region {region:?}: background file {} do not exist",
+                texture.display()
             );
+            continue;
+        }
+        let texture: Handle<Image> = asset_server.load(&texture.display().to_string());
+        tracing::trace!(name = "ingame-height-on-spawn-mesh-generate", region = ?region);
 
-            for region in regions {
-                let xy: RegionXy = region.into_(w);
-                let xy: TileXy = xy.into_(w);
-                let (x, y) = (
-                    xy.0.0 * w.geo_pixels_per_tile,
-                    xy.0.1 * w.geo_pixels_per_tile,
+        let Some(tiles) = world.tiles.get(&region) else {
+            tracing::warn!("Can't build heigh map for region {region:?}: no known tiles",);
+            continue;
+        };
+        let mesh: Handle<Mesh> = meshes.add(
+            ValueFunctionHeightMap(|p: Vec2| {
+                // p is given as retlative like (top-left) -0.5,-0.5, (center) 0.0,0.0, etc.
+                // So, add 0.5 to have something relative from 0.0 to 1.0,
+                // then, * region_width/ieght to find point is.
+                let p_ = Vec2::new(
+                    (p.x + 0.5) * w.region_width as f32,
+                    (p.y + 0.5) * w.region_height as f32,
                 );
-                // FIXME paths ...
-                // FIXME: test if all images exists before, to retry later
-                let region = PathBuf::from("assets")
-                    .join("cache_")
-                    .join("worlds")
-                    .join(meta.canonical())
-                    .join(format!("region{}.png", region.0));
-                tracing::trace!(
-                    name = "ingame-height-on-spawn-background-use",
-                    region = region.display().to_string()
-                );
-                let region = image::open(&region).unwrap();
+                // Remove region_height to adapt to inverted y
+                let (x, y) = (p_.x as u64, (w.region_height as f32 - p_.y) as u64);
+                // let (x, y) = (x / w.geo_pixels_per_tile, y / w.geo_pixels_per_tile);
+                let tile = TileXy(Xy(x, y));
+                let tile_i: WorldTileIndex = tile.into_(w);
 
-                canvas
-                    .copy_from(&region.to_rgba8(), x as u32, y as u32)
-                    .unwrap();
-            }
+                tiles
+                    .get(&tile_i)
+                    .map(|tile| tile.z as f32 * 0.1) // FIXME BS NOW
+                    .unwrap_or_default()
+            })
+            .build_mesh(grid_size),
+        );
 
-            let path = PathBuf::from("assets").join(&background);
-            tracing::trace!(
-                name = "ingame-height-on-spawn-background-write",
-                path = path.display().to_string()
-            );
-            canvas.save(&path).unwrap();
-        }
-    };
-
-    let texture: Handle<Image> = asset_server.load(&background.display().to_string());
-    tracing::trace!(name = "ingame-height-on-spawn-mesh-generate");
-    let mesh: Handle<Mesh> = meshes.add(
-        ValueFunctionHeightMap(|p: Vec2| {
-            let p_ = Vec2::new(
-                (p.x + 0.5) * world_width as f32,
-                (p.y + 0.5) * world_height as f32,
-            );
-            let (x, y) = (p_.x as u64, (world_height as f32 - p_.y) as u64);
-            let (x, y) = (x / w.geo_pixels_per_tile, y / w.geo_pixels_per_tile);
-            let tile = TileXy(Xy(x, y));
-            let tile_i: WorldTileIndex = tile.into_(w);
-            let region_i: WorldRegionIndex = tile.into_(w);
-
-            tiles
-                .get(&region_i)
-                .map(|tiles| tiles.get(&tile_i).map(|tile| tile.z as f32 * 0.1))
-                .flatten()
-                .unwrap_or_default()
-        })
-        .build_mesh(tiles_size),
-    );
-
-    tracing::trace!(name = "ingame-height-on-spawn-spawn");
-    commands.spawn((
-        Name::new("Terrain"),
-        Terrain::default(),
-        Mesh3d(mesh),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::WHITE,
-            base_color_texture: Some(texture),
-            perceptual_roughness: 1.0,  // fully rough = no gloss
-            metallic: 0.0,              // no metallic sheen
-            reflectance: 0.0,           // no specular reflection
-            specular_transmission: 0.0, // no light transmission
-            ..default()
-        })),
-        Transform {
-            scale: Vec2::splat(SCALE).extend(HEIGHT),
-            ..default()
-        },
-    ));
+        tracing::trace!(name = "ingame-height-on-spawn-spawn");
+        let width = w.region_width_pixels as f32;
+        let height = w.region_height_pixels as f32;
+        commands.spawn((
+            Name::new("Terrain"),
+            Terrain::default(),
+            Mesh3d(mesh),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::WHITE,
+                base_color_texture: Some(texture),
+                perceptual_roughness: 1.0,  // fully rough = no gloss
+                metallic: 0.0,              // no metallic sheen
+                reflectance: 0.0,           // no specular reflection
+                specular_transmission: 0.0, // no light transmission
+                ..default()
+            })),
+            Transform {
+                translation: Vec3::new(500., 500., 0.),
+                rotation: Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2),
+                scale: Vec2::new(width, height).extend(24.0),
+                ..default()
+            },
+        ));
+    }
 }
 
-pub fn setup_camera(commands: &mut Commands) {
+pub fn setup_camera3d(commands: &mut Commands) {
     let orbit = CameraOrbit::default();
-    let transform = orbit_transform(&orbit);
 
     commands.spawn((
         Camera3d::default(),
-        Projection::Perspective(PerspectiveProjection {
-            fov: FOV,
-            near: 0.1,
-            far: 2000.,
-            ..default()
-        }),
-        Transform::from_xyz(0.0, 200.0, 0.0) // directly above
+        // Projection::Perspective(PerspectiveProjection {
+        //     fov: FOV,
+        //     near: 0.1,
+        //     far: 2000.,
+        //     ..default()
+        // }),
+        Transform::from_xyz(0.0, 0.0, 2048.0) // directly above
             .looking_at(Vec3::ZERO, Vec3::NEG_Z), // look down, -Z as "up" on screen
     ));
 

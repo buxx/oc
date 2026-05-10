@@ -141,7 +141,7 @@ pub fn on_switch_to_height_map(
 
     commands.entity(*camera_entity).despawn();
     *ingame = NextState::Pending(InGameState::Height);
-    height::setup_camera(&mut commands);
+    height::setup_camera3d(&mut commands);
 
     tracing::debug!("Set game state to height");
     *ingame = NextState::Pending(InGameState::Height);
