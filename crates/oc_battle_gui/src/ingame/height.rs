@@ -5,10 +5,9 @@ use bevy::color::palettes::css::WHITE;
 use bevy::input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll};
 use bevy::prelude::*;
 use bevy_heightmap::{HeightMap, HeightMapPlugin, ValueFunctionHeightMap};
-use image::{GenericImage, ImageBuffer};
-use oc_geo::region::{RegionXy, WorldRegionIndex};
+use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::{TileXy, WorldTileIndex};
-use oc_root::{Wcfg, WcfgFrom, WcfgInto};
+use oc_root::{Wcfg, WcfgInto};
 use oc_utils::d2::Xy;
 
 use crate::states::{AppState, InGameState, Meta};
@@ -38,7 +37,7 @@ impl Plugin for HeightPlugin {
             .add_observer(on_spawn)
             .add_systems(
                 Update,
-                camera_control
+                (camera_control, foo)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Height)),
             );
@@ -79,6 +78,22 @@ fn orbit_transform(orbit: &CameraOrbit) -> Transform {
     );
     let eye = orbit.focus + offset;
     Transform::from_translation(eye).looking_at(orbit.focus, Vec3::Z)
+}
+
+fn foo(
+    mut heights: Query<&mut Transform, With<Terrain>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+) {
+    for mut height in &mut heights {
+        if keyboard_input.pressed(KeyCode::ArrowLeft) {
+            height.translation.y -= 10.;
+        }
+        if keyboard_input.pressed(KeyCode::ArrowRight) {
+            height.translation.y += 10.;
+        }
+
+        dbg!(&height);
+    }
 }
 
 /// AI generated function
@@ -204,7 +219,7 @@ fn on_spawn(
             })),
             Transform {
                 translation: Vec3::new(500., 500., 0.),
-                rotation: Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2),
+                // rotation: Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2),
                 scale: Vec2::new(width, height).extend(24.0),
                 ..default()
             },
@@ -217,14 +232,13 @@ pub fn setup_camera3d(commands: &mut Commands) {
 
     commands.spawn((
         Camera3d::default(),
-        // Projection::Perspective(PerspectiveProjection {
-        //     fov: FOV,
-        //     near: 0.1,
-        //     far: 2000.,
-        //     ..default()
-        // }),
-        Transform::from_xyz(0.0, 0.0, 2048.0) // directly above
-            .looking_at(Vec3::ZERO, Vec3::NEG_Z), // look down, -Z as "up" on screen
+        Projection::Orthographic(OrthographicProjection {
+            scale: 1.0,
+            near: -100.0, // negative near lets you see meshes slightly in front of camera Z
+            far: 2000.0,
+            ..OrthographicProjection::default_3d()
+        }),
+        Transform::from_xyz(0.0, 0.0, 1000.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
     commands.spawn((
