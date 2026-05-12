@@ -16,6 +16,7 @@ use crate::{
             on_spawn_visible_battle_square, on_spawn_world_map_background, on_update_battle_square,
         },
     },
+    setup::spawn_camera2d,
     states::{AppState, InGameState},
     world::WorldPlugin,
 };
@@ -45,6 +46,9 @@ pub struct SwitchToWorldMap;
 pub struct SwitchToBattleMap;
 
 #[derive(Debug, Event)]
+pub struct QuitHeightMap;
+
+#[derive(Debug, Event)]
 pub struct SwitchToHeightMap;
 
 impl Plugin for IngamePlugin {
@@ -67,6 +71,7 @@ impl Plugin for IngamePlugin {
             .add_observer(on_switch_to_world_map)
             .add_observer(on_switch_to_battle_map)
             .add_observer(on_switch_to_height_map)
+            .add_observer(on_quit_height_map)
             // .add_observer(on_forgotten_region)
             // TODO: InputPlugin
             .add_observer(physics::on_physics_event)
@@ -112,6 +117,7 @@ pub fn on_switch_to_battle_map(
         return;
     };
 
+    tracing::debug!("Set camera focus on Battle");
     state.focus = camera::Focus::Battle;
     camera.translation.x = previously.x;
     camera.translation.y = previously.y;
@@ -121,13 +127,15 @@ pub fn on_switch_to_battle_map(
     *ingame = NextState::Pending(InGameState::Battle);
 }
 
+// TODO: rethink order of things to remove camera2d only when height map ready (to instant change things)
 pub fn on_switch_to_height_map(
     _: On<SwitchToHeightMap>,
     mut commands: Commands,
-    camera_entity: Single<Entity, With<Camera2d>>,
+    camera2d: Single<Entity, With<Camera2d>>,
     camera: Single<(&Camera, &GlobalTransform)>,
     window: Single<&Window>,
     mut ingame: ResMut<NextState<InGameState>>,
+    mut state: ResMut<camera::State>,
 ) {
     tracing::debug!("Switch to height map");
 
@@ -139,15 +147,35 @@ pub fn on_switch_to_height_map(
         return;
     };
 
-    commands.entity(*camera_entity).despawn();
+    commands.entity(*camera2d).despawn();
     *ingame = NextState::Pending(InGameState::Height);
-    height::setup_camera3d(&mut commands);
+    height::setup_camera3d(&mut commands, &center);
+    height::setup_light3d(&mut commands);
 
     tracing::debug!("Set game state to height");
     *ingame = NextState::Pending(InGameState::Height);
 
+    tracing::debug!("Set camera focus on Height");
+    state.focus = camera::Focus::Height;
+
     tracing::debug!("Trigger spawn height (center={center:?}");
     commands.trigger(height::Spawn(center));
+}
+
+pub fn on_quit_height_map(
+    _: On<QuitHeightMap>,
+    mut commands: Commands,
+    camera3d: Single<Entity, With<Camera3d>>,
+    light3d: Single<Entity, With<DirectionalLight>>,
+) {
+    tracing::debug!("Despawn camera3d");
+    commands.entity(*camera3d).despawn();
+
+    tracing::debug!("Despawn light3d");
+    commands.entity(*light3d).despawn();
+
+    tracing::debug!("Spawn camera2d");
+    spawn_camera2d(&mut commands);
 }
 
 pub fn on_switch_to_world_map(
@@ -162,6 +190,7 @@ pub fn on_switch_to_world_map(
     let Some(w) = &w.0 else { return };
 
     let display = WorldMapDisplay::from_env(w, window.size());
+    tracing::debug!("Set camera focus on World");
     state.focus = camera::Focus::World;
     camera.translation.x = display.center.x;
     camera.translation.y = display.center.y;

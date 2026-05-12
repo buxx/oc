@@ -2,11 +2,12 @@ use std::f32::consts::PI;
 use std::path::PathBuf;
 
 use bevy::color::palettes::css::WHITE;
-use bevy::input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll};
+use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy_heightmap::{HeightMap, HeightMapPlugin, ValueFunctionHeightMap};
-use oc_geo::region::WorldRegionIndex;
+use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_geo::tile::{TileXy, WorldTileIndex};
+use oc_root::y::Y;
 use oc_root::{Wcfg, WcfgInto};
 use oc_utils::d2::Xy;
 
@@ -19,123 +20,125 @@ pub struct HeightPlugin;
 pub struct Spawn(pub Vec2);
 
 #[derive(Component, Default)]
-struct Terrain {}
-
-const SCALE: f32 = 1024.;
-const HEIGHT: f32 = 32.;
-const THETA: f32 = PI / 8.;
-const FOV: f32 = PI / 4.;
-
-pub fn y_offset(z: f32) -> f32 {
-    THETA.tan() * z
-}
+struct Height {}
 
 impl Plugin for HeightPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(HeightMapPlugin)
-            .init_resource::<CameraOrbit>()
             .add_observer(on_spawn)
             .add_systems(
                 Update,
-                (camera_control, foo)
+                (
+                    move_camera_by_keyboard,
+                    move_camera_by_mouse,
+                    rotate_camera_by_mouse,
+                )
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Height)),
             );
     }
 }
 
-/// Tracks the orbit camera state so we can recompute the transform each frame.
-#[derive(Resource)]
-struct CameraOrbit {
-    /// Horizontal angle around Z axis (yaw), in radians.
-    yaw: f32,
-    /// Vertical angle (pitch), in radians. Clamped so the camera stays above the terrain.
-    pitch: f32,
-    /// Distance from the focus point.
-    distance: f32,
-    /// World-space point the camera looks at.
-    focus: Vec3,
-}
-
-impl Default for CameraOrbit {
-    fn default() -> Self {
-        Self {
-            yaw: 0.0,
-            pitch: PI / 2.0, // 90° — camera looks straight down
-            distance: 1500.0,
-            focus: Vec3::ZERO,
-        }
-    }
-}
-
-/// Recompute the camera `Transform` from the current `CameraOrbit` state.
-fn orbit_transform(orbit: &CameraOrbit) -> Transform {
-    // Spherical -> Cartesian offset from focus point.
-    let offset = Vec3::new(
-        orbit.distance * orbit.pitch.cos() * orbit.yaw.sin(),
-        -orbit.distance * orbit.pitch.cos() * orbit.yaw.cos(),
-        orbit.distance * orbit.pitch.sin(),
-    );
-    let eye = orbit.focus + offset;
-    Transform::from_translation(eye).looking_at(orbit.focus, Vec3::Z)
-}
-
-fn foo(
-    mut heights: Query<&mut Transform, With<Terrain>>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-) {
-    for mut height in &mut heights {
-        if keyboard_input.pressed(KeyCode::ArrowLeft) {
-            height.translation.y -= 10.;
-        }
-        if keyboard_input.pressed(KeyCode::ArrowRight) {
-            height.translation.y += 10.;
-        }
-
-        dbg!(&height);
-    }
-}
-
-/// AI generated function
-fn camera_control(
-    mut orbit: ResMut<CameraOrbit>,
-    mut camera: Single<&mut Transform, With<Camera3d>>,
+fn rotate_camera_by_mouse(
     mouse_buttons: Res<ButtonInput<MouseButton>>,
-    mouse_motion: Res<AccumulatedMouseMotion>,
-    mouse_scroll: Res<AccumulatedMouseScroll>,
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mut mouse_motion: MessageReader<MouseMotion>,
+    mut query: Query<&mut Transform, With<Camera3d>>,
 ) {
-    return;
-    let delta = mouse_motion.delta;
+    let Ok(mut transform) = query.single_mut() else {
+        return;
+    };
 
-    let panning = mouse_buttons.pressed(MouseButton::Right)
-        || (mouse_buttons.pressed(MouseButton::Left) && keyboard.pressed(KeyCode::ShiftLeft));
-    let orbiting = mouse_buttons.pressed(MouseButton::Left) && !panning;
+    if mouse_buttons.pressed(MouseButton::Left) {
+        for event in mouse_motion.read() {
+            let yaw = -event.delta.x * 0.002;
+            let pitch = -event.delta.y * 0.002;
 
-    if panning && delta != Vec2::ZERO {
-        // Pan in the camera's local XY plane, scaled by distance so speed feels consistent.
-        let pan_speed = orbit.distance * 0.0005;
-        let transform = orbit_transform(&orbit);
-        let right = transform.rotation * Vec3::X;
-        let up = transform.rotation * Vec3::Y;
-        orbit.focus -= right * delta.x * pan_speed;
-        orbit.focus += up * delta.y * pan_speed;
-    } else if orbiting && delta != Vec2::ZERO {
-        let orbit_speed = 0.005;
-        orbit.yaw -= delta.x * orbit_speed;
-        orbit.pitch += delta.y * orbit_speed;
-        // Keep pitch in a sane range: just above horizon to nearly straight down.
-        orbit.pitch = orbit.pitch.clamp(0.05, PI / 2.0 - 0.01);
+            // The point the camera is looking at (world space)
+            let target =
+                transform.translation + transform.forward() * transform.translation.length();
+
+            // Orbit around target
+            let yaw_quat = Quat::from_rotation_y(yaw);
+            let pitch_quat = Quat::from_axis_angle(*transform.right(), pitch);
+
+            // Rotate position around target
+            let offset = transform.translation - target;
+            let new_offset = yaw_quat * pitch_quat * offset;
+            transform.translation = target + new_offset;
+
+            // Always look back at target
+            transform.look_at(target, Vec3::Y);
+        }
+    } else {
+        mouse_motion.clear();
+    }
+}
+
+fn move_camera_by_mouse(
+    mut dragging: Local<bool>,
+    mouse_buttons: Res<ButtonInput<MouseButton>>,
+    mut mouse_motion: MessageReader<MouseMotion>,
+    mut query: Query<(&mut Transform, &Projection), With<Camera3d>>,
+) {
+    let Ok((mut transform, projection)) = query.single_mut() else {
+        return;
+    };
+
+    let scale = match projection {
+        Projection::Orthographic(o) => o.scale,
+        _ => 1.0,
+    };
+
+    if mouse_buttons.just_pressed(MouseButton::Right) {
+        *dragging = true;
+    }
+    if mouse_buttons.just_released(MouseButton::Right) {
+        *dragging = false;
     }
 
-    // Scroll to zoom. AccumulatedMouseScroll already normalises line vs. pixel units.
-    let scroll = mouse_scroll.delta.y;
-    if scroll != 0.0 {
-        orbit.distance -= scroll * orbit.distance * 0.05;
-        orbit.distance = orbit.distance.clamp(50.0, 4000.0);
+    if *dragging {
+        for event in mouse_motion.read() {
+            transform.translation.x -= event.delta.x * scale;
+            transform.translation.y += event.delta.y * scale;
+        }
+    } else {
+        mouse_motion.clear();
+    }
+}
+
+const CAMERA_SPEED: f32 = 300.0; // units per second
+
+fn move_camera_by_keyboard(
+    time: Res<Time>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut query: Query<&mut Transform, With<Camera3d>>,
+) {
+    let Ok(mut transform) = query.single_mut() else {
+        return;
+    };
+
+    let mut direction = Vec3::ZERO;
+
+    if keys.pressed(KeyCode::ArrowLeft) || keys.pressed(KeyCode::KeyA) {
+        direction.x -= 1.0;
+    }
+    if keys.pressed(KeyCode::ArrowRight) || keys.pressed(KeyCode::KeyD) {
+        direction.x += 1.0;
+    }
+    if keys.pressed(KeyCode::ArrowUp) || keys.pressed(KeyCode::KeyW) {
+        direction.y += 1.0;
+    }
+    if keys.pressed(KeyCode::ArrowDown) || keys.pressed(KeyCode::KeyS) {
+        direction.y -= 1.0;
     }
 
-    **camera = orbit_transform(&orbit);
+    // Normalize to prevent faster diagonal movement
+    if direction != Vec3::ZERO {
+        direction = direction.normalize();
+    }
+
+    transform.translation += direction * CAMERA_SPEED * time.delta_secs();
+    // dbg!(transform.translation);
 }
 
 // FIXME: avoid blocking way of background + mesh generation by doing it in background and before real need
@@ -189,7 +192,6 @@ fn on_spawn(
                 );
                 // Remove region_height to adapt to inverted y
                 let (x, y) = (p_.x as u64, (w.region_height as f32 - p_.y) as u64);
-                // let (x, y) = (x / w.geo_pixels_per_tile, y / w.geo_pixels_per_tile);
                 let tile = TileXy(Xy(x, y));
                 let tile_i: WorldTileIndex = tile.into_(w);
 
@@ -202,24 +204,32 @@ fn on_spawn(
         );
 
         tracing::trace!(name = "ingame-height-on-spawn-spawn");
+
         let width = w.region_width_pixels as f32;
         let height = w.region_height_pixels as f32;
+
+        let region: RegionXy = region.into_(w);
+        let x = region.0.0 as f32 * width;
+        let y = region.0.1 as f32 * height;
+        let x = x + width / 2.;
+        let y = y + height / 2.;
+        let x = x;
+        let y = y.to_gui_y(w);
+
         commands.spawn((
-            Name::new("Terrain"),
-            Terrain::default(),
+            Height::default(),
             Mesh3d(mesh),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::WHITE,
                 base_color_texture: Some(texture),
-                perceptual_roughness: 1.0,  // fully rough = no gloss
-                metallic: 0.0,              // no metallic sheen
-                reflectance: 0.0,           // no specular reflection
-                specular_transmission: 0.0, // no light transmission
+                perceptual_roughness: 1.0,
+                metallic: 0.0,
+                reflectance: 0.0,
+                specular_transmission: 0.0,
                 ..default()
             })),
             Transform {
-                translation: Vec3::new(500., 500., 0.),
-                // rotation: Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2),
+                translation: Vec3::new(x, y, 0.),
                 scale: Vec2::new(width, height).extend(24.0),
                 ..default()
             },
@@ -227,8 +237,10 @@ fn on_spawn(
     }
 }
 
-pub fn setup_camera3d(commands: &mut Commands) {
-    let orbit = CameraOrbit::default();
+pub fn setup_camera3d(commands: &mut Commands, center: &Vec2) {
+    let mut transform = Transform::from_xyz(0.0, 0.0, 1000.0).looking_at(Vec3::ZERO, Vec3::Y);
+    transform.translation.x = center.x;
+    transform.translation.y = center.y;
 
     commands.spawn((
         Camera3d::default(),
@@ -238,11 +250,13 @@ pub fn setup_camera3d(commands: &mut Commands) {
             far: 2000.0,
             ..OrthographicProjection::default_3d()
         }),
-        Transform::from_xyz(0.0, 0.0, 1000.0).looking_at(Vec3::ZERO, Vec3::Y),
+        transform,
     ));
+}
 
+pub fn setup_light3d(commands: &mut Commands) {
     commands.spawn((
-        Transform::from_xyz(0.0, 0.0, orbit.distance) // original light position
+        Transform::from_xyz(0.0, 0.0, 1000.) // original light position
             .with_rotation(Quat::from_axis_angle(Vec3::ONE, -PI / 6.)),
         DirectionalLight {
             color: WHITE.into(),
