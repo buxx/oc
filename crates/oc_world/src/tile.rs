@@ -137,13 +137,3 @@ pub enum NatureError {
     #[error("Unknown tile ID: {0}")]
     UnknownId(String),
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_tile_collision_in_meters() {
-        assert_eq!(true, true);
-    }
-}

@@ -7192,6 +7192,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "tests"
+version = "0.1.0"
+dependencies = [
+ "glam 0.32.1",
+ "oc_geo",
+ "oc_individual",
+ "oc_mod",
+ "oc_network",
+ "oc_physics",
+ "oc_projectile",
+ "oc_root",
+ "oc_utils",
+ "oc_world",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
