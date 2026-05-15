@@ -110,8 +110,11 @@ impl Physic for Tile {
     fn position(&self, w: &WorldConfig) -> [f32; 3] {
         let xy: TileXy = self.i.into_(w);
         let point = xy.point(w);
-        // dbg!((self, xy, point));
-        [point[0], point[1], self.z as f32] // FIXME BS NOW: z
+        [
+            point[0],
+            point[1],
+            self.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters,
+        ]
     }
 
     fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
@@ -120,7 +123,7 @@ impl Physic for Tile {
     }
 
     fn volume(&self, ref_: [f32; 3], w: &WorldConfig) -> Volume {
-        // tracing::trace!(name = "toto", ref_ = ?ref_, z =f32::MIN + ref_[2], zz = f32::MIN + ref_[2] + f32::MAX);
+        tracing::trace!(name = "tile-volume", ref_ = ?ref_);
         Volume::Cube {
             x: ref_[0],
             y: ref_[1],

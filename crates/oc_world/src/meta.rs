@@ -20,6 +20,7 @@ pub struct Meta {
     #[serde(skip, default)]
     pub name: String,
     pub revision: u32,
+    pub geo_meters_per_z: f32,
 }
 
 impl Meta {

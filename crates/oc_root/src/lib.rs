@@ -3,6 +3,8 @@ use bevy::prelude::*;
 
 use rkyv::{Archive, Deserialize, Serialize};
 
+use crate::physics::Meters;
+
 pub mod end;
 pub mod files;
 pub mod ids;
@@ -33,12 +35,13 @@ pub struct WorldConfig {
     pub geo_pixels_per_tile: u64,
     pub geo_bresenham_precision: f32,
     pub geo_bresenham_step: u64,
+    pub geo_meters_per_z: Meters,
     pub minimap_width_pixels: u64,
     pub minimap_height_pixels: u64,
 }
 
 impl WorldConfig {
-    pub fn new(world_width: u64, world_height: u64) -> Self {
+    pub fn new(world_width: u64, world_height: u64, geo_meters_per_z: Meters) -> Self {
         let region_width = 1000.min(world_width);
         let region_height = 1000.min(world_height);
         let individual_tick_interval_us: u64 = 1_000_000 / 4;
@@ -82,6 +85,7 @@ impl WorldConfig {
             geo_pixels_per_tile,
             geo_bresenham_precision,
             geo_bresenham_step,
+            geo_meters_per_z,
             minimap_width_pixels,
             minimap_height_pixels,
         }
