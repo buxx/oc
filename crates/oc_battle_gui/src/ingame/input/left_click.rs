@@ -2,6 +2,7 @@ use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
 use oc_network::ToServer;
 use oc_root::Wcfg;
+use oc_root::physics::Meters;
 use strum_macros::EnumIter;
 
 use crate::ingame::debug::projectile::SpawnProjectileProfile;
@@ -99,7 +100,7 @@ pub fn click_debug(
 
                         if let (Some(start), Some(end)) = (
                             world.point2d_to_point3d(w, start, profile.plus_z),
-                            world.point2d_to_point3d(w, &end, profile.plus_z),
+                            world.point2d_to_point3d(w, &end, Meters(0.)),
                         ) {
                             use crate::projectile::IntoSpawnProjectile;
                             let spawn = profile.spawn(start, end);
@@ -121,7 +122,7 @@ pub fn click_debug(
                     if let Some(start) = state.clicks.first() {
                         if let (Some(start), Some(end)) = (
                             world.point2d_to_point3d(w, start, profile.plus_z),
-                            world.point2d_to_point3d(w, &point, profile.plus_z),
+                            world.point2d_to_point3d(w, &point, Meters(0.)),
                         ) {
                             use crate::projectile::IntoSpawnProjectile;
                             let spawn = profile.spawn(start, end);

@@ -54,10 +54,7 @@ pub fn on_insert_projectile(
     tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position(), forces=?projectile.1.forces(w));
 
     let position = projectile.1.position();
-    let line = Polyline2d::new(vec![Vec2::new(
-        position[0].to_gui_y(w),
-        position[1].to_gui_y(w),
-    )]);
+    let line = Polyline2d::new(vec![Vec2::new(position[0], position[1].to_gui_y(w))]);
     let entity = commands
         .spawn((
             ProjectileId(projectile.0),

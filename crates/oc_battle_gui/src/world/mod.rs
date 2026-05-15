@@ -203,7 +203,7 @@ impl World {
         let Some(tile) = self.tile(w, tile) else {
             return None;
         };
-        let z = (tile.z as f32 * 0.5 * w.geo_pixels_per_meters) + plus_z.pixels(w);
+        let z = (tile.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters) + plus_z.pixels(w);
         let p = [p.0, p.1, z];
         Some(p)
     }

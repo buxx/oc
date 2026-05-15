@@ -12,13 +12,13 @@ serve-world1:
       ./mods/std1 ./examples/world1 ./examples/world1.snapshot
 
 example-walking:
-    ./examples.sh --debug walking_squad
+    cargo run --bin example_walking_squad --features debug
 
 example-firing:
-    ./examples.sh --debug firing_with_wall
+    cargo run --bin example_firing_with_wall --features debug
 
 example-wall:
-    ./examples.sh --debug wall
+    cargo run --bin example_wall --features debug
 
 world-minidblue *args:
     cargo run --bin world -- examples/minidblue examples/minidblue.snapshot --verbose {{ args }}
@@ -30,7 +30,7 @@ test:
     cargo test
 
 test-all:
-    cargo test && ./examples.sh test_projectile_wall
+    cargo test && just test-projectile-wall
 
 test-projectile-wall:
-    ./examples.sh test_projectile_wall
+    cargo run --bin test_projectile_wall --features test

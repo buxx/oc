@@ -5,14 +5,10 @@ use oc_examples::{
     logging, run,
     snapshot::{EmptyGenerator, SnapshotBuilder},
 };
-use oc_geo::{
-    region::RegionXy,
-    tile::{TileXy, WorldTileIndex},
-};
-use oc_individual::{Individual, behavior::Behavior};
+use oc_individual::Individual;
 use oc_projectile::Projectile;
-use oc_root::{WcfgFrom, WcfgInto, WorldConfig};
-use oc_world::tile::Tile;
+use oc_root::{WorldConfig, physics::Meters};
+use oc_world::{load::WorldPath, meta::Meta, tile::Tile};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
@@ -20,7 +16,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let map_ = PathBuf::from("examples/minidblue");
     let map = oc_world::reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
-    let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64);
+    let world = Meta::from_file(&map_.meta());
+    let world = world.context(format!("Read file {}", map_.meta().display()))?;
+    let w = WorldConfig::new(
+        map.width().unwrap() as u64,
+        map.height().unwrap() as u64,
+        Meters(world.geo_meters_per_z),
+    );
     let projectiles = EmptyGenerator::<Projectile>::new();
     let snapshot = SnapshotBuilder::new(map, individuals, projectiles).build(w)?;
 

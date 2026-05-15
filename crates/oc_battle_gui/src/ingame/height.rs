@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU8, Ordering};
 
 use bevy::color::palettes::css::WHITE;
 use bevy::input::mouse::MouseMotion;
@@ -8,7 +9,7 @@ use bevy_heightmap::{HeightMap, HeightMapPlugin, ValueFunctionHeightMap};
 use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_root::y::Y;
-use oc_root::{Wcfg, WcfgInto};
+use oc_root::{Wcfg, WcfgFrom, WcfgInto, WorldConfig};
 use oc_utils::d2::Xy;
 
 use crate::states::{AppState, InGameState, Meta};
@@ -22,6 +23,14 @@ pub struct Spawn(pub Vec2);
 #[derive(Component, Default)]
 struct Height {}
 
+/// Marker for the mouse cursor indicator circle
+#[derive(Component)]
+pub struct CursorCircle;
+
+/// Resource holding the current world-space cursor position
+#[derive(Resource, Default)]
+pub struct CursorWorldPos(pub Option<Vec3>);
+
 impl Plugin for HeightPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(HeightMapPlugin)
@@ -32,6 +41,8 @@ impl Plugin for HeightPlugin {
                     move_camera_by_keyboard,
                     move_camera_by_mouse,
                     rotate_camera_by_mouse,
+                    update_cursor_world_pos,
+                    update_cursor_circle_transform,
                 )
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Height)),
@@ -184,6 +195,7 @@ fn on_spawn(
             tracing::warn!("Can't build heigh map for region {region:?}: no known tiles",);
             continue;
         };
+        let z_max = tiles.values().map(|tile| tile.z).max().unwrap_or_default();
         let mesh: Handle<Mesh> = meshes.add(
             ValueFunctionHeightMap(|p: Vec2| {
                 // p is given as retlative like (top-left) -0.5,-0.5, (center) 0.0,0.0, etc.
@@ -198,10 +210,12 @@ fn on_spawn(
                 let tile = TileXy(Xy(x, y));
                 let tile_i: WorldTileIndex = tile.into_(w);
 
-                tiles
+                let z = tiles
                     .get(&tile_i)
-                    .map(|tile| tile.z as f32 * 0.1) // FIXME BS NOW
-                    .unwrap_or_default()
+                    .map(|tile| tile.z as f32 / z_max as f32)
+                    .unwrap_or_default();
+
+                z
             })
             .build_mesh(grid_size),
         );
@@ -233,11 +247,126 @@ fn on_spawn(
             })),
             Transform {
                 translation: Vec3::new(x, y, 0.),
-                scale: Vec2::new(width, height).extend(24.0),
+                scale: Vec3::new(
+                    width,
+                    height,
+                    z_max as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters,
+                ),
+                // .extend(z_max as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters),
                 ..default()
             },
         ));
     }
+
+    //
+    let mesh = meshes.add(Annulus::new(0.9, 1.0).mesh().resolution(64).build());
+
+    commands.spawn((
+        CursorCircle,
+        Mesh3d(mesh),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::srgba(1.0, 1.0, 1.0, 0.8),
+            alpha_mode: AlphaMode::Blend,
+            unlit: true, // ignore lighting so it's always visible
+            double_sided: true,
+            cull_mode: None,
+            ..default()
+        })),
+        Transform::default(),
+        Visibility::Hidden, // hide until we have a valid hit
+    ));
+
+    commands.insert_resource(CursorWorldPos::default());
+}
+fn update_cursor_world_pos(
+    windows: Query<&Window>,
+    cameras: Query<(&Camera, &GlobalTransform), With<Camera3d>>,
+    mut cursor_pos: ResMut<CursorWorldPos>,
+    w: Res<Wcfg>,
+    world: Res<World>,
+) {
+    let Ok(window) = windows.single() else { return };
+    let Ok((camera, cam_transform)) = cameras.single() else {
+        return;
+    };
+
+    let Some(cursor_px) = window.cursor_position() else {
+        cursor_pos.0 = None;
+        return;
+    };
+
+    let Ok(ray) = camera.viewport_to_world(cam_transform, cursor_px) else {
+        cursor_pos.0 = None;
+        return;
+    };
+
+    if ray.direction.z.abs() <= 1e-6 {
+        cursor_pos.0 = None;
+        return;
+    }
+
+    // --- Passe 1 : intersection avec Z = 0 pour estimer (x, y) ---
+    let t0 = (0.0_f32 - ray.origin.z) / ray.direction.z;
+    let approx_hit = ray.origin + ray.direction * t0;
+
+    // --- Récupère la vraie hauteur du terrain à (x, y) ---
+    let terrain_z = if let Some(cfg) = &w.0 {
+        sample_terrain_z(cfg, &world, &approx_hit)
+    } else {
+        0.0
+    };
+
+    // --- Passe 2 : intersection avec Z = terrain_z ---
+    let t1 = (terrain_z - ray.origin.z) / ray.direction.z;
+    let hit = ray.origin + ray.direction * t1;
+
+    cursor_pos.0 = Some(hit);
+}
+fn update_cursor_circle_transform(
+    cursor_pos: Res<CursorWorldPos>,
+    mut circle: Query<(&mut Transform, &mut Visibility), With<CursorCircle>>,
+) {
+    let Ok((mut transform, mut visibility)) = circle.single_mut() else {
+        return;
+    };
+
+    match cursor_pos.0 {
+        None => {
+            *visibility = Visibility::Hidden;
+        }
+        Some(pos) => {
+            *visibility = Visibility::Inherited;
+            let radius = 5.0_f32;
+
+            // pos.z est déjà terrain_z, on ajoute juste l'offset anti z-fight
+            transform.translation = Vec3::new(pos.x, pos.y, pos.z + 0.5);
+            transform.scale = Vec3::new(radius, radius, 1.0);
+        }
+    }
+}
+
+/// Optional: look up the terrain height at (x, y) the same way on_spawn does.
+/// If you don't need the circle to hug the terrain, just return 0.0.
+fn sample_terrain_z(w: &WorldConfig, world: &World, pos: &Vec3) -> f32 {
+    let (x, y) = (
+        (pos.x / w.geo_pixels_per_tile as f32) as u64,
+        (pos.y.to_gui_y(w) / w.geo_pixels_per_tile as f32) as u64,
+    );
+    // println!("{x}.{y}");
+    let tile = TileXy(Xy(x, y));
+    let tile = WorldTileIndex::from_(tile, w);
+    let region = WorldRegionIndex::from_(tile, w);
+
+    world
+        .tiles
+        .get(&region)
+        .map(|tiles| {
+            tiles
+                .get(&tile)
+                .map(|tile| tile.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters)
+        })
+        .flatten()
+        .unwrap_or_default()
 }
 
 pub fn setup_camera3d(commands: &mut Commands, center: &Vec2) {
@@ -250,7 +379,7 @@ pub fn setup_camera3d(commands: &mut Commands, center: &Vec2) {
         Projection::Orthographic(OrthographicProjection {
             scale: 1.0,
             near: -100.0, // negative near lets you see meshes slightly in front of camera Z
-            far: 2000.0,
+            far: 20000.0,
             ..OrthographicProjection::default_3d()
         }),
         transform,
