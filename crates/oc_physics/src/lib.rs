@@ -143,13 +143,15 @@ where
                         line::Step::First([step_x, step_y, step_z], step_tile)
                         | line::Step::Inside([step_x, step_y, step_z], step_tile)
                         | line::Step::Last([step_x, step_y, step_z], step_tile) => {
+                            position = [step_x, step_y, step_z];
+
                             // Test new tile only when line on new tile
                             if step_tile != curent_tile {
+                                curent_tile = step_tile;
                                 let volume = object.volume([step_x, step_y, step_z], w);
                                 tracing::trace!(name="physics-step-translation-newtile", origin=origin, i=?i, p=?position, xy=?step_tile);
 
                                 for (o, other) in at(step_tile) {
-                                    // if other.material().is_solid() {
                                     let [other_x, other_y, other_z] = other.position(w);
                                     let volume2 = other.volume([other_x, other_y, other_z], w);
 
@@ -166,10 +168,10 @@ where
                                     }
                                     // }
                                 }
+                            } else {
+                                curent_tile = step_tile;
                             }
 
-                            curent_tile = step_tile;
-                            position = [step_x, step_y, step_z];
                             tracing::trace!(name="physics-step-translation-updated", origin=origin, i=?i, p=?position, xy=?step_tile);
                         }
                         line::Step::Outside => {

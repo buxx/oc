@@ -122,6 +122,11 @@ impl WorldConfig {
         self.geo_pixels_per_meters = value;
         self
     }
+
+    pub fn geo_pixels_per_tile(mut self, value: u64) -> Self {
+        self.geo_pixels_per_tile = value;
+        self
+    }
 }
 
 pub trait Client: Clone + std::hash::Hash + Eq + std::fmt::Debug + Send + Sync + 'static {}

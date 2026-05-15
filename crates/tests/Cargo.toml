@@ -16,3 +16,7 @@ oc_physics = { path = "../oc_physics" }
 oc_individual = { path = "../oc_individual" }
 oc_projectile = { path = "../oc_projectile" }
 glam.workspace = true
+
+[dev-dependencies]
+rstest.workspace = true
+tracing-subscriber.workspace = true

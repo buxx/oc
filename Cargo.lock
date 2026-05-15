@@ -7205,6 +7205,8 @@ dependencies = [
  "oc_root",
  "oc_utils",
  "oc_world",
+ "rstest",
+ "tracing-subscriber",
 ]
 
 [[package]]
