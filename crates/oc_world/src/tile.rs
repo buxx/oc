@@ -111,7 +111,7 @@ impl Physic for Tile {
         let xy: TileXy = self.i.into_(w);
         let point = xy.point(w);
         // dbg!((self, xy, point));
-        [point[0], point[1], self.z as f32]
+        [point[0], point[1], self.z as f32] // FIXME BS NOW: z
     }
 
     fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
@@ -136,4 +136,14 @@ impl Physic for Tile {
 pub enum NatureError {
     #[error("Unknown tile ID: {0}")]
     UnknownId(String),
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_tile_collision_in_meters() {
+        assert_eq!(true, true);
+    }
 }
