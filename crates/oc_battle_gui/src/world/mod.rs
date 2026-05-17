@@ -5,7 +5,7 @@ use oc_geo::{
 };
 use oc_individual::{Individual, IndividualIndex};
 use oc_physics::Physic;
-use oc_root::{WcfgInto, WorldConfig};
+use oc_root::{WcfgFrom, WcfgInto, WorldConfig};
 #[cfg(feature = "debug")]
 use oc_root::{physics::Meters, y::Y};
 use oc_utils::d2::Xy;
@@ -172,11 +172,15 @@ impl World {
         objects
     }
 
-    #[cfg(feature = "debug")]
     pub fn tile(&self, w: &WorldConfig, xy: TileXy) -> Option<&Tile> {
         let i: WorldTileIndex = xy.into_(w);
         let region: WorldRegionIndex = i.into_(w);
         self.tiles.get(&region).and_then(|tiles| tiles.get(&i))
+    }
+
+    pub fn tile_at(&self, w: &WorldConfig, point: &Vec2) -> Option<&Tile> {
+        let xy = TileXy::from_([point.x, point.y], w);
+        self.tile(w, xy)
     }
 
     #[cfg(feature = "debug")]

@@ -6,8 +6,9 @@ use oc_root::physics::Meters;
 use strum_macros::EnumIter;
 
 use crate::ingame::debug::projectile::SpawnProjectileProfile;
+use crate::ingame::lov::{DespawnLov, SpawnLov, SpawnLovConfig, SpawnLovProfile};
 use crate::window::PointerInWindow;
-use crate::window::debug::battle::SpawnProjectileClickMode;
+use crate::window::debug::battle::{LovClickMode, SpawnProjectileClickMode};
 use crate::world::World;
 use crate::{ingame::draw, network::output::ToServerEvent};
 
@@ -37,6 +38,7 @@ pub enum LeftClickMode {
     #[default]
     Select,
     SpawnProjectile(SpawnProjectileProfile),
+    LineOfView(SpawnLovConfig),
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, EnumIter)]
@@ -44,6 +46,7 @@ pub enum LeftClickModeType {
     #[default]
     Select,
     SpawnProjectile,
+    LineOfView,
 }
 
 impl LeftClickModeType {
@@ -51,6 +54,7 @@ impl LeftClickModeType {
         match self {
             LeftClickModeType::Select => "Select",
             LeftClickModeType::SpawnProjectile => "Spawn projectile",
+            LeftClickModeType::LineOfView => "Line of view",
         }
     }
 }
@@ -84,6 +88,29 @@ pub fn click_debug(
         LeftClickMode::Select => {
             // TODO
         }
+
+        LeftClickMode::LineOfView(profile) => match profile.click {
+            LovClickMode::DraggedClick => {
+                if buttons.just_pressed(MouseButton::Left) {
+                    tracing::trace!(name = "ingame-input-left-click-lov-dragged-pressed");
+                    state.clicks.push(point);
+                    commands.trigger(SpawnLov(SpawnLovProfile {
+                        start: point,
+                        start_pluz_z: profile.start_pluz_z,
+                        stop_pluz_z: profile.stop_pluz_z,
+                    }));
+                }
+
+                if buttons.just_released(MouseButton::Left) {
+                    tracing::trace!(name = "ingame-input-left-click-lov-dragged-release");
+                    state.clicks.clear();
+                    commands.trigger(DespawnLov);
+                }
+            }
+            LovClickMode::TwoClicks => {
+                todo!()
+            }
+        },
 
         LeftClickMode::SpawnProjectile(profile) => match spawn_mode.0 {
             SpawnProjectileClickMode::TwoClicks => {
@@ -187,7 +214,7 @@ pub fn update_spawn_projectile_clicks_line(
     state: Res<super::State>,
 ) {
     match &mode.0 {
-        LeftClickMode::Select => {}
+        LeftClickMode::Select | LeftClickMode::LineOfView(_) => {}
         LeftClickMode::SpawnProjectile(_) => {
             if !state.clicks.is_empty() {
                 commands.trigger(DespawnClicksLine);

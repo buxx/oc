@@ -1,9 +1,11 @@
 use line_drawing::Bresenham3d;
-use oc_root::WorldConfig;
 use oc_utils::d2::Xy;
 
-pub struct Steps<'a> {
-    w: &'a WorldConfig,
+pub struct Steps {
+    world_width_pixels: u64,
+    world_height_pixels: u64,
+    geo_bresenham_precision: f32,
+    geo_pixels_per_tile: u64,
     bresenham: Bresenham3d<isize>,
     step: u64,
     x: f32,
@@ -14,33 +16,40 @@ pub struct Steps<'a> {
     first: bool,
 }
 
-impl<'a> Steps<'a> {
+impl Steps {
     pub fn new(
-        w: &'a WorldConfig,
+        world_width_pixels: u64,
+        world_height_pixels: u64,
+        geo_bresenham_precision: f32,
+        geo_bresenham_step: u64,
+        geo_pixels_per_tile: u64,
         (from_x, from_y, from_z): (f32, f32, f32),
         (to_x, to_y, to_z): (f32, f32, f32),
     ) -> Self {
         let start = (
-            (from_x * w.geo_bresenham_precision) as isize,
-            (from_y * w.geo_bresenham_precision) as isize,
-            (from_z * w.geo_bresenham_precision) as isize,
+            (from_x * geo_bresenham_precision) as isize,
+            (from_y * geo_bresenham_precision) as isize,
+            (from_z * geo_bresenham_precision) as isize,
         );
         let end = (
-            (to_x * w.geo_bresenham_precision) as isize,
-            (to_y * w.geo_bresenham_precision) as isize,
-            (to_z * w.geo_bresenham_precision) as isize,
+            (to_x * geo_bresenham_precision) as isize,
+            (to_y * geo_bresenham_precision) as isize,
+            (to_z * geo_bresenham_precision) as isize,
         );
         let tile = Xy(
-            from_x as u64 / w.geo_pixels_per_tile,
-            from_y as u64 / w.geo_pixels_per_tile,
+            from_x as u64 / geo_pixels_per_tile,
+            from_y as u64 / geo_pixels_per_tile,
         );
         let bresenham = Bresenham3d::new(start, end);
         let distance = Xy::from(start).distance(Xy::from(end));
-        let step = (w.geo_bresenham_step).min(distance as u64);
+        let step = (geo_bresenham_step).min(distance as u64);
         let target = Some([end.0, end.1, end.2]);
 
         Self {
-            w,
+            world_width_pixels,
+            world_height_pixels,
+            geo_bresenham_precision,
+            geo_pixels_per_tile,
             bresenham,
             x: start.0 as f32,
             y: start.1 as f32,
@@ -61,60 +70,65 @@ pub enum Step {
     Outside,
 }
 
-impl<'a> Iterator for Steps<'a> {
+// FIXME: could we remove geo_bresenham_precision by considering stop working with f32 ? (avoid over pixel precision)
+// Franchement voir pour remplacer tout l'algo pour un truc simpleeeee
+impl Iterator for Steps {
     type Item = Step;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let world_width = self.w.world_width_pixels as f32 * self.w.geo_bresenham_precision;
-        let world_height = self.w.world_height_pixels as f32 * self.w.geo_bresenham_precision;
+        let world_width = self.world_width_pixels as f32 * self.geo_bresenham_precision;
+        let world_height = self.world_height_pixels as f32 * self.geo_bresenham_precision;
 
         if self.first {
             self.first = false;
 
             let tile = Xy(
-                (self.x / self.w.geo_bresenham_precision) as u64 / self.w.geo_pixels_per_tile,
-                (self.y / self.w.geo_bresenham_precision) as u64 / self.w.geo_pixels_per_tile,
+                (self.x / self.geo_bresenham_precision) as u64 / self.geo_pixels_per_tile,
+                (self.y / self.geo_bresenham_precision) as u64 / self.geo_pixels_per_tile,
             );
             return Some(Step::First(
                 [
-                    self.x / self.w.geo_bresenham_precision,
-                    self.y / self.w.geo_bresenham_precision,
-                    self.z / self.w.geo_bresenham_precision,
+                    self.x / self.geo_bresenham_precision,
+                    self.y / self.geo_bresenham_precision,
+                    self.z / self.geo_bresenham_precision,
                 ],
                 tile,
             ));
         }
 
+        // println!("step {0}", self.step);
         if let Some((x, y, z)) = self.bresenham.nth(self.step as usize) {
+            // println!("step => {x},{y},{z}");
             // TODO: maximum z ?
-            if x < 0 || y < 0 || x + 1 >= world_width as isize || y + 1 >= world_height as isize {
+            if x < 0 || y < 0 || x > world_width as isize - 1 || y > world_height as isize - 1 {
+                // println!("Outside ({world_width},{world_height})");
                 return Some(Step::Outside);
             }
 
             let tile = Xy(
-                (x as f32 / self.w.geo_bresenham_precision) as u64 / self.w.geo_pixels_per_tile,
-                (y as f32 / self.w.geo_bresenham_precision) as u64 / self.w.geo_pixels_per_tile,
+                (x as f32 / self.geo_bresenham_precision) as u64 / self.geo_pixels_per_tile,
+                (y as f32 / self.geo_bresenham_precision) as u64 / self.geo_pixels_per_tile,
             );
             if tile != self.tile {
                 self.tile = tile;
             };
 
-            self.x = (x as f32) / self.w.geo_bresenham_precision;
-            self.y = (y as f32) / self.w.geo_bresenham_precision;
-            self.z = (z as f32) / self.w.geo_bresenham_precision;
+            self.x = (x as f32) / self.geo_bresenham_precision;
+            self.y = (y as f32) / self.geo_bresenham_precision;
+            self.z = (z as f32) / self.geo_bresenham_precision;
 
             return Some(Step::Inside([self.x, self.y, self.z], self.tile));
         }
 
         if let Some([x, y, z]) = self.target.take() {
             let (x, y, z) = (
-                x as f32 / self.w.geo_bresenham_precision,
-                y as f32 / self.w.geo_bresenham_precision,
-                z as f32 / self.w.geo_bresenham_precision,
+                x as f32 / self.geo_bresenham_precision,
+                y as f32 / self.geo_bresenham_precision,
+                z as f32 / self.geo_bresenham_precision,
             );
             let tile = Xy(
-                x as u64 / self.w.geo_pixels_per_tile,
-                y as u64 / self.w.geo_pixels_per_tile,
+                x as u64 / self.geo_pixels_per_tile,
+                y as u64 / self.geo_pixels_per_tile,
             );
             return Some(Step::Last([x, y, z], tile));
         }

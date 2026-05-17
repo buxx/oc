@@ -37,6 +37,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn individuals(w: &WorldConfig, tiles: &Vec<Tile>) -> Vec<Individual> {
+fn individuals(_w: &WorldConfig, _tiles: &Vec<Tile>) -> Vec<Individual> {
     vec![]
 }

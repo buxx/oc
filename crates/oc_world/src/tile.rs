@@ -26,6 +26,12 @@ pub struct Tile {
     pub z: u8,
 }
 
+impl Tile {
+    pub fn z_pixels(&self, w: &WorldConfig) -> f32 {
+        self.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters
+    }
+}
+
 #[derive(
     Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, EnumIter, Display, Hash, Eq,
 )]

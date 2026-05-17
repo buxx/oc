@@ -138,7 +138,15 @@ where
                     y as u64 / w.geo_pixels_per_tile,
                 );
 
-                for step in line::Steps::new(w, (x, y, z), (x_, y_, z_)) {
+                for step in line::Steps::new(
+                    w.world_width_pixels,
+                    w.world_height_pixels,
+                    w.geo_bresenham_precision,
+                    w.geo_bresenham_step,
+                    w.geo_pixels_per_tile,
+                    (x, y, z),
+                    (x_, y_, z_),
+                ) {
                     match step {
                         line::Step::First([step_x, step_y, step_z], step_tile)
                         | line::Step::Inside([step_x, step_y, step_z], step_tile)

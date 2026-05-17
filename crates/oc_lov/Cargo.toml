@@ -1,0 +1,21 @@
+[package]
+name = "oc_lov"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+
+[dependencies]
+oc_root = { path = "../oc_root" }
+oc_utils = { path = "../oc_utils" }
+oc_geo = { path = "../oc_geo" }
+oc_physics = { path = "../oc_physics" }
+oc_world = { path = "../oc_world" }
+derive_more = { workspace = true, features = ["constructor"] }
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+glam.workspace = true
+
+[dev-dependencies]
+rstest.workspace = true

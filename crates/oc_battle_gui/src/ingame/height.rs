@@ -1,6 +1,5 @@
 use std::f32::consts::PI;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU8, Ordering};
 
 use bevy::color::palettes::css::WHITE;
 use bevy::input::mouse::MouseMotion;

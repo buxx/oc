@@ -11,12 +11,14 @@ use thiserror::Error;
 use crate::{
     ammunition::{Ammunition, AmmunitionIndex, IndexedAmmunition},
     sound::IndexedSound,
+    terrain::Terrain,
     weapons::{Weapon, WeaponIndex},
 };
 
 pub mod ammunition;
 pub mod armament;
 pub mod sound;
+pub mod terrain;
 pub mod weapons;
 
 pub const MOD_RON: &str = "mod.ron";
@@ -114,6 +116,11 @@ impl Mod {
 
     pub fn sound(&self, sound: sound::SoundIndex) -> &IndexedSound {
         &self.sounds[sound.0 as usize]
+    }
+
+    // FIXME BS NOW: nature hardcoded ? or mod ?
+    pub fn terrain(&self, _nature: String) -> Terrain {
+        Terrain { opacity: 0.05 }
     }
 }
 

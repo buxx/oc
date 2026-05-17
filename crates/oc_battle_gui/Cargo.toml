@@ -15,6 +15,7 @@ oc_mod = { path = "../oc_mod" }
 oc_geo = { path = "../oc_geo" }
 oc_world = { path = "../oc_world", features = ["bevy"] }
 oc_physics = { path = "../oc_physics", features = ["bevy"] }
+oc_lov = { path = "../oc_lov" }
 oc_individual = { path = "../oc_individual" }
 oc_projectile = { path = "../oc_projectile" }
 bevy_heightmap = { path = "../bevy_heightmap" }
@@ -37,3 +38,4 @@ bon.workspace = true
 fs_extra.workspace = true
 tempfile.workspace = true
 image.workspace = true
+glam.workspace = true

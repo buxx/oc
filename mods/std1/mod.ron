@@ -1,4 +1,5 @@
 Mod (
   name: "std1",
-  version: 1
+  version: 1,
+  human_default_stand_up_fire_meters: 1.5,
 )

@@ -56,6 +56,9 @@ pub struct Context {
     spawn_projectile_click_mode: SpawnProjectileClickMode,
     spawn_repeat: u8,
     spawn_projectile_plus_z: Meters,
+    lov_click_mode: LovClickMode,
+    lov_start_plus_z: Meters,
+    lov_end_plus_z: Meters,
 }
 
 impl Default for Context {
@@ -79,6 +82,9 @@ impl Default for Context {
             spawn_projectile_click_mode: Default::default(),
             spawn_repeat: 1,
             spawn_projectile_plus_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS,
+            lov_click_mode: Default::default(),
+            lov_start_plus_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS,
+            lov_end_plus_z: Meters(0.),
         }
     }
 }
@@ -93,6 +99,13 @@ pub struct InContext<'a, 'b, 'w, 's, 'c> {
 
 #[derive(Debug, Clone, Copy, Default, Display, EnumIter, PartialEq, Eq)]
 pub enum SpawnProjectileClickMode {
+    TwoClicks,
+    #[default]
+    DraggedClick,
+}
+
+#[derive(Debug, Clone, Copy, Default, Display, EnumIter, PartialEq, Eq)]
+pub enum LovClickMode {
     TwoClicks,
     #[default]
     DraggedClick,

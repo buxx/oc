@@ -8,6 +8,7 @@ use crate::physics::Meters;
 pub mod end;
 pub mod files;
 pub mod ids;
+pub mod opacity;
 pub mod physics;
 pub mod static_;
 pub mod y;
@@ -36,6 +37,7 @@ pub struct WorldConfig {
     pub geo_bresenham_precision: f32,
     pub geo_bresenham_step: u64,
     pub geo_meters_per_z: Meters,
+    pub geo_lov_step: u64,
     pub minimap_width_pixels: u64,
     pub minimap_height_pixels: u64,
 }
@@ -52,6 +54,7 @@ impl WorldConfig {
         let geo_pixels_per_tile: u64 = geo_pixels_per_meters as u64;
         let geo_bresenham_precision: f32 = 100.;
         let geo_bresenham_step: u64 = 250;
+        let geo_lov_step: u64 = 0; // TODO: don't work if not 0 (pointillés)
 
         let tiles_count = world_width * world_height;
         let regions_count = tiles_count / (region_width * region_height);
@@ -86,6 +89,7 @@ impl WorldConfig {
             geo_bresenham_precision,
             geo_bresenham_step,
             geo_meters_per_z,
+            geo_lov_step,
             minimap_width_pixels,
             minimap_height_pixels,
         }
@@ -129,6 +133,11 @@ impl WorldConfig {
 
     pub fn geo_pixels_per_tile(mut self, value: u64) -> Self {
         self.geo_pixels_per_tile = value;
+        self
+    }
+
+    pub fn geo_lov_step(mut self, value: u64) -> Self {
+        self.geo_lov_step = value;
         self
     }
 }

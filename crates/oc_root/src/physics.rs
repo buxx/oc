@@ -30,6 +30,7 @@ pub struct Seconds(pub f32);
     PartialEq,
     Clone,
     Copy,
+    Default,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Meters(pub f32);

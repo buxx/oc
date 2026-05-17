@@ -9,6 +9,7 @@ use crate::{
         height::HeightPlugin,
         individual::IndividualPlugin,
         input::{client::on_to_client, keyboard::on_key_press},
+        lov::{Lov, LovPlugin, on_despawn_lov, on_spawn_lov, update_lov},
         projectile::ProjectilePlugin,
         region::on_listening_region,
         world::{
@@ -29,6 +30,7 @@ pub mod height;
 pub mod individual;
 pub mod init;
 pub mod input;
+pub mod lov;
 pub mod physics;
 pub mod projectile;
 pub mod region;
@@ -57,6 +59,7 @@ impl Plugin for IngamePlugin {
             .add_plugins(HeightPlugin)
             .add_plugins(IndividualPlugin)
             .add_plugins(ProjectilePlugin)
+            .add_plugins(LovPlugin)
             // TODO: InputPlugin
             .init_resource::<input::State>()
             .add_observer(on_to_client)

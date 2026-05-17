@@ -5306,10 +5306,12 @@ dependencies = [
  "egui_dock",
  "flate2",
  "fs_extra",
+ "glam 0.32.1",
  "image 0.25.9",
  "message-io",
  "oc_geo",
  "oc_individual",
+ "oc_lov",
  "oc_mod",
  "oc_network",
  "oc_physics",
@@ -5373,6 +5375,23 @@ dependencies = [
  "oc_root",
  "oc_utils",
  "rkyv",
+]
+
+[[package]]
+name = "oc_lov"
+version = "0.1.0"
+dependencies = [
+ "derive_more",
+ "glam 0.32.1",
+ "oc_geo",
+ "oc_physics",
+ "oc_root",
+ "oc_utils",
+ "oc_world",
+ "rstest",
+ "thiserror 2.0.18",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

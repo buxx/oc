@@ -7,6 +7,7 @@ use strum::IntoEnumIterator;
 use crate::ingame::{
     debug::projectile::SpawnProjectileProfile,
     input::left_click::{LeftClickMode, LeftClickModeType, SetLeftClick},
+    lov::SpawnLovConfig,
 };
 
 impl super::Context {
@@ -34,6 +35,50 @@ impl super::Context {
         match left_click_mode {
             LeftClickModeType::Select => {
                 commands.trigger(SetLeftClick(LeftClickMode::Select));
+            }
+            LeftClickModeType::LineOfView => {
+                let click_mode = &mut self.lov_click_mode;
+                let click_mode_before = *click_mode;
+                let start_plus_z = &mut self.lov_start_plus_z;
+                let start_plus_z_before = *start_plus_z;
+                let end_plus_z = &mut self.lov_end_plus_z;
+                let end_plus_z_before = *end_plus_z;
+
+                egui::ComboBox::new("click_mode", "")
+                    .selected_text(click_mode.to_string())
+                    .show_ui(ui, |ui| {
+                        for item in super::LovClickMode::iter() {
+                            let name = item.to_string();
+                            ui.selectable_value(click_mode, item, name);
+                        }
+                    });
+
+                ui.horizontal(|ui| {
+                    ui.add(
+                        egui::DragValue::new(&mut start_plus_z.0)
+                            .range((0.0)..=(5.0))
+                            .speed(0.1),
+                    );
+                    ui.label("+ start z");
+                    ui.separator();
+                    ui.add(
+                        egui::DragValue::new(&mut end_plus_z.0)
+                            .range((0.0)..=(5.0))
+                            .speed(0.1),
+                    );
+                    ui.label("+ end z");
+                });
+
+                if *click_mode != click_mode_before
+                    || start_plus_z.0 != start_plus_z_before.0
+                    || end_plus_z.0 != end_plus_z_before.0
+                {
+                    commands.trigger(SetLeftClick(LeftClickMode::LineOfView(SpawnLovConfig {
+                        click: *click_mode,
+                        start_pluz_z: *start_plus_z,
+                        stop_pluz_z: *end_plus_z,
+                    })));
+                }
             }
             LeftClickModeType::SpawnProjectile => {
                 let weapon_type_before = self.spawn_weapon_type.clone();
@@ -145,6 +190,11 @@ impl super::Context {
             match self.left_click_mode {
                 LeftClickModeType::Select => {
                     commands.trigger(SetLeftClick(LeftClickMode::Select));
+                }
+                LeftClickModeType::LineOfView => {
+                    let profile = SpawnLovConfig::default();
+                    let lov = LeftClickMode::LineOfView(profile);
+                    commands.trigger(SetLeftClick(lov));
                 }
                 _ => {}
             }

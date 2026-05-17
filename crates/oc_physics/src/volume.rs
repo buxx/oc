@@ -21,6 +21,14 @@ pub enum Volume {
 }
 
 impl Volume {
+    pub fn point_zero() -> Self {
+        Self::Point {
+            x: 0.,
+            y: 0.,
+            z: 0.,
+        }
+    }
+
     pub fn with_ref(mut self, value: [f32; 3]) -> Self {
         match &mut self {
             Volume::Point { x, y, z } => {
