@@ -36,9 +36,6 @@ impl WorldLoader {
         tracing::info!("Load world meta {}", self.world.meta().display());
         let meta = Meta::from_file(&self.world.meta()).map_err(MetaError::Load)?;
 
-        // TODO: centralize caching at server startup
-        self.cache(&meta)?;
-
         let w = self.w.clone();
         let mod_ = self.mod_.clone();
         let tiles = snapshot.tiles;
@@ -95,83 +92,81 @@ impl WorldLoader {
 
         Ok(())
     }
+}
 
-    // TODO: centralize caching at server startup
-    fn cache(&self, meta: &Meta) -> Result<(), CacheError> {
-        tracing::info!("Check cache for {}", self.world.display());
-        let files = files::Files::new("".to_string(), meta.canonical());
-        let files = files.into_server(self.cache.clone());
-        let world = files.world();
-        let archive = files.world_archive();
-        let minimap = files.minimap();
+fn cache(
+    w: &WorldConfig,
+    cache_folder: &PathBuf,
+    world_folder: &PathBuf,
+    meta: &Meta,
+) -> Result<(), CacheError> {
+    let files = files::Files::new("".to_string(), meta.canonical());
+    let files = files.into_server(cache_folder.clone());
+    let world = files.world();
+    let archive = files.world_archive();
+    let minimap = files.minimap();
 
-        std::fs::create_dir_all(&world).unwrap(); // TODO
-        let image = image::open(self.world.background())?;
+    std::fs::create_dir_all(&world).unwrap(); // TODO
+    let image = image::open(world_folder.background())?;
 
-        match minimap.exists() {
-            true => {
-                tracing::info!("Minimap already exists ({})", minimap.display())
-            }
-            false => {
-                // TODO: size in config/args ?
-                let width = self.w.minimap_width_pixels as f32;
-                let height = self.w.minimap_height_pixels as f32;
-                tracing::info!(
-                    "Prepare cache for minimap {} ({}x{})",
-                    minimap.display(),
-                    width,
-                    height
-                );
-                let minimap_ = image::imageops::resize(
-                    &image,
-                    width as u32,
-                    height as u32,
-                    FilterType::Gaussian,
-                );
-                minimap_.save(minimap)?;
-            }
+    match minimap.exists() {
+        true => {}
+        false => {
+            // TODO: size in config/args ?
+            let width = w.minimap_width_pixels as f32;
+            let height = w.minimap_height_pixels as f32;
+            tracing::info!(
+                "Prepare cache for minimap {} ({}x{})",
+                minimap.display(),
+                width,
+                height
+            );
+            let minimap_ =
+                image::imageops::resize(&image, width as u32, height as u32, FilterType::Gaussian);
+            minimap_.save(minimap)?;
         }
-
-        let counter = Arc::new(AtomicU32::new(0));
-        tracing::info!("Prepare cache for regions");
-
-        (0..self.w.regions_count)
-            .into_par_iter()
-            .map(|i| {
-                let i = WorldRegionIndex(i as u64);
-                let region = files.region(i.0);
-
-                match region.exists() {
-                    true => {
-                        tracing::info!("Region cache {} already exists", region.display());
-                        Ok(())
-                    }
-                    false => {
-                        counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                        cache::cache_region_background(&self.w, &region, &image, i)
-                    }
-                }
-            })
-            .collect::<Result<Vec<()>, CacheRegionBackgroundError>>()?;
-
-        let cached = counter.load(std::sync::atomic::Ordering::Relaxed);
-        let already = self.w.regions_count - cached as u64;
-        tracing::info!("{} cached, {} already cached", cached, already);
-
-        if !std::fs::exists(&archive)? {
-            tracing::info!("Caching {} to {}", &self.world.display(), archive.display());
-
-            let file = std::fs::File::create(&archive)?;
-            let encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
-            let mut builder = tar::Builder::new(encoder);
-
-            builder.append_dir_all(&meta.name, &self.world)?;
-            builder.finish()?;
-            tracing::info!("Finished cache for world ({})", archive.display());
-        }
-
-        Ok(())
     }
+
+    let counter = Arc::new(AtomicU32::new(0));
+    tracing::info!("Prepare cache for regions");
+
+    (0..w.regions_count)
+        .into_par_iter()
+        .map(|i| {
+            let i = WorldRegionIndex(i as u64);
+            let region = files.region(i.0);
+
+            match region.exists() {
+                true => Ok(()),
+                false => {
+                    counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    cache::cache_region_background(w, &region, &image, i)
+                }
+            }
+        })
+        .collect::<Result<Vec<()>, CacheRegionBackgroundError>>()?;
+
+    let cached = counter.load(std::sync::atomic::Ordering::Relaxed);
+    let already = w.regions_count - cached as u64;
+    tracing::info!("{} cached, {} already cached", cached, already);
+
+    if !std::fs::exists(&archive)? {
+        tracing::info!(
+            "Caching {} to {}",
+            world_folder.display(),
+            archive.display()
+        );
+
+        let file = std::fs::File::create(&archive)?;
+        let encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
+        let mut builder = tar::Builder::new(encoder);
+
+        builder.append_dir_all(&meta.name, &world_folder)?;
+        builder.finish()?;
+        tracing::info!("Finished cache for world ({})", archive.display());
+    }
+
+    Ok(())
 }
 
 #[derive(Debug, Error)]

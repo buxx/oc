@@ -2,6 +2,7 @@
 mod test {
     use glam::Vec3;
     use oc_geo::tile::WorldTileIndex;
+    use oc_mod::nature::NatureIndex;
     use oc_physics::{
         Event, Force, Physic,
         collision::{Material, Materials},
@@ -11,7 +12,7 @@ mod test {
         WorldConfig,
         physics::{Meters, MetersSeconds},
     };
-    use oc_world::tile::{Nature, Tile};
+    use oc_world::tile::Tile;
     use rstest::rstest;
 
     fn init_tracing() {
@@ -106,7 +107,7 @@ mod test {
         let tile_z = (tile_meters.0 / geo_meters_per_z.0) as u8;
         let tile = Tile {
             i: tile_i,
-            nature: Nature::ShortGrass,
+            nature: NatureIndex(0),
             z: tile_z,
         };
 

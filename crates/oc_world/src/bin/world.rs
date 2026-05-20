@@ -3,9 +3,10 @@ use std::path::PathBuf;
 use ::image::{ImageBuffer, Rgba};
 use anyhow::Context;
 use clap::Parser;
-use oc_root::WorldConfig;
+use oc_mod::{Mod, nature::NatureIndex};
+use oc_root::{WorldConfig, physics::Meters};
 use oc_utils::image;
-use oc_world::{reader, snapshot::Snapshot, terrain::Terrain, tile::Nature};
+use oc_world::{reader, snapshot::Snapshot, terrain::Terrain};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
@@ -16,9 +17,13 @@ pub struct Args {
     #[clap()]
     pub path: PathBuf,
 
-    /// File path to the snapshot file to initialize
+    /// Path to the mod folder (required if snapshot used)
     #[clap()]
-    pub snapshot: PathBuf,
+    pub mod_: Option<PathBuf>,
+
+    /// File path to the snapshot file to initialize
+    #[clap(long)]
+    pub snapshot: Option<PathBuf>,
 
     /// World width in tiles (required if initializing new world)
     #[clap(long)]
@@ -94,7 +99,7 @@ fn main() -> Result<(), anyhow::Error> {
     let background_path = args.path.join("background.png");
     let interiors_path = args.path.join("interiors.png");
     let (width, height) = background(&args, &background_path)?;
-    let w = WorldConfig::new(width, height);
+    let w = WorldConfig::new(width, height, Meters(0.1));
 
     tracing::info!("Assuming width of {} (tiles)", width);
     tracing::info!("Assuming height of {} (tiles)", height);
@@ -103,8 +108,6 @@ fn main() -> Result<(), anyhow::Error> {
     let terrain_tsx_tpl_path = PathBuf::from("templates/world/terrain.tsx");
     let terrain_tsx_path = args.path.join("terrain.tsx");
     copy(&terrain_tsx_tpl_path, &terrain_tsx_path, "terrain.tsx", f)?;
-
-    analyze_terrain(&w, &terrain_tsx_path)?;
 
     let height_tsx_tpl_path = PathBuf::from("templates/world/height.tsx");
     let height_tsx_path = args.path.join("height.tsx");
@@ -134,19 +137,33 @@ fn main() -> Result<(), anyhow::Error> {
     let world_path = args.path.join("world.tmx");
     world(&world_tpl_path, &world_path, width, height, args.tile_size)?;
 
-    let snapshot = &args.snapshot;
-    snapshot_(w, &args.path, snapshot)?;
+    if let Some(mod_) = &args.mod_ {
+        let mod_ = Mod::load(&mod_, None).context(format!("Load cache from {}", mod_.display()))?;
+        analyze_terrain(&w, &terrain_tsx_path, &mod_)?;
+    }
+
+    if let Some(snapshot) = &args.snapshot {
+        let mod_ = &args.mod_.ok_or(anyhow::bail!(
+            "You must give mod folder path to generate snapshot"
+        ))?;
+        let mod_ = Mod::load(mod_, None).context(format!("Load cache from {}", mod_.display()))?;
+        snapshot_(w, &args.path, snapshot, &mod_)?;
+    }
 
     Ok(())
 }
 
-fn analyze_terrain(w: &WorldConfig, path: &PathBuf) -> Result<(), anyhow::Error> {
+fn analyze_terrain(w: &WorldConfig, path: &PathBuf, mod_: &Mod) -> Result<(), anyhow::Error> {
     let terrain =
-        Terrain::load(path, w.clone()).context(format!("Load terrain {}", path.display()))?;
+        Terrain::load(path, w.clone(), mod_).context(format!("Load terrain {}", path.display()))?;
     tracing::debug!("Terrain colums: {}", terrain.columns());
     tracing::debug!("Terrain rows: {}", terrain.rows());
 
-    let mut natures: Vec<(Nature, u32)> = terrain.natures.iter().map(|(n, i)| (*n, *i)).collect();
+    let mut natures: Vec<(String, u32)> = terrain
+        .natures
+        .iter()
+        .map(|(n, i)| (mod_.nature(*n).name.clone(), *i))
+        .collect();
     natures.sort_by_key(|(_, i)| *i);
 
     for (index, nature) in natures {
@@ -156,7 +173,12 @@ fn analyze_terrain(w: &WorldConfig, path: &PathBuf) -> Result<(), anyhow::Error>
     Ok(())
 }
 
-fn snapshot_(w: WorldConfig, map: &PathBuf, path: &PathBuf) -> Result<(), anyhow::Error> {
+fn snapshot_(
+    w: WorldConfig,
+    map: &PathBuf,
+    path: &PathBuf,
+    mod_: &Mod,
+) -> Result<(), anyhow::Error> {
     match std::fs::exists(path).context(format!("Test if {} exists", path.display()))? {
         true => tracing::info!("{} already exist", path.display()),
         false => {
@@ -172,7 +194,7 @@ fn snapshot_(w: WorldConfig, map: &PathBuf, path: &PathBuf) -> Result<(), anyhow
 
     tracing::info!("Update snapshot tiles");
     let map = reader::MapReader::new(map)?;
-    let tiles = map.tiles(&snapshot.w)?;
+    let tiles = map.tiles(&snapshot.w, mod_)?;
     snapshot.tiles = tiles;
 
     tracing::info!("Save snapshot");

@@ -1,6 +1,7 @@
 use std::{marker::PhantomData, path::PathBuf};
 
 use oc_individual::Individual;
+use oc_mod::Mod;
 use oc_projectile::Projectile;
 use oc_root::WorldConfig;
 use oc_world::{
@@ -37,9 +38,9 @@ where
         }
     }
 
-    pub fn build(&self, w: WorldConfig) -> Result<PathBuf, Error> {
+    pub fn build(&self, w: WorldConfig, mod_: &Mod) -> Result<PathBuf, Error> {
         let (_, snapshot_path) = tempfile::NamedTempFile::new()?.keep()?;
-        let tiles = self.tiles.tiles(&w);
+        let tiles = self.tiles.tiles(&w, mod_);
         let individuals = self.individuals.individuals(&w, &tiles);
         let projectiles = self.projectiles.projectiles(&w);
 

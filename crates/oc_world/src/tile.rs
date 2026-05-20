@@ -4,6 +4,7 @@ use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
 };
+use oc_mod::nature::NatureIndex;
 use oc_physics::{
     Force, Physic,
     collision::{Material, Materials},
@@ -12,9 +13,8 @@ use oc_physics::{
 use oc_root::{WcfgInto, WorldConfig};
 
 use crate::World;
-use derive_more::{Constructor, Display};
+use derive_more::Constructor;
 use rkyv::{Archive, Deserialize, Serialize};
-use strum_macros::EnumIter;
 
 const DEPTH: f32 = 10_000.;
 
@@ -22,65 +22,13 @@ const DEPTH: f32 = 10_000.;
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Tile {
     pub i: WorldTileIndex, // Should not be necessary, but oc_physics::step must take a reference ...
-    pub nature: Nature,
+    pub nature: NatureIndex,
     pub z: u8,
 }
 
 impl Tile {
     pub fn z_pixels(&self, w: &WorldConfig) -> f32 {
         self.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters
-    }
-}
-
-#[derive(
-    Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, EnumIter, Display, Hash, Eq,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub enum Nature {
-    ShortGrass,
-    MiddleGrass,
-    HighGrass,
-    Dirt,
-    Mud,
-    Sand,
-    Gravel,
-    Concrete,
-    BrickWall,
-    Trunk,
-    Water,
-    DeepWater,
-    Underbrush,
-    LightUnderbrush,
-    MiddleWoodLogs,
-    Hedge,
-    MiddleRock,
-}
-
-impl std::str::FromStr for Nature {
-    type Err = NatureError;
-
-    // TODO: use strum auto (or serde ?)
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "ShortGrass" => Ok(Self::ShortGrass),
-            "MiddleGrass" => Ok(Self::MiddleGrass),
-            "HighGrass" => Ok(Self::HighGrass),
-            "Dirt" => Ok(Self::Dirt),
-            "Mud" => Ok(Self::Mud),
-            "Sand" => Ok(Self::Sand),
-            "Gravel" => Ok(Self::Gravel),
-            "Concrete" => Ok(Self::Concrete),
-            "BrickWall" => Ok(Self::BrickWall),
-            "Trunk" => Ok(Self::Trunk),
-            "Water" => Ok(Self::Water),
-            "DeepWater" => Ok(Self::DeepWater),
-            "Underbrush" => Ok(Self::Underbrush),
-            "LightUnderbrush" => Ok(Self::LightUnderbrush),
-            "MiddleWoodLogs" => Ok(Self::MiddleWoodLogs),
-            "Hedge" => Ok(Self::Hedge),
-            "MiddleRock" => Ok(Self::MiddleRock),
-            _ => Result::Err(NatureError::UnknownId(s.to_string())),
-        }
     }
 }
 
@@ -139,10 +87,4 @@ impl Physic for Tile {
             depth: DEPTH + ref_[2],
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum NatureError {
-    #[error("Unknown tile ID: {0}")]
-    UnknownId(String),
 }

@@ -44,9 +44,9 @@ fn download(
         return Ok(());
     };
 
-    let mod_ = mod_.canonical();
+    let mod__ = mod_.canonical();
     let world = meta.canonical();
-    let files = files::Files::new(mod_, world).into_gui(static_.clone(), connect.into());
+    let files = files::Files::new(mod__, world).into_gui(static_.clone(), connect.into());
 
     tracing::info!("Download");
 
@@ -58,7 +58,7 @@ fn download(
     }
 
     // FIXME: check tile size
-    let terrain = oc_world::terrain::Terrain::load(&files.terrain_tsx(), w.clone()).unwrap(); // TODO
+    let terrain = oc_world::terrain::Terrain::load(&files.terrain_tsx(), w.clone(), mod_).unwrap(); // TODO
     tracing::trace!(name="downloading-terrain", terrain=?terrain);
     world_.terrain = Some(terrain); // TODO
 

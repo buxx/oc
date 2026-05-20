@@ -5,40 +5,31 @@ use oc_examples::{
     logging, run,
     snapshot::{EmptyGenerator, SnapshotBuilder},
 };
-use oc_individual::Individual;
 use oc_mod::Mod;
 use oc_projectile::Projectile;
 use oc_root::{WorldConfig, physics::Meters};
-use oc_world::{load::WorldPath, meta::Meta, tile::Tile};
+use oc_world::meta::Meta;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
 
     let mod_ = Mod::load(&PathBuf::from("mods/std1"), None)?;
-    let map_ = PathBuf::from("examples/minidblue");
+    let meta = Meta::from_file(&PathBuf::from("examples/height/meta.toml"))?;
+    let map_ = PathBuf::from("examples/height");
     let map = oc_world::reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
-    let world = Meta::from_file(&map_.meta());
-    let world = world.context(format!("Read file {}", map_.meta().display()))?;
     let w = WorldConfig::new(
         map.width().unwrap() as u64,
         map.height().unwrap() as u64,
-        Meters(world.geo_meters_per_z),
+        Meters(meta.geo_meters_per_z),
     );
-    let projectiles = EmptyGenerator::<Projectile>::new();
-    let snapshot = SnapshotBuilder::new(map, individuals, projectiles).build(w, &mod_)?;
+    let snapshot = SnapshotBuilder::new(map, vec![], vec![]).build(w, &mod_)?;
 
     let example = run::Example::builder()
-        .world(map_)
+        .world(PathBuf::from("examples/height"))
         .mod_(PathBuf::from("mods/std1"))
         .snapshot(snapshot);
-    #[cfg(feature = "test")]
-    let example = example.projectiles(vec![]);
     let _ = example.build().run()?;
 
     Ok(())
-}
-
-fn individuals(_w: &WorldConfig, _tiles: &Vec<Tile>) -> Vec<Individual> {
-    vec![]
 }

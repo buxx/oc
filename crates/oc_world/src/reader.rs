@@ -2,10 +2,11 @@ use std::{collections::HashMap, path::PathBuf, str::FromStr, sync::Arc};
 
 use crate::{
     spawn::{ParseOriginDirectionError, SpawnZoneName},
-    tile::{Nature, NatureError, Tile},
+    tile::Tile,
 };
 use glam::Vec2;
 use oc_geo::tile::WorldTileIndex;
+use oc_mod::Mod;
 use oc_root::WorldConfig;
 use tiled::{
     FiniteTileLayer, Image, ImageLayer, Layer, LayerType, Loader, Map as TiledMap, ObjectLayer,
@@ -50,13 +51,7 @@ pub enum MapReaderError {
     #[error("Tile error: {0}")]
     TileError(String),
     #[error("Terrain tile error: {0}")]
-    TerrainTileError(NatureError),
-}
-
-impl From<NatureError> for MapReaderError {
-    fn from(error: NatureError) -> Self {
-        Self::TerrainTileError(error)
-    }
+    TerrainTileError(String),
 }
 
 impl From<ParseOriginDirectionError> for MapReaderError {
@@ -367,7 +362,7 @@ impl MapReader {
     //     }
     // }
 
-    pub fn tiles(&self, _: &WorldConfig) -> Result<Vec<Tile>, MapReaderError> {
+    pub fn tiles(&self, _: &WorldConfig, mod_: &Mod) -> Result<Vec<Tile>, MapReaderError> {
         let terrain_layer = self.terrain_layer()?;
         let height_layer = self.height_layer()?;
         let terrain_tileset = self.terrain_tileset()?;
@@ -427,7 +422,11 @@ impl MapReader {
                 };
 
                 let z = height_layer_tile_data.id() as u8;
-                let nature = Nature::from_str(id)?;
+                let nature = mod_
+                    .nature_index(id)
+                    .ok_or(MapReaderError::TerrainTileError(format!(
+                        "Terrain nature ID '{id}' unknown from mod"
+                    )))?;
                 let i = WorldTileIndex(tile_id);
                 let tile = Tile { i, nature, z };
 

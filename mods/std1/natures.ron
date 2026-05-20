@@ -1,0 +1,87 @@
+[
+    (
+        name: "ShortGrass",
+        opacity: 0.0,
+        z: Meters(0.0)
+    ),
+    (
+        name: "MiddleGrass",
+        opacity: 0.002,
+        z: Meters(0.25)
+    ),
+    (
+        name: "HighGrass",
+        opacity: 0.1,
+        z: Meters(1.0)
+    ),
+    (
+        name: "Dirt",
+        opacity: 0.0,
+        z: Meters(0.0)
+    ),
+    (
+        name: "Mud",
+        opacity: 0.0,
+        z: Meters(0.0)
+    ),
+    (
+        name: "Sand",
+        opacity: 0.0,
+        z: Meters(0.0)
+    ),
+    (
+        name: "Gravel",
+        opacity: 0.0,
+        z: Meters(0.0)
+    ),
+    (
+        name: "Concrete",
+        opacity: 0.0,
+        z: Meters(0.0)
+    ),
+    (
+        name: "BrickWall",
+        opacity: 1.0,
+        z: Meters(2.5)
+    ),
+    (
+        name: "Trunk",
+        opacity: 0.8,
+        z: Meters(4.0)
+    ),
+    (
+        name: "Water",
+        opacity: 0.0,
+        z: Meters(0.0)
+    ),
+    (
+        name: "DeepWater",
+        opacity: 0.0,
+        z: Meters(0.0)
+    ),
+    (
+        name: "Underbrush",
+        opacity: 0.015,
+        z: Meters(2.5)
+    ),
+    (
+        name: "LightUnderbrush",
+        opacity: 0.010,
+        z: Meters(2.5)
+    ),
+    (
+        name: "MiddleWoodLogs",
+        opacity: 0.015,
+        z: Meters(0.4)
+    ),
+    (
+        name: "Hedge",
+        opacity: 0.25,
+        z: Meters(2.0)
+    ),
+    (
+        name: "MiddleRock",
+        opacity: 0.15,
+        z: Meters(0.8)
+    ),
+]

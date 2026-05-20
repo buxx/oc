@@ -161,6 +161,7 @@ where
 
                                 for (o, other) in at(step_tile) {
                                     let [other_x, other_y, other_z] = other.position(w);
+                                    // FIXME BS NOW: il faut prendre en compte le volume propre aussi (brick wall)
                                     let volume2 = other.volume([other_x, other_y, other_z], w);
 
                                     tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?step_tile, o=?o, volume=?volume, volume2=?volume2);
@@ -202,7 +203,7 @@ where
 #[cfg(test)]
 mod tests {
     use oc_geo::tile::TileXy;
-    use oc_root::WcfgInto;
+    use oc_root::{WcfgInto, physics::Meters};
 
     use crate::collision::Materials;
 
@@ -268,7 +269,7 @@ mod tests {
     #[test]
     fn test_unidirectional_translation() {
         // Given
-        let w = WorldConfig::new(1000, 1000)
+        let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
             .geo_pixels_per_meters(10.);
@@ -290,7 +291,7 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_collision() {
         // Given
-        let w = WorldConfig::new(1000, 1000)
+        let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
             .geo_bresenham_step(250)
@@ -326,7 +327,7 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_high_speed() {
         // Given
-        let w = WorldConfig::new(1000, 1000)
+        let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
             .geo_pixels_per_meters(10.);
@@ -348,7 +349,7 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_high_speed_collision() {
         // Given
-        let w = WorldConfig::new(1000, 1000)
+        let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
             .geo_bresenham_step(250)
@@ -384,7 +385,7 @@ mod tests {
     #[test]
     fn test_bidirectional_translation() {
         // Given
-        let w = WorldConfig::new(1000, 1000)
+        let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
             .geo_pixels_per_meters(10.);

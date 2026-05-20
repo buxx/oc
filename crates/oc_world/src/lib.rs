@@ -109,7 +109,8 @@ impl World {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::tile::Nature;
+    use oc_mod::nature::NatureIndex;
+    use oc_root::physics::Meters;
 
     use super::*;
 
@@ -117,11 +118,11 @@ mod tests {
     #[test]
     fn test_region_tiles() {
         // Given
-        let w = WorldConfig::new(1000, 1000);
-        let mod_ = Mod::new("MyMod".to_string(), 1, vec![], vec![], vec![], 1.5);
-        let meta = Meta::new("MyWorld".to_string(), 0);
+        let w = WorldConfig::new(1000, 1000, Meters(0.1));
+        let mod_ = Mod::new("MyMod".to_string(), 1, vec![], vec![], vec![], vec![], 1.5);
+        let meta = Meta::new("MyWorld".to_string(), 0, w.geo_meters_per_z.0);
         let tiles: Vec<Tile> = (0..w.tiles_count)
-            .map(|i| Tile::new(WorldTileIndex(i as u64), Nature::ShortGrass, 0))
+            .map(|i| Tile::new(WorldTileIndex(i as u64), NatureIndex(0), 0))
             .collect();
         let world = World::new(w.clone(), mod_, meta, tiles, vec![], HashMap::default());
 
@@ -135,7 +136,7 @@ mod tests {
         for y in 0..w.region_height as usize {
             for x in 0..w.region_width as usize {
                 let i: WorldTileIndex = TileXy(Xy(x as u64, y as u64)).into_(&w);
-                expected.push((i, Tile::new(i, Nature::ShortGrass, 0)));
+                expected.push((i, Tile::new(i, NatureIndex(0), 0)));
             }
         }
         assert_eq!(tiles, expected);

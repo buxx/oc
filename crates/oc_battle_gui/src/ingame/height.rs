@@ -11,7 +11,7 @@ use oc_root::y::Y;
 use oc_root::{Wcfg, WcfgFrom, WcfgInto, WorldConfig};
 use oc_utils::d2::Xy;
 
-use crate::states::{AppState, InGameState, Meta};
+use crate::states::{AppState, InGameState, Meta, Mod};
 use crate::world::World;
 
 pub struct HeightPlugin;
@@ -158,6 +158,7 @@ fn move_camera_by_keyboard(
 fn on_spawn(
     center: On<Spawn>,
     w: Res<Wcfg>,
+    mod_: Res<Mod>,
     world: Res<World>,
     meta: Res<Meta>,
     asset_server: Res<AssetServer>,
@@ -167,6 +168,7 @@ fn on_spawn(
 ) {
     tracing::debug!("Spawn height map");
     let Some(w) = &w.0 else { return };
+    let Some(mod_) = &mod_.0 else { return };
     let Some(meta) = &meta.0 else { return };
     let center = center.0;
     tracing::trace!(name="ingame-height-on-spawn-center", center=?center);
@@ -255,6 +257,37 @@ fn on_spawn(
                 ..default()
             },
         ));
+
+        // cubes
+        for (i, tile) in tiles {
+            let nature = mod_.nature(tile.nature);
+            let nature_z = nature.z.0;
+
+            if nature_z == 0.0 {
+                continue;
+            }
+
+            let xy = TileXy::from_(*i, w);
+            let (x, y) = (
+                xy.0.0 * w.geo_pixels_per_tile,
+                xy.0.1 * w.geo_pixels_per_tile,
+            );
+            let z = tile.z_pixels(w);
+            let alpha = nature.opacity.min(0.5);
+            commands.spawn((
+                Mesh3d(meshes.add(Cuboid::new(
+                    w.geo_pixels_per_tile as f32,
+                    w.geo_pixels_per_tile as f32,
+                    nature_z * w.geo_pixels_per_meters,
+                ))),
+                MeshMaterial3d(materials.add(StandardMaterial {
+                    base_color: Color::srgba(0.5, 1.0, 0.5, alpha),
+                    alpha_mode: AlphaMode::AlphaToCoverage,
+                    ..default()
+                })),
+                Transform::from_xyz(x as f32, (y as f32).to_gui_y(w), z),
+            ));
+        }
     }
 
     //

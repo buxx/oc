@@ -167,7 +167,9 @@ mod tests {
     #[case(1001, 1, 2001)]
     pub fn test_world_tile_index(#[case] x: u64, #[case] y: u64, #[case] i: u64) {
         // Given
-        let w = WorldConfig::new(1000, 1000);
+
+        use oc_root::physics::Meters;
+        let w = WorldConfig::new(1000, 1000, Meters(0.1));
 
         // When
         let index = WorldTileIndex::from_(TileXy(Xy(x, y)), &w);

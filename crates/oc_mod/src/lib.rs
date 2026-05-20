@@ -10,15 +10,15 @@ use thiserror::Error;
 
 use crate::{
     ammunition::{Ammunition, AmmunitionIndex, IndexedAmmunition},
+    nature::{Nature, NatureIndex},
     sound::IndexedSound,
-    terrain::Terrain,
     weapons::{Weapon, WeaponIndex},
 };
 
 pub mod ammunition;
 pub mod armament;
+pub mod nature;
 pub mod sound;
-pub mod terrain;
 pub mod weapons;
 
 pub const MOD_RON: &str = "mod.ron";
@@ -41,6 +41,8 @@ pub struct Mod {
     name: String,
     version: u32,
     #[serde(skip, default)]
+    pub natures: Vec<nature::IndexedNature>,
+    #[serde(skip, default)]
     pub sounds: Vec<sound::IndexedSound>,
     #[serde(skip, default)]
     pub ammunitions: Vec<ammunition::IndexedAmmunition>,
@@ -55,6 +57,7 @@ impl Mod {
     pub fn load(path: &PathBuf, cache_: Option<&PathBuf>) -> Result<Self, Error> {
         let mut mod_ = load_mod(path)?;
 
+        mod_.natures = nature::load(path)?;
         mod_.sounds = sound::load(path)?;
         mod_.ammunitions = ammunition::load(path)?;
         mod_.weapons = weapons::load(path, &mod_)?;
@@ -118,9 +121,15 @@ impl Mod {
         &self.sounds[sound.0 as usize]
     }
 
-    // FIXME BS NOW: nature hardcoded ? or mod ?
-    pub fn terrain(&self, _nature: String) -> Terrain {
-        Terrain { opacity: 0.05 }
+    pub fn nature(&self, index: NatureIndex) -> &Nature {
+        &self.natures[index.0 as usize]
+    }
+
+    pub fn nature_index(&self, name: &str) -> Option<NatureIndex> {
+        self.natures
+            .iter()
+            .find(|nature| nature.name == name)
+            .map(|nature| nature.index())
     }
 }
 
@@ -173,6 +182,8 @@ pub enum Error {
     #[error("Unknown sound name: {0}")]
     UnknownSoundName(String),
     #[error("Weapons: {0}")]
+    Natures(#[from] nature::Error),
+    #[error("Natures: {0}")]
     Weapons(#[from] weapons::Error),
     #[error("Sounds: {0}")]
     Sounds(#[from] sound::Error),

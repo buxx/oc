@@ -105,7 +105,9 @@ mod tests {
         #[case] i: u64,
     ) {
         // Given
-        let w = WorldConfig::new(1000, 1000)
+
+        use oc_root::physics::Meters;
+        let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .region_width(100)
             .region_height(100);
 
@@ -127,7 +129,9 @@ mod tests {
         #[case] i: u64,
     ) {
         // Given
-        let w = WorldConfig::new(1000, 1000)
+
+        use oc_root::physics::Meters;
+        let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .region_width(100)
             .region_height(100);
 

@@ -11,14 +11,17 @@ serve-world1:
       cargo run --bin oc_world_server --features debug -- \
       ./mods/std1 ./examples/world1 ./examples/world1.snapshot
 
-example-walking:
-    cargo run --bin example_walking_squad --features debug
+example-walking *args:
+    cargo run --bin example_walking_squad --features debug {{ args }}
 
-example-firing:
-    cargo run --bin example_firing_with_wall --features debug
+example-firing *args:
+    cargo run --bin example_firing_with_wall --features debug {{ args }}
 
-example-wall:
-    cargo run --bin example_wall --features debug
+example-wall *args:
+    cargo run --bin example_wall --features debug {{ args }}
+
+example-height *args:
+    cargo run --bin example_height --features debug {{ args }}
 
 world-minidblue *args:
     cargo run --bin world -- examples/minidblue examples/minidblue.snapshot --verbose {{ args }}

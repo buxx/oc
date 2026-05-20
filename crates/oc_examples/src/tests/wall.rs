@@ -5,6 +5,7 @@ use crate::{
     snapshot::{EmptyGenerator, SnapshotBuilder},
 };
 use anyhow::Context;
+use oc_mod::Mod;
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::{WorldConfig, end::End, physics::Meters};
 use oc_world::{load::WorldPath, meta::Meta, reader};
@@ -21,6 +22,7 @@ type Result_ = Result<(), Box<dyn std::error::Error>>;
 pub fn run(_projectiles: Vec<SpawnProjectile>, _end: End) -> Result_ {
     logging::setup_logging()?;
 
+    let mod_ = Mod::load(&PathBuf::from("mods/std1"), None)?;
     let map_ = PathBuf::from("examples/wall");
     let map = reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
@@ -32,7 +34,7 @@ pub fn run(_projectiles: Vec<SpawnProjectile>, _end: End) -> Result_ {
         Meters(world.geo_meters_per_z),
     );
     let snapshot =
-        SnapshotBuilder::new(map, EmptyGenerator::new(), EmptyGenerator::new()).build(w)?;
+        SnapshotBuilder::new(map, EmptyGenerator::new(), EmptyGenerator::new()).build(w, &mod_)?;
 
     let example = run::Example::builder()
         .world(map_)

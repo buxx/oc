@@ -36,7 +36,8 @@ pub struct Example {
 
 impl Example {
     pub fn run(&self) -> Result_ {
-        let files = Files::new("".to_string(), "".to_string()).into_server(PathBuf::from(".cache"));
+        let cache = PathBuf::from("assets/cache_");
+        let files = Files::new("".to_string(), "".to_string()).into_server(cache.clone());
         std::fs::create_dir_all(files.mods())
             .context(format!("Create dir {}", files.mods().display()))?;
         std::fs::create_dir_all(files.worlds())
@@ -61,7 +62,7 @@ impl Example {
         let config = ServerConfig::builder()
             .world(self.world.clone())
             .mod_(self.mod_.clone())
-            .cache(PathBuf::from(".cache"))
+            .cache(cache)
             .print_ticks(false)
             .static_(static_)
             .snapshot(self.snapshot.clone())

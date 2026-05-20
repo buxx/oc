@@ -23,6 +23,7 @@ where
     F: Fn(Xy, f32) -> Vec<Step>,
 {
     pub fn build_(&self, start: [f32; 3], end: [f32; 3]) -> Path {
+        tracing::trace!(name="lov-path-build", start=?start, end=?end);
         let mut opacity = CumulatedOpacity(0.);
         let mut tile = TileXy::from_([start[0], start[1]], self.w);
         let mut sections = vec![];

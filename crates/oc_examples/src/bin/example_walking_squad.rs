@@ -10,19 +10,26 @@ use oc_geo::{
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::{Individual, behavior::Behavior};
+use oc_mod::Mod;
 use oc_projectile::Projectile;
-use oc_root::{WcfgFrom, WcfgInto, WorldConfig};
-use oc_world::tile::Tile;
+use oc_root::{WcfgFrom, WcfgInto, WorldConfig, physics::Meters};
+use oc_world::{meta::Meta, tile::Tile};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
 
+    let mod_ = Mod::load(&PathBuf::from("mods/std1"), None)?;
+    let meta = Meta::from_file(&PathBuf::from("examples/world1/meta.toml"))?;
     let map_ = PathBuf::from("examples/world1");
     let map = oc_world::reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
-    let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64);
+    let w = WorldConfig::new(
+        map.width().unwrap() as u64,
+        map.height().unwrap() as u64,
+        Meters(meta.geo_meters_per_z),
+    );
     let projectiles = EmptyGenerator::<Projectile>::new();
-    let snapshot = SnapshotBuilder::new(map, individuals, projectiles).build(w)?;
+    let snapshot = SnapshotBuilder::new(map, individuals, projectiles).build(w, &mod_)?;
 
     let example = run::Example::builder()
         .world(PathBuf::from("examples/world1"))

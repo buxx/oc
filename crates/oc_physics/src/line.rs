@@ -139,15 +139,25 @@ impl Iterator for Steps {
 
 #[cfg(test)]
 mod tests {
+    use oc_root::{WorldConfig, physics::Meters};
+
     use super::*;
 
     #[test]
     fn test_steps_in_rectiline_line() {
         // Given
-        let w = WorldConfig::new(1000, 1000)
+        let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .geo_bresenham_precision(100.)
             .geo_bresenham_step(250);
-        let mut steps = Steps::new(&w, (0., 0., 0.), (10.0, 10.0, 0.));
+        let mut steps = Steps::new(
+            w.world_width_pixels,
+            w.world_height_pixels,
+            w.geo_bresenham_precision,
+            w.geo_bresenham_step,
+            w.geo_pixels_per_tile,
+            (0., 0., 0.),
+            (10.0, 10.0, 0.),
+        );
 
         // When-Then
         assert_eq!(steps.next(), Some(Step::First([0.0, 0.0, 0.0], Xy(0, 0))));
@@ -167,8 +177,16 @@ mod tests {
     #[test]
     fn test_steps_in_diag() {
         // Given
-        let w = WorldConfig::new(1000, 1000);
-        let mut steps = Steps::new(&w, (10., 10., 0.), (15.0, 15.0, 0.));
+        let w = WorldConfig::new(1000, 1000, Meters(0.1));
+        let mut steps = Steps::new(
+            w.world_width_pixels,
+            w.world_height_pixels,
+            w.geo_bresenham_precision,
+            w.geo_bresenham_step,
+            w.geo_pixels_per_tile,
+            (10., 10., 0.),
+            (15.0, 15.0, 0.),
+        );
 
         // When-Then
         assert_eq!(steps.next(), Some(Step::First([10.0, 10.0, 0.], Xy(2, 2))));
