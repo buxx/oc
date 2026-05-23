@@ -7,6 +7,7 @@ use oc_root::Wcfg;
 use crate::{
     fx::FxEvent,
     ingame::{
+        MetaReceived, ModReceived, SourceReceived, WcfgReceived,
         individual::ForgotIndividual,
         input::{
             individual::{
@@ -36,18 +37,22 @@ pub fn on_to_client(
         ToClient::StaticSource(static_) => {
             tracing::debug!("Set 'Config'");
             config.0 = Some(static_.clone());
+            commands.trigger(SourceReceived);
         }
         ToClient::Wcfg(wcfg_) => {
             tracing::debug!("Set 'Wcfg'");
             w.0 = Some(wcfg_.clone());
+            commands.trigger(WcfgReceived);
         }
         ToClient::Mod(mod__) => {
             tracing::debug!("Set 'Mod'");
             mod_.0 = Some(mod__.clone());
+            commands.trigger(ModReceived);
         }
         ToClient::Meta(meta_) => {
             tracing::debug!("Set 'Meta'");
             meta.0 = Some(meta_.clone());
+            commands.trigger(MetaReceived);
         }
         ToClient::Individual(message) => match message {
             Individual::Insert(i, individual) => {
