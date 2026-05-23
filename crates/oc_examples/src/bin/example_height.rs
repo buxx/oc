@@ -1,12 +1,9 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
-use oc_examples::{
-    logging, run,
-    snapshot::{EmptyGenerator, SnapshotBuilder},
-};
+use oc_battle_gui::ingame::FirstIngameEnter;
+use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
-use oc_projectile::Projectile;
 use oc_root::{WorldConfig, physics::Meters};
 use oc_world::meta::Meta;
 
@@ -28,8 +25,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let example = run::Example::builder()
         .world(PathBuf::from("examples/height"))
         .mod_(PathBuf::from("mods/std1"))
+        .install(Box::new(setup))
         .snapshot(snapshot);
+
     let _ = example.build().run()?;
 
     Ok(())
+}
+
+fn setup(app: &mut bevy::app::App) {
+    println!("Hello world");
 }

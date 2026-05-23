@@ -9,7 +9,7 @@ use crate::{
         height::HeightPlugin,
         individual::IndividualPlugin,
         input::{client::on_to_client, keyboard::on_key_press},
-        lov::{Lov, LovPlugin, on_despawn_lov, on_spawn_lov, update_lov},
+        lov::LovPlugin,
         projectile::ProjectilePlugin,
         region::on_listening_region,
         world::{

@@ -32,6 +32,7 @@ pub struct SpawnLovConfig {
 impl Default for SpawnLovConfig {
     fn default() -> Self {
         Self {
+            #[cfg(feature = "debug")]
             click: LovClickMode::DraggedClick,
             start_pluz_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS,
             stop_pluz_z: Meters(0.),

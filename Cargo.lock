@@ -5335,6 +5335,7 @@ name = "oc_examples"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bevy",
  "bon",
  "derive_more",
  "oc_battle_gui",

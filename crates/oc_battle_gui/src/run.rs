@@ -2,14 +2,13 @@ use bevy::audio::{AudioPlugin, SpatialScale};
 use bevy::prelude::*;
 use bevy::sprite_render::Wireframe2dPlugin;
 use bevy_egui::EguiPlugin;
+use bon::builder;
 use oc_root::Wcfg;
 
 use crate::config::{Config, Config_};
 #[cfg(feature = "debug")]
 use crate::debug;
 use crate::states::Game;
-#[cfg(feature = "test")]
-use crate::tests;
 use crate::{
     downloading::DownloadingPlugin,
     error::ErrorPlugin,
@@ -29,7 +28,8 @@ const AUDIO_SCALE: f32 = 1. / 100.0;
 #[cfg(feature = "debug")]
 use debug::DebugPlugin;
 
-pub fn run(config: Config_) -> AppExit {
+#[builder]
+pub fn run(config: Config_, install: Option<Box<dyn Fn(&mut App)>>) -> AppExit {
     let mut app = App::new();
 
     app.add_plugins(
@@ -69,11 +69,12 @@ pub fn run(config: Config_) -> AppExit {
     .insert_resource(Config(config))
     .add_systems(Startup, setup::setup);
 
+    if let Some(install) = install {
+        install(&mut app);
+    }
+
     #[cfg(feature = "debug")]
     app.add_plugins(DebugPlugin);
-
-    #[cfg(feature = "test")]
-    app.add_plugins(tests::TestsPlugin);
 
     tracing::info!("Start app");
     app.run()

@@ -9,10 +9,6 @@ use std::{
 use bevy::prelude::*;
 use bon::Builder;
 use oc_network::ToServer;
-#[cfg(feature = "test")]
-use oc_projectile::spawn::SpawnProjectile;
-#[cfg(feature = "test")]
-use oc_root::end::End;
 use oc_root::files::Connection;
 
 use crate::network::input::NetworkMessage;
@@ -20,10 +16,6 @@ use crate::network::input::NetworkMessage;
 #[derive(Debug, Clone, Default, Builder)]
 pub struct Config_ {
     pub autoconnect: Option<Connect>,
-    #[cfg(feature = "test")]
-    pub projectiles: Vec<SpawnProjectile>,
-    #[cfg(feature = "test")]
-    pub end: Option<End>,
 }
 
 #[derive(Debug, Clone)]

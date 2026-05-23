@@ -269,8 +269,8 @@ fn on_spawn(
 
             let xy = TileXy::from_(*i, w);
             let (x, y) = (
-                xy.0.0 * w.geo_pixels_per_tile,
-                xy.0.1 * w.geo_pixels_per_tile,
+                xy.0.0 * w.geo_pixels_per_tile + w.geo_pixels_per_tile / 2,
+                xy.0.1 * w.geo_pixels_per_tile + w.geo_pixels_per_tile / 2,
             );
             let z = tile.z_pixels(w);
             let alpha = nature.opacity.min(0.5);

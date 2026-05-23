@@ -61,12 +61,12 @@
     ),
     (
         name: "Underbrush",
-        opacity: 0.015,
+        opacity: 0.025,
         z: Meters(2.5)
     ),
     (
         name: "LightUnderbrush",
-        opacity: 0.010,
+        opacity: 0.015,
         z: Meters(2.5)
     ),
     (

@@ -5,10 +5,6 @@ use std::{
 
 use anyhow::Context;
 use bon::Builder;
-#[cfg(feature = "test")]
-use oc_projectile::spawn::SpawnProjectile;
-#[cfg(feature = "test")]
-use oc_root::end::End;
 use oc_root::{files::Files, static_::StaticSource};
 use oc_world::{load::WorldPath, meta::Meta};
 use oc_world_server::config::ServerConfig;
@@ -23,19 +19,16 @@ type Result_ = Result<Tracker, anyhow::Error>;
 #[cfg(not(feature = "test"))]
 type Result_ = Result<(), anyhow::Error>;
 
-#[derive(Debug, Builder)]
+#[derive(Builder)]
 pub struct Example {
     mod_: PathBuf,
     world: PathBuf,
     snapshot: PathBuf,
-    #[cfg(feature = "test")]
-    projectiles: Vec<SpawnProjectile>,
-    #[cfg(feature = "test")]
-    end: Option<End>,
+    install: Option<Box<dyn Fn(&mut bevy::app::App)>>,
 }
 
 impl Example {
-    pub fn run(&self) -> Result_ {
+    pub fn run(self) -> Result_ {
         let cache = PathBuf::from("assets/cache_");
         let files = Files::new("".to_string(), "".to_string()).into_server(cache.clone());
         std::fs::create_dir_all(files.mods())
@@ -93,14 +86,13 @@ impl Example {
         tracing::info!("Start gui");
         let server_rx2 = Arc::new(Mutex::new(server_rx2));
         let connect = oc_battle_gui::config::Connect::Embedded(client_tx2, server_rx2);
-        #[cfg(feature = "test")]
-        let projectiles = self.projectiles.clone();
         let config = oc_battle_gui::config::Config_::builder().autoconnect(connect);
-        #[cfg(feature = "test")]
-        let config = config.projectiles(projectiles).maybe_end(self.end.clone());
         let config = config.build();
 
-        oc_battle_gui::run::run(config);
+        oc_battle_gui::run::run()
+            .config(config)
+            .maybe_install(self.install)
+            .call();
 
         #[cfg(feature = "test")]
         {

@@ -6,8 +6,7 @@ use crate::{
 };
 use anyhow::Context;
 use oc_mod::Mod;
-use oc_projectile::spawn::SpawnProjectile;
-use oc_root::{WorldConfig, end::End, physics::Meters};
+use oc_root::{WorldConfig, physics::Meters};
 use oc_world::{load::WorldPath, meta::Meta, reader};
 #[cfg(feature = "test")]
 use oc_world_server::tracker::Tracker;
@@ -19,7 +18,7 @@ type Result_ = Result<Tracker, Box<dyn std::error::Error>>;
 type Result_ = Result<(), Box<dyn std::error::Error>>;
 
 // TODO: its ugly to give directly the projectiles
-pub fn run(_projectiles: Vec<SpawnProjectile>, _end: End) -> Result_ {
+pub fn run(install: Option<Box<dyn Fn(&mut bevy::app::App)>>) -> Result_ {
     logging::setup_logging()?;
 
     let mod_ = Mod::load(&PathBuf::from("mods/std1"), None)?;
@@ -36,13 +35,13 @@ pub fn run(_projectiles: Vec<SpawnProjectile>, _end: End) -> Result_ {
     let snapshot =
         SnapshotBuilder::new(map, EmptyGenerator::new(), EmptyGenerator::new()).build(w, &mod_)?;
 
-    let example = run::Example::builder()
+    let result = run::Example::builder()
         .world(map_)
         .mod_(PathBuf::from("mods/std1"))
-        .snapshot(snapshot);
-    #[cfg(feature = "test")]
-    let example = example.projectiles(_projectiles).end(_end);
-    let result = example.build().run()?;
+        .maybe_install(install)
+        .snapshot(snapshot)
+        .build()
+        .run()?;
 
     Ok(result)
 }
