@@ -35,8 +35,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .world(PathBuf::from("examples/world1"))
         .mod_(PathBuf::from("mods/std1"))
         .snapshot(snapshot);
-    #[cfg(feature = "test")]
-    let example = example.projectiles(vec![]);
     let _ = example.build().run()?;
 
     Ok(())
