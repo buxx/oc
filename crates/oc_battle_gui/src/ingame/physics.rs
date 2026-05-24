@@ -102,7 +102,7 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
 }
 
 // TODO: move code (use same than server, refacto it)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub enum ObjectId {
     #[allow(unused)]
     Individual(IndividualIndex),

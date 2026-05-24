@@ -9,6 +9,7 @@ use oc_mod::Mod;
 use oc_projectile::ProjectileId;
 use oc_root::{Client, WorldConfig, ids::Ids};
 use oc_world::{World, load::WorldLoader, snapshot::Snapshot};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     config::ServerConfig, index::Indexes, perf::Perf, routing::Listeners, runner::update::Update,
@@ -80,7 +81,7 @@ impl<E: Client> State<E> {
 }
 
 // TODO: move code
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ObjectId {
     Individual(IndividualIndex),
     Projectile(ProjectileId),

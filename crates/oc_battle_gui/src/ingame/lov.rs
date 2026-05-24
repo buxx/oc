@@ -7,13 +7,13 @@ use oc_root::{Wcfg, WorldConfig, physics::Meters, y::Y};
 use oc_utils::d2::Xy;
 
 #[cfg(feature = "debug")]
+use crate::ingame::input::left_click::{LeftClick, LeftClickMode};
+
+#[cfg(feature = "debug")]
 use crate::window::debug::battle::LovClickMode;
 
 use crate::{
-    ingame::{
-        draw,
-        input::left_click::{LeftClick, LeftClickMode},
-    },
+    ingame::draw,
     states::{InGameState, Mod},
     world::World,
 };
@@ -109,8 +109,9 @@ fn update_lov(
     lovs: Query<Entity, With<Lov>>,
     camera: Single<(&Camera, &GlobalTransform)>,
     window: Single<&Window>,
-    mode: Res<LeftClick>,
+    #[cfg(feature = "debug")] mode: Res<LeftClick>,
 ) {
+    #[cfg(feature = "debug")]
     if !matches!(mode.0, LeftClickMode::LineOfView(_)) {
         return;
     }

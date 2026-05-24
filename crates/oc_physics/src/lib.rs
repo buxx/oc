@@ -74,14 +74,14 @@ impl<I: Clone + std::fmt::Debug> collision::Material for Corps<I> {
 }
 
 // TODO: gravité
-#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[derive(Archive, rkyv::Deserialize, rkyv::Serialize, Debug, PartialEq, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Force {
     Translation([f32; 3], MetersSeconds),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Event<T> {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub enum Event<T: serde::Serialize> {
     NoTile(T),
     Collision(T, T),
 }
@@ -102,7 +102,7 @@ where
     I: Clone + Into<Z> + std::fmt::Debug,
     O: Physic,
     F: Fn(Xy) -> Vec<(Z, Box<&'a dyn Physic>)>,
-    Z: std::fmt::Debug,
+    Z: std::fmt::Debug + serde::Serialize,
 {
     let (i, object) = object;
     let mut events = vec![];
@@ -210,7 +210,7 @@ mod tests {
     use super::*;
 
     struct MyObject([f32; 3], Vec<Force>);
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, serde::Serialize)]
     struct MyObjectId;
 
     impl Physic for MyObject {

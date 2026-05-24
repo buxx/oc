@@ -23,6 +23,9 @@ example-wall *args:
 example-height *args:
     cargo run --bin example_height --features debug {{ args }}
 
+example-projectiles-wall:
+    cargo run --bin projectiles_wall --features test
+
 world-minidblue *args:
     cargo run --bin world -- examples/minidblue examples/minidblue.snapshot --verbose {{ args }}
 
@@ -46,9 +49,3 @@ test:
     cargo test oc_world_generator
     cargo test oc_world_server
     cargo test tests
-
-test-all:
-    cargo test && just test-projectile-wall
-
-test-projectile-wall:
-    cargo run --bin test_projectile_wall --features test

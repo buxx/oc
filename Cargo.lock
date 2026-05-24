@@ -5322,6 +5322,8 @@ dependencies = [
  "reqwest",
  "rkyv",
  "rustc-hash 2.1.1",
+ "serde",
+ "serde_json",
  "strum 0.28.0",
  "strum_macros 0.28.0",
  "tar",
@@ -5348,6 +5350,8 @@ dependencies = [
  "oc_root",
  "oc_world",
  "oc_world_server",
+ "serde",
+ "serde_json",
  "tempfile",
  "thiserror 2.0.18",
  "tracing",
@@ -5376,6 +5380,8 @@ dependencies = [
  "oc_root",
  "oc_utils",
  "rkyv",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -5442,6 +5448,8 @@ dependencies = [
  "oc_root",
  "oc_utils",
  "rkyv",
+ "serde",
+ "serde_json",
  "tracing",
 ]
 
@@ -5456,6 +5464,8 @@ dependencies = [
  "oc_root",
  "oc_utils",
  "rkyv",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

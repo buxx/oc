@@ -341,6 +341,9 @@ impl PickSound<(WeaponIndex, ShotModeIndex)> for Mod {
         let weapon = self.weapon(weapon);
         let shot = &weapon.shots()[shot.0 as usize];
         let sounds = shot.sounds();
+        if sounds.is_empty() {
+            return None;
+        }
         let i = fastrand::usize(..sounds.len());
         sounds.get(i).cloned()
     }

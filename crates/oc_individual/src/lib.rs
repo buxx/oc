@@ -23,7 +23,20 @@ use crate::behavior::Behavior;
 pub mod behavior;
 pub mod network;
 
-#[derive(Archive, Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq, Constructor, Hash)]
+#[derive(
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    serde::Serialize,
+    serde::Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    Constructor,
+    Hash,
+)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndividualIndex(pub u64);
 

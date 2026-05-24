@@ -61,7 +61,19 @@ impl WcfgFrom<TileXy> for [f32; 3] {
     }
 }
 
-#[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    serde::Serialize,
+    serde::Deserialize,
+    PartialEq,
+    Eq,
+    Hash,
+)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct WorldTileIndex(pub u64);
 

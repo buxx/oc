@@ -21,7 +21,7 @@ type Result_ = Result<(), Box<dyn std::error::Error>>;
 pub fn run(install: Option<Box<dyn Fn(&mut bevy::app::App)>>) -> Result_ {
     logging::setup_logging()?;
 
-    let mod_ = Mod::load(&PathBuf::from("mods/std1"), None)?;
+    let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None)?;
     let map_ = PathBuf::from("examples/wall");
     let map = reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
@@ -37,7 +37,7 @@ pub fn run(install: Option<Box<dyn Fn(&mut bevy::app::App)>>) -> Result_ {
 
     let result = run::Example::builder()
         .world(map_)
-        .mod_(PathBuf::from("mods/std1"))
+        .mod_(PathBuf::from("mods/tests1"))
         .maybe_install(install)
         .snapshot(snapshot)
         .build()

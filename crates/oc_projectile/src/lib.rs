@@ -24,7 +24,19 @@ pub mod bullet;
 pub mod network;
 pub mod spawn;
 
-#[derive(Archive, Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    serde::Serialize,
+    serde::Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash,
+)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct ProjectileId(pub u64);
 
