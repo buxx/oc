@@ -93,6 +93,24 @@ fn setup(mut commands: Commands, config: Res<Config>) {
             speed: 5.0,
         },
     ));
+    commands.spawn((
+        Transform::from_xyz(config.center_x + config.orbit_radius, 0., 3.),
+        Orbiter {
+            center: Vec3::new(config.center_x, config.center_y, 15.0),
+            angle: (0.0 + 5.0 * 1.0) % TAU,
+            radius: config.orbit_radius,
+            speed: 5.0,
+        },
+    ));
+    commands.spawn((
+        Transform::from_xyz(config.center_x + config.orbit_radius, 0., 3.),
+        Orbiter {
+            center: Vec3::new(config.center_x, config.center_y, 15.0),
+            angle: (0.0 + 5.0 * 2.0) % TAU,
+            radius: config.orbit_radius,
+            speed: 5.0,
+        },
+    ));
 }
 
 fn orbit(
@@ -113,7 +131,7 @@ fn orbit(
                 weapon.index(),
                 ammunition.index(),
                 shot.index(),
-                10,
+                1,
                 [orbiter.center.x, orbiter.center.y, 500.],
                 [orbiter.center.x + x, orbiter.center.y + y, 500.],
             ),
