@@ -26,11 +26,11 @@ example-wall *args:
 example-height *args:
     cargo run --bin example_height --features debug {{ args }}
 
-example-projectiles-wall:
-    cargo run --bin example_projectiles_wall --features test
+example-projectiles-wall *args:
+    cargo run --bin example_projectiles_wall --features test {{ args }}
 
-example-stress-projectiles:
-    cargo run --bin example_stress_projectiles --features debug
+example-stress-projectiles *args:
+    cargo run --bin example_stress_projectiles --features debug {{ args }}
 
 test:
     cargo test bevy_heightmap

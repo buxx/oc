@@ -3,10 +3,7 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use bevy::prelude::*;
-use oc_battle_gui::{
-    ingame::{FirstIngameEnter, camera::move_::CenterCameraOn},
-    network::output::ToServerEvent,
-};
+use oc_battle_gui::{ingame::camera::move_::CenterCameraOn, network::output::ToServerEvent};
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_mod::{
     Mod, ammunition::IndexedAmmunition, armament::IndexedShotMode, weapons::IndexedWeapon,
@@ -116,7 +113,7 @@ fn orbit(
                 weapon.index(),
                 ammunition.index(),
                 shot.index(),
-                1,
+                10,
                 [orbiter.center.x, orbiter.center.y, 500.],
                 [orbiter.center.x + x, orbiter.center.y + y, 500.],
             ),
