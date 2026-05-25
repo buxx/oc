@@ -8,6 +8,9 @@ use crate::{
     window::PointerInWindow,
 };
 
+#[derive(Debug, Event, Deref)]
+pub struct CenterCameraOn(pub Vec2);
+
 #[derive(Debug, Event)]
 pub struct MovedBattleCamera;
 
@@ -43,6 +46,16 @@ pub fn move_battle(
             commands.trigger(MovedBattleCamera)
         }
     }
+}
+
+pub fn on_center_camera_on(
+    point: On<CenterCameraOn>,
+    mut commands: Commands,
+    mut camera: Single<&mut Transform, With<Camera2d>>,
+) {
+    camera.translation.x = point.x;
+    camera.translation.y = point.y;
+    commands.trigger(MovedBattleCamera)
 }
 
 pub fn on_moved_battle_camera(

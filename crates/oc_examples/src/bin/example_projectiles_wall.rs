@@ -17,13 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn install(app: &mut bevy::app::App) {
-    app..add_observer(on_first_ingame_enter);
-}
-
-fn end(mut commands: Commands, game: Res<Game>) {
-    if game.started.elapsed() > TIMEOUT {
-        commands.write_message(bevy::app::AppExit::from_code(1)); // TODO: have codes (x = timeout)
-    }
+    app.add_observer(on_first_ingame_enter);
 }
 
 fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {

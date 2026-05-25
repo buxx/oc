@@ -47,6 +47,7 @@ impl Plugin for CameraPlugin {
             .add_observer(region::on_update_regions)
             .add_observer(move_::on_moved_battle_camera)
             .add_observer(move_::on_go_to_point)
+            .add_observer(move_::on_center_camera_on)
             .add_systems(OnEnter(AppState::InGame), init)
             .add_systems(
                 Update,
