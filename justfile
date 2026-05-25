@@ -11,6 +11,9 @@ serve-world1:
       cargo run --bin oc_world_server --features debug -- \
       ./mods/std1 ./examples/world1 ./examples/world1.snapshot
 
+gui:
+    cargo run --bin oc_battle_gui
+
 example-world1 *args:
     cargo run --bin example_world1 --features debug {{ args }}
 

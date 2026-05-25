@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use ::image::{ImageBuffer, Rgba};
 use anyhow::Context;
 use clap::Parser;
-use oc_mod::{Mod, nature::NatureIndex};
+use oc_mod::Mod;
 use oc_root::{WorldConfig, physics::Meters};
 use oc_utils::image;
 use oc_world::{reader, snapshot::Snapshot, terrain::Terrain};
@@ -18,8 +18,8 @@ pub struct Args {
     pub path: PathBuf,
 
     /// Path to the mod folder (required if snapshot used)
-    #[clap()]
-    pub mod_: Option<PathBuf>,
+    #[clap(long)]
+    pub r#mod: Option<PathBuf>,
 
     /// File path to the snapshot file to initialize
     #[clap(long)]
@@ -57,7 +57,7 @@ pub struct Args {
     #[clap(short, long)]
     pub verbose: bool,
 
-    /// Replace files like terrain.tsx, etc
+    /// Replace files like terrain.tsx, snaphost, etc
     #[clap(long, action)]
     pub replace: bool,
 }
@@ -137,17 +137,17 @@ fn main() -> Result<(), anyhow::Error> {
     let world_path = args.path.join("world.tmx");
     world(&world_tpl_path, &world_path, width, height, args.tile_size)?;
 
-    if let Some(mod_) = &args.mod_ {
+    if let Some(mod_) = &args.r#mod {
         let mod_ = Mod::load(&mod_, None).context(format!("Load cache from {}", mod_.display()))?;
         analyze_terrain(&w, &terrain_tsx_path, &mod_)?;
     }
 
     if let Some(snapshot) = &args.snapshot {
-        let mod_ = &args.mod_.ok_or(anyhow::bail!(
-            "You must give mod folder path to generate snapshot"
-        ))?;
+        let Some(mod_) = &args.r#mod else {
+            anyhow::bail!("You must give mod folder path to generate snapshot");
+        };
         let mod_ = Mod::load(mod_, None).context(format!("Load cache from {}", mod_.display()))?;
-        snapshot_(w, &args.path, snapshot, &mod_)?;
+        snapshot_(w, &args.path, snapshot, &mod_, args.replace)?;
     }
 
     Ok(())
@@ -178,19 +178,25 @@ fn snapshot_(
     map: &PathBuf,
     path: &PathBuf,
     mod_: &Mod,
+    replace: bool,
 ) -> Result<(), anyhow::Error> {
     match std::fs::exists(path).context(format!("Test if {} exists", path.display()))? {
-        true => tracing::info!("{} already exist", path.display()),
-        false => {
-            tracing::info!("Initialize snapshot ({})", path.display());
-            let snapshot = Snapshot::new(w, vec![], vec![], vec![]);
-            let snapshot = snapshot.save(path);
-            snapshot.context(format!("Save snapshot ({})", path.display()))?;
+        true => {
+            if replace {
+                std::fs::remove_file(path).context(format!("Remove file {}", path.display()))?;
+            } else {
+                tracing::warn!(
+                    "{} already exist and --replace not set, skip snapshot generation",
+                    path.display()
+                );
+                return Ok(());
+            }
         }
+        false => {}
     };
 
-    let snapshot = Snapshot::load(path);
-    let mut snapshot = snapshot.context(format!("Load snapshot from {}", path.display()))?;
+    tracing::info!("Initialize snapshot ({})", path.display());
+    let mut snapshot = Snapshot::new(w, vec![], vec![], vec![]);
 
     tracing::info!("Update snapshot tiles");
     let map = reader::MapReader::new(map)?;
