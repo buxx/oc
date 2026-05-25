@@ -1,3 +1,4 @@
+use std::f32::consts::TAU;
 use std::path::PathBuf;
 
 use anyhow::Context;
@@ -7,7 +8,9 @@ use oc_battle_gui::{
     network::output::ToServerEvent,
 };
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
-use oc_mod::Mod;
+use oc_mod::{
+    Mod, ammunition::IndexedAmmunition, armament::IndexedShotMode, weapons::IndexedWeapon,
+};
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::{WorldConfig, physics::Meters};
@@ -39,11 +42,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn install(app: &mut bevy::app::App) {
-    app.add_observer(on_first_ingame_enter);
+#[derive(Resource)]
+struct Config {
+    mod_: Mod,
+    orbit_radius: f32,
+    center_x: f32,
+    center_y: f32,
 }
 
-fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
+#[derive(Debug, Component)]
+struct Orbiter {
+    center: Vec3,
+    angle: f32,
+    radius: f32,
+    speed: f32, // radians per second
+}
+
+fn install(app: &mut bevy::app::App) {
     // TODO: avoid repetition with main()
     let meta = Meta::from_file(&PathBuf::from("examples/world1/meta.toml")).unwrap();
     let map_ = PathBuf::from("examples/world1");
@@ -57,53 +72,80 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
     // Move at the center of the world
     let center_x = (map.width().unwrap() as f32 * w.geo_pixels_per_tile as f32) / 2.;
     let center_y = (map.height().unwrap() as f32 * w.geo_pixels_per_tile as f32) / 2.;
-    commands.trigger(CenterCameraOn(Vec2::new(center_x, center_y)));
 
-    let weapon1 = mod_.weapons.iter().find(|w| w.name() == "Weapon1").unwrap();
-    let weapon2 = mod_.weapons.iter().find(|w| w.name() == "Weapon2").unwrap();
-    let weapon3 = mod_.weapons.iter().find(|w| w.name() == "Weapon3").unwrap();
-    let ammunition = weapon1
+    let config = Config {
+        mod_,
+        orbit_radius: 150.,
+        center_x,
+        center_y,
+    };
+
+    app.insert_resource(config)
+        .add_systems(Startup, setup)
+        .add_systems(Update, orbit);
+}
+
+fn setup(mut commands: Commands, config: Res<Config>) {
+    commands.trigger(CenterCameraOn(Vec2::new(config.center_x, config.center_y)));
+    commands.spawn((
+        Transform::from_xyz(config.center_x + config.orbit_radius, 0., 3.),
+        Orbiter {
+            center: Vec3::new(config.center_x, config.center_y, 15.0),
+            angle: 0.0,
+            radius: config.orbit_radius,
+            speed: 5.0,
+        },
+    ));
+}
+
+fn orbit(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(&mut Orbiter, &mut Transform)>,
+    config: Res<Config>,
+) {
+    for (mut orbiter, mut transform) in &mut query {
+        orbiter.angle = (orbiter.angle + orbiter.speed * time.delta_secs()) % TAU;
+        let x = orbiter.radius * orbiter.angle.cos();
+        let y = orbiter.radius * orbiter.angle.sin();
+        transform.translation = Vec3::new(x, y, 3.);
+
+        let (weapon, ammunition, shot) = weapons(&config);
+        commands.trigger(ToServerEvent(ToServer::SpawnProjectile(
+            SpawnProjectile::new(
+                weapon.index(),
+                ammunition.index(),
+                shot.index(),
+                1,
+                [orbiter.center.x, orbiter.center.y, 500.],
+                [orbiter.center.x + x, orbiter.center.y + y, 500.],
+            ),
+        )));
+    }
+}
+
+fn weapons<'a>(
+    config: &'a Res<'a, Config>,
+) -> (
+    &'a IndexedWeapon,
+    &'a IndexedAmmunition,
+    &'a IndexedShotMode,
+) {
+    let weapon = config
+        .mod_
+        .weapons
+        .iter()
+        .find(|w| w.name() == "Weapon1")
+        .unwrap();
+    let ammunition = weapon
         .ammunitions()
         .iter()
         .find(|a| a.name() == "Ammo1")
         .unwrap();
-    let shot = weapon1
+    let shot = weapon
         .shots()
         .iter()
         .find(|s| s.name() == "Single")
         .unwrap();
-    let shot3 = weapon3
-        .shots()
-        .iter()
-        .find(|s| s.name() == "Burst3")
-        .unwrap();
-
-    for spawn in vec![
-        SpawnProjectile::new(
-            weapon1.index(),
-            ammunition.index(),
-            shot.index(),
-            10,
-            [0., 0., 15.],
-            [50., 50., 15.],
-        ),
-        SpawnProjectile::new(
-            weapon2.index(),
-            ammunition.index(),
-            shot.index(),
-            10,
-            [10., 0., 15.],
-            [60., 50., 15.],
-        ),
-        SpawnProjectile::new(
-            weapon3.index(),
-            ammunition.index(),
-            shot3.index(),
-            10,
-            [20., 0., 15.],
-            [70., 50., 15.],
-        ),
-    ] {
-        commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
-    }
+    (weapon, ammunition, shot)
 }
