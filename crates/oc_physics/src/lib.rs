@@ -1,6 +1,6 @@
 use oc_root::{WorldConfig, physics::MetersSeconds};
 use oc_utils::d2::Xy;
-use rkyv::{Archive, Deserialize, Serialize};
+use rkyv::Archive;
 
 use crate::{collision::Material, volume::Volume};
 
