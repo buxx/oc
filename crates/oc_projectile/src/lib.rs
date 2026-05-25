@@ -5,6 +5,7 @@ use oc_geo::{
     region::{Region, WorldRegionIndex},
     tile::WorldTileIndex,
 };
+use oc_mod::Mod;
 use oc_physics::{
     Force, Physic, UpdatePhysic,
     collision::{Material, Materials},
@@ -99,7 +100,7 @@ impl Physic for Projectile {
         }
     }
 
-    fn volume(&self, ref_: [f32; 3], _: &WorldConfig) -> Volume {
+    fn volume(&self, ref_: [f32; 3], _: &WorldConfig, _mod_: &Mod) -> Volume {
         Volume::Point {
             x: ref_[0],
             y: ref_[1],

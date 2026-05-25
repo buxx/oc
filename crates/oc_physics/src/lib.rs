@@ -1,3 +1,4 @@
+use oc_mod::Mod;
 use oc_root::{WorldConfig, physics::MetersSeconds};
 use oc_utils::d2::Xy;
 use rkyv::Archive;
@@ -16,7 +17,7 @@ pub trait Physic: Material {
     // TODO: maby position should be `Geo` instead `Physics`...
     fn position(&self, w: &WorldConfig) -> [f32; 3];
     fn forces(&self, w: &WorldConfig) -> &Vec<Force>;
-    fn volume(&self, ref_: [f32; 3], w: &WorldConfig) -> Volume;
+    fn volume(&self, ref_: [f32; 3], w: &WorldConfig, mod_: &Mod) -> Volume;
 }
 
 pub trait UpdatePhysic: Physic + Material {
@@ -62,7 +63,7 @@ impl<I: Clone + std::fmt::Debug> Physic for Corps<I> {
         &self.forces
     }
 
-    fn volume(&self, ref_: [f32; 3], _: &WorldConfig) -> Volume {
+    fn volume(&self, ref_: [f32; 3], _: &WorldConfig, _mod_: &Mod) -> Volume {
         self.volume.clone().with_ref(ref_)
     }
 }
@@ -93,6 +94,7 @@ pub trait World<Z> {
 #[inline]
 pub fn step<'a, I, O, F, Z>(
     w: &WorldConfig,
+    mod_: &Mod,
     delta: f32,
     object: (I, &'a O),
     at: F,
@@ -156,13 +158,14 @@ where
                             // Test new tile only when line on new tile
                             if step_tile != curent_tile {
                                 curent_tile = step_tile;
-                                let volume = object.volume([step_x, step_y, step_z], w);
+                                let volume = object.volume([step_x, step_y, step_z], w, mod_);
                                 tracing::trace!(name="physics-step-translation-newtile", origin=origin, i=?i, p=?position, xy=?step_tile);
 
                                 for (o, other) in at(step_tile) {
                                     let [other_x, other_y, other_z] = other.position(w);
                                     // FIXME BS NOW: il faut prendre en compte le volume propre aussi (brick wall)
-                                    let volume2 = other.volume([other_x, other_y, other_z], w);
+                                    let volume2 =
+                                        other.volume([other_x, other_y, other_z], w, mod_);
 
                                     tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?step_tile, o=?o, volume=?volume, volume2=?volume2);
                                     if volume.collide(&volume2) {

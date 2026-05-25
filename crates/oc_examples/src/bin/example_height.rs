@@ -81,7 +81,7 @@ fn on_inserted_tiles(_: On<InsertedTiles>, w: Res<Wcfg>, mod_: Res<Mod>, mut com
     }
 }
 
-fn on_setup_lovs(_: On<SetupLovs>, w: Res<Wcfg>, mut commands: Commands) {
+fn on_setup_lovs(_: On<SetupLovs>, _: Res<Wcfg>, mut commands: Commands) {
     let lovs = vec![
         // dans la plaine, aucun obstacle
         (Vec3::new(65., 50., 12.), Vec2::new(183., 50.)),

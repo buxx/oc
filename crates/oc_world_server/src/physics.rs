@@ -92,7 +92,13 @@ impl<'x, E: Client> Processor<'x, E> {
         let updates = chunk
             .iter()
             .map(|(i, subject)| {
-                let (position, forces, events_) = oc_physics::step(&self.ctx.state.w, self.ctx.state.w.physics_coeff_per_tick, (*i, *subject), objects, "server");
+                let (position, forces, events_) = oc_physics::step(
+                    &self.ctx.state.w,
+                    &self.ctx.state._mod,
+                    self.ctx.state.w.physics_coeff_per_tick, (*i, *subject),
+                    objects,
+                    "server"
+                );
                 tracing::trace!(name="physics-subject", i=?i, position=?position, forces=?forces);
                 let updates = changes(&self.ctx.state.w, i, *subject, &position, &forces);
 

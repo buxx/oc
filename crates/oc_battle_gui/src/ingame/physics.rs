@@ -10,7 +10,7 @@ use oc_projectile::ProjectileId;
 use oc_root::{Wcfg, y::Y};
 use oc_utils::d2::Xy;
 
-use crate::{ingame::projectile::ForgotProjectile, world::World};
+use crate::{ingame::projectile::ForgotProjectile, states::Mod, world::World};
 
 #[derive(Debug, Clone, Event)]
 pub struct PhysicEvent(oc_physics::Event<ObjectId>);
@@ -18,7 +18,7 @@ pub struct PhysicEvent(oc_physics::Event<ObjectId>);
 pub fn physics_step<I, C>(
     mut commands: Commands,
     w: Res<Wcfg>,
-
+    mod_: Res<Mod>,
     time: Res<Time>,
     query: Query<(
         &C,
@@ -34,6 +34,7 @@ pub fn physics_step<I, C>(
     C: Component + AsRef<I>,
 {
     let Some(w) = &w.0 else { return };
+    let Some(mod_) = &mod_.0 else { return };
 
     // tracing::trace!(name = "projectile-physics-start");
     let delta = time.delta_secs() / 1.;
@@ -58,7 +59,7 @@ pub fn physics_step<I, C>(
             volume.0.clone(),
         ); //, on_physics_event);
         let (position_, forces_, events) =
-            oc_physics::step(w, delta, (i.clone(), &corps), objects, "gui");
+            oc_physics::step(w, mod_, delta, (i.clone(), &corps), objects, "gui");
 
         position.0 = position_;
         forces.0 = forces_;

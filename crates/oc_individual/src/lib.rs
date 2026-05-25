@@ -7,6 +7,7 @@ use oc_geo::UpdateGeo;
 use oc_geo::region::Region;
 use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::WorldTileIndex;
+use oc_mod::Mod;
 use oc_physics::Force;
 use oc_physics::Physic;
 use oc_physics::UpdatePhysic;
@@ -112,7 +113,7 @@ impl Physic for Individual {
         &self.forces
     }
 
-    fn volume(&self, ref_: [f32; 3], w: &WorldConfig) -> Volume {
+    fn volume(&self, ref_: [f32; 3], w: &WorldConfig, _mod_: &Mod) -> Volume {
         Volume::Cube {
             x: ref_[0],
             y: ref_[1],

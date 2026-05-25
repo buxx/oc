@@ -47,7 +47,6 @@ impl Example {
 
         tracing::info!("Start server");
 
-        // FIXME BS NOW: use Files
         let static_ = StaticSource::Local {
             mod_: self.mod_.display().to_string(),
             world: world.name.clone(),

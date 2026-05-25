@@ -202,7 +202,7 @@ pub fn on_spawn_region<'a, E, I, T, S>(
 
             let entity = commands
                 .spawn((
-                    TerrainTile(i), // FIXME BS NOW
+                    TerrainTile(i),
                     oc_physics::update::bevy::Region(region),
                     Sprite {
                         image: texture.clone(),

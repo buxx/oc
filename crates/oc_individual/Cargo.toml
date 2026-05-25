@@ -8,6 +8,7 @@ edition = "2024"
 [dependencies]
 oc_root = { path = "../oc_root" }
 oc_utils = { path = "../oc_utils" }
+oc_mod = { path = "../oc_mod" }
 oc_geo = { path = "../oc_geo" }
 oc_physics = { path = "../oc_physics" }
 derive_more = { workspace = true, features = ["constructor"] }

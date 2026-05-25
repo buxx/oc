@@ -4,7 +4,7 @@ use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
 };
-use oc_mod::nature::NatureIndex;
+use oc_mod::{Mod, nature::NatureIndex};
 use oc_physics::{
     Force, Physic,
     collision::{Material, Materials},
@@ -76,15 +76,17 @@ impl Physic for Tile {
         &EMPTY
     }
 
-    fn volume(&self, ref_: [f32; 3], w: &WorldConfig) -> Volume {
+    fn volume(&self, ref_: [f32; 3], w: &WorldConfig, mod_: &Mod) -> Volume {
         tracing::trace!(name = "tile-volume", ref_ = ?ref_);
+        let nature = mod_.nature(self.nature);
+        let exceedance = nature.z.0 * w.geo_pixels_per_meters;
         Volume::Cube {
             x: ref_[0],
             y: ref_[1],
             z: -DEPTH,
             width: w.geo_pixels_per_tile as f32,
             height: w.geo_pixels_per_tile as f32,
-            depth: DEPTH + ref_[2],
+            depth: DEPTH + ref_[2] + exceedance,
         }
     }
 }

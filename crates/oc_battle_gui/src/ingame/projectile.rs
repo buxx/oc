@@ -16,7 +16,7 @@ use crate::ingame::draw::Z_INDIVIDUAL;
 use crate::ingame::input::individual::UpdateProjectilePhysicsEvent;
 use crate::ingame::input::projectile::InsertProjectileEvent;
 use crate::ingame::region::ForgottenRegion;
-use crate::states::AppState;
+use crate::states::{AppState, Mod};
 
 #[derive(Debug, Deref, Event)]
 pub struct ForgotProjectile(pub oc_projectile::ProjectileId);
@@ -46,11 +46,13 @@ pub fn on_insert_projectile(
     projectile: On<InsertProjectileEvent>,
     mut commands: Commands,
     w: Res<Wcfg>,
+    mod_: Res<Mod>,
     mut state: ResMut<EntityMapping<oc_projectile::ProjectileId>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let Some(w) = &w.0 else { return };
+    let Some(mod_) = &mod_.0 else { return };
     tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position(), forces=?projectile.1.forces(w));
 
     let position = projectile.1.position();
@@ -63,7 +65,7 @@ pub fn on_insert_projectile(
             Region(projectile.1.region()),
             Forces(projectile.1.forces(w).clone()),
             Material_(Materials::Traversable),
-            Volume(projectile.1.volume(*position, w).clone()),
+            Volume(projectile.1.volume(*position, w, mod_).clone()),
             Mesh2d(meshes.add(line)),
             MeshMaterial2d(materials.add(Color::from(RED))),
             Transform::from_xyz(

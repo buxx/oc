@@ -12,6 +12,7 @@ use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
 };
 use crate::ingame::region::ForgottenRegion;
+use crate::states::Mod;
 
 #[derive(Debug, Deref, Event)]
 pub struct ForgotIndividual(pub oc_individual::IndividualIndex);
@@ -29,11 +30,14 @@ pub fn on_insert_individual(
     individual: On<InsertIndividualEvent>,
     mut commands: Commands,
     w: Res<Wcfg>,
+    mod_: Res<Mod>,
     mut state: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let Some(w) = &w.0 else { return };
+    let Some(mod_) = &mod_.0 else { return };
+
     tracing::trace!(name="spawn-individual", i=?individual.0, position=?individual.1.position);
     let position = individual.1.position;
     let entity = commands
@@ -44,7 +48,7 @@ pub fn on_insert_individual(
             Region(individual.1.region),
             Behavior(individual.1.behavior),
             Forces(individual.1.forces.clone()),
-            Volume(individual.1.volume(position, w).clone()),
+            Volume(individual.1.volume(position, w, mod_).clone()),
             Mesh2d(meshes.add(Circle::new(2.5))),
             MeshMaterial2d(materials.add(Color::from(PURPLE))),
             Transform::from_xyz(
