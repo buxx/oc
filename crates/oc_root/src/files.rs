@@ -122,7 +122,7 @@ impl FilesAsGui {
     pub fn mod_(&self) -> PathBuf {
         match &self.sources {
             StaticSource::Remote(_) => PathBuf::from(format!("cache/mods/{}", &self.mod_)),
-            StaticSource::Local { mod_: _, world } => PathBuf::from(world).join("minimap.png"),
+            StaticSource::Local { mod_, world: _ } => PathBuf::from("mods_").join(&self.mod_),
         }
     }
 
