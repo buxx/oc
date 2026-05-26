@@ -205,6 +205,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use oc_geo::tile::TileXy;
     use oc_root::{WcfgInto, physics::Meters};
 
@@ -224,7 +226,7 @@ mod tests {
             &self.1
         }
 
-        fn volume(&self, ref_: [f32; 3], _: &WorldConfig) -> Volume {
+        fn volume(&self, ref_: [f32; 3], _: &WorldConfig, _: &Mod) -> Volume {
             Volume::Point {
                 x: ref_[0],
                 y: ref_[1],
@@ -251,7 +253,7 @@ mod tests {
             &EMPTY
         }
 
-        fn volume(&self, ref_: [f32; 3], w: &WorldConfig) -> Volume {
+        fn volume(&self, ref_: [f32; 3], w: &WorldConfig, _: &Mod) -> Volume {
             Volume::Cube {
                 x: ref_[0],
                 y: ref_[1],
@@ -272,6 +274,7 @@ mod tests {
     #[test]
     fn test_unidirectional_translation() {
         // Given
+        let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
@@ -284,7 +287,7 @@ mod tests {
 
         // When
         let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&w, delta, (MyObjectId, &object), |_| vec![], "test");
+            step(&w, &mod_, delta, (MyObjectId, &object), |_| vec![], "test");
 
         // Then
         let expected_new_position = [5.0, 0.0, 0.0];
@@ -294,6 +297,7 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_collision() {
         // Given
+        let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
@@ -318,7 +322,7 @@ mod tests {
 
         // When
         let (new_position, new_forces, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&w, delta, (MyObjectId, &object), objects, "test");
+            step(&w, &mod_, delta, (MyObjectId, &object), objects, "test");
 
         // Then
         let expected_new_position = [2.5, 0.0, 0.0];
@@ -330,6 +334,7 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_high_speed() {
         // Given
+        let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
@@ -342,7 +347,7 @@ mod tests {
 
         // When
         let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&w, delta, (MyObjectId, &object), |_| vec![], "test");
+            step(&w, &mod_, delta, (MyObjectId, &object), |_| vec![], "test");
 
         // Then
         let expected_new_position = [50.0, 0.0, 0.0];
@@ -352,6 +357,7 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_high_speed_collision() {
         // Given
+        let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
@@ -376,7 +382,7 @@ mod tests {
 
         // When
         let (new_position, new_forces, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&w, delta, (MyObjectId, &object), objects, "test");
+            step(&w, &mod_, delta, (MyObjectId, &object), objects, "test");
 
         // Then
         let expected_new_position = [2.5, 0.0, 0.0];
@@ -388,6 +394,7 @@ mod tests {
     #[test]
     fn test_bidirectional_translation() {
         // Given
+        let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
@@ -400,7 +407,7 @@ mod tests {
 
         // When
         let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&w, delta, (MyObjectId, &object), |_| vec![], "test");
+            step(&w, &mod_, delta, (MyObjectId, &object), |_| vec![], "test");
 
         // Then
         let expected_new_position = [5.0, 5.0, 0.0];
