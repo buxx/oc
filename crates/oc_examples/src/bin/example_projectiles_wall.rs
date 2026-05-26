@@ -1,16 +1,11 @@
 use bevy::prelude::*;
-use oc_battle_gui::{ingame::FirstIngameEnter, network::output::ToServerEvent, states::Game};
+use oc_battle_gui::{ingame::FirstIngameEnter, network::output::ToServerEvent};
+use oc_mod::Mod;
 use oc_network::ToServer;
+use std::path::PathBuf;
 
-#[cfg(feature = "test")]
-use {
-    oc_examples::tests::wall, oc_mod::Mod, oc_projectile::spawn::SpawnProjectile,
-    std::path::PathBuf, std::time::Duration,
-};
+use {oc_examples::tests::wall, oc_projectile::spawn::SpawnProjectile};
 
-const TIMEOUT: Duration = Duration::from_secs(5);
-
-#[cfg(feature = "test")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = wall::run(Some(Box::new(install))).unwrap();
     Ok(())

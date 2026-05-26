@@ -2,7 +2,7 @@
 mod test {
     use glam::Vec3;
     use oc_geo::tile::WorldTileIndex;
-    use oc_mod::nature::NatureIndex;
+    use oc_mod::{Mod, nature::NatureIndex};
     use oc_physics::{
         Event, Force, Physic,
         collision::{Material, Materials},
@@ -14,6 +14,8 @@ mod test {
     };
     use oc_world::tile::Tile;
     use rstest::rstest;
+    use serde::Serialize;
+    use std::path::PathBuf;
 
     fn init_tracing() {
         let _ = tracing_subscriber::fmt()
@@ -22,13 +24,13 @@ mod test {
             .try_init();
     }
 
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
     enum ObjectsId {
         Tile(WorldTileIndex),
         Object(ObjectId),
     }
 
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
     struct ObjectId(usize);
     struct Object(Vec3, Vec<Force>);
 
@@ -41,7 +43,7 @@ mod test {
             &self.1
         }
 
-        fn volume(&self, ref_: [f32; 3], _: &WorldConfig) -> Volume {
+        fn volume(&self, ref_: [f32; 3], _: &WorldConfig, _: &Mod) -> Volume {
             Volume::Point {
                 x: ref_[0],
                 y: ref_[1],
@@ -98,6 +100,7 @@ mod test {
         init_tracing();
 
         // Given
+        let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
         let geo_meters_per_z = Meters(0.1);
         let w = WorldConfig::new(1000, 1000, geo_meters_per_z)
             .geo_pixels_per_tile(5)
@@ -121,6 +124,7 @@ mod test {
         let delta = 1.0;
         let result = oc_physics::step(
             &w,
+            &mod_,
             delta,
             (ObjectsId::Object(object_i), &object),
             |_| vec![(ObjectsId::Tile(tile_i), Box::new(&tile))],

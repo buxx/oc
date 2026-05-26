@@ -21,7 +21,6 @@ mod individual;
 mod network;
 mod perf;
 mod physics;
-#[cfg(feature = "debug")]
 mod projectile;
 mod routing;
 mod runner;

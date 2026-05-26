@@ -70,7 +70,6 @@ impl Indexes {
         }
     }
 
-    #[cfg(feature = "debug")]
     pub fn insert_projectile(&mut self, id: ProjectileId, projectile: &Projectile) {
         self.update_projectile_tile(id, projectile.tile(), projectile.tile());
         self.update_projectile_region(id, projectile.region(), projectile.region());
@@ -127,10 +126,6 @@ impl Indexes {
     pub fn tile_individuals(&self, tile: WorldTileIndex) -> &Vec<IndividualIndex> {
         &self.tiles_individuals[tile.0 as usize]
     }
-
-    // pub fn tile_projectiles(&self, tile: WorldTileIndex) -> &Vec<ProjectileId> {
-    //     &self.tiles_projectiles[tile.0 as usize]
-    // }
 
     pub fn region_individuals(&self, region: WorldRegionIndex) -> &Vec<IndividualIndex> {
         &self.regions_individuals[region.0 as usize]

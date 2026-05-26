@@ -7237,6 +7237,8 @@ dependencies = [
  "oc_utils",
  "oc_world",
  "rstest",
+ "serde",
+ "serde_derive",
  "tracing-subscriber",
 ]
 

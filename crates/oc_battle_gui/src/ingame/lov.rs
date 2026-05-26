@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use derive_more::Deref;
 use oc_geo::tile::TileXy;
+#[cfg(feature = "debug")]
 use oc_mod::DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS;
 use oc_root::{Wcfg, WorldConfig, physics::Meters, y::Y};
 use oc_utils::d2::Xy;
@@ -27,6 +28,7 @@ pub struct UpdateLovFor(pub Entity, pub Vec2);
 #[derive(Debug, Event)]
 pub struct DespawnLov;
 
+#[cfg(feature = "debug")]
 #[derive(Debug, Clone)]
 pub struct SpawnLovConfig {
     #[cfg(feature = "debug")]
@@ -35,10 +37,10 @@ pub struct SpawnLovConfig {
     pub stop_pluz_z: Meters,
 }
 
+#[cfg(feature = "debug")]
 impl Default for SpawnLovConfig {
     fn default() -> Self {
         Self {
-            #[cfg(feature = "debug")]
             click: LovClickMode::DraggedClick,
             start_pluz_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS,
             stop_pluz_z: Meters(0.),

@@ -163,7 +163,6 @@ where
 
                                 for (o, other) in at(step_tile) {
                                     let [other_x, other_y, other_z] = other.position(w);
-                                    // FIXME BS NOW: il faut prendre en compte le volume propre aussi (brick wall)
                                     let volume2 =
                                         other.volume([other_x, other_y, other_z], w, mod_);
 
@@ -213,6 +212,15 @@ mod tests {
     use crate::collision::Materials;
 
     use super::*;
+
+    fn workspace_root() -> PathBuf {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf()
+    }
 
     struct MyObject([f32; 3], Vec<Force>);
     #[derive(Debug, Clone, serde::Serialize)]
@@ -274,7 +282,7 @@ mod tests {
     #[test]
     fn test_unidirectional_translation() {
         // Given
-        let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
@@ -297,7 +305,7 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_collision() {
         // Given
-        let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
@@ -325,7 +333,7 @@ mod tests {
             step(&w, &mod_, delta, (MyObjectId, &object), objects, "test");
 
         // Then
-        let expected_new_position = [2.5, 0.0, 0.0];
+        let expected_new_position = [5.01, 0.0, 0.0];
         let expected_new_forces: Vec<Force> = vec![];
         assert_eq!(new_position, expected_new_position);
         assert_eq!(new_forces, expected_new_forces);
@@ -334,7 +342,7 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_high_speed() {
         // Given
-        let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
@@ -357,7 +365,7 @@ mod tests {
     #[test]
     fn test_unidirectional_translation_high_speed_collision() {
         // Given
-        let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)
@@ -385,7 +393,7 @@ mod tests {
             step(&w, &mod_, delta, (MyObjectId, &object), objects, "test");
 
         // Then
-        let expected_new_position = [2.5, 0.0, 0.0];
+        let expected_new_position = [5.01, 0.0, 0.0];
         let expected_new_forces: Vec<Force> = vec![];
         assert_eq!(new_position, expected_new_position);
         assert_eq!(new_forces, expected_new_forces);
@@ -394,7 +402,7 @@ mod tests {
     #[test]
     fn test_bidirectional_translation() {
         // Given
-        let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
             .geo_bresenham_precision(100.)

@@ -88,6 +88,12 @@ impl Iterator for Steps {
         if self.first {
             self.first = false;
 
+            if self.x < 0. || self.y < 0. || self.x > world_width - 1. || self.y > world_height - 1.
+            {
+                self.outside = true;
+                return Some(Step::Outside);
+            }
+
             let tile = Xy(
                 (self.x / self.geo_bresenham_precision) as u64 / self.geo_pixels_per_tile,
                 (self.y / self.geo_bresenham_precision) as u64 / self.geo_pixels_per_tile,
@@ -128,6 +134,11 @@ impl Iterator for Steps {
         }
 
         if let Some([x, y, z]) = self.target.take() {
+            if x < 0 || y < 0 || x > world_width as isize - 1 || y > world_height as isize - 1 {
+                self.outside = true;
+                return Some(Step::Outside);
+            }
+
             let (x, y, z) = (
                 x as f32 / self.geo_bresenham_precision,
                 y as f32 / self.geo_bresenham_precision,

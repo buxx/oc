@@ -3,7 +3,6 @@ use oc_individual::network::Individual;
 use oc_mod::Mod;
 use oc_physics::fx::Fx;
 use oc_projectile::network::Projectile;
-#[cfg(feature = "debug")]
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::{WorldConfig, static_::StaticSource};
 use oc_world::{meta::Meta, tile::Tile};
@@ -40,6 +39,5 @@ pub enum ToServer {
     ListenRegion(WorldRegionIndex),
     ForgotRegion(WorldRegionIndex),
     Refresh,
-    #[cfg(feature = "debug")]
     SpawnProjectile(SpawnProjectile),
 }
