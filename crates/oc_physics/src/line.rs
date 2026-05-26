@@ -14,6 +14,7 @@ pub struct Steps {
     tile: Xy,
     target: Option<[isize; 3]>,
     first: bool,
+    outside: bool,
 }
 
 impl Steps {
@@ -58,6 +59,7 @@ impl Steps {
             tile,
             target,
             first: true,
+            outside: false,
         }
     }
 }
@@ -76,6 +78,10 @@ impl Iterator for Steps {
     type Item = Step;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.outside {
+            return None;
+        }
+
         let world_width = self.world_width_pixels as f32 * self.geo_bresenham_precision;
         let world_height = self.world_height_pixels as f32 * self.geo_bresenham_precision;
 
@@ -102,6 +108,7 @@ impl Iterator for Steps {
             // TODO: maximum z ?
             if x < 0 || y < 0 || x > world_width as isize - 1 || y > world_height as isize - 1 {
                 // println!("Outside ({world_width},{world_height})");
+                self.outside = true;
                 return Some(Step::Outside);
             }
 
@@ -192,5 +199,36 @@ mod tests {
         assert_eq!(steps.next(), Some(Step::First([10.0, 10.0, 0.], Xy(2, 2))));
         assert_eq!(steps.next(), Some(Step::Inside([12.5, 12.5, 0.], Xy(2, 2))));
         assert_eq!(steps.next(), Some(Step::Last([15., 15., 0.], Xy(3, 3))));
+    }
+
+    #[test]
+    fn test_steps_outside_world_on_last() {
+        // Given
+        let w = WorldConfig::new(10, 10, Meters(0.1))
+            .geo_bresenham_precision(100.)
+            .geo_bresenham_step(250)
+            .geo_pixels_per_tile(5);
+        let steps = Steps::new(
+            w.world_width_pixels,
+            w.world_height_pixels,
+            w.geo_bresenham_precision,
+            w.geo_bresenham_step,
+            w.geo_pixels_per_tile,
+            (45., 45., 0.),
+            (55.0, 55.0, 0.),
+        );
+
+        // When
+        let steps: Vec<Step> = steps.collect();
+
+        // Then (non-reg, bug was Last (with outwrold coordinates) given after Outside)
+        assert_eq!(
+            steps,
+            vec![
+                Step::First([45.0, 45.0, 0.0,], Xy(9, 9,),),
+                Step::Inside([47.5, 47.5, 0.0,], Xy(9, 9,),),
+                Step::Outside,
+            ]
+        )
     }
 }

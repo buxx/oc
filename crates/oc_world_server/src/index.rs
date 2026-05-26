@@ -125,7 +125,6 @@ impl Indexes {
     }
 
     pub fn tile_individuals(&self, tile: WorldTileIndex) -> &Vec<IndividualIndex> {
-        // FIXME BS NOW: after 1 minute or 2, example-stress-projectiles crash here, but should not avoir un rapport avec individuals
         &self.tiles_individuals[tile.0 as usize]
     }
 
