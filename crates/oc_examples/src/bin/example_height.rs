@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .install(Box::new(setup))
         .snapshot(snapshot);
 
-    let _ = example.build().run()?;
+    example.build().run()?;
 
     Ok(())
 }

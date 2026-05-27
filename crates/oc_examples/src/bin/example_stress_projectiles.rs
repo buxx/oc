@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .mod_(mod_)
         .install(Box::new(install))
         .snapshot(snapshot);
-    let _ = example.build().run()?;
+    example.build().run()?;
 
     Ok(())
 }

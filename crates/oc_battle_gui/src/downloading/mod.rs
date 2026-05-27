@@ -54,7 +54,7 @@ fn download(
     ensure_file(&files, files::File::World).unwrap(); // TODO
     ensure_file(&files, files::File::Minimap).unwrap(); // TODO
     for region in 0..w.regions_count {
-        ensure_file(&files, files::File::Region(region as u64)).unwrap(); // TODO
+        ensure_file(&files, files::File::Region(region)).unwrap(); // TODO
     }
 
     // FIXME: check tile size

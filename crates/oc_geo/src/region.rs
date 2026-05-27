@@ -39,23 +39,23 @@ impl WorldRegionIndex {
 
 impl WcfgFrom<WorldRegionIndex> for RegionXy {
     fn from_(WorldRegionIndex(i): WorldRegionIndex, w: &WorldConfig) -> Self {
-        let x = i % w.regions_width as u64;
-        let y = i / w.regions_width as u64;
+        let x = i % w.regions_width;
+        let y = i / w.regions_width;
         Self(Xy(x, y))
     }
 }
 
 impl WcfgFrom<WorldRegionIndex> for Xy {
     fn from_(WorldRegionIndex(i): WorldRegionIndex, w: &WorldConfig) -> Self {
-        let x = i % w.regions_width as u64;
-        let y = i / w.regions_width as u64;
+        let x = i % w.regions_width;
+        let y = i / w.regions_width;
         Xy(x, y)
     }
 }
 
 impl WcfgFrom<RegionXy> for WorldRegionIndex {
     fn from_(RegionXy(Xy(x, y)): RegionXy, w: &WorldConfig) -> Self {
-        Self(y * w.regions_width as u64 + x)
+        Self(y * w.regions_width + x)
     }
 }
 
@@ -70,8 +70,8 @@ impl WcfgFrom<WorldTileIndex> for WorldRegionIndex {
 impl WcfgFrom<TileXy> for RegionXy {
     fn from_(value: TileXy, w: &WorldConfig) -> Self {
         Self(Xy(
-            value.0.0 / w.region_width as u64,
-            value.0.1 / w.region_height as u64,
+            value.0.0 / w.region_width,
+            value.0.1 / w.region_height,
         ))
     }
 }

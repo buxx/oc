@@ -56,7 +56,7 @@ impl<E: Client> super::State<E> {
         }
 
         // Broadcast the new projectile (TODO: normalize/refactor to not call loop manually ?)
-        let region: WorldRegionIndex = projectile.region().clone().into();
+        let region: WorldRegionIndex = projectile.region();
         let listeners = self.listeners();
         let sound = fx.then(|| self._mod().pick_sound((spawn.weapon, spawn.shot)));
         let sound = sound.flatten();
@@ -65,7 +65,7 @@ impl<E: Client> super::State<E> {
         listeners
             .find(Listening::Regions(vec![region]))
             .iter()
-            .map(|listener| {
+            .flat_map(|listener| {
                 let mut messages = vec![];
 
                 let insert = oc_projectile::network::Projectile::Insert(id, projectile.clone());
@@ -80,7 +80,6 @@ impl<E: Client> super::State<E> {
 
                 messages
             })
-            .flatten()
             .collect()
     }
 

@@ -12,7 +12,7 @@ pub struct SameTileFiller(pub NatureIndex);
 impl TilesGenerator for SameTileFiller {
     fn tiles(&self, w: &WorldConfig, _: &Mod) -> Vec<Tile> {
         (0..w.tiles_count)
-            .map(|i| Tile::new(WorldTileIndex(i as u64), self.0, 0))
+            .map(|i| Tile::new(WorldTileIndex(i), self.0, 0))
             .collect()
     }
 }

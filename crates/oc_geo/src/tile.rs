@@ -11,8 +11,8 @@ pub struct TileXy(pub Xy);
 impl TileXy {
     pub fn clamped(&self, w: &WorldConfig) -> Self {
         Self(Xy(
-            self.0.0.min(w.world_width as u64 - 1),
-            self.0.1.min(w.world_height as u64 - 1),
+            self.0.0.min(w.world_width - 1),
+            self.0.1.min(w.world_height - 1),
         ))
     }
 
@@ -112,31 +112,31 @@ impl WcfgFrom<WorldTileIndex> for WorldHeightIndex {
 
 impl WcfgFrom<WorldTileIndex> for TileXy {
     fn from_(WorldTileIndex(i): WorldTileIndex, w: &WorldConfig) -> Self {
-        let x = i % w.world_width as u64;
-        let y = i / w.world_width as u64;
+        let x = i % w.world_width;
+        let y = i / w.world_width;
         Self(Xy(x, y))
     }
 }
 
 impl WcfgFrom<WorldTileIndex> for Xy {
     fn from_(WorldTileIndex(i): WorldTileIndex, w: &WorldConfig) -> Self {
-        let x = i % w.world_width as u64;
-        let y = i / w.world_width as u64;
+        let x = i % w.world_width;
+        let y = i / w.world_width;
         Xy(x, y)
     }
 }
 
 impl WcfgFrom<WorldHeightIndex> for Xy {
     fn from_(WorldHeightIndex(i): WorldHeightIndex, w: &WorldConfig) -> Self {
-        let x = i % w.world_width as u64;
-        let y = i / w.world_width as u64;
+        let x = i % w.world_width;
+        let y = i / w.world_width;
         Xy(x, y)
     }
 }
 
 impl WcfgFrom<TileXy> for WorldTileIndex {
     fn from_(TileXy(Xy(x, y)): TileXy, w: &WorldConfig) -> Self {
-        Self(y * w.world_width as u64 + x)
+        Self(y * w.world_width + x)
     }
 }
 
@@ -160,8 +160,8 @@ impl WcfgFrom<[f32; 3]> for TileXy {
 
 impl WcfgFrom<RegionXy> for TileXy {
     fn from_(value: RegionXy, w: &WorldConfig) -> Self {
-        let x = value.0.0 * w.region_width as u64;
-        let y = value.0.1 * w.region_height as u64;
+        let x = value.0.0 * w.region_width;
+        let y = value.0.1 * w.region_height;
         Self(Xy(x, y))
     }
 }

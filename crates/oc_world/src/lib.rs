@@ -52,15 +52,15 @@ impl World {
 
         tracing::debug!("Extract region {} tiles", region.0,);
         for y in 0..self.w.region_height {
-            let line_start = TileXy(Xy(start.0.0, start.0.1 + y as u64));
+            let line_start = TileXy(Xy(start.0.0, start.0.1 + y));
             let line_start: WorldTileIndex = line_start.into_(&self.w);
-            let line_start = line_start.0 as u64;
+            let line_start = line_start.0;
             let line_end = line_start + self.w.region_width;
             let tiles_ = &self.tiles[line_start as usize..line_end as usize];
             let tiles_: Vec<(WorldTileIndex, &Tile)> = tiles_
                 .iter()
                 .zip(line_start..line_end)
-                .map(|(t, i)| (WorldTileIndex(i as u64), t))
+                .map(|(t, i)| (WorldTileIndex(i), t))
                 .collect();
             tiles.extend(tiles_);
         }

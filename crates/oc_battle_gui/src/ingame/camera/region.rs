@@ -84,9 +84,9 @@ pub fn regions(w: &WorldConfig, center: Vec2) -> Vec<WorldRegionIndex> {
     let from = RegionXy(Xy(from_x, from_y));
 
     let to_x_plus = REGIONS_WIDTH / 2;
-    let to_x = (center.0.0 + to_x_plus).min(w.regions_width as u64 - 1);
+    let to_x = (center.0.0 + to_x_plus).min(w.regions_width - 1);
     let to_y_plus = REGIONS_HEIGHT / 2;
-    let to_y = (center.0.1 + to_y_plus).min(w.regions_height as u64 - 1);
+    let to_y = (center.0.1 + to_y_plus).min(w.regions_height - 1);
     let to = RegionXy(Xy(to_x, to_y));
 
     let (from_region_x, from_region_y) = (from.0.0, from.0.1);

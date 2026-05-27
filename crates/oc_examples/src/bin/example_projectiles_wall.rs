@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use {oc_examples::tests::wall, oc_projectile::spawn::SpawnProjectile};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let _ = wall::run(Some(Box::new(install))).unwrap();
+    wall::run(Some(Box::new(install))).unwrap();
     Ok(())
 }
 
@@ -37,8 +37,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
         .find(|s| s.name() == "Burst3")
         .unwrap();
 
-    for spawn in vec![
-        SpawnProjectile::new(
+    for spawn in [SpawnProjectile::new(
             weapon1.index(),
             ammunition.index(),
             shot.index(),
@@ -61,8 +60,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
             10,
             [20., 0., 15.],
             [70., 50., 15.],
-        ),
-    ] {
+        )] {
         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
     }
 }

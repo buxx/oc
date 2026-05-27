@@ -88,11 +88,11 @@ impl<'a, E: Client> Dealer<'a, E> {
 
     fn spawn_projectile(&self, spawn: SpawnProjectile) -> Vec<Update> {
         spawn
-            .schedule(&self._mod)
+            .schedule(self._mod)
             .iter()
             .map(|(instant, fx)| {
                 Update::Schedule(
-                    instant.clone(),
+                    *instant,
                     Box::new(Update::SpawnProjectile(spawn.clone(), *fx)),
                 )
             })

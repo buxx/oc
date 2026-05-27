@@ -60,10 +60,10 @@ impl WorldConfig {
         let regions_count = tiles_count / (region_width * region_height);
         let regions_width = world_width / region_width;
         let regions_height = world_height / region_height;
-        let world_width_pixels = world_width as u64 * geo_pixels_per_tile;
-        let world_height_pixels = world_height as u64 * geo_pixels_per_tile;
-        let region_width_pixels = region_width as u64 * geo_pixels_per_tile;
-        let region_height_pixels = region_height as u64 * geo_pixels_per_tile;
+        let world_width_pixels = world_width * geo_pixels_per_tile;
+        let world_height_pixels = world_height * geo_pixels_per_tile;
+        let region_width_pixels = region_width * geo_pixels_per_tile;
+        let region_height_pixels = region_height * geo_pixels_per_tile;
         let minimap_width_pixels: u64 = 2048;
         let minimap_height_pixels: u64 = 2048;
 
@@ -99,7 +99,7 @@ impl WorldConfig {
         self.region_width = value;
         self.regions_count = self.tiles_count / (self.region_width * self.region_height);
         self.regions_width = self.world_width / self.region_width;
-        self.region_width_pixels = self.region_width as u64 * self.geo_pixels_per_tile;
+        self.region_width_pixels = self.region_width * self.geo_pixels_per_tile;
         self
     }
 
@@ -107,7 +107,7 @@ impl WorldConfig {
         self.region_height = value;
         self.regions_count = self.tiles_count / (self.region_width * self.region_height);
         self.regions_height = self.world_height / self.region_height;
-        self.region_height_pixels = self.region_height as u64 * self.geo_pixels_per_tile;
+        self.region_height_pixels = self.region_height * self.geo_pixels_per_tile;
         self
     }
 

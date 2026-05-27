@@ -40,7 +40,7 @@ impl<'a, E: Client> Move<'a, E> {
                 }
             }
             Behavior::MovingSouth => {
-                if x == self.ctx.state.w.world_height as u64 - 1 {
+                if x == self.ctx.state.w.world_height - 1 {
                     (
                         Some(Force::Translation([0.0, -1.0, 0.0], MetersSeconds(0.5))),
                         Some(Behavior::MovingNorth),

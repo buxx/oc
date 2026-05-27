@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .world(map_)
         .mod_(PathBuf::from("mods/std1"))
         .snapshot(snapshot);
-    let _ = example.build().run()?;
+    example.build().run()?;
 
     Ok(())
 }

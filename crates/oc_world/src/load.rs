@@ -138,7 +138,7 @@ impl WorldLoader {
         (0..self.w.regions_count)
             .into_par_iter()
             .map(|i| {
-                let i = WorldRegionIndex(i as u64);
+                let i = WorldRegionIndex(i);
                 let region = files.region(i.0);
 
                 match region.exists() {

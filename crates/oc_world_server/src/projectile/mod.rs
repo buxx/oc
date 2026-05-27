@@ -29,7 +29,7 @@ impl<'a, 'b> Builder<'a, 'b> {
 
         match ammunition {
             oc_mod::ammunition::Ammunition::Cartridge(_) => {
-                Projectile::Bullet(Bullet::new(position, forces, &self.w))
+                Projectile::Bullet(Bullet::new(position, forces, self.w))
             }
         }
     }

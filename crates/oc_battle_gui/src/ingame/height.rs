@@ -189,7 +189,7 @@ fn on_spawn(
             );
             continue;
         }
-        let texture: Handle<Image> = asset_server.load(&texture.display().to_string());
+        let texture: Handle<Image> = asset_server.load(texture.display().to_string());
         tracing::trace!(name = "ingame-height-on-spawn-mesh-generate", region = ?region);
 
         let Some(tiles) = world.tiles.get(&region) else {
@@ -211,12 +211,12 @@ fn on_spawn(
                 let tile = TileXy(Xy(x, y));
                 let tile_i: WorldTileIndex = tile.into_(w);
 
-                let z = tiles
+                
+
+                tiles
                     .get(&tile_i)
                     .map(|tile| tile.z as f32 / z_max as f32)
-                    .unwrap_or_default();
-
-                z
+                    .unwrap_or_default()
             })
             .build_mesh(grid_size),
         );
@@ -392,12 +392,11 @@ fn sample_terrain_z(w: &WorldConfig, world: &World, pos: &Vec3) -> f32 {
     world
         .tiles
         .get(&region)
-        .map(|tiles| {
+        .and_then(|tiles| {
             tiles
                 .get(&tile)
                 .map(|tile| tile.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters)
         })
-        .flatten()
         .unwrap_or_default()
 }
 

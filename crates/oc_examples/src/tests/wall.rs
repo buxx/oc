@@ -35,7 +35,7 @@ pub fn run(install: Option<Box<dyn Fn(&mut bevy::app::App)>>) -> Result_ {
     let snapshot =
         SnapshotBuilder::new(map, EmptyGenerator::new(), EmptyGenerator::new()).build(w, &mod_)?;
 
-    let result = run::Example::builder()
+    run::Example::builder()
         .world(map_)
         .mod_(PathBuf::from("mods/tests1"))
         .maybe_install(install)
@@ -43,5 +43,5 @@ pub fn run(install: Option<Box<dyn Fn(&mut bevy::app::App)>>) -> Result_ {
         .build()
         .run()?;
 
-    Ok(result)
+    Ok(())
 }

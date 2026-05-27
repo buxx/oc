@@ -87,7 +87,7 @@ fn on_set_position_event<I: Hash + Eq + Send + Sync + 'static>(
     // tracing::trace!(name = "update-individual-position", i=?position.0.0, position=?position.1);
 
     position_.0 = event.1;
-    let translation = event.1.to_gui_y(&w);
+    let translation = event.1.to_gui_y(w);
     transform.translation.x = translation[0];
     transform.translation.y = translation[1];
 }

@@ -138,7 +138,7 @@ fn main() -> Result<(), anyhow::Error> {
     world(&world_tpl_path, &world_path, width, height, args.tile_size)?;
 
     if let Some(mod_) = &args.r#mod {
-        let mod_ = Mod::load(&mod_, None).context(format!("Load cache from {}", mod_.display()))?;
+        let mod_ = Mod::load(mod_, None).context(format!("Load cache from {}", mod_.display()))?;
         analyze_terrain(&w, &terrain_tsx_path, &mod_)?;
     }
 
@@ -180,19 +180,16 @@ fn snapshot_(
     mod_: &Mod,
     replace: bool,
 ) -> Result<(), anyhow::Error> {
-    match std::fs::exists(path).context(format!("Test if {} exists", path.display()))? {
-        true => {
-            if replace {
-                std::fs::remove_file(path).context(format!("Remove file {}", path.display()))?;
-            } else {
-                tracing::warn!(
-                    "{} already exist and --replace not set, skip snapshot generation",
-                    path.display()
-                );
-                return Ok(());
-            }
+    if std::fs::exists(path).context(format!("Test if {} exists", path.display()))? == true {
+        if replace {
+            std::fs::remove_file(path).context(format!("Remove file {}", path.display()))?;
+        } else {
+            tracing::warn!(
+                "{} already exist and --replace not set, skip snapshot generation",
+                path.display()
+            );
+            return Ok(());
         }
-        false => {}
     };
 
     tracing::info!("Initialize snapshot ({})", path.display());
