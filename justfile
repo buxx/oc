@@ -29,8 +29,8 @@ example-height *args:
 example-projectiles-wall *args:
     cargo run --bin example_projectiles_wall --features test {{ args }}
 
-example-stress-projectiles *args:
-    cargo run --bin example_stress_projectiles --features debug {{ args }}
+example-stress-projectiles:
+    cargo run --bin example_stress_projectiles --features debug,perfs --release
 
 test:
     cargo test bevy_heightmap

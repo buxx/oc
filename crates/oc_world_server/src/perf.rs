@@ -1,20 +1,46 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    Mutex,
+    atomic::{AtomicU64, Ordering},
+};
 
 #[derive(Debug, Default)]
 pub struct Perf {
-    pub tick: AtomicU64,
+    pub individual_ticks: AtomicU64,
+    pub individual_percents: Mutex<Vec<u8>>,
+    pub physic_ticks: AtomicU64,
+    pub physic_percents: Mutex<Vec<u8>>,
 }
 
 impl Perf {
-    pub fn ticks(&self) -> u64 {
-        self.tick.load(std::sync::atomic::Ordering::Relaxed)
+    pub fn individuals_ticks(&self) -> u64 {
+        self.individual_ticks
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
 
-    pub fn incr(&self) {
-        self.tick.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    pub fn increment_individual(&self) {
+        self.individual_ticks
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub fn set_individual_percent(&self, i: usize, value: u8) {
+        self.individual_percents.lock().expect("Assume available")[i] = value;
+    }
+
+    pub fn physics_ticks(&self) -> u64 {
+        self.physic_ticks.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub fn increment_physic(&self) {
+        self.physic_ticks
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub fn set_physic_percent(&self, i: usize, value: u8) {
+        self.physic_percents.lock().expect("Assume available")[i] = value;
     }
 
     pub fn reset(&self) {
-        self.tick.swap(0, Ordering::Relaxed);
+        self.individual_ticks.swap(0, Ordering::Relaxed);
+        self.physic_ticks.swap(0, Ordering::Relaxed);
     }
 }

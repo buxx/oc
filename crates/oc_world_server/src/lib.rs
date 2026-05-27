@@ -3,6 +3,7 @@ pub mod config;
 pub mod index;
 pub mod individual;
 pub mod network;
+#[cfg(feature = "perfs")]
 pub mod perf;
 pub mod physics;
 pub mod projectile;

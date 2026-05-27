@@ -67,6 +67,9 @@ impl<'x, E: Client> Processor<'x, E> {
 
         // Move code (wich must take worl and indexes as ref because RwReadLockGuard lifetime)
         let objects = |xy| {
+            #[cfg(feature = "perfs")]
+            self.ctx.state.perf.increment_physic();
+
             let tile = TileXy(xy);
             let i: WorldTileIndex = tile.into_(&self.ctx.state.w);
             let individuals = indexes.tile_individuals(i);

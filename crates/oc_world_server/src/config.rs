@@ -10,6 +10,5 @@ pub struct ServerConfig {
     pub world: PathBuf,
     pub snapshot: PathBuf,
     pub cache: PathBuf,
-    pub print_ticks: bool,
     pub static_: StaticSource,
 }

@@ -9,7 +9,10 @@ use std::{
 use derive_more::Constructor;
 use oc_network::ToClient;
 use oc_root::Client;
-use rayon::{iter::ParallelIterator, slice::ParallelSlice};
+use rayon::{
+    iter::{IndexedParallelIterator, ParallelIterator},
+    slice::ParallelSlice,
+};
 
 #[cfg(feature = "tracker")]
 use crate::tracker::Tracker;
@@ -38,7 +41,8 @@ impl<E: Client> Runner<E> {
         self.start_scheduler();
 
         let _ = ready.send(Ok(()));
-        self.track_perfs();
+        #[cfg(feature = "perfs")]
+        self.perfs();
 
         tracing::debug!("Finished runner");
     }
@@ -52,6 +56,15 @@ impl<E: Client> Runner<E> {
             self.tracker.clone(),
         );
 
+        #[cfg(feature = "perfs")]
+        {
+            *ctx.state
+                .perf
+                .physic_percents
+                .lock()
+                .expect("Assume available") = vec![0; ctx.cpus];
+        }
+
         (0..ctx.cpus).for_each(|i| {
             let ctx = ctx.clone();
 
@@ -61,6 +74,13 @@ impl<E: Client> Runner<E> {
                 loop {
                     let elapsed = last.elapsed().as_micros() as u64;
                     let wait = ctx.state.w.physics_tick_interval_us - elapsed;
+                    #[cfg(feature = "perfs")]
+                    {
+                        let percent = 100
+                            - ((wait as f32 / ctx.state.w.physics_tick_interval_us as f32) * 100.)
+                                as u8;
+                        ctx.state.perf.set_physic_percent(i, percent);
+                    }
                     std::thread::sleep(Duration::from_micros(wait));
 
                     for update in physics::Processor::new(&ctx).step(i) {
@@ -91,10 +111,20 @@ impl<E: Client> Runner<E> {
             return;
         }
 
+        #[cfg(feature = "perfs")]
+        {
+            *ctx.state
+                .perf
+                .individual_percents
+                .lock()
+                .expect("Assume available") = vec![0; ctx.cpus];
+        }
+
         (0..individuals_count)
             .collect::<Vec<usize>>()
             .par_chunks(size)
-            .for_each(|indexes| {
+            .enumerate()
+            .for_each(|(i, indexes)| {
                 let indexes = indexes.to_vec();
                 let ctx = ctx.clone();
 
@@ -104,13 +134,21 @@ impl<E: Client> Runner<E> {
                     loop {
                         let elapsed = last.elapsed().as_micros() as u64;
                         let wait = ctx.state.w.individual_tick_interval_us - elapsed;
+                        #[cfg(feature = "perfs")]
+                        {
+                            let percent = 100
+                                - ((wait as f32 / ctx.state.w.individual_tick_interval_us as f32)
+                                    * 100.) as u8;
+                            ctx.state.perf.set_individual_percent(i, percent);
+                        }
                         std::thread::sleep(Duration::from_micros(wait));
 
                         for i in &indexes {
                             tracing::trace!(name = "runner-individual", i = ?i);
-
-                            ctx.state.perf.incr();
                             individual::Processor::new(&ctx, (*i).into()).step();
+
+                            #[cfg(feature = "perfs")]
+                            ctx.state.perf.increment_individual();
                         }
 
                         last = Instant::now();
@@ -119,14 +157,43 @@ impl<E: Client> Runner<E> {
             });
     }
 
-    fn track_perfs(&self) {
+    #[cfg(feature = "perfs")]
+    fn perfs(&self) {
         tracing::debug!("Track perfs");
         loop {
             std::thread::sleep(Duration::from_secs(1));
 
-            if self.config.print_ticks {
-                println!("{} tick/s", self.state.perf.ticks());
-            }
+            let individuals = self.state.world.read().unwrap().individuals().len();
+            let projectiles = self.state.world.read().unwrap().projectiles().len();
+            let individual_percents = self
+                .state
+                .perf
+                .individual_percents
+                .lock()
+                .expect("Assume available")
+                .iter()
+                .map(|percent| format!("{percent}"))
+                .collect::<Vec<String>>()
+                .join(",");
+            let physic_percents = self
+                .state
+                .perf
+                .physic_percents
+                .lock()
+                .expect("Assume available")
+                .iter()
+                .map(|percent| format!("{percent}"))
+                .collect::<Vec<String>>()
+                .join(",");
+            let physics = projectiles;
+
+            println!(
+                "individuals({individuals}): {} tick/s({}); physics({physics}): {} tick/s({})",
+                self.state.perf.individuals_ticks(),
+                individual_percents,
+                self.state.perf.physics_ticks(),
+                physic_percents,
+            );
 
             self.state.perf.reset();
         }

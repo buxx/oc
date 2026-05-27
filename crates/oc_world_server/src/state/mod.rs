@@ -3,6 +3,8 @@ use std::{
     time::Instant,
 };
 
+#[cfg(feature = "perfs")]
+use crate::perf::Perf;
 use oc_geo::tile::WorldTileIndex;
 use oc_individual::IndividualIndex;
 use oc_mod::Mod;
@@ -11,15 +13,14 @@ use oc_root::{Client, WorldConfig, ids::Ids};
 use oc_world::{World, load::WorldLoader, snapshot::Snapshot};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    config::ServerConfig, index::Indexes, perf::Perf, routing::Listeners, runner::update::Update,
-};
+use crate::{config::ServerConfig, index::Indexes, routing::Listeners, runner::update::Update};
 
 #[derive(Clone)]
 pub struct State<E: Client> {
     pub w: WorldConfig,
     pub _ids: Ids,
     pub _mod: Mod,
+    #[cfg(feature = "perfs")]
     pub perf: Arc<Perf>,
     pub world: Arc<RwLock<World>>,
     pub indexes: Arc<RwLock<Indexes>>,
@@ -29,6 +30,7 @@ pub struct State<E: Client> {
 
 impl<E: Client> State<E> {
     pub fn new(w: WorldConfig, ids: Ids, mod_: Mod, world: World) -> Self {
+        #[cfg(feature = "perfs")]
         let perf = Arc::new(Perf::default());
         let indexes = Arc::new(RwLock::new(Indexes::new(&world)));
         let world = Arc::new(RwLock::new(world));
@@ -39,6 +41,7 @@ impl<E: Client> State<E> {
             w,
             _ids: ids,
             _mod: mod_,
+            #[cfg(feature = "perfs")]
             perf,
             world,
             indexes,

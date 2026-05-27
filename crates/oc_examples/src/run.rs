@@ -55,7 +55,6 @@ impl Example {
             .world(self.world.clone())
             .mod_(self.mod_.clone())
             .cache(cache)
-            .print_ticks(false)
             .static_(static_)
             .snapshot(self.snapshot.clone())
             .build();
