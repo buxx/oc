@@ -124,7 +124,7 @@ impl<E: Client> Runner<E> {
             .collect::<Vec<usize>>()
             .par_chunks(size)
             .enumerate()
-            .for_each(|(i, indexes)| {
+            .for_each(|(_i, indexes)| {
                 let indexes = indexes.to_vec();
                 let ctx = ctx.clone();
 
@@ -137,7 +137,7 @@ impl<E: Client> Runner<E> {
                         #[cfg(feature = "perfs")]
                         {
                             let percent = wait as f32 / interval as f32;
-                            ctx.state.perf.set_individual_percent(i, 1. - percent);
+                            ctx.state.perf.set_individual_percent(_i, 1. - percent);
                         }
 
                         std::thread::sleep(Duration::from_micros(wait));

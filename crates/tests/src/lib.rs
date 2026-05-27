@@ -17,6 +17,15 @@ mod test {
     use serde::Serialize;
     use std::path::PathBuf;
 
+    fn workspace_root() -> PathBuf {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf()
+    }
+
     fn init_tracing() {
         let _ = tracing_subscriber::fmt()
             .with_test_writer()
@@ -100,7 +109,7 @@ mod test {
         init_tracing();
 
         // Given
-        let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let geo_meters_per_z = Meters(0.1);
         let w = WorldConfig::new(1000, 1000, geo_meters_per_z)
             .geo_pixels_per_tile(5)

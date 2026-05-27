@@ -19,6 +19,7 @@ mod config;
 mod index;
 mod individual;
 mod network;
+#[cfg(feature = "perfs")]
 mod perf;
 mod physics;
 mod projectile;

@@ -1,5 +1,9 @@
+setup:
+    # cargo install cargo-all-features
+    cargo binstall cargo-nextest --secure
+
 check:
-    cargo check && cargo check --features debug && cargo check --tests
+    cargo check && cargo check --features debug && cargo check --tests && cargo check --features perfs
 
 serve-minidblue:
     RUST_LOG=DEBUG WORLD_WIDTH=200 WORLD_HEIGHT=200 \
@@ -36,19 +40,4 @@ example-stress-server-projectiles:
     cargo run --bin example_stress_projectiles_server --features perfs --release
 
 test:
-    cargo test bevy_heightmap
-    cargo test oc_battle_gui
-    cargo test oc_examples
-    cargo test oc_geo
-    cargo test oc_individual
-    cargo test oc_lov
-    cargo test oc_mod
-    cargo test oc_network
-    cargo test oc_physics
-    cargo test oc_projectile
-    cargo test oc_root
-    cargo test oc_utils
-    cargo test oc_world
-    cargo test oc_world_generator
-    cargo test oc_world_server
-    cargo test tests
+    cargo nextest run
