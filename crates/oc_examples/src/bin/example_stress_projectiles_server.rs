@@ -94,9 +94,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             [right, bottom, 500.],
                         )),
                     ))
-                    .unwrap()
+                    .unwrap();
+                counter += 1;
             }
-            counter += 1000;
         }
         std::thread::sleep(Duration::from_millis(100));
     }
