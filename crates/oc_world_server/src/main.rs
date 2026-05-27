@@ -109,7 +109,6 @@ impl From<Args> for ServerConfig {
             world: value.world.clone(),
             mod_: value.mod_.clone(),
             cache: value.cache.clone(),
-            print_ticks: value.print_ticks,
             static_: StaticSource::Remote(value.static_.port()),
             snapshot: value.snapshot,
         }

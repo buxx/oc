@@ -62,8 +62,9 @@ impl<E: Client> Runner<E> {
                 .perf
                 .physic_percents
                 .lock()
-                .expect("Assume available") = vec![0; ctx.cpus];
+                .expect("Assume available") = vec![0.; ctx.cpus];
         }
+        let interval = ctx.state.w.physics_tick_interval_us;
 
         (0..ctx.cpus).for_each(|i| {
             let ctx = ctx.clone();
@@ -73,21 +74,19 @@ impl<E: Client> Runner<E> {
 
                 loop {
                     let elapsed = last.elapsed().as_micros() as u64;
-                    let wait = ctx.state.w.physics_tick_interval_us - elapsed;
+                    let wait = interval - elapsed.min(interval);
                     #[cfg(feature = "perfs")]
                     {
-                        let percent = 100
-                            - ((wait as f32 / ctx.state.w.physics_tick_interval_us as f32) * 100.)
-                                as u8;
-                        ctx.state.perf.set_physic_percent(i, percent);
+                        let percent = wait as f32 / interval as f32;
+                        ctx.state.perf.set_physic_percent(i, 1. - percent);
                     }
+
                     std::thread::sleep(Duration::from_micros(wait));
+                    last = Instant::now();
 
                     for update in physics::Processor::new(&ctx).step(i) {
                         ctx.state.update(update, &ctx.output);
                     }
-
-                    last = Instant::now();
                 }
             });
         });
@@ -117,8 +116,9 @@ impl<E: Client> Runner<E> {
                 .perf
                 .individual_percents
                 .lock()
-                .expect("Assume available") = vec![0; ctx.cpus];
+                .expect("Assume available") = vec![0.; ctx.cpus];
         }
+        let interval = ctx.state.w.individual_tick_interval_us;
 
         (0..individuals_count)
             .collect::<Vec<usize>>()
@@ -133,15 +133,15 @@ impl<E: Client> Runner<E> {
 
                     loop {
                         let elapsed = last.elapsed().as_micros() as u64;
-                        let wait = ctx.state.w.individual_tick_interval_us - elapsed;
+                        let wait = interval - elapsed.max(interval);
                         #[cfg(feature = "perfs")]
                         {
-                            let percent = 100
-                                - ((wait as f32 / ctx.state.w.individual_tick_interval_us as f32)
-                                    * 100.) as u8;
-                            ctx.state.perf.set_individual_percent(i, percent);
+                            let percent = wait as f32 / interval as f32;
+                            ctx.state.perf.set_individual_percent(i, 1. - percent);
                         }
+
                         std::thread::sleep(Duration::from_micros(wait));
+                        last = Instant::now();
 
                         for i in &indexes {
                             tracing::trace!(name = "runner-individual", i = ?i);
@@ -150,8 +150,6 @@ impl<E: Client> Runner<E> {
                             #[cfg(feature = "perfs")]
                             ctx.state.perf.increment_individual();
                         }
-
-                        last = Instant::now();
                     }
                 });
             });
@@ -172,7 +170,7 @@ impl<E: Client> Runner<E> {
                 .lock()
                 .expect("Assume available")
                 .iter()
-                .map(|percent| format!("{percent}"))
+                .map(|percent| format!("{percent:.3}"))
                 .collect::<Vec<String>>()
                 .join(",");
             let physic_percents = self
@@ -182,7 +180,7 @@ impl<E: Client> Runner<E> {
                 .lock()
                 .expect("Assume available")
                 .iter()
-                .map(|percent| format!("{percent}"))
+                .map(|percent| format!("{percent:.3}"))
                 .collect::<Vec<String>>()
                 .join(",");
             let physics = projectiles;

@@ -6,9 +6,9 @@ use std::sync::{
 #[derive(Debug, Default)]
 pub struct Perf {
     pub individual_ticks: AtomicU64,
-    pub individual_percents: Mutex<Vec<u8>>,
+    pub individual_percents: Mutex<Vec<f32>>,
     pub physic_ticks: AtomicU64,
-    pub physic_percents: Mutex<Vec<u8>>,
+    pub physic_percents: Mutex<Vec<f32>>,
 }
 
 impl Perf {
@@ -22,7 +22,7 @@ impl Perf {
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     }
 
-    pub fn set_individual_percent(&self, i: usize, value: u8) {
+    pub fn set_individual_percent(&self, i: usize, value: f32) {
         self.individual_percents.lock().expect("Assume available")[i] = value;
     }
 
@@ -35,7 +35,7 @@ impl Perf {
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     }
 
-    pub fn set_physic_percent(&self, i: usize, value: u8) {
+    pub fn set_physic_percent(&self, i: usize, value: f32) {
         self.physic_percents.lock().expect("Assume available")[i] = value;
     }
 

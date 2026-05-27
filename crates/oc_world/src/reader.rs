@@ -60,6 +60,7 @@ impl From<ParseOriginDirectionError> for MapReaderError {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct MapReader {
     folder: PathBuf,
     map: TiledMap,
