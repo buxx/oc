@@ -34,7 +34,6 @@ impl<T> DerefMut for SizedIndex<T> {
 
 pub struct Indexes {
     tiles_individuals: SizedIndex<IndividualIndex>,
-    tiles_projectiles: SizedIndex<ProjectileId>,
     regions_individuals: SizedIndex<IndividualIndex>,
     regions_projectiles: SizedIndex<ProjectileId>,
 }
@@ -42,7 +41,6 @@ pub struct Indexes {
 impl Indexes {
     pub fn new(world: &World) -> Self {
         let mut tiles_individuals = SizedIndex::new(world.w.tiles_count as usize);
-        let mut tiles_projectiles = SizedIndex::new(world.w.tiles_count as usize);
         let mut regions_individuals = SizedIndex::new(world.w.regions_count as usize);
         let mut regions_projectiles = SizedIndex::new(world.w.regions_count as usize);
 
@@ -58,27 +56,21 @@ impl Indexes {
             let tile: WorldTileIndex = projectile.tile();
             let region: WorldRegionIndex = tile.into_(&world.w);
 
-            tiles_projectiles[tile.0 as usize].push(*id);
             regions_projectiles[region.0 as usize].push(*id);
         }
 
         Self {
             tiles_individuals,
-            tiles_projectiles,
             regions_individuals,
             regions_projectiles,
         }
     }
 
     pub fn insert_projectile(&mut self, id: ProjectileId, projectile: &Projectile) {
-        self.update_projectile_tile(id, projectile.tile(), projectile.tile());
         self.update_projectile_region(id, projectile.region(), projectile.region());
     }
 
     pub fn remove_projectile(&mut self, id: &ProjectileId, projectile: &Projectile) {
-        let tile = projectile.tile();
-        self.tiles_projectiles[tile.0 as usize].retain(|p| p != id);
-
         let region = projectile.region();
         self.regions_projectiles[region.0 as usize].retain(|p| p != id);
     }
@@ -91,16 +83,6 @@ impl Indexes {
     ) {
         self.tiles_individuals[before.0 as usize].retain(|i_| *i_ != i);
         self.tiles_individuals[now.0 as usize].push(i);
-    }
-
-    fn update_projectile_tile(
-        &mut self,
-        id: ProjectileId,
-        now: WorldTileIndex,
-        before: WorldTileIndex,
-    ) {
-        self.tiles_projectiles[before.0 as usize].retain(|id_| *id_ != id);
-        self.tiles_projectiles[now.0 as usize].push(id);
     }
 
     fn update_individual_region(
@@ -149,9 +131,10 @@ impl Indexes {
             },
             Effect::Projectile(i, effect) => match effect {
                 ProjectileEffect::Physic(effect) => match effect {
-                    physics::Effect::Tile { before, after } => {
-                        self.update_projectile_tile(i, before, after)
-                    }
+                    physics::Effect::Tile {
+                        before: _,
+                        after: _,
+                    } => {}
                     physics::Effect::Region { before, after } => {
                         self.update_projectile_region(i, after, before)
                     }
