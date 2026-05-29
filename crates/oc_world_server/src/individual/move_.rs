@@ -49,10 +49,11 @@ impl<'a, E: Client> Move<'a, E> {
                     (None, None)
                 }
             }
-            Behavior::Idle => (
-                Some(Force::Translation([0.0, 1.0, 0.0], MetersSeconds(0.5))),
-                Some(Behavior::MovingSouth),
-            ),
+            Behavior::Idle => {
+                // Some(Force::Translation([0.0, 1.0, 0.0], MetersSeconds(0.5))),
+                // Some(Behavior::MovingSouth),
+                (None, None)
+            }
         };
 
         tracing::trace!(name="indididual-move", i=?self.i, pulse=?pulse, behavior=?behavior);

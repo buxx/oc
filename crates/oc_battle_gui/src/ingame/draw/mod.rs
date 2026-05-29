@@ -5,6 +5,7 @@ pub const Z_REGION_BACKGROUND: f32 = 0.0;
 #[cfg(feature = "debug")]
 pub const Z_TERRAIN_TILE: f32 = 0.1;
 pub const Z_INDIVIDUAL: f32 = 2.0;
+pub const Z_PROJECTILE: f32 = 3.0;
 #[cfg(feature = "debug")]
 pub const Z_SELECT_WIRES: f32 = 5.0;
 #[cfg(feature = "debug")]

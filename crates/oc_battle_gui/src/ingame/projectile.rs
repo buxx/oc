@@ -12,7 +12,7 @@ use oc_utils::bevy::EntityMapping;
 
 use crate::entity::projectile::ProjectileId;
 use crate::ingame;
-use crate::ingame::draw::Z_INDIVIDUAL;
+use crate::ingame::draw::Z_PROJECTILE;
 use crate::ingame::input::individual::UpdateProjectilePhysicsEvent;
 use crate::ingame::input::projectile::InsertProjectileEvent;
 use crate::ingame::region::ForgottenRegion;
@@ -51,8 +51,12 @@ pub fn on_insert_projectile(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let Some(w) = &w.0 else { return };
-    let Some(mod_) = &mod_.0 else { return };
+    let Some(w) = &w.0 else {
+        return;
+    };
+    let Some(mod_) = &mod_.0 else {
+        return;
+    };
     tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position(), forces=?projectile.1.forces(w));
 
     let position = projectile.1.position();
@@ -71,7 +75,7 @@ pub fn on_insert_projectile(
             Transform::from_xyz(
                 projectile.1.position()[0],
                 projectile.1.position()[1].to_gui_y(w),
-                Z_INDIVIDUAL,
+                Z_PROJECTILE,
             ),
         ))
         .id();

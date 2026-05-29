@@ -33,6 +33,9 @@ example-height *args:
 example-projectiles-wall *args:
     cargo run --bin example_projectiles_wall --features test {{ args }}
 
+example-individual-shots *args:
+    cargo run --bin example_individual_shots --features debug {{ args }}
+
 example-stress-gui-projectiles:
     cargo run --bin example_stress_projectiles --features debug,perfs --release
 

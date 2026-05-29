@@ -118,8 +118,8 @@ impl Physic for Individual {
             x: ref_[0],
             y: ref_[1],
             z: ref_[2],
-            width: Meters(0.5).pixels(w),
-            height: Meters(0.5).pixels(w),
+            width: Meters(0.8).pixels(w),
+            height: Meters(0.8).pixels(w),
             depth: Meters(1.8).pixels(w),
         }
     }

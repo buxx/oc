@@ -43,7 +43,10 @@ pub trait UpdatePhysicsEvent<I> {
     fn value(&self) -> &super::Update;
 }
 
-pub fn on_update_physics<I: Send + Sync + 'static, E: Event + UpdatePhysicsEvent<I>>(
+pub fn on_update_physics<
+    I: Send + Sync + std::fmt::Debug + 'static,
+    E: Event + UpdatePhysicsEvent<I>,
+>(
     update: On<E>,
     mut commands: Commands,
 ) {
@@ -71,13 +74,15 @@ pub fn on_update_physics<I: Send + Sync + 'static, E: Event + UpdatePhysicsEvent
     }
 }
 
-fn on_set_position_event<I: Hash + Eq + Send + Sync + 'static>(
+fn on_set_position_event<I: Hash + Eq + Send + Sync + std::fmt::Debug + 'static>(
     event: On<SetPositionEvent<I>>,
     mut query: Query<(&mut Position, &mut Transform)>,
     state: Res<EntityMapping<I>>,
     w: Res<Wcfg>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let Some(w) = &w.0 else {
+        return;
+    };
     let Some(entity) = state.get(&event.0) else {
         return;
     };
@@ -187,8 +192,8 @@ impl<I: Hash + Eq + Send + Sync + 'static, E: Event + UpdatePhysicsEvent<I>> Def
     }
 }
 
-impl<I: Hash + Eq + Send + Sync + 'static, E: Event + UpdatePhysicsEvent<I>> Plugin
-    for PhysicsPlugin<I, E>
+impl<I: Hash + Eq + Send + Sync + std::fmt::Debug + 'static, E: Event + UpdatePhysicsEvent<I>>
+    Plugin for PhysicsPlugin<I, E>
 {
     fn build(&self, app: &mut App) {
         app.add_observer(on_update_physics::<I, E>)

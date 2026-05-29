@@ -5348,6 +5348,7 @@ dependencies = [
  "oc_physics",
  "oc_projectile",
  "oc_root",
+ "oc_utils",
  "oc_world",
  "oc_world_server",
  "serde",
