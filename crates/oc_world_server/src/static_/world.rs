@@ -33,11 +33,7 @@ pub async fn get(State(state): State<super::State>) -> impl IntoResponse {
     let mod_ = state.world().mod_().canonical();
     let world = state.world().meta().canonical();
     let files = files::Files::new(mod_, world).into_server(state.config.cache.clone());
-    // FIXME BS NOW: use this path also in cache generation
     let archive = files.world_archive();
-
-    // let name = state.world().meta().archive();
-    // let path = state.cache.join("worlds").join(name);
     let archive = tokio::fs::File::open(archive).await.unwrap(); // TODO
     let archive = tokio_util::io::ReaderStream::new(archive);
 

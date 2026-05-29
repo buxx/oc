@@ -103,9 +103,9 @@ impl Map {
         flag: &Flag,
     ) -> bool {
         for spawn_zone_name in spawn_zone_names {
-            // FIXME BS NOW : algo moche ?!
+            // FIXME: algo moche ?!
             let found = self.find_spawn_zones(&[spawn_zone_name.clone()]);
-            let spawn_zone = found.first().unwrap(); // FIXME BS NOW : manage error
+            let spawn_zone = found.first().unwrap(); // FIXME: manage error
 
             if spawn_zone.contains(&flag.shape()) {
                 return true;

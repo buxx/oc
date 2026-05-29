@@ -65,6 +65,9 @@ pub struct QuitHeightMap;
 #[derive(Debug, Event)]
 pub struct SwitchToHeightMap;
 
+#[derive(Debug, Event)]
+pub struct RestoreBattleCenter;
+
 impl Plugin for IngamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(WorldPlugin)
@@ -87,6 +90,7 @@ impl Plugin for IngamePlugin {
             .add_observer(on_switch_to_battle_map)
             .add_observer(on_switch_to_height_map)
             .add_observer(on_quit_height_map)
+            .add_observer(on_restore_battle_center)
             // .add_observer(on_forgotten_region)
             // TODO: InputPlugin
             .add_observer(physics::on_physics_event)
@@ -121,22 +125,28 @@ impl Plugin for IngamePlugin {
     }
 }
 
-pub fn on_switch_to_battle_map(
-    _: On<SwitchToBattleMap>,
+fn on_restore_battle_center(
+    _: On<RestoreBattleCenter>,
+    state: Res<camera::State>,
     mut camera: Single<&mut Transform, With<Camera2d>>,
-    mut state: ResMut<camera::State>,
-    mut ingame: ResMut<NextState<InGameState>>,
 ) {
-    tracing::debug!("Switch to battle map");
     let Some(previously) = state.previously else {
         return;
     };
 
-    tracing::debug!("Set camera focus on Battle");
-    state.focus = camera::Focus::Battle;
+    tracing::debug!("Restore battle center ({previously:?})");
     camera.translation.x = previously.x;
     camera.translation.y = previously.y;
     camera.translation.z = previously.z;
+}
+
+pub fn on_switch_to_battle_map(
+    _: On<SwitchToBattleMap>,
+    mut ingame: ResMut<NextState<InGameState>>,
+    mut state: ResMut<camera::State>,
+) {
+    tracing::debug!("Set camera focus on Battle");
+    state.focus = camera::Focus::Battle;
 
     tracing::debug!("Set game state to battle");
     *ingame = NextState::Pending(InGameState::Battle);

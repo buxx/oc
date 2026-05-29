@@ -24,6 +24,7 @@ pub enum Sync {
     ArchiveDownload(String),
 }
 
+// TODO: Rethink completely Files things
 #[derive(Debug, Clone, Constructor)]
 pub struct Files {
     mod_: String,
@@ -129,7 +130,6 @@ impl FilesAsGui {
     pub fn world_(&self) -> PathBuf {
         match &self.sources {
             StaticSource::Remote(_) => PathBuf::from(format!("cache/worlds/{}", &self.world)),
-            // FIXME BS NOW: not used ?
             StaticSource::Local { mod_: _, world } => PathBuf::from(world).join("UNUSED"),
         }
     }

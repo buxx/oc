@@ -5,7 +5,7 @@ use bevy::prelude::*;
 #[cfg(feature = "debug")]
 use crate::ingame::camera::debug::tile::ToggleShowTiles;
 use crate::ingame::camera::map::SaveCurrentWindowCenterAsBattleCenter;
-use crate::ingame::{QuitHeightMap, SwitchToBattleMap, SwitchToWorldMap};
+use crate::ingame::{QuitHeightMap, RestoreBattleCenter, SwitchToBattleMap, SwitchToWorldMap};
 use crate::ingame::{SwitchToHeightMap, camera};
 use crate::window::ToggleWindow;
 use crate::window::Window;
@@ -30,12 +30,10 @@ pub fn on_key_press(
                     commands.trigger(SaveCurrentWindowCenterAsBattleCenter);
                     commands.trigger(SwitchToWorldMap);
                 }
-                camera::Focus::Height => {
-                    tracing::debug!("Trigger switch to battle map (from height map)");
-                    commands.trigger(SwitchToBattleMap) // Todo refact and trigger unmount height
-                }
+                camera::Focus::Height => {}
                 camera::Focus::World => {
                     tracing::debug!("Trigger switch to battle map (from world map)");
+                    commands.trigger(RestoreBattleCenter);
                     commands.trigger(SwitchToBattleMap); // Todo refact and trigger unmount world
                 }
             },
@@ -48,12 +46,10 @@ pub fn on_key_press(
                 camera::Focus::Height => {
                     tracing::debug!("Trigger switch to battle map (from height map)");
                     commands.trigger(QuitHeightMap);
+                    commands.trigger(RestoreBattleCenter);
                     commands.trigger(SwitchToBattleMap); // Todo refact and trigger unmount height
                 }
-                camera::Focus::World => {
-                    tracing::debug!("Trigger switch to height map (from world map)");
-                    commands.trigger(SwitchToHeightMap); // Todo refact and trigger unmount world
-                }
+                camera::Focus::World => {}
             },
             (ButtonState::Released, KeyCode::Escape) => {
                 let window = menu.0.clone().unwrap_or(BattleMenu);
