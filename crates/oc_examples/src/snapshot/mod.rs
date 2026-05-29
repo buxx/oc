@@ -42,7 +42,7 @@ where
         let (_, snapshot_path) = tempfile::NamedTempFile::new()?.keep()?;
         let tiles = self.tiles.tiles(&w, mod_);
         let individuals = self.individuals.individuals(&w, &tiles);
-        let projectiles = self.projectiles.projectiles(&w);
+        let projectiles = self.projectiles.projectiles(&w, &tiles);
 
         let snapshot = Snapshot {
             w,
@@ -87,7 +87,7 @@ impl individual::IndividualsGenerator for EmptyGenerator<Individual> {
 }
 
 impl projectile::ProjectilesGenerator for EmptyGenerator<Projectile> {
-    fn projectiles(&self, _: &WorldConfig) -> Vec<Projectile> {
+    fn projectiles(&self, _: &WorldConfig, _: &Vec<Tile>) -> Vec<Projectile> {
         vec![]
     }
 }
@@ -99,13 +99,19 @@ impl individual::IndividualsGenerator for Vec<Individual> {
 }
 
 impl projectile::ProjectilesGenerator for Vec<Projectile> {
-    fn projectiles(&self, _: &WorldConfig) -> Vec<Projectile> {
+    fn projectiles(&self, _: &WorldConfig, _: &Vec<Tile>) -> Vec<Projectile> {
         self.clone()
     }
 }
 
 impl<T: Fn(&WorldConfig, &Vec<Tile>) -> Vec<Individual>> individual::IndividualsGenerator for T {
     fn individuals(&self, w: &WorldConfig, tiles: &Vec<Tile>) -> Vec<Individual> {
+        self(w, tiles)
+    }
+}
+
+impl<T: Fn(&WorldConfig, &Vec<Tile>) -> Vec<Projectile>> projectile::ProjectilesGenerator for T {
+    fn projectiles(&self, w: &WorldConfig, tiles: &Vec<Tile>) -> Vec<Projectile> {
         self(w, tiles)
     }
 }

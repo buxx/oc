@@ -7,6 +7,8 @@ use bevy::prelude::*;
 use bevy_heightmap::{HeightMap, HeightMapPlugin, ValueFunctionHeightMap};
 use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_geo::tile::{TileXy, WorldTileIndex};
+use oc_physics::Physic;
+use oc_physics::volume::Volume;
 use oc_root::y::Y;
 use oc_root::{Wcfg, WcfgFrom, WcfgInto, WorldConfig};
 use oc_utils::d2::Xy;
@@ -154,6 +156,7 @@ fn move_camera_by_keyboard(
     // dbg!(transform.translation);
 }
 
+// FIXME: if all tiles are z0, nothing display
 // FIXME: avoid blocking way of background + mesh generation by doing it in background and before real need
 fn on_spawn(
     center: On<Spawn>,
@@ -211,8 +214,6 @@ fn on_spawn(
                 let tile = TileXy(Xy(x, y));
                 let tile_i: WorldTileIndex = tile.into_(w);
 
-                
-
                 tiles
                     .get(&tile_i)
                     .map(|tile| tile.z as f32 / z_max as f32)
@@ -226,9 +227,9 @@ fn on_spawn(
         let width = w.region_width_pixels as f32;
         let height = w.region_height_pixels as f32;
 
-        let region: RegionXy = region.into_(w);
-        let x = region.0.0 as f32 * width;
-        let y = region.0.1 as f32 * height;
+        let region_: RegionXy = region.into_(w);
+        let x = region_.0.0 as f32 * width;
+        let y = region_.0.1 as f32 * height;
         let x = x + width / 2.;
         let y = y + height / 2.;
         let x = x;
@@ -258,7 +259,8 @@ fn on_spawn(
             },
         ));
 
-        // cubes
+        // tiles cubes
+        tracing::trace!(name = "ingame-height-on-spawn-tiles");
         for (i, tile) in tiles {
             let nature = mod_.nature(tile.nature);
             let nature_z = nature.z.0;
@@ -274,20 +276,82 @@ fn on_spawn(
             );
             let z = tile.z_pixels(w);
             let alpha = nature.opacity.min(0.5);
+            let x_length = w.geo_pixels_per_tile as f32;
+            let y_length = w.geo_pixels_per_tile as f32;
+            let z_length = nature_z * w.geo_pixels_per_meters;
+            let x = x as f32;
+            let y = (y as f32).to_gui_y(w);
+            tracing::trace!(
+                name = "ingame-height-on-spawn-tiles-tile",
+                x_length = x_length,
+                y_length = y_length,
+                z_length = z_length,
+                x = x,
+                y = y,
+                z = z
+            );
             commands.spawn((
-                Mesh3d(meshes.add(Cuboid::new(
-                    w.geo_pixels_per_tile as f32,
-                    w.geo_pixels_per_tile as f32,
-                    nature_z * w.geo_pixels_per_meters,
-                ))),
+                Mesh3d(meshes.add(Cuboid::new(x_length, y_length, z_length))),
                 MeshMaterial3d(materials.add(StandardMaterial {
                     base_color: Color::srgba(0.5, 1.0, 0.5, alpha),
                     alpha_mode: AlphaMode::AlphaToCoverage,
                     ..default()
                 })),
-                Transform::from_xyz(x as f32, (y as f32).to_gui_y(w), z),
+                Transform::from_xyz(x, y, z),
             ));
         }
+
+        // individuals cube
+        tracing::trace!(name = "ingame-height-on-spawn-individuals");
+        if let Some(individuals) = world.individuals.get(&region) {
+            for (tile, individuals) in individuals {
+                for (_, individual) in individuals {
+                    if let Some(tile) = tiles.get(tile) {
+                        let tile_xy = TileXy::from_(tile.i, w);
+                        let x = tile_xy.0.0 as f32 * w.geo_pixels_per_tile as f32;
+                        let y = tile_xy.0.1 as f32 * w.geo_pixels_per_tile as f32;
+                        let y = y.to_gui_y(w);
+                        let z = tile.z_pixels(w);
+                        let ref_ = [x, y, z];
+                        let volume = individual.volume(ref_, w, mod_);
+                        let alpha = 1.0;
+                        if let Volume::Cube {
+                            x,
+                            y,
+                            z,
+                            width,
+                            height,
+                            depth,
+                        } = volume
+                        {
+                            let x_length = width;
+                            let y_length = height;
+                            let z_length = depth;
+                            let x = x as f32;
+                            let y = (y as f32).to_gui_y(w);
+                            tracing::trace!(
+                                name = "ingame-height-on-spawn-individuals-individual",
+                                x_length = x_length,
+                                y_length = y_length,
+                                z_length = z_length,
+                                x = x,
+                                y = y,
+                                z = z
+                            );
+                            commands.spawn((
+                                Mesh3d(meshes.add(Cuboid::new(width, height, depth))),
+                                MeshMaterial3d(materials.add(StandardMaterial {
+                                    base_color: Color::srgba(0.0, 0.0, 1.0, alpha),
+                                    alpha_mode: AlphaMode::AlphaToCoverage,
+                                    ..default()
+                                })),
+                                Transform::from_xyz(x, y, z),
+                            ));
+                        }
+                    }
+                }
+            }
+        };
     }
 
     //

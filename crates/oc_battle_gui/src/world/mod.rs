@@ -38,10 +38,12 @@ impl Plugin for WorldPlugin {
     }
 }
 
-#[derive(Deref, DerefMut)]
-pub struct Index<K, V>(FxHashMap<WorldRegionIndex, FxHashMap<K, V>>);
+#[derive(Debug, Deref, DerefMut)]
+pub struct Index<K: std::fmt::Debug, V: std::fmt::Debug>(
+    FxHashMap<WorldRegionIndex, FxHashMap<K, V>>,
+);
 
-impl<K, V> Default for Index<K, V> {
+impl<K: std::fmt::Debug, V: std::fmt::Debug> Default for Index<K, V> {
     fn default() -> Self {
         Self(FxHashMap::default())
     }
@@ -50,8 +52,8 @@ impl<K, V> Default for Index<K, V> {
 // FIXME: improve perfs by using Partial and list index (like in previous projects)
 #[derive(Resource, Default)]
 pub struct World {
-    individuals: Index<WorldTileIndex, Vec<(IndividualIndex, Individual)>>,
-    individuals_refs: FxHashMap<IndividualIndex, (WorldRegionIndex, WorldTileIndex)>,
+    pub individuals: Index<WorldTileIndex, Vec<(IndividualIndex, Individual)>>,
+    pub individuals_refs: FxHashMap<IndividualIndex, (WorldRegionIndex, WorldTileIndex)>,
     pub tiles: Index<WorldTileIndex, Tile>,
     pub heights: Index<WorldHeightIndex, u8>,
     pub terrain: Option<oc_world::terrain::Terrain>,
@@ -92,7 +94,10 @@ impl World {
         individual: Individual,
     ) {
         let position = individual.position(w);
-        let tile_xy = TileXy(Xy(position[0] as u64, position[1] as u64));
+        let tile_xy = TileXy(Xy(
+            position[0] as u64 / w.geo_pixels_per_tile,
+            position[1] as u64 / w.geo_pixels_per_tile,
+        ));
         let tile: WorldTileIndex = tile_xy.into_(w);
         let region: WorldRegionIndex = tile.into_(w);
 

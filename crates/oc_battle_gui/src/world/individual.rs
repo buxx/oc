@@ -11,10 +11,14 @@ pub fn on_insert_individual(
     w: Res<Wcfg>,
     mut index: ResMut<super::World>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let Some(w) = &w.0 else {
+        println!("DEBUG: no w");
+        return;
+    };
     let i = insert.0;
     let individual = &insert.1;
 
+    tracing::trace!(name="world-individual-insert", i=?i);
     index.insert_individual(w, i, individual.clone());
 }
 

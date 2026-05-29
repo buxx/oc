@@ -51,6 +51,7 @@ impl Plugin for CameraPlugin {
             .add_observer(move_::on_moved_battle_camera)
             .add_observer(move_::on_go_to_point)
             .add_observer(move_::on_center_camera_on)
+            .add_observer(on_window_resize_when_world_map)
             .add_systems(OnEnter(AppState::InGame), init)
             .add_systems(
                 Update,
@@ -101,7 +102,6 @@ impl Plugin for CameraPlugin {
             )
             .add_observer(debug::tile::on_forgotten_region)
             .add_observer(debug::tile::on_despawn_region_tiles)
-            .add_observer(on_window_resize_when_world_map)
             .add_systems(OnEnter(AppState::InGame), debug::world::setup)
             .add_systems(
                 Update,

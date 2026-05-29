@@ -16,6 +16,7 @@ oc_individual = { path = "../oc_individual" }
 oc_projectile = { path = "../oc_projectile" }
 oc_physics = { path = "../oc_physics" }
 oc_geo = { path = "../oc_geo" }
+oc_utils = { path = "../oc_utils" }
 oc_mod = { path = "../oc_mod" }
 oc_battle_gui = { path = "../oc_battle_gui" }
 tracing.workspace = true
