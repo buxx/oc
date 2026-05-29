@@ -40,6 +40,9 @@ pub enum Focus {
     World,
 }
 
+#[derive(Debug, Event)]
+pub struct WindowResizeWhenWorldMap;
+
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<State>()
@@ -69,7 +72,7 @@ impl Plugin for CameraPlugin {
             )
             .add_systems(
                 Update,
-                (on_window_resize_world_map,)
+                (watch_window_resize_when_world_map,)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::World)),
             );
@@ -98,6 +101,7 @@ impl Plugin for CameraPlugin {
             )
             .add_observer(debug::tile::on_forgotten_region)
             .add_observer(debug::tile::on_despawn_region_tiles)
+            .add_observer(on_window_resize_when_world_map)
             .add_systems(OnEnter(AppState::InGame), debug::world::setup)
             .add_systems(
                 Update,
@@ -134,32 +138,38 @@ fn update(window: Single<&Window>, mut state: ResMut<State>) {
     state.cursor = window.cursor_position();
 }
 
-fn on_window_resize_world_map(
+fn watch_window_resize_when_world_map(
     mut commands: Commands,
     resize_reader: MessageReader<WindowResized>,
-    state: ResMut<State>,
 ) {
     if !resize_reader.is_empty() {
         tracing::debug!("Window resized");
+        commands.trigger(WindowResizeWhenWorldMap);
+    }
+}
 
-        // Ensure positionning on world elements is done with correct window size
-        commands.trigger(SwitchToWorldMap);
-        commands.trigger(DespawnWorldMapBackground);
-        commands.trigger(SpawnWorldMapBackground);
-        commands.trigger(AdjustMinimap);
+fn on_window_resize_when_world_map(
+    _: On<WindowResizeWhenWorldMap>,
+    mut commands: Commands,
+    state: ResMut<State>,
+) {
+    // Ensure positionning on world elements is done with correct window size
+    commands.trigger(SwitchToWorldMap);
+    commands.trigger(DespawnWorldMapBackground);
+    commands.trigger(SpawnWorldMapBackground);
+    commands.trigger(AdjustMinimap);
 
-        if let Some(center) = state.previously {
-            commands.trigger(UpdateVisibleBattleSquare(Vec2::new(center.x, center.y)));
-        }
+    if let Some(center) = state.previously {
+        commands.trigger(UpdateVisibleBattleSquare(Vec2::new(center.x, center.y)));
+    }
 
-        #[cfg(feature = "debug")]
-        {
-            // Region wireframes on world map need to be sapwn again because depends on window size
-            static EMPTY: Vec<Region> = vec![];
-            for region in state.regions.as_ref().unwrap_or(&EMPTY) {
-                commands.trigger(DespawnRegionWireFrameDebug(region.0));
-                commands.trigger(SpawnRegionWireFrameDebug(region.0));
-            }
+    #[cfg(feature = "debug")]
+    {
+        // Region wireframes on world map need to be sapwn again because depends on window size
+        static EMPTY: Vec<Region> = vec![];
+        for region in state.regions.as_ref().unwrap_or(&EMPTY) {
+            commands.trigger(DespawnRegionWireFrameDebug(region.0));
+            commands.trigger(SpawnRegionWireFrameDebug(region.0));
         }
     }
 }

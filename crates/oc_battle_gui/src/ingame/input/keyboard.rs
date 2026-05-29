@@ -2,6 +2,7 @@ use bevy::input::ButtonState;
 use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 
+use crate::ingame::camera::WindowResizeWhenWorldMap;
 #[cfg(feature = "debug")]
 use crate::ingame::camera::debug::tile::ToggleShowTiles;
 use crate::ingame::camera::map::SaveCurrentWindowCenterAsBattleCenter;
@@ -29,12 +30,13 @@ pub fn on_key_press(
                     tracing::debug!("Trigger switch to world map (from battle map)");
                     commands.trigger(SaveCurrentWindowCenterAsBattleCenter);
                     commands.trigger(SwitchToWorldMap);
+                    commands.trigger(WindowResizeWhenWorldMap);
                 }
                 camera::Focus::Height => {}
                 camera::Focus::World => {
                     tracing::debug!("Trigger switch to battle map (from world map)");
                     commands.trigger(RestoreBattleCenter);
-                    commands.trigger(SwitchToBattleMap); // Todo refact and trigger unmount world
+                    commands.trigger(SwitchToBattleMap);
                 }
             },
             (ButtonState::Released, KeyCode::F2) => match camera.focus {
@@ -47,7 +49,7 @@ pub fn on_key_press(
                     tracing::debug!("Trigger switch to battle map (from height map)");
                     commands.trigger(QuitHeightMap);
                     commands.trigger(RestoreBattleCenter);
-                    commands.trigger(SwitchToBattleMap); // Todo refact and trigger unmount height
+                    commands.trigger(SwitchToBattleMap);
                 }
                 camera::Focus::World => {}
             },

@@ -80,6 +80,7 @@ pub fn on_adjust_minimap(
     window: Single<&Window>,
 ) {
     let Some(w) = &w.0 else { return };
+    tracing::debug!("Adjust world minimap");
     let display = WorldMapDisplay::from_env(w, window.size());
     let x = display.center.x;
     let y = display.center.y;
