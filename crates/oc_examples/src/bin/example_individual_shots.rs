@@ -5,19 +5,14 @@ use bevy::prelude::*;
 use oc_battle_gui::{ingame::FirstIngameEnter, network::output::ToServerEvent};
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_geo::{
-    region::{RegionXy, WorldRegionIndex},
+    region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
 };
-use oc_individual::{Individual, behavior::Behavior};
+use oc_individual::{Individual, Status, behavior::Behavior};
 use oc_mod::Mod;
 use oc_network::ToServer;
-use oc_physics::Force;
-use oc_projectile::{Projectile, bullet::Bullet, spawn::SpawnProjectile};
-use oc_root::{
-    WcfgFrom, WorldConfig,
-    physics::{Meters, MetersSeconds},
-    y::Y,
-};
+use oc_projectile::spawn::SpawnProjectile;
+use oc_root::{WcfgFrom, WorldConfig, physics::Meters};
 use oc_utils::d2::Xy;
 use oc_world::{meta::Meta, tile::Tile};
 
@@ -48,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn individuals(w: &WorldConfig, tiles: &Vec<Tile>) -> Vec<Individual> {
+fn individuals(_: &WorldConfig, _: &Vec<Tile>) -> Vec<Individual> {
     let positions = vec![[150.0, 150.0, 0.0]];
 
     // TODO: avoid repetition with main()
@@ -71,11 +66,12 @@ fn individuals(w: &WorldConfig, tiles: &Vec<Tile>) -> Vec<Individual> {
             let tile = WorldTileIndex::from_(tile_xy, &w);
 
             Individual::new(
-                p.to_gui_y(&w),
+                p,
                 tile,
                 WorldRegionIndex(0),
                 Behavior::Idle,
                 vec![],
+                Status::Operational,
             )
         })
         .collect()

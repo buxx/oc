@@ -1,9 +1,9 @@
-use bevy::color::palettes::css::PURPLE;
 use bevy::prelude::*;
 use oc_geo::region::WorldRegionIndex;
 use oc_physics::Physic;
 use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volume};
 use oc_root::Wcfg;
+use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
 
 use crate::entity::individual::{Behavior, IndividualIndex};
@@ -13,9 +13,13 @@ use crate::ingame::input::individual::{
 };
 use crate::ingame::region::ForgottenRegion;
 use crate::states::Mod;
+use crate::utils::IntoColor;
 
 #[derive(Debug, Deref, Event)]
 pub struct ForgotIndividual(pub oc_individual::IndividualIndex);
+
+#[derive(Debug, Deref, Event)]
+pub struct RefreshRender(pub oc_individual::IndividualIndex);
 
 #[derive(Debug, Event)]
 pub struct SetBehaviorEvent(
@@ -25,6 +29,12 @@ pub struct SetBehaviorEvent(
 
 #[derive(Debug, Event)]
 pub struct SetForcesEvent(oc_individual::IndividualIndex, Vec<oc_physics::Force>);
+
+#[derive(Debug, Event)]
+pub struct SetStatusEvent(oc_individual::IndividualIndex, oc_individual::Status);
+
+#[derive(Debug, Component)]
+pub struct Status(oc_individual::Status);
 
 pub fn on_insert_individual(
     individual: On<InsertIndividualEvent>,
@@ -48,17 +58,37 @@ pub fn on_insert_individual(
             Region(individual.1.region),
             Behavior(individual.1.behavior),
             Forces(individual.1.forces.clone()),
+            Status(individual.1.status),
             Volume(individual.1.volume(position, w, mod_).clone()),
             Mesh2d(meshes.add(Circle::new(2.5))),
-            MeshMaterial2d(materials.add(Color::from(PURPLE))),
+            MeshMaterial2d(materials.add(individual.1.status.color())),
             Transform::from_xyz(
                 individual.1.position[0],
-                individual.1.position[1],
+                individual.1.position[1].to_gui_y(w),
                 Z_INDIVIDUAL,
             ),
         ))
         .id();
     state.insert(individual.0, entity);
+}
+
+fn on_refresh_render(
+    individual: On<RefreshRender>,
+    mut query: Query<(&MeshMaterial2d<ColorMaterial>, &Status)>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+) {
+    let Some(entity) = state.get(&individual.0) else {
+        return;
+    };
+    let Ok((handle, status)) = query.get_mut(*entity) else {
+        return;
+    };
+
+    if let Some(material) = materials.get_mut(handle) {
+        tracing::trace!(name = "update-individual-refresh-render", i=?individual.0);
+        material.color = status.0.color();
+    }
 }
 
 pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Commands) {
@@ -71,6 +101,10 @@ pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Com
         }
         oc_individual::Update::SetForces(forces) => {
             commands.trigger(SetForcesEvent(i, forces.clone()));
+        }
+        oc_individual::Update::SetStatus(status) => {
+            commands.trigger(SetStatusEvent(i, *status));
+            commands.trigger(RefreshRender(i));
         }
     }
 }
@@ -89,7 +123,9 @@ impl Plugin for IndividualPlugin {
             .add_observer(on_set_behavior_event)
             .add_observer(on_set_forces_event)
             .add_observer(on_forgotten_region)
-            .add_observer(on_forgot_individual);
+            .add_observer(on_forgot_individual)
+            .add_observer(on_set_status_event)
+            .add_observer(on_refresh_render);
     }
 }
 
@@ -123,6 +159,23 @@ fn on_set_forces_event(
     tracing::trace!(name = "update-individual-set-force", i=?forces.0, forces=?forces.1);
 
     forces_.0 = forces.1.clone();
+}
+
+fn on_set_status_event(
+    status: On<SetStatusEvent>,
+    mut query: Query<&mut Status>,
+    state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+) {
+    let Some(entity) = state.get(&status.0) else {
+        return;
+    };
+    let Ok(mut status_) = query.get_mut(*entity) else {
+        return;
+    };
+    tracing::trace!(name = "update-individual-set-status", i=?status.0, status=?status.1);
+
+    // FIXME BS NOW: trigger event to change appearance ?
+    status_.0 = status.1;
 }
 
 // TODO: should be automatized (macro? derive ?)

@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use bevy::color::Color;
+
 #[macro_export]
 macro_rules! http_to_file {
     ($url:expr, $path:expr) => {
@@ -20,4 +22,8 @@ pub fn untar(path: &PathBuf, destination: &PathBuf) -> Result<(), std::io::Error
     archive.unpack(destination)?;
     std::fs::remove_file(path)?;
     Ok(())
+}
+
+pub trait IntoColor {
+    fn color(&self) -> Color;
 }

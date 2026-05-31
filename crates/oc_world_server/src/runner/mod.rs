@@ -84,8 +84,8 @@ impl<E: Client> Runner<E> {
                     std::thread::sleep(Duration::from_micros(wait));
                     last = Instant::now();
 
-                    for update in physics::Processor::new(&ctx).step(i) {
-                        ctx.state.update(update, &ctx.output);
+                    for update_ in physics::Processor::new(&ctx).step(i) {
+                        update::update(&ctx, update_);
                     }
                 }
             });
@@ -206,11 +206,20 @@ impl<E: Client> Runner<E> {
         let meta = self.state.world().meta().clone();
         let static_ = self.config.static_.clone();
 
+        let ctx = Context::new(
+            self.state.clone(),
+            self.output.clone(),
+            #[cfg(feature = "tracker")]
+            self.tracker.clone(),
+        );
+
         std::thread::spawn(move || {
             while let Ok(message) = input.recv() {
                 match message {
                     Event::Connected(endpoint) => {
                         state.listeners_mut().push(endpoint.clone());
+
+                        // FIXME BS NOW: put all of this in one struct
                         let w = ToClient::Wcfg(w.clone());
                         output.send((endpoint.clone(), w)).unwrap(); // TODO
                         let mod_ = ToClient::Mod(mod_.clone());
@@ -222,8 +231,8 @@ impl<E: Client> Runner<E> {
                     }
                     Event::Disconnected(endpoint) => state.listeners_mut().remove(&endpoint),
                     Event::Message(endpoint, message) => {
-                        for update in Dealer::new(&state, &mod_, &output, endpoint).deal(message) {
-                            state.update(update, &output);
+                        for update_ in Dealer::new(&state, &mod_, &output, endpoint).deal(message) {
+                            update::update(&ctx, update_);
                         }
                     }
                 }
@@ -233,22 +242,26 @@ impl<E: Client> Runner<E> {
 
     fn start_scheduler(&self) {
         tracing::debug!("Start scheduler");
-        let state = self.state.clone();
-        let output = self.output.clone();
+        let ctx = Context::new(
+            self.state.clone(),
+            self.output.clone(),
+            #[cfg(feature = "tracker")]
+            self.tracker.clone(),
+        );
 
         std::thread::spawn(move || {
             loop {
                 {
                     let now = Instant::now();
                     let mut tasks = vec![];
-                    while let Some((instant, update)) = state.scheduled().pop() {
+                    while let Some((instant, update_)) = ctx.state.scheduled().pop() {
                         if now >= instant {
-                            state.update(update, &output);
+                            update::update(&ctx, update_);
                         } else {
-                            tasks.push((instant, update))
+                            tasks.push((instant, update_))
                         }
                     }
-                    *state.scheduled() = tasks;
+                    *ctx.state.scheduled() = tasks;
                 }
 
                 // TODO: This is a very basic system of scheduler ...

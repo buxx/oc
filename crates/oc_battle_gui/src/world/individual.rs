@@ -12,7 +12,6 @@ pub fn on_insert_individual(
     mut index: ResMut<super::World>,
 ) {
     let Some(w) = &w.0 else {
-        println!("DEBUG: no w");
         return;
     };
     let i = insert.0;
@@ -50,6 +49,7 @@ pub fn on_update_individual_physics(
         oc_physics::update::Update::SetVolume(volume, _) => {
             let position = individual.position(w);
             individual.set_volume(volume.clone());
+            // FIXME BS NOW: pourquoi les deux lignes suivantes ?
             index.remove_individual(w, i, position);
             index.insert_individual(w, i, individual);
         }

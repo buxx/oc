@@ -18,6 +18,7 @@ impl<'a, E: Client> Processor<'a, E> {
     pub fn step(self) {
         let mut updates = vec![];
 
+        // FIXME BS NOW: ?!
         updates.extend(Move::from(&self).read());
 
         updates.into_iter().for_each(|update| {

@@ -64,6 +64,7 @@ impl Physic for Tile {
     fn position(&self, w: &WorldConfig) -> [f32; 3] {
         let xy: TileXy = self.i.into_(w);
         let point = xy.point(w);
+        tracing::trace!(name="DEBUG", i=?self.i, xy=?xy, point=?point);
         [
             point[0],
             point[1],

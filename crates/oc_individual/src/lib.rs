@@ -55,6 +55,7 @@ pub struct Individual {
     pub region: WorldRegionIndex,
     pub behavior: Behavior,
     pub forces: Vec<Force>,
+    pub status: Status,
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
@@ -62,6 +63,7 @@ pub struct Individual {
 pub enum Update {
     SetForces(Vec<Force>),
     SetBehavior(Behavior),
+    SetStatus(Status),
 }
 
 impl Region for Individual {
@@ -168,4 +170,11 @@ impl<'a> WithIds<IndividualIndex, &'a Individual> for &'a [Individual] {
             .map(|(i, individual)| (i.into(), individual))
             .collect()
     }
+}
+
+#[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum Status {
+    Operational,
+    Dead,
 }
