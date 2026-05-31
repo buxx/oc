@@ -22,6 +22,8 @@ use crate::{
     },
 };
 
+pub mod collision;
+
 #[derive(Constructor)]
 pub struct Processor<'x, E: Client> {
     ctx: &'x Context<E>,
@@ -201,11 +203,8 @@ impl<'x, E: Client> Processor<'x, E> {
                     | (ObjectId::Tile(_), ObjectId::Individual(_))
                     | (ObjectId::Tile(_), ObjectId::Projectile(_))
                     | (ObjectId::Tile(_), ObjectId::Tile(_)) => {}
-                    (
-                        ObjectId::Projectile(_projectile_id),
-                        ObjectId::Individual(_individual_index),
-                    ) => {
-                        // TODO: bam
+                    (ObjectId::Projectile(projectile_id), ObjectId::Individual(individual_i)) => {
+                        updates.extend(self.gunshot(projectile_id, individual_i));
                     }
                     (ObjectId::Projectile(id), ObjectId::Tile(_)) => {
                         updates.push(crate::runner::update::Update::RemoveProjectile(id));
