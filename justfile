@@ -50,3 +50,7 @@ test:
 test-e2e:
     cargo run --bin example_projectiles_wall --features test -- --test
     cargo run --bin example_individual_shots --features test -- --test
+
+test-all:
+    just test
+    just test-e2e
