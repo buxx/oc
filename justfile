@@ -3,7 +3,9 @@ setup:
     cargo binstall cargo-nextest --secure
 
 check:
-    cargo check && cargo check --features debug && cargo check --tests && cargo check --features perfs
+    cargo check
+    cargo check --tests
+    cargo check --features debug,perfs,tracker,test
 
 serve-minidblue:
     RUST_LOG=DEBUG WORLD_WIDTH=200 WORLD_HEIGHT=200 \
@@ -31,7 +33,7 @@ example-height *args:
     cargo run --bin example_height --features debug {{ args }}
 
 example-projectiles-wall *args:
-    cargo run --bin example_projectiles_wall --features test {{ args }}
+    cargo run --bin example_projectiles_wall {{ args }}
 
 example-individual-shots *args:
     cargo run --bin example_individual_shots --features debug {{ args }}
@@ -44,3 +46,7 @@ example-stress-server-projectiles:
 
 test:
     cargo nextest run
+
+test-e2e:
+    cargo run --bin example_projectiles_wall --features test -- --test
+    cargo run --bin example_individual_shots --features test -- --test

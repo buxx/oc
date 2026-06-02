@@ -13,6 +13,7 @@ mod entity;
 mod error;
 mod fx;
 mod home;
+mod individual;
 mod ingame;
 mod network;
 #[cfg(feature = "debug")]

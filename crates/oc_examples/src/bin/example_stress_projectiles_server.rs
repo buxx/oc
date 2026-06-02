@@ -12,6 +12,8 @@ use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::{WorldConfig, physics::Meters, static_::StaticSource};
 use oc_world::meta::Meta;
+#[cfg(feature = "test")]
+use oc_world_server::tracker::Tracker;
 use oc_world_server::{bridge::Event, config::ServerConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -45,6 +47,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (ready_tx, ready_rx) = channel::<std::result::Result<(), String>>();
     let (to_client_tx, _) = channel();
     let (to_server_tx, to_server_rx) = channel();
+
+    #[cfg(feature = "test")]
+    let tracker = Tracker::default();
 
     std::thread::spawn(move || {
         oc_world_server::runner::Runner::new(

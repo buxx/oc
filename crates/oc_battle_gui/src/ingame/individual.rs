@@ -33,8 +33,8 @@ pub struct SetForcesEvent(oc_individual::IndividualIndex, Vec<oc_physics::Force>
 #[derive(Debug, Event)]
 pub struct SetStatusEvent(oc_individual::IndividualIndex, oc_individual::Status);
 
-#[derive(Debug, Component)]
-pub struct Status(oc_individual::Status);
+#[derive(Debug, Deref, Component)]
+pub struct Status(pub oc_individual::Status);
 
 pub fn on_insert_individual(
     individual: On<InsertIndividualEvent>,

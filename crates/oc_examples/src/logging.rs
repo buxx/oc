@@ -1,7 +1,7 @@
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-pub fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
+pub fn setup_logging() -> Result<(), anyhow::Error> {
     tracing_subscriber::fmt()
         .with_target(false)
         .with_env_filter(

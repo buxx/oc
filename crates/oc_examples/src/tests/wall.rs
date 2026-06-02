@@ -12,14 +12,14 @@ use oc_world::{load::WorldPath, meta::Meta, reader};
 use oc_world_server::tracker::Tracker;
 
 #[cfg(feature = "test")]
-type Result_ = Result<Tracker, Box<dyn std::error::Error>>;
+type Result_ = Result<Tracker, anyhow::Error>;
 
 #[cfg(not(feature = "test"))]
-type Result_ = Result<(), Box<dyn std::error::Error>>;
+type Result_ = Result<(), anyhow::Error>;
 
 // TODO: its ugly to give directly the projectiles
 pub fn run(install: Option<Box<dyn Fn(&mut bevy::app::App)>>) -> Result_ {
-    logging::setup_logging()?;
+    logging::setup_logging().context("Setup logging")?;
 
     let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None)?;
     let map_ = PathBuf::from("examples/wall");
@@ -41,7 +41,5 @@ pub fn run(install: Option<Box<dyn Fn(&mut bevy::app::App)>>) -> Result_ {
         .maybe_install(install)
         .snapshot(snapshot)
         .build()
-        .run()?;
-
-    Ok(())
+        .run()
 }

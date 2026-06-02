@@ -1,14 +1,19 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use anyhow::Context;
 use bevy::prelude::*;
-use oc_battle_gui::{ingame::FirstIngameEnter, network::output::ToServerEvent};
+use clap::Parser;
+use oc_battle_gui::{
+    ingame::{FirstIngameEnter, individual::Status},
+    network::output::ToServerEvent,
+    states::Game,
+};
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
 };
-use oc_individual::{Individual, Status, behavior::Behavior};
+use oc_individual::behavior::Behavior;
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectile;
@@ -16,8 +21,23 @@ use oc_root::{WcfgFrom, WorldConfig, physics::Meters};
 use oc_utils::d2::Xy;
 use oc_world::{meta::Meta, tile::Tile};
 
+#[derive(Parser, Debug, Clone)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(long, action)]
+    test: bool,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
+
+    let args = Args::parse();
+    if args.test {
+        #[cfg(not(feature = "test"))]
+        {
+            panic!("To enable test, feature `test` must be enabled too")
+        }
+    }
 
     let mod_ = PathBuf::from("mods/tests1");
     let mod__ = oc_mod::Mod::load(&mod_, None)?;
@@ -38,12 +58,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .install(Box::new(install))
         .snapshot(snapshot);
 
-    example.build().run()?;
+    #[allow(unused)]
+    let tracker = example.build().run()?;
+
+    if args.test {
+        #[cfg(feature = "test")]
+        {
+            use oc_world_server::state::ObjectId;
+
+            let tracker = tracker.take();
+
+            // We consider success if physics event own at leat 10 projectiles collisions
+            let collision = tracker.physics.iter().find(|event| {
+                matches!(
+                    event,
+                    oc_physics::Event::Collision(ObjectId::Projectile(_), ObjectId::Individual(_))
+                )
+            });
+            let dead = tracker.individuals.iter().find(|event| {
+                matches!(
+                    event,
+                    oc_individual::Update::SetStatus(oc_individual::Status::Dead)
+                )
+            });
+
+            assert!(collision.is_some());
+            assert!(dead.is_some());
+
+            println!("✅ Test success");
+        }
+    }
 
     Ok(())
 }
 
-fn individuals(_: &WorldConfig, _: &Vec<Tile>) -> Vec<Individual> {
+fn individuals(_: &WorldConfig, _: &Vec<Tile>) -> Vec<oc_individual::Individual> {
     let positions = vec![[150.0, 150.0, 0.0]];
 
     // TODO: avoid repetition with main()
@@ -65,19 +114,43 @@ fn individuals(_: &WorldConfig, _: &Vec<Tile>) -> Vec<Individual> {
             ));
             let tile = WorldTileIndex::from_(tile_xy, &w);
 
-            Individual::new(
+            oc_individual::Individual::new(
                 p,
                 tile,
                 WorldRegionIndex(0),
                 Behavior::Idle,
                 vec![],
-                Status::Operational,
+                oc_individual::Status::Operational,
             )
         })
         .collect()
 }
 
 fn install(app: &mut bevy::app::App) {
+    let args = Args::parse();
+
+    if args.test {
+        app.add_systems(
+            Update,
+            |mut commands: Commands,
+             game: Res<Game>,
+             individuals: Query<
+                &Status,
+                With<oc_battle_gui::entity::individual::IndividualIndex>,
+            >| {
+                let timeout = game.started.elapsed() > Duration::from_secs(10);
+                let dead = individuals
+                    .iter()
+                    .find(|status| matches!(status.0, oc_individual::Status::Dead))
+                    .is_some();
+
+                if timeout || dead {
+                    commands.write_message(bevy::app::AppExit::from_code(0));
+                }
+            },
+        );
+    }
+
     app.add_observer(on_first_ingame_enter);
 }
 

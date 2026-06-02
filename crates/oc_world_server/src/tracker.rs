@@ -20,4 +20,5 @@ impl Tracker {
 #[derive(Debug, Default)]
 pub struct Tracker_ {
     pub physics: Vec<Event<ObjectId>>,
+    pub individuals: Vec<oc_individual::Update>,
 }

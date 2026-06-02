@@ -5339,6 +5339,7 @@ dependencies = [
  "anyhow",
  "bevy",
  "bon",
+ "clap",
  "derive_more",
  "oc_battle_gui",
  "oc_geo",

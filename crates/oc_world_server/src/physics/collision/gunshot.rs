@@ -21,6 +21,10 @@ impl<'x, E: Client> Processor<'x, E> {
             oc_individual::Status::Operational => {
                 let dead = oc_individual::Status::Dead;
                 let status = oc_individual::Update::SetStatus(dead);
+                #[cfg(feature = "tracker")]
+                {
+                    self.ctx.tracker.take().individuals.push(status.clone());
+                }
                 updates.push(Update::UpdateIndividual(i, status));
                 updates.push(Update::RemoveProjectile(projectile));
             }
