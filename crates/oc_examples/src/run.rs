@@ -40,6 +40,7 @@ impl Example {
         let tracker = Tracker::default();
 
         let (ready_tx, ready_rx) = channel::<std::result::Result<(), String>>();
+        let (_, stop_rx) = channel::<()>();
         let (to_client_tx, to_client_rx) = channel();
         let (to_server_tx, to_server_rx) = channel();
         let world = Meta::from_file(&self.world.meta())
@@ -72,7 +73,7 @@ impl Example {
                     #[cfg(feature = "test")]
                     tracker,
                 )
-                .run(to_server_rx, ready_tx);
+                .run(to_server_rx, ready_tx, stop_rx);
             });
         }
 

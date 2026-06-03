@@ -11,6 +11,7 @@ pub mod ids;
 pub mod opacity;
 pub mod physics;
 pub mod static_;
+pub mod utils;
 pub mod y;
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]

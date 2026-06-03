@@ -2,7 +2,7 @@ use std::{fmt::Display, net::SocketAddr, path::PathBuf};
 
 use derive_more::Constructor;
 
-use crate::static_::StaticSource;
+use crate::{static_::StaticSource, utils::remove_numeric_suffix};
 
 #[derive(Debug, Copy, Clone)]
 pub enum File {
@@ -24,7 +24,7 @@ pub enum Sync {
     ArchiveDownload(String),
 }
 
-// TODO: Rethink completely Files things
+// FIXME: Rethink completely Files things
 #[derive(Debug, Clone, Constructor)]
 pub struct Files {
     mod_: String,
@@ -122,14 +122,23 @@ impl FilesAsServer {
 impl FilesAsGui {
     pub fn mod_(&self) -> PathBuf {
         match &self.sources {
-            StaticSource::Remote(_) => PathBuf::from(format!("cache/mods/{}", &self.mod_)),
-            StaticSource::Local { mod_: _, world: _ } => PathBuf::from("mods_").join(&self.mod_),
+            StaticSource::Remote(_) => {
+                let name = remove_numeric_suffix(&self.mod_);
+                PathBuf::from(format!("cache/mods/{}/{}", &self.mod_, name))
+            }
+            StaticSource::Local { mod_: _, world: _ } => {
+                let name = remove_numeric_suffix(&self.mod_);
+                PathBuf::from("mods_").join(&name)
+            }
         }
     }
 
     pub fn world_(&self) -> PathBuf {
         match &self.sources {
-            StaticSource::Remote(_) => PathBuf::from(format!("cache/worlds/{}", &self.world)),
+            StaticSource::Remote(_) => {
+                let name = remove_numeric_suffix(&self.world);
+                PathBuf::from(format!("cache/worlds/{}/{}", &self.world, name))
+            }
             StaticSource::Local { mod_: _, world } => PathBuf::from(world).join("UNUSED"),
         }
     }
@@ -137,7 +146,11 @@ impl FilesAsGui {
     pub fn terrain_png(&self) -> PathBuf {
         match &self.sources {
             StaticSource::Remote(_) => {
-                PathBuf::from(format!("cache/worlds/{}/terrain.png", &self.world))
+                let name = remove_numeric_suffix(&self.world);
+                PathBuf::from(format!(
+                    "assets/cache/worlds/{}/{}/terrain.png",
+                    &self.world, &name
+                ))
             }
             StaticSource::Local { mod_: _, world } => {
                 PathBuf::from("worlds_").join(world).join("terrain.png")
@@ -148,7 +161,11 @@ impl FilesAsGui {
     pub fn height_png(&self) -> PathBuf {
         match &self.sources {
             StaticSource::Remote(_) => {
-                PathBuf::from(format!("cache/worlds/{}/height.png", &self.world))
+                let name = remove_numeric_suffix(&self.world);
+                PathBuf::from(format!(
+                    "assets/cache/worlds/{}/{}/height.png",
+                    &self.world, &name
+                ))
             }
             StaticSource::Local { mod_: _, world } => {
                 PathBuf::from("worlds_").join(world).join("height.png")
@@ -159,7 +176,11 @@ impl FilesAsGui {
     pub fn terrain_tsx(&self) -> PathBuf {
         match &self.sources {
             StaticSource::Remote(_) => {
-                PathBuf::from(format!("cache/worlds/{}/terrain.tsx", &self.world))
+                let name = remove_numeric_suffix(&self.world);
+                PathBuf::from(format!(
+                    "assets/cache/worlds/{}/{}/terrain.tsx",
+                    &self.world, &name
+                ))
             }
             StaticSource::Local { mod_: _, world } => PathBuf::from("assets")
                 .join("worlds_")

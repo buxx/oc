@@ -40,7 +40,7 @@ fn on_fx(
     let Some(connect) = network.server.clone() else {
         return;
     };
-    let mod_ = g.mod_.name().to_string();
+    let mod_ = g.mod_.canonical();
     let world = g.meta.canonical();
     let files = files::Files::new(mod_, world).into_gui(g.static_.clone(), connect.into());
     let path = files.mod_().join("sounds");
