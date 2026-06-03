@@ -1,5 +1,3 @@
-pub mod physics;
-
 #[cfg(test)]
 mod test {
     use glam::Vec3;
