@@ -7,7 +7,7 @@ use std::{
 };
 
 use derive_more::Constructor;
-use oc_network::ToClient;
+use oc_network::{GameConfig, ToClient};
 use oc_root::Client;
 use rayon::{
     iter::{IndexedParallelIterator, ParallelIterator},
@@ -34,7 +34,12 @@ pub struct Runner<E: Client> {
 }
 
 impl<E: Client> Runner<E> {
-    pub fn run(&self, input: Receiver<Event<E>>, ready: Sender<Result<(), String>>) {
+    pub fn run(
+        &self,
+        input: Receiver<Event<E>>,
+        ready: Sender<Result<(), String>>,
+        stop: Receiver<()>,
+    ) {
         self.listen_input(input);
         self.start_physics();
         self.start_individuals();
@@ -44,6 +49,7 @@ impl<E: Client> Runner<E> {
         #[cfg(feature = "perfs")]
         self.perfs();
 
+        let _ = stop.recv();
         tracing::debug!("Finished runner");
     }
 
@@ -157,44 +163,45 @@ impl<E: Client> Runner<E> {
 
     #[cfg(feature = "perfs")]
     fn perfs(&self) {
-        tracing::debug!("Track perfs");
-        loop {
-            std::thread::sleep(Duration::from_secs(1));
+        let state = self.state.clone();
+        std::thread::spawn(move || {
+            tracing::debug!("Track perfs");
+            loop {
+                std::thread::sleep(Duration::from_secs(1));
 
-            let individuals = self.state.world.read().unwrap().individuals().len();
-            let projectiles = self.state.world.read().unwrap().projectiles().len();
-            let individual_percents = self
-                .state
-                .perf
-                .individual_percents
-                .lock()
-                .expect("Assume available")
-                .iter()
-                .map(|percent| format!("{percent:.3}"))
-                .collect::<Vec<String>>()
-                .join(",");
-            let physic_percents = self
-                .state
-                .perf
-                .physic_percents
-                .lock()
-                .expect("Assume available")
-                .iter()
-                .map(|percent| format!("{percent:.3}"))
-                .collect::<Vec<String>>()
-                .join(",");
-            let physics = projectiles;
+                let individuals = state.world.read().unwrap().individuals().len();
+                let projectiles = state.world.read().unwrap().projectiles().len();
+                let individual_percents = state
+                    .perf
+                    .individual_percents
+                    .lock()
+                    .expect("Assume available")
+                    .iter()
+                    .map(|percent| format!("{percent:.3}"))
+                    .collect::<Vec<String>>()
+                    .join(",");
+                let physic_percents = state
+                    .perf
+                    .physic_percents
+                    .lock()
+                    .expect("Assume available")
+                    .iter()
+                    .map(|percent| format!("{percent:.3}"))
+                    .collect::<Vec<String>>()
+                    .join(",");
+                let physics = projectiles;
 
-            println!(
-                "individuals({individuals}): {} tick/s({}); physics({physics}): {} tick/s({})",
-                self.state.perf.individuals_ticks(),
-                individual_percents,
-                self.state.perf.physics_ticks(),
-                physic_percents,
-            );
+                println!(
+                    "individuals({individuals}): {} tick/s({}); physics({physics}): {} tick/s({})",
+                    state.perf.individuals_ticks(),
+                    individual_percents,
+                    state.perf.physics_ticks(),
+                    physic_percents,
+                );
 
-            self.state.perf.reset();
-        }
+                state.perf.reset();
+            }
+        });
     }
 
     fn listen_input(&self, input: Receiver<Event<E>>) {
@@ -219,15 +226,11 @@ impl<E: Client> Runner<E> {
                     Event::Connected(endpoint) => {
                         state.listeners_mut().push(endpoint.clone());
 
-                        // FIXME BS NOW: put all of this in one struct
-                        let w = ToClient::Wcfg(w.clone());
-                        output.send((endpoint.clone(), w)).unwrap(); // TODO
-                        let mod_ = ToClient::Mod(mod_.clone());
-                        output.send((endpoint.clone(), mod_)).unwrap(); // TODO
-                        let meta = ToClient::Meta(meta.clone());
-                        output.send((endpoint.clone(), meta)).unwrap(); // TODO
-                        let config = ToClient::StaticSource(static_.clone());
-                        output.send((endpoint.clone(), config)).unwrap(); // TODO
+                        let config =
+                            GameConfig::new(w.clone(), mod_.clone(), meta.clone(), static_.clone());
+                        output
+                            .send((endpoint.clone(), ToClient::GameConfig(config)))
+                            .unwrap(); // TODO
                     }
                     Event::Disconnected(endpoint) => state.listeners_mut().remove(&endpoint),
                     Event::Message(endpoint, message) => {

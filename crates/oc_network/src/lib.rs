@@ -1,3 +1,4 @@
+use derive_more::Constructor;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_individual::network::Individual;
 use oc_mod::Mod;
@@ -11,10 +12,7 @@ use rkyv::{Archive, Deserialize, Serialize};
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum ToClient {
-    StaticSource(StaticSource),
-    Wcfg(WorldConfig),
-    Mod(Mod),
-    Meta(Meta),
+    GameConfig(GameConfig),
     Individual(Individual),
     Projectile(Projectile),
     Tiles(WorldRegionIndex, Vec<(WorldTileIndex, Tile)>),
@@ -40,4 +38,13 @@ pub enum ToServer {
     ForgotRegion(WorldRegionIndex),
     Refresh,
     SpawnProjectile(SpawnProjectile),
+}
+
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq, Constructor)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct GameConfig {
+    pub w: WorldConfig,
+    pub mod_: Mod,
+    pub meta: Meta,
+    pub static_: StaticSource,
 }

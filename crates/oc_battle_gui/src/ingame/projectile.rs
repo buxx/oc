@@ -6,7 +6,6 @@ use oc_physics::collision::{Material_, Materials};
 use oc_physics::update::bevy::{
     Forces, PhysicsPlugin, Position, Region, SetPositionEvent, Tile, Volume,
 };
-use oc_root::Wcfg;
 use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
 
@@ -16,7 +15,7 @@ use crate::ingame::draw::Z_PROJECTILE;
 use crate::ingame::input::individual::UpdateProjectilePhysicsEvent;
 use crate::ingame::input::projectile::InsertProjectileEvent;
 use crate::ingame::region::ForgottenRegion;
-use crate::states::{AppState, Mod};
+use crate::states::{AppState, GameConfig};
 
 #[derive(Debug, Deref, Event)]
 pub struct ForgotProjectile(pub oc_projectile::ProjectileId);
@@ -45,36 +44,32 @@ impl Plugin for ProjectilePlugin {
 pub fn on_insert_projectile(
     projectile: On<InsertProjectileEvent>,
     mut commands: Commands,
-    w: Res<Wcfg>,
-    mod_: Res<Mod>,
+    g: Res<GameConfig>,
     mut state: ResMut<EntityMapping<oc_projectile::ProjectileId>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let Some(w) = &w.0 else {
+    let Some(g) = &g.0 else {
         return;
     };
-    let Some(mod_) = &mod_.0 else {
-        return;
-    };
-    tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position(), forces=?projectile.1.forces(w));
+    tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position(), forces=?projectile.1.forces(&g.w));
 
     let position = projectile.1.position();
-    let line = Polyline2d::new(vec![Vec2::new(position[0], position[1].to_gui_y(w))]);
+    let line = Polyline2d::new(vec![Vec2::new(position[0], position[1].to_gui_y(&g.w))]);
     let entity = commands
         .spawn((
             ProjectileId(projectile.0),
             Position(*position),
             Tile(projectile.1.tile()),
             Region(projectile.1.region()),
-            Forces(projectile.1.forces(w).clone()),
+            Forces(projectile.1.forces(&g.w).clone()),
             Material_(Materials::Traversable),
-            Volume(projectile.1.volume(*position, w, mod_).clone()),
+            Volume(projectile.1.volume(*position, &g.w, &g.mod_).clone()),
             Mesh2d(meshes.add(line)),
             MeshMaterial2d(materials.add(Color::from(RED))),
             Transform::from_xyz(
                 projectile.1.position()[0],
-                projectile.1.position()[1].to_gui_y(w),
+                projectile.1.position()[1].to_gui_y(&g.w),
                 Z_PROJECTILE,
             ),
         ))

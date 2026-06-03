@@ -42,6 +42,6 @@ impl From<Args> for Config_ {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let _ = run::run();
+    run::run().config(Args::parse().into()).call();
     Ok(())
 }

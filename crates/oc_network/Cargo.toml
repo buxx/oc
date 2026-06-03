@@ -15,3 +15,4 @@ oc_geo = { path = "../oc_geo" }
 oc_world = { path = "../oc_world" }
 oc_mod = { path = "../oc_mod" }
 rkyv.workspace = true
+derive_more.workspace = true

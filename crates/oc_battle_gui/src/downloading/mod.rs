@@ -1,12 +1,9 @@
 use bevy::prelude::*;
-use oc_root::{
-    Wcfg,
-    files::{self},
-};
+use oc_root::files::{self};
 
 use crate::{
     http_to_file, network,
-    states::{AppState, Meta, Mod, StaticSource},
+    states::{AppState, GameConfig},
     utils::untar,
     world::World,
 };
@@ -27,38 +24,31 @@ impl Plugin for DownloadingPlugin {
 // TODO: refact this ugly non refactored download / cache / assets code
 fn download(
     mut commands: Commands,
-    w: Res<Wcfg>,
-    mod_: Res<Mod>,
-    meta: Res<Meta>,
-    static_: Res<StaticSource>,
+    g: Res<GameConfig>,
     network: Res<network::state::State>,
     mut world_: ResMut<World>,
 ) -> Result<(), BevyError> {
-    let Some(static_) = &static_.0 else {
-        return Ok(());
-    };
-    let Some(w) = &w.0 else { return Ok(()) };
-    let Some(mod_) = &mod_.0 else { return Ok(()) };
-    let Some(meta) = &meta.0 else { return Ok(()) };
+    let Some(g) = &g.0 else { return Ok(()) };
     let Some(connect) = network.server.clone() else {
         return Ok(());
     };
 
-    let mod__ = mod_.canonical();
-    let world = meta.canonical();
-    let files = files::Files::new(mod__, world).into_gui(static_.clone(), connect.into());
+    let mod__ = g.mod_.canonical();
+    let world = g.meta.canonical();
+    let files = files::Files::new(mod__, world).into_gui(g.static_.clone(), connect.into());
 
     tracing::info!("Download");
 
     ensure_file(&files, files::File::Mod).unwrap(); // TODO
     ensure_file(&files, files::File::World).unwrap(); // TODO
     ensure_file(&files, files::File::Minimap).unwrap(); // TODO
-    for region in 0..w.regions_count {
+    for region in 0..g.w.regions_count {
         ensure_file(&files, files::File::Region(region)).unwrap(); // TODO
     }
 
     // FIXME: check tile size
-    let terrain = oc_world::terrain::Terrain::load(&files.terrain_tsx(), w.clone(), mod_).unwrap(); // TODO
+    let terrain =
+        oc_world::terrain::Terrain::load(&files.terrain_tsx(), g.w.clone(), &g.mod_).unwrap(); // TODO
     tracing::trace!(name="downloading-terrain", terrain=?terrain);
     world_.terrain = Some(terrain); // TODO
 

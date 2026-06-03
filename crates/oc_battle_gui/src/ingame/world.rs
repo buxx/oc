@@ -11,7 +11,7 @@ use crate::{
         },
     },
     network,
-    states::{Meta, Mod, StaticSource},
+    states::GameConfig,
 };
 
 #[derive(Debug, Event)]
@@ -35,15 +35,11 @@ pub fn on_spawn_minimap(
     w: Res<Wcfg>,
     window: Single<&Window>,
     assets: Res<AssetServer>,
-    meta: Res<Meta>,
-    static_: Res<StaticSource>,
-    mod_: Res<Mod>,
+    g: Res<GameConfig>,
     network: Res<network::state::State>,
 ) {
     let Some(w) = &w.0 else { return };
-    let (Some(static_), Some(mod_), Some(meta), Some(connect)) =
-        (&static_.0, &mod_.0, &meta.0, &network.server)
-    else {
+    let (Some(g), Some(connect)) = (&g.0, &network.server) else {
         return;
     };
     // let Some(mod_) = &mod_.0 else { return };
@@ -53,9 +49,9 @@ pub fn on_spawn_minimap(
     // };
 
     let display = WorldMapDisplay::from_env(w, window.size());
-    let mod_ = mod_.canonical();
-    let world = meta.canonical();
-    let files = files::Files::new(mod_, world).into_gui(static_.clone(), connect.clone().into());
+    let mod_ = g.mod_.canonical();
+    let world = g.meta.canonical();
+    let files = files::Files::new(mod_, world).into_gui(g.static_.clone(), connect.clone().into());
     let minimap = files.minimap();
 
     let x = display.center.x;

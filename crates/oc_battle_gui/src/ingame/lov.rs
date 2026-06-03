@@ -10,14 +10,11 @@ use oc_utils::d2::Xy;
 #[cfg(feature = "debug")]
 use crate::ingame::input::left_click::{LeftClick, LeftClickMode};
 
+use crate::states::GameConfig;
 #[cfg(feature = "debug")]
 use crate::window::debug::battle::LovClickMode;
 
-use crate::{
-    ingame::draw,
-    states::{InGameState, Mod},
-    world::World,
-};
+use crate::{ingame::draw, states::InGameState, world::World};
 
 #[derive(Debug, Event, Deref)]
 pub struct SpawnLov(pub SpawnLovProfile);
@@ -141,18 +138,13 @@ fn draw_lovs(lovs: Query<&Lov>, mut gizmos: Gizmos) {
 
 fn on_update_lov_for(
     update: On<UpdateLovFor>,
-    w: Res<Wcfg>,
-    mod_: Res<Mod>,
+    g: Res<GameConfig>,
     mut lovs: Query<&mut Lov>,
     world: Res<World>,
 ) {
     tracing::trace!(name = "on-update-lov-for-try");
-    let Some(w) = &w.0 else {
+    let Some(g) = &g.0 else {
         tracing::trace!(name = "on-update-lov-for-no-w");
-        return;
-    };
-    let Some(mod_) = &mod_.0 else {
-        tracing::trace!(name = "on-update-lov-for-no-mod");
         return;
     };
     let (lov, position) = (update.0, update.1);
@@ -162,21 +154,21 @@ fn on_update_lov_for(
     };
 
     let start = lov.start;
-    let start_ = [start.x, start.y.to_gui_y(w), start.z];
-    let Some(stop_tile) = world.tile_at(w, &position.to_gui_y(w)) else {
-        tracing::trace!(name = "on-update-lov-for-no-tile", position=?position.to_gui_y(w));
+    let start_ = [start.x, start.y.to_gui_y(&g.w), start.z];
+    let Some(stop_tile) = world.tile_at(&g.w, &position.to_gui_y(&g.w)) else {
+        tracing::trace!(name = "on-update-lov-for-no-tile", position=?position.to_gui_y(&g.w));
         return;
     };
     tracing::trace!(name = "on-update-lov-for");
-    let stop = position.extend(stop_tile.z_pixels(w) + lov.stop_plus_z.pixels(w));
-    let end_ = [stop.x, stop.y.to_gui_y(w), stop.z];
-    let at = |xy, z| path_objects_at(w, mod_, &world, xy, z);
-    let path = oc_lov::PathBuilder::new(w, at, w.geo_lov_step).build_(start_, end_);
+    let stop = position.extend(stop_tile.z_pixels(&g.w) + lov.stop_plus_z.pixels(&g.w));
+    let end_ = [stop.x, stop.y.to_gui_y(&g.w), stop.z];
+    let at = |xy, z| path_objects_at(&g.w, &g.mod_, &world, xy, z);
+    let path = oc_lov::PathBuilder::new(&g.w, at, g.w.geo_lov_step).build_(start_, end_);
 
     let sections = path.sections.iter().map(|section| {
         let color = Color::srgb(0.0 + section.opacity.0, 1.0 - section.opacity.0, 0.0);
-        let start = Vec2::new(section.start[0], section.start[1].to_gui_y(w));
-        let stop = Vec2::new(section.stop[0], section.stop[1].to_gui_y(w));
+        let start = Vec2::new(section.start[0], section.start[1].to_gui_y(&g.w));
+        let stop = Vec2::new(section.stop[0], section.stop[1].to_gui_y(&g.w));
         tracing::trace!(name = "on-update-lov-for-section", start=?start, stop=?stop, color=?color);
         (start, stop, color)
     }).collect();

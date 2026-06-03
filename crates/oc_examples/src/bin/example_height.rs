@@ -2,9 +2,8 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use bevy::prelude::*;
+use oc_battle_gui::ingame::GameConfigReceived;
 use oc_battle_gui::ingame::lov::{Lov, UpdateLovFor};
-use oc_battle_gui::ingame::{ModReceived, WcfgReceived};
-use oc_battle_gui::states::Mod;
 use oc_battle_gui::world::InsertedTiles;
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_root::Wcfg;
@@ -41,42 +40,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 struct SetupLovs;
 
 fn setup(app: &mut bevy::app::App) {
-    app.add_observer(on_wcfg_received)
-        .add_observer(on_mod_received)
+    app.add_observer(on_g_received)
         .add_observer(on_inserted_tiles)
         .add_observer(on_setup_lovs);
 }
 
-// TODO: This is a tricky way to know when on_update_lov_for is ready to receive
-// find a way to trigger when all these config are received, or send all in same time
-fn on_wcfg_received(
-    _: On<WcfgReceived>,
-    mod_: Res<Mod>,
+fn on_g_received(
+    _: On<GameConfigReceived>,
     mut commands: Commands,
     world: Res<oc_battle_gui::world::World>,
 ) {
-    if mod_.0.is_some() && !world.tiles.is_empty() {
+    if !world.tiles.is_empty() {
         commands.trigger(SetupLovs);
     }
 }
 
 // TODO: This is a tricky way to know when on_update_lov_for is ready to receive
 // find a way to trigger when all these config are received, or send all in same time
-fn on_mod_received(
-    _: On<ModReceived>,
-    w: Res<Wcfg>,
-    mut commands: Commands,
-    world: Res<oc_battle_gui::world::World>,
-) {
-    if w.0.is_some() && !world.tiles.is_empty() {
-        commands.trigger(SetupLovs);
-    }
-}
-
-// TODO: This is a tricky way to know when on_update_lov_for is ready to receive
-// find a way to trigger when all these config are received, or send all in same time
-fn on_inserted_tiles(_: On<InsertedTiles>, w: Res<Wcfg>, mod_: Res<Mod>, mut commands: Commands) {
-    if w.0.is_some() && mod_.0.is_some() {
+fn on_inserted_tiles(_: On<InsertedTiles>, w: Res<Wcfg>, mut commands: Commands) {
+    if w.0.is_some() {
         commands.trigger(SetupLovs);
     }
 }

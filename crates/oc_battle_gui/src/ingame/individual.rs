@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use oc_geo::region::WorldRegionIndex;
 use oc_physics::Physic;
 use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volume};
-use oc_root::Wcfg;
 use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
 
@@ -12,7 +11,7 @@ use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
 };
 use crate::ingame::region::ForgottenRegion;
-use crate::states::Mod;
+use crate::states::GameConfig;
 use crate::utils::IntoColor;
 
 #[derive(Debug, Deref, Event)]
@@ -39,14 +38,12 @@ pub struct Status(pub oc_individual::Status);
 pub fn on_insert_individual(
     individual: On<InsertIndividualEvent>,
     mut commands: Commands,
-    w: Res<Wcfg>,
-    mod_: Res<Mod>,
+    g: Res<GameConfig>,
     mut state: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let Some(w) = &w.0 else { return };
-    let Some(mod_) = &mod_.0 else { return };
+    let Some(g) = &g.0 else { return };
 
     tracing::trace!(name="spawn-individual", i=?individual.0, position=?individual.1.position);
     let position = individual.1.position;
@@ -59,12 +56,12 @@ pub fn on_insert_individual(
             Behavior(individual.1.behavior),
             Forces(individual.1.forces.clone()),
             Status(individual.1.status),
-            Volume(individual.1.volume(position, w, mod_).clone()),
+            Volume(individual.1.volume(position, &g.w, &g.mod_).clone()),
             Mesh2d(meshes.add(Circle::new(2.5))),
             MeshMaterial2d(materials.add(individual.1.status.color())),
             Transform::from_xyz(
                 individual.1.position[0],
-                individual.1.position[1].to_gui_y(w),
+                individual.1.position[1].to_gui_y(&g.w),
                 Z_INDIVIDUAL,
             ),
         ))

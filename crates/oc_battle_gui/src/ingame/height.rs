@@ -13,7 +13,7 @@ use oc_root::y::Y;
 use oc_root::{Wcfg, WcfgFrom, WcfgInto, WorldConfig};
 use oc_utils::d2::Xy;
 
-use crate::states::{AppState, InGameState, Meta, Mod};
+use crate::states::{AppState, GameConfig, InGameState};
 use crate::world::World;
 
 pub struct HeightPlugin;
@@ -160,30 +160,26 @@ fn move_camera_by_keyboard(
 // FIXME: avoid blocking way of background + mesh generation by doing it in background and before real need
 fn on_spawn(
     center: On<Spawn>,
-    w: Res<Wcfg>,
-    mod_: Res<Mod>,
+    g: Res<GameConfig>,
     world: Res<World>,
-    meta: Res<Meta>,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
 ) {
     tracing::debug!("Spawn height map");
-    let Some(w) = &w.0 else { return };
-    let Some(mod_) = &mod_.0 else { return };
-    let Some(meta) = &meta.0 else { return };
+    let Some(g) = &g.0 else { return };
     let center = center.0;
     tracing::trace!(name="ingame-height-on-spawn-center", center=?center);
 
     let regions: Vec<WorldRegionIndex> = world.tiles.keys().cloned().collect();
-    let grid_size = UVec2::new(w.region_width as u32, w.region_height as u32);
+    let grid_size = UVec2::new(g.w.region_width as u32, g.w.region_height as u32);
 
     for region in regions {
         // FIXME Files
         let texture = PathBuf::from("cache_")
             .join("worlds")
-            .join(meta.canonical())
+            .join(g.meta.canonical())
             .join(format!("region{}.png", region.0));
         if !std::fs::exists(PathBuf::from("assets").join(&texture)).unwrap() {
             tracing::warn!(
@@ -206,13 +202,13 @@ fn on_spawn(
                 // So, add 0.5 to have something relative from 0.0 to 1.0,
                 // then, * region_width/ieght to find point is.
                 let p_ = Vec2::new(
-                    (p.x + 0.5) * w.region_width as f32,
-                    (p.y + 0.5) * w.region_height as f32,
+                    (p.x + 0.5) * g.w.region_width as f32,
+                    (p.y + 0.5) * g.w.region_height as f32,
                 );
                 // Remove region_height to adapt to inverted y
-                let (x, y) = (p_.x as u64, (w.region_height as f32 - p_.y) as u64);
+                let (x, y) = (p_.x as u64, (g.w.region_height as f32 - p_.y) as u64);
                 let tile = TileXy(Xy(x, y));
-                let tile_i: WorldTileIndex = tile.into_(w);
+                let tile_i: WorldTileIndex = tile.into_(&g.w);
 
                 tiles
                     .get(&tile_i)
@@ -224,16 +220,16 @@ fn on_spawn(
 
         tracing::trace!(name = "ingame-height-on-spawn-spawn");
 
-        let width = w.region_width_pixels as f32;
-        let height = w.region_height_pixels as f32;
+        let width = g.w.region_width_pixels as f32;
+        let height = g.w.region_height_pixels as f32;
 
-        let region_: RegionXy = region.into_(w);
+        let region_: RegionXy = region.into_(&g.w);
         let x = region_.0.0 as f32 * width;
         let y = region_.0.1 as f32 * height;
         let x = x + width / 2.;
         let y = y + height / 2.;
         let x = x;
-        let y = y.to_gui_y(w);
+        let y = y.to_gui_y(&g.w);
 
         commands.spawn((
             Height::default(),
@@ -252,7 +248,7 @@ fn on_spawn(
                 scale: Vec3::new(
                     width,
                     height,
-                    z_max as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters,
+                    z_max as f32 * g.w.geo_meters_per_z.0 * g.w.geo_pixels_per_meters,
                 ),
                 // .extend(z_max as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters),
                 ..default()
@@ -262,25 +258,25 @@ fn on_spawn(
         // tiles cubes
         tracing::trace!(name = "ingame-height-on-spawn-tiles");
         for (i, tile) in tiles {
-            let nature = mod_.nature(tile.nature);
+            let nature = g.mod_.nature(tile.nature);
             let nature_z = nature.z.0;
 
             if nature_z == 0.0 {
                 continue;
             }
 
-            let xy = TileXy::from_(*i, w);
+            let xy = TileXy::from_(*i, &g.w);
             let (x, y) = (
-                xy.0.0 * w.geo_pixels_per_tile + w.geo_pixels_per_tile / 2,
-                xy.0.1 * w.geo_pixels_per_tile + w.geo_pixels_per_tile / 2,
+                xy.0.0 * g.w.geo_pixels_per_tile + g.w.geo_pixels_per_tile / 2,
+                xy.0.1 * g.w.geo_pixels_per_tile + g.w.geo_pixels_per_tile / 2,
             );
-            let z = tile.z_pixels(w);
+            let z = tile.z_pixels(&g.w);
             let alpha = nature.opacity.min(0.5);
-            let x_length = w.geo_pixels_per_tile as f32;
-            let y_length = w.geo_pixels_per_tile as f32;
-            let z_length = nature_z * w.geo_pixels_per_meters;
+            let x_length = g.w.geo_pixels_per_tile as f32;
+            let y_length = g.w.geo_pixels_per_tile as f32;
+            let z_length = nature_z * g.w.geo_pixels_per_meters;
             let x = x as f32;
-            let y = (y as f32).to_gui_y(w);
+            let y = (y as f32).to_gui_y(&g.w);
             tracing::trace!(
                 name = "ingame-height-on-spawn-tiles-tile",
                 x_length = x_length,
@@ -307,13 +303,13 @@ fn on_spawn(
             for (tile, individuals) in individuals {
                 for (_, individual) in individuals {
                     if let Some(tile) = tiles.get(tile) {
-                        let tile_xy = TileXy::from_(tile.i, w);
-                        let x = tile_xy.0.0 as f32 * w.geo_pixels_per_tile as f32;
-                        let y = tile_xy.0.1 as f32 * w.geo_pixels_per_tile as f32;
-                        let y = y.to_gui_y(w);
-                        let z = tile.z_pixels(w);
+                        let tile_xy = TileXy::from_(tile.i, &g.w);
+                        let x = tile_xy.0.0 as f32 * g.w.geo_pixels_per_tile as f32;
+                        let y = tile_xy.0.1 as f32 * g.w.geo_pixels_per_tile as f32;
+                        let y = y.to_gui_y(&g.w);
+                        let z = tile.z_pixels(&g.w);
                         let ref_ = [x, y, z];
-                        let volume = individual.volume(ref_, w, mod_);
+                        let volume = individual.volume(ref_, &g.w, &g.mod_);
                         let alpha = 1.0;
                         if let Volume::Cube {
                             x,
@@ -328,7 +324,7 @@ fn on_spawn(
                             let y_length = height;
                             let z_length = depth;
                             let x = x as f32;
-                            let y = (y as f32).to_gui_y(w);
+                            let y = (y as f32).to_gui_y(&g.w);
                             tracing::trace!(
                                 name = "ingame-height-on-spawn-individuals-individual",
                                 x_length = x_length,

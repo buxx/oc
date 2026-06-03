@@ -33,14 +33,8 @@ impl Default for Game {
     }
 }
 
-#[derive(Debug, Resource, Default)]
-pub struct StaticSource(pub Option<oc_root::static_::StaticSource>);
-
-#[derive(Debug, Resource, Default)]
-pub struct Mod(pub Option<oc_mod::Mod>);
-
-#[derive(Debug, Resource, Default)]
-pub struct Meta(pub Option<oc_world::meta::Meta>);
+#[derive(Debug, Deref, DerefMut, Resource, Default)]
+pub struct GameConfig(pub Option<oc_network::GameConfig>);
 
 #[derive(Deref, DerefMut, Resource, Default)]
 pub struct Window(pub Option<crate::window::Window>);

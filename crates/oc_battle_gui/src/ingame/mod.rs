@@ -42,16 +42,7 @@ pub struct IngamePlugin;
 pub struct FirstIngameEnter;
 
 #[derive(Debug, Event)]
-pub struct WcfgReceived;
-
-#[derive(Debug, Event)]
-pub struct ModReceived;
-
-#[derive(Debug, Event)]
-pub struct MetaReceived;
-
-#[derive(Debug, Event)]
-pub struct SourceReceived;
+pub struct GameConfigReceived;
 
 #[derive(Debug, Event)]
 pub struct SwitchToWorldMap;

@@ -7,18 +7,17 @@ use oc_physics::{
     update::bevy::{Forces, Position, Volume},
 };
 use oc_projectile::ProjectileId;
-use oc_root::{Wcfg, y::Y};
+use oc_root::y::Y;
 use oc_utils::d2::Xy;
 
-use crate::{ingame::projectile::ForgotProjectile, states::Mod, world::World};
+use crate::{ingame::projectile::ForgotProjectile, states::GameConfig, world::World};
 
 #[derive(Debug, Clone, Event)]
 pub struct PhysicEvent(oc_physics::Event<ObjectId>);
 
 pub fn physics_step<I, C>(
     mut commands: Commands,
-    w: Res<Wcfg>,
-    mod_: Res<Mod>,
+    g: Res<GameConfig>,
     time: Res<Time>,
     query: Query<(
         &C,
@@ -33,8 +32,7 @@ pub fn physics_step<I, C>(
     I: Clone + Send + Sync + Into<ObjectId> + std::fmt::Debug + 'static,
     C: Component + AsRef<I>,
 {
-    let Some(w) = &w.0 else { return };
-    let Some(mod_) = &mod_.0 else { return };
+    let Some(g) = &g.0 else { return };
 
     // tracing::trace!(name = "projectile-physics-start");
     let delta = time.delta_secs() / 1.;
@@ -47,7 +45,7 @@ pub fn physics_step<I, C>(
         let objects = |xy: Xy| {
             // NOTE: We must use the given tile xy and not the component position because it is the real position (computed by physics just now).
             // let region: WorldRegionIndex = TileXy(xy).into();
-            index.at(w, TileXy(xy))
+            index.at(&g.w, TileXy(xy))
         };
 
         // FIXME: test perf with references in Corps
@@ -59,12 +57,12 @@ pub fn physics_step<I, C>(
             volume.0.clone(),
         ); //, on_physics_event);
         let (position_, forces_, events) =
-            oc_physics::step(w, mod_, delta, (i.clone(), &corps), objects, "gui");
+            oc_physics::step(&g.w, &g.mod_, delta, (i.clone(), &corps), objects, "gui");
 
         position.0 = position_;
         forces.0 = forces_;
         transform.translation.x = position.0[0];
-        transform.translation.y = position.0[1].to_gui_y(w);
+        transform.translation.y = position.0[1].to_gui_y(&g.w);
 
         for event in events {
             commands.trigger(PhysicEvent(event))

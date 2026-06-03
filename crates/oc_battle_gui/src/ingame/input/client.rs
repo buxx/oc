@@ -7,7 +7,7 @@ use oc_root::Wcfg;
 use crate::{
     fx::FxEvent,
     ingame::{
-        MetaReceived, ModReceived, SourceReceived, WcfgReceived,
+        GameConfigReceived,
         individual::ForgotIndividual,
         input::{
             individual::{
@@ -19,40 +19,24 @@ use crate::{
         projectile::ForgotProjectile,
     },
     network::input::ToClientEvent,
-    states::{Meta, Mod, StaticSource},
+    states::GameConfig,
     world::InsertTiles,
 };
 
 pub fn on_to_client(
     to_client: On<ToClientEvent>,
     mut commands: Commands,
+    mut g: ResMut<GameConfig>,
     mut w: ResMut<Wcfg>,
-    mut mod_: ResMut<Mod>,
-    mut meta: ResMut<Meta>,
-    mut config: ResMut<StaticSource>,
 ) {
     tracing::trace!(name = "ingame-input-client");
 
     match &to_client.0 {
-        ToClient::StaticSource(static_) => {
-            tracing::debug!("Set 'Config'");
-            config.0 = Some(static_.clone());
-            commands.trigger(SourceReceived);
-        }
-        ToClient::Wcfg(wcfg_) => {
-            tracing::debug!("Set 'Wcfg'");
-            w.0 = Some(wcfg_.clone());
-            commands.trigger(WcfgReceived);
-        }
-        ToClient::Mod(mod__) => {
-            tracing::debug!("Set 'Mod'");
-            mod_.0 = Some(mod__.clone());
-            commands.trigger(ModReceived);
-        }
-        ToClient::Meta(meta_) => {
-            tracing::debug!("Set 'Meta'");
-            meta.0 = Some(meta_.clone());
-            commands.trigger(MetaReceived);
+        ToClient::GameConfig(config) => {
+            tracing::debug!("Received GameConfig");
+            g.0 = Some(config.clone());
+            w.0 = Some(config.w.clone());
+            commands.trigger(GameConfigReceived);
         }
         ToClient::Individual(message) => match message {
             Individual::Insert(i, individual) => {

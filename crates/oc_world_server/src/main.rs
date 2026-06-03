@@ -81,14 +81,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let (ready, _) = channel();
-    Runner::new(
-        config,
-        state,
-        output,
-        #[cfg(feature = "tracker")]
-        tracker,
-    )
-    .run(input, ready);
+    let (stop_tx, stop_rx) = channel();
+    std::thread::spawn(move || {
+        Runner::new(
+            config,
+            state,
+            output,
+            #[cfg(feature = "tracker")]
+            tracker,
+        )
+        .run(input, ready, stop_rx);
+    });
+
+    let (tx, rx) = channel();
+    ctrlc::set_handler(move || {
+        tx.send(()).expect("Could not send signal on channel.");
+    })
+    .expect("Error setting Ctrl-C handler");
+    tracing::info!("Waiting for SIGINT (Ctrl+C)...");
+    let _ = rx.recv();
+
+    tracing::info!("SIGINT (Ctrl+C) received, stop runner");
+    let _ = stop_tx.send(());
+
     Ok(())
 }
 

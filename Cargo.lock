@@ -5429,6 +5429,7 @@ dependencies = [
 name = "oc_network"
 version = "0.1.0"
 dependencies = [
+ "derive_more",
  "oc_geo",
  "oc_individual",
  "oc_mod",
@@ -5563,6 +5564,7 @@ dependencies = [
  "axum",
  "bon",
  "clap",
+ "ctrlc",
  "derive_more",
  "glam 0.32.1",
  "message-io",

@@ -5,7 +5,7 @@ use bevy::sprite::Anchor;
 use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::{TileXy, WorldHeightIndex, WorldTileIndex};
 use oc_root::y::Y;
-use oc_root::{Wcfg, WcfgFrom, WcfgInto, files};
+use oc_root::{WcfgFrom, WcfgInto, files};
 use oc_utils::bevy::EntityMapping;
 use oc_utils::d2::Xy;
 use oc_world::terrain::Terrain;
@@ -14,7 +14,7 @@ use oc_world::tile::Tile;
 use crate::ingame::camera::{self, State};
 use crate::ingame::region::ForgottenRegion;
 use crate::network;
-use crate::states::{Meta, Mod, StaticSource};
+use crate::states::GameConfig;
 use crate::tileset::ConcernedTileset;
 use crate::world::{InsertedTiles, World};
 
@@ -144,10 +144,7 @@ pub fn on_insert_tiles(tiles: On<InsertedTiles>, mut commands: Commands, showing
 pub fn on_spawn_region<'a, E, I, T, S>(
     event: On<E>,
     mut commands: Commands,
-    w: Res<Wcfg>,
-    mod_: Res<Mod>,
-    meta: Res<Meta>,
-    static_: Res<StaticSource>,
+    g: Res<GameConfig>,
     network: Res<network::state::State>,
     world_: Res<World>,
     asset_server: Res<AssetServer>,
@@ -166,22 +163,16 @@ pub fn on_spawn_region<'a, E, I, T, S>(
         + 'static,
     S: crate::tileset::Tileset<I, T>,
 {
-    let Some(w) = &w.0 else { return };
-    let (Some(mod_), Some(meta), Some(static_), Some(connect), Some(tileset)) = (
-        &mod_.0,
-        &meta.0,
-        &static_.0,
-        &network.server,
-        event.tileset(&world_),
-    ) else {
+    let (Some(g), Some(connect), Some(tileset)) = (&g.0, &network.server, event.tileset(&world_))
+    else {
         return;
     };
     let region = event.region();
     tracing::debug!("Spawn region {:?} tiles", region);
 
-    let mod_ = mod_.canonical();
-    let world = meta.canonical();
-    let files = files::Files::new(mod_, world).into_gui(static_.clone(), connect.clone().into());
+    let mod_ = g.mod_.canonical();
+    let world = g.meta.canonical();
+    let files = files::Files::new(mod_, world).into_gui(g.static_.clone(), connect.clone().into());
     let spriteset = tileset.spriteset(&files).display().to_string();
 
     let texture = asset_server.load(&spriteset);
@@ -190,15 +181,15 @@ pub fn on_spawn_region<'a, E, I, T, S>(
 
     if let Some(tiles) = tileset.tiles(&world_, region) {
         for (i, tile) in tiles {
-            let i: WorldTileIndex = (i.clone()).into_(w);
-            let xy: Xy = i.into_(w);
+            let i: WorldTileIndex = (i.clone()).into_(&g.w);
+            let xy: Xy = i.into_(&g.w);
             // TODO (map terrain should be checked to avoid manage missing terrain here)
             let index = tileset.index(&tile).unwrap();
             // let index = (*tileset.natures.get(&tile.nature).unwrap()) as usize;
-            let x = xy.0 * w.geo_pixels_per_tile;
-            let y = xy.1 * w.geo_pixels_per_tile;
+            let x = xy.0 * g.w.geo_pixels_per_tile;
+            let y = xy.1 * g.w.geo_pixels_per_tile;
             let z = tileset.z();
-            let point = Vec3::new(x as f32, (y as f32).to_gui_y(w), z);
+            let point = Vec3::new(x as f32, (y as f32).to_gui_y(&g.w), z);
 
             let entity = commands
                 .spawn((
@@ -216,72 +207,10 @@ pub fn on_spawn_region<'a, E, I, T, S>(
                     Anchor::TOP_LEFT,
                 ))
                 .id();
-            entities.insert(i.into_(w), entity);
+            entities.insert(i.into_(&g.w), entity);
         }
     }
 }
-
-// pub fn on_spawn_region_tiles(
-//     region: On<SpawnRegionTiles>,
-//     mut commands: Commands,
-//     mod_: Res<Mod>,
-//     meta: Res<Meta>,
-//     static_: Res<StaticSource>,
-//     network: Res<network::state::State>,
-//     world_: Res<World>,
-//     asset_server: Res<AssetServer>,
-//     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-//     mut entities: ResMut<EntityMapping<WorldTileIndex>>,
-// ) {
-//     let (Some(mod_), Some(meta), Some(static_), Some(connect), Some(terrain)) = (
-//         &mod_.0,
-//         &meta.0,
-//         &static_.0,
-//         &network.server,
-//         &world_.terrain,
-//     ) else {
-//         return;
-//     };
-//     tracing::debug!("Spawn region {:?} tiles", region.0);
-
-//     let mod_ = mod_.canonical();
-//     let world = meta.canonical();
-//     let files = files::Files::new(mod_, world).into_gui(static_.clone(), connect.clone().into());
-//     let terrain_png = files.terrain_png().display().to_string();
-
-//     let texture = asset_server.load(&terrain_png);
-//     let layout = terrain.layout();
-//     let texture_atlas_layout = texture_atlas_layouts.add(layout);
-
-//     if let Some(tiles) = world_.tiles().get(&region) {
-//         for (i, tile) in tiles {
-//             let xy: Xy = (*i).into();
-//             // TODO (map terrain should be checked to avoid manage missing terrain here)
-//             let index = (*terrain.natures.get(&tile.nature).unwrap()) as usize;
-//             let x = xy.0 * GEO_PIXELS_PER_TILE;
-//             let y = xy.1 * GEO_PIXELS_PER_TILE;
-//             let point = Vec3::new(x as f32, (y as f32).to_gui_y(), Z_TERRAIN_TILE);
-
-//             let entity = commands
-//                 .spawn((
-//                     TerrainTile(*i),
-//                     Region(region.0.into()),
-//                     Sprite {
-//                         image: texture.clone(),
-//                         texture_atlas: Some(TextureAtlas {
-//                             layout: texture_atlas_layout.clone(),
-//                             index,
-//                         }),
-//                         ..Default::default()
-//                     },
-//                     Transform::from_translation(point),
-//                     Anchor::TOP_LEFT,
-//                 ))
-//                 .id();
-//             entities.insert(*i, entity);
-//         }
-//     }
-// }
 
 pub fn on_forgotten_region(region: On<ForgottenRegion>, mut commands: Commands) {
     commands.trigger(DespawnRegionTiles(region.0));
@@ -305,20 +234,20 @@ pub fn on_despawn_region_tiles(
 }
 
 pub fn tile_under_cursor(
-    w: Res<Wcfg>,
+    g: Res<GameConfig>,
     mut state: ResMut<State>,
     window_: Single<&Window>,
     camera_: Single<(&Camera, &GlobalTransform)>,
     entities: Res<EntityMapping<WorldTileIndex>>,
     mut tiles: Query<(&TerrainTile, &mut Sprite)>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let Some(g) = &g.0 else { return };
     let (camera, transform) = *camera_;
     if let Some(cursor) = window_.cursor_position() {
         if let Ok(cursor) = camera.viewport_to_world_2d(transform, cursor) {
-            let point = Vec2::new(cursor.x, cursor.y.to_gui_y(w));
-            let tile: TileXy = [point.x, point.y].into_(w);
-            let current: WorldTileIndex = tile.into_(w);
+            let point = Vec2::new(cursor.x, cursor.y.to_gui_y(&g.w));
+            let tile: TileXy = [point.x, point.y].into_(&g.w);
+            let current: WorldTileIndex = tile.into_(&g.w);
 
             match state.tile {
                 Some(previous) => {

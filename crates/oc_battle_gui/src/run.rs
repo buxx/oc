@@ -8,7 +8,7 @@ use oc_root::Wcfg;
 use crate::config::{Config, Config_};
 #[cfg(feature = "debug")]
 use crate::debug;
-use crate::states::Game;
+use crate::states::{Game, GameConfig};
 use crate::{
     downloading::DownloadingPlugin,
     error::ErrorPlugin,
@@ -16,7 +16,7 @@ use crate::{
     home::HomePlugin,
     ingame::IngamePlugin,
     network::NetworkPlugin,
-    states::{AppState, InGameState, Meta, Mod, StaticSource},
+    states::{AppState, InGameState},
 };
 use crate::{ingame, setup, states, window};
 
@@ -61,9 +61,7 @@ pub fn run(config: Config_, install: Option<Box<dyn Fn(&mut App)>>) -> AppExit {
     .insert_state(AppState::Home)
     .init_resource::<Game>()
     .init_resource::<Wcfg>()
-    .init_resource::<Mod>()
-    .init_resource::<Meta>()
-    .init_resource::<StaticSource>()
+    .init_resource::<GameConfig>()
     .init_resource::<states::Window>()
     .init_state::<InGameState>()
     .insert_resource(Config(config))
