@@ -48,8 +48,8 @@ test:
     cargo nextest run
 
 test-e2e:
-    cargo run --bin example_projectiles_wall --features test -- --test
-    cargo run --bin example_individual_shots --features test -- --test
+    RUST_LOG=WARN cargo run --bin example_projectiles_wall --features test -- --test
+    RUST_LOG=WARN cargo run --bin example_individual_shots --features test -- --test
 
 test-all:
     just test
