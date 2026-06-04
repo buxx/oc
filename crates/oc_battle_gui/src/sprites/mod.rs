@@ -24,6 +24,7 @@ fn on_game_config_received(
     g: Res<GameConfig>,
     network: Res<network::state::State>,
     mut animations: ResMut<Assets<Animation>>,
+    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let Some(g) = &g.0 else { return };
     let Some(connect) = network.server.clone() else {
@@ -35,15 +36,11 @@ fn on_game_config_received(
     let files = Files::new(mod_, world).into_gui(g.static_.clone(), connect.into());
     let sprites = files.sprites();
 
-    let soldier = SoldierAnimations::init(&sprites, &assets, &mut animations);
+    let soldier = SoldierAnimations::init(&sprites, &assets, &mut animations, &mut atlas_layouts);
 
     commands.insert_resource(soldier);
 }
 
-pub trait IntoAnimatedSprite<A> {
-    fn animated_sprite(
-        &self,
-        animations: &A,
-        atlas_layouts: &mut Assets<TextureAtlasLayout>,
-    ) -> (Sprite, Handle<Animation>);
+pub trait IntoAnimation<A> {
+    fn animation(&self, animations: &A) -> Handle<Animation>;
 }

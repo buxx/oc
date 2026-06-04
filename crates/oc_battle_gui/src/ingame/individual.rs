@@ -13,7 +13,7 @@ use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
 };
 use crate::ingame::region::ForgottenRegion;
-use crate::sprites::IntoAnimatedSprite;
+use crate::sprites::IntoAnimation;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
 use crate::states::GameConfig;
 
@@ -46,15 +46,14 @@ pub fn on_insert_individual(
     mut commands: Commands,
     g: Res<GameConfig>,
     mut state: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
-    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     animations: Res<SoldierAnimations>,
 ) {
     let Some(g) = &g.0 else { return };
     tracing::trace!(name="spawn-individual", i=?individual.0, position=?individual.1.position);
 
-    let (sprite, animation) =
-        SoldierAnimationInfos::new(Side::A, individual.1.status, individual.1.gesture)
-            .animated_sprite(&animations, &mut atlas_layouts);
+    let sprite = animations.sprite();
+    let animation = SoldierAnimationInfos::new(Side::A, individual.1.status, individual.1.gesture)
+        .animation(&animations);
     let position = individual.1.position;
 
     let entity = commands
@@ -85,7 +84,6 @@ fn on_refresh_render(
     mut query: Query<(&Status, &Gesture, &mut SpritesheetAnimation), With<IndividualIndex>>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
     animations: Res<SoldierAnimations>,
-    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let Some(entity) = state.get(&individual.0) else {
         return;
@@ -94,11 +92,9 @@ fn on_refresh_render(
         return;
     };
 
-    // FIXME BS NOW: sprite not required here
-    // split into two function in SoldierAnimations
-    // to permit take animation only here
-    let (_sprite, animation_) = SoldierAnimationInfos::new(Side::A, status.0, gesture.0)
-        .animated_sprite(&animations, &mut atlas_layouts);
+    let animation_ = SoldierAnimationInfos::new(Side::A, status.0, gesture.0);
+    let animation_ = animation_.animation(&animations);
+
     animation.switch(animation_);
 }
 

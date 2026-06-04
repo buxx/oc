@@ -5,7 +5,7 @@ use bevy_spritesheet_animation::prelude::*;
 use derive_more::Constructor;
 use oc_root::side::Side;
 
-use crate::sprites::IntoAnimatedSprite;
+use crate::sprites::IntoAnimation;
 
 const COLUMNS: usize = 8;
 const ROWS: usize = 12;
@@ -16,7 +16,7 @@ const IMAGE_HEIGHT: u32 = 768;
 // TODO: use generative macro to write less code (animations creations and functions to get sprite + animation)
 #[derive(Debug, Resource)]
 pub struct SoldierAnimations {
-    spritesheet: Spritesheet,
+    sprite: Sprite,
     side_a_idle: Handle<Animation>,
     side_a_walking: Handle<Animation>,
     side_a_running: Handle<Animation>,
@@ -40,6 +40,7 @@ impl SoldierAnimations {
         sprites: &PathBuf,
         assets: &AssetServer,
         animations: &mut Assets<Animation>,
+        atlas_layouts: &mut Assets<TextureAtlasLayout>,
     ) -> Self {
         let image = assets.load(sprites.join("soldiers.png"));
         let spritesheet = Spritesheet::new(&image, COLUMNS, ROWS);
@@ -133,8 +134,12 @@ impl SoldierAnimations {
         let side_b_dead_lying = animations.add(side_b_dead_lying);
         let side_b_hurt_lying = animations.add(side_b_hurt_lying);
 
+        let sprite = spritesheet
+            .with_size_hint(IMAGE_WIDTH, IMAGE_HEIGHT)
+            .sprite(atlas_layouts);
+
         Self {
-            spritesheet,
+            sprite,
             side_a_idle,
             side_a_walking,
             side_a_running,
@@ -152,124 +157,58 @@ impl SoldierAnimations {
         }
     }
 
-    pub fn idle(
-        &self,
-        side: Side,
-        atlas_layouts: &mut Assets<TextureAtlasLayout>,
-    ) -> (Sprite, Handle<Animation>) {
-        let animation = match side {
+    pub fn sprite(&self) -> Sprite {
+        self.sprite.clone()
+    }
+
+    pub fn idle(&self, side: Side) -> Handle<Animation> {
+        match side {
             Side::A => self.side_a_idle.clone(),
             Side::B => self.side_b_idle.clone(),
-        };
-        let sprite = self
-            .spritesheet
-            .with_size_hint(IMAGE_WIDTH, IMAGE_HEIGHT)
-            .sprite(atlas_layouts);
-
-        (sprite, animation)
+        }
     }
 
-    pub fn walking(
-        &self,
-        side: Side,
-        atlas_layouts: &mut Assets<TextureAtlasLayout>,
-    ) -> (Sprite, Handle<Animation>) {
-        let animation = match side {
+    pub fn walking(&self, side: Side) -> Handle<Animation> {
+        match side {
             Side::A => self.side_a_walking.clone(),
             Side::B => self.side_b_walking.clone(),
-        };
-        let sprite = self
-            .spritesheet
-            .with_size_hint(IMAGE_WIDTH, IMAGE_HEIGHT)
-            .sprite(atlas_layouts);
-
-        (sprite, animation)
+        }
     }
 
-    pub fn running(
-        &self,
-        side: Side,
-        atlas_layouts: &mut Assets<TextureAtlasLayout>,
-    ) -> (Sprite, Handle<Animation>) {
-        let animation = match side {
+    pub fn running(&self, side: Side) -> Handle<Animation> {
+        match side {
             Side::A => self.side_a_running.clone(),
             Side::B => self.side_b_running.clone(),
-        };
-        let sprite = self
-            .spritesheet
-            .with_size_hint(IMAGE_WIDTH, IMAGE_HEIGHT)
-            .sprite(atlas_layouts);
-
-        (sprite, animation)
+        }
     }
 
-    pub fn crawling(
-        &self,
-        side: Side,
-        atlas_layouts: &mut Assets<TextureAtlasLayout>,
-    ) -> (Sprite, Handle<Animation>) {
-        let animation = match side {
+    pub fn crawling(&self, side: Side) -> Handle<Animation> {
+        match side {
             Side::A => self.side_a_crawling.clone(),
             Side::B => self.side_b_crawling.clone(),
-        };
-        let sprite = self
-            .spritesheet
-            .with_size_hint(IMAGE_WIDTH, IMAGE_HEIGHT)
-            .sprite(atlas_layouts);
-
-        (sprite, animation)
+        }
     }
 
-    pub fn lying(
-        &self,
-        side: Side,
-        atlas_layouts: &mut Assets<TextureAtlasLayout>,
-    ) -> (Sprite, Handle<Animation>) {
-        let animation = match side {
+    pub fn lying(&self, side: Side) -> Handle<Animation> {
+        match side {
             Side::A => self.side_a_lying.clone(),
             Side::B => self.side_b_lying.clone(),
-        };
-        let sprite = self
-            .spritesheet
-            .with_size_hint(IMAGE_WIDTH, IMAGE_HEIGHT)
-            .sprite(atlas_layouts);
-
-        (sprite, animation)
+        }
     }
 
-    pub fn dead_lying(
-        &self,
-        side: Side,
-        atlas_layouts: &mut Assets<TextureAtlasLayout>,
-    ) -> (Sprite, Handle<Animation>) {
-        let animation = match side {
+    pub fn dead_lying(&self, side: Side) -> Handle<Animation> {
+        match side {
             Side::A => self.side_a_dead_lying.clone(),
             Side::B => self.side_b_dead_lying.clone(),
-        };
-        let sprite = self
-            .spritesheet
-            .with_size_hint(IMAGE_WIDTH, IMAGE_HEIGHT)
-            .sprite(atlas_layouts);
-
-        (sprite, animation)
+        }
     }
 
     #[allow(unused)]
-    pub fn hurt_lying(
-        &self,
-        side: Side,
-        atlas_layouts: &mut Assets<TextureAtlasLayout>,
-    ) -> (Sprite, Handle<Animation>) {
-        let animation = match side {
+    pub fn hurt_lying(&self, side: Side) -> Handle<Animation> {
+        match side {
             Side::A => self.side_a_hurt_lying.clone(),
             Side::B => self.side_b_hurt_lying.clone(),
-        };
-        let sprite = self
-            .spritesheet
-            .with_size_hint(IMAGE_WIDTH, IMAGE_HEIGHT)
-            .sprite(atlas_layouts);
-
-        (sprite, animation)
+        }
     }
 }
 
@@ -280,12 +219,8 @@ pub struct SoldierAnimationInfos {
     gesture: oc_individual::Gesture,
 }
 
-impl IntoAnimatedSprite<SoldierAnimations> for SoldierAnimationInfos {
-    fn animated_sprite(
-        &self,
-        animations: &SoldierAnimations,
-        atlas_layouts: &mut Assets<TextureAtlasLayout>,
-    ) -> (Sprite, Handle<Animation>) {
+impl IntoAnimation<SoldierAnimations> for SoldierAnimationInfos {
+    fn animation(&self, animations: &SoldierAnimations) -> Handle<Animation> {
         let SoldierAnimationInfos {
             side,
             gesture,
@@ -294,13 +229,13 @@ impl IntoAnimatedSprite<SoldierAnimations> for SoldierAnimationInfos {
 
         match status {
             oc_individual::Status::Operational => match gesture {
-                oc_individual::Gesture::Idle => animations.idle(*side, atlas_layouts),
-                oc_individual::Gesture::Walking => animations.walking(*side, atlas_layouts),
-                oc_individual::Gesture::Running => animations.running(*side, atlas_layouts),
-                oc_individual::Gesture::Crawling => animations.crawling(*side, atlas_layouts),
-                oc_individual::Gesture::Lying => animations.lying(*side, atlas_layouts),
+                oc_individual::Gesture::Idle => animations.idle(*side),
+                oc_individual::Gesture::Walking => animations.walking(*side),
+                oc_individual::Gesture::Running => animations.running(*side),
+                oc_individual::Gesture::Crawling => animations.crawling(*side),
+                oc_individual::Gesture::Lying => animations.lying(*side),
             },
-            oc_individual::Status::Dead => animations.dead_lying(*side, atlas_layouts),
+            oc_individual::Status::Dead => animations.dead_lying(*side),
         }
     }
 }
