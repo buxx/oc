@@ -45,6 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = Arc::new(state);
 
     let (ready_tx, ready_rx) = channel::<std::result::Result<(), String>>();
+    let (_, stop_rx) = channel::<()>();
     let (to_client_tx, _) = channel();
     let (to_server_tx, to_server_rx) = channel();
 
@@ -59,7 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             #[cfg(feature = "test")]
             tracker,
         )
-        .run(to_server_rx, ready_tx);
+        .run(to_server_rx, ready_tx, stop_rx);
     });
 
     let _ = ready_rx.recv().unwrap();
