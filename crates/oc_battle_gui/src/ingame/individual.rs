@@ -1,7 +1,9 @@
 use bevy::prelude::*;
+use bevy_spritesheet_animation::prelude::*;
 use oc_geo::region::WorldRegionIndex;
 use oc_physics::Physic;
 use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volume};
+use oc_root::side::Side;
 use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
 
@@ -11,8 +13,9 @@ use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
 };
 use crate::ingame::region::ForgottenRegion;
+use crate::sprites::IntoAnimatedSprite;
+use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
 use crate::states::GameConfig;
-use crate::utils::IntoColor;
 
 #[derive(Debug, Deref, Event)]
 pub struct ForgotIndividual(pub oc_individual::IndividualIndex);
@@ -35,18 +38,25 @@ pub struct SetStatusEvent(oc_individual::IndividualIndex, oc_individual::Status)
 #[derive(Debug, Deref, Component)]
 pub struct Status(pub oc_individual::Status);
 
+#[derive(Debug, Deref, Component)]
+pub struct Gesture(pub oc_individual::Gesture);
+
 pub fn on_insert_individual(
     individual: On<InsertIndividualEvent>,
     mut commands: Commands,
     g: Res<GameConfig>,
     mut state: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    animations: Res<SoldierAnimations>,
 ) {
     let Some(g) = &g.0 else { return };
-
     tracing::trace!(name="spawn-individual", i=?individual.0, position=?individual.1.position);
+
+    let (sprite, animation) =
+        SoldierAnimationInfos::new(Side::A, individual.1.status, individual.1.gesture)
+            .animated_sprite(&animations, &mut atlas_layouts);
     let position = individual.1.position;
+
     let entity = commands
         .spawn((
             IndividualIndex(individual.0),
@@ -56,9 +66,10 @@ pub fn on_insert_individual(
             Behavior(individual.1.behavior),
             Forces(individual.1.forces.clone()),
             Status(individual.1.status),
+            Gesture(individual.1.gesture),
             Volume(individual.1.volume(position, &g.w, &g.mod_).clone()),
-            Mesh2d(meshes.add(Circle::new(2.5))),
-            MeshMaterial2d(materials.add(individual.1.status.color())),
+            sprite,
+            SpritesheetAnimation::new(animation),
             Transform::from_xyz(
                 individual.1.position[0],
                 individual.1.position[1].to_gui_y(&g.w),
@@ -71,21 +82,24 @@ pub fn on_insert_individual(
 
 fn on_refresh_render(
     individual: On<RefreshRender>,
-    mut query: Query<(&MeshMaterial2d<ColorMaterial>, &Status)>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut query: Query<(&Status, &Gesture, &mut SpritesheetAnimation), With<IndividualIndex>>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    animations: Res<SoldierAnimations>,
+    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let Some(entity) = state.get(&individual.0) else {
         return;
     };
-    let Ok((handle, status)) = query.get_mut(*entity) else {
+    let Ok((status, gesture, mut animation)) = query.get_mut(*entity) else {
         return;
     };
 
-    if let Some(material) = materials.get_mut(handle) {
-        tracing::trace!(name = "update-individual-refresh-render", i=?individual.0);
-        material.color = status.0.color();
-    }
+    // FIXME BS NOW: sprite not required here
+    // split into two function in SoldierAnimations
+    // to permit take animation only here
+    let (_sprite, animation_) = SoldierAnimationInfos::new(Side::A, status.0, gesture.0)
+        .animated_sprite(&animations, &mut atlas_layouts);
+    animation.switch(animation_);
 }
 
 pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Commands) {

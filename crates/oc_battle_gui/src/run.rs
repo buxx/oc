@@ -2,12 +2,14 @@ use bevy::audio::{AudioPlugin, SpatialScale};
 use bevy::prelude::*;
 use bevy::sprite_render::Wireframe2dPlugin;
 use bevy_egui::EguiPlugin;
+use bevy_spritesheet_animation::plugin::SpritesheetAnimationPlugin;
 use bon::builder;
 use oc_root::Wcfg;
 
 use crate::config::{Config, Config_};
 #[cfg(feature = "debug")]
 use crate::debug;
+use crate::sprites::Animations;
 use crate::states::{Game, GameConfig};
 use crate::{
     downloading::DownloadingPlugin,
@@ -46,16 +48,19 @@ pub fn run(config: Config_, install: Option<Box<dyn Fn(&mut App)>>) -> AppExit {
             .set(AudioPlugin {
                 default_spatial_scale: SpatialScale::new_2d(AUDIO_SCALE),
                 ..default()
-            }),
+            })
+            .set(ImagePlugin::default_nearest()),
     )
     .add_plugins(EguiPlugin::default())
     .add_plugins(Wireframe2dPlugin::default())
+    .add_plugins(SpritesheetAnimationPlugin)
     .add_plugins(ErrorPlugin)
     .add_plugins(NetworkPlugin)
     .add_plugins(FxPlugin)
     .add_plugins(HomePlugin)
     .add_plugins(DownloadingPlugin)
     .add_plugins(IngamePlugin)
+    .add_plugins(Animations)
     .add_plugins(window::WindowPlugin)
     .add_plugins(ingame::camera::CameraPlugin)
     .insert_state(AppState::Home)

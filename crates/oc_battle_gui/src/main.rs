@@ -20,6 +20,7 @@ mod network;
 mod projectile;
 mod run;
 mod setup;
+mod sprites;
 mod states;
 #[cfg(feature = "debug")]
 mod tileset;

@@ -143,6 +143,19 @@ impl FilesAsGui {
         }
     }
 
+    pub fn sprites(&self) -> PathBuf {
+        match &self.sources {
+            StaticSource::Remote(_) => {
+                let name = remove_numeric_suffix(&self.mod_);
+                PathBuf::from(format!("cache/mods/{}/{}/sprites", &self.mod_, name))
+            }
+            StaticSource::Local { mod_: _, world: _ } => {
+                let name = remove_numeric_suffix(&self.mod_);
+                PathBuf::from("mods_").join(&name).join("sprites")
+            }
+        }
+    }
+
     pub fn terrain_png(&self) -> PathBuf {
         match &self.sources {
             StaticSource::Remote(_) => {

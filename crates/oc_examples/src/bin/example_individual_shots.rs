@@ -121,6 +121,7 @@ fn individuals(_: &WorldConfig, _: &Vec<Tile>) -> Vec<oc_individual::Individual>
                 Behavior::Idle,
                 vec![],
                 oc_individual::Status::Operational,
+                oc_individual::Gesture::Idle,
             )
         })
         .collect()

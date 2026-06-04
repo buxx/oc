@@ -56,6 +56,7 @@ pub struct Individual {
     pub behavior: Behavior,
     pub forces: Vec<Force>,
     pub status: Status,
+    pub gesture: Gesture,
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
@@ -177,4 +178,14 @@ impl<'a> WithIds<IndividualIndex, &'a Individual> for &'a [Individual] {
 pub enum Status {
     Operational,
     Dead,
+}
+
+#[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum Gesture {
+    Idle,
+    Walking,
+    Running,
+    Crawling,
+    Lying,
 }

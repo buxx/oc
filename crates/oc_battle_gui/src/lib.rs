@@ -13,6 +13,7 @@ pub mod network;
 pub mod projectile;
 pub mod run;
 pub mod setup;
+pub mod sprites;
 pub mod states;
 #[cfg(feature = "debug")]
 pub mod tileset;

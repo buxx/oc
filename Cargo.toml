@@ -14,6 +14,7 @@ lto = "thin"
 
 [workspace.dependencies]
 bevy = "0.18"
+bevy_spritesheet_animation = "6"
 derive_more = "2.1"
 thiserror = "2.0"
 anyhow = "1.0"
