@@ -13,6 +13,7 @@ use oc_projectile::ProjectileId;
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::Client;
 
+#[derive(Debug)]
 pub enum Update {
     Schedule(Instant, Box<Update>),
     SpawnProjectile(SpawnProjectile, bool), // bool == fx
@@ -27,7 +28,7 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         Update::Schedule(instant, update) => state.schedule(instant, *update),
         Update::SpawnProjectile(spawn, fx) => state.spawn_projectile(spawn, fx),
         Update::RemoveProjectile(i) => state.remove_projectile(i),
-        Update::UpdateIndividual(i, update) => crate::individual::update::write(ctx, update, i),
+        Update::UpdateIndividual(i, update) => state.update_individual(i, update),
     } {
         ctx.broadcast(filter, messages);
     }
@@ -37,6 +38,15 @@ impl<E: Client> super::State<E> {
     fn schedule(&self, instant: Instant, update: Update) -> Vec<(Listening, Vec<ToClient>)> {
         self.scheduled().push((instant, update));
         vec![]
+    }
+
+    fn update_individual(
+        &self,
+        i: IndividualIndex,
+        update: oc_individual::Update,
+    ) -> Vec<(Listening, Vec<ToClient>)> {
+        let mut world = self.world_mut();
+        crate::individual::update::write(&mut world, update, i)
     }
 
     fn spawn_projectile(

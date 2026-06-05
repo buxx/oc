@@ -32,8 +32,7 @@ pub fn run(install: Option<Box<dyn Fn(&mut bevy::app::App)>>) -> Result_ {
         map.height().unwrap() as u64,
         Meters(world.geo_meters_per_z),
     );
-    let snapshot =
-        SnapshotBuilder::new(map, EmptyGenerator::new(), EmptyGenerator::new()).build(w, &mod_)?;
+    let snapshot = SnapshotBuilder::new(map, vec![], vec![], vec![]).build(w, &mod_)?;
 
     run::Example::builder()
         .world(map_)

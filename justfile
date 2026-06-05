@@ -36,6 +36,9 @@ example-projectiles-wall *args:
 example-individual-shots *args:
     cargo run --bin example_individual_shots --features debug {{ args }}
 
+example-individual-behaviors *args:
+    cargo run --bin example_individual_behaviors --features debug {{ args }}
+
 example-stress-gui-projectiles:
     cargo run --bin example_stress_projectiles --features debug,perfs --release
 
@@ -48,6 +51,7 @@ test:
 test-e2e:
     RUST_LOG=WARN cargo run --bin example_projectiles_wall --features test -- --test
     RUST_LOG=WARN cargo run --bin example_individual_shots --features test -- --test
+    RUST_LOG=WARN cargo run --bin example_individual_behaviors --features test -- --test
 
 test-all:
     just test

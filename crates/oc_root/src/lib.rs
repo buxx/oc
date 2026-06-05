@@ -48,7 +48,7 @@ impl WorldConfig {
     pub fn new(world_width: u64, world_height: u64, geo_meters_per_z: Meters) -> Self {
         let region_width = 1000.min(world_width);
         let region_height = 1000.min(world_height);
-        let individual_tick_interval_us: u64 = 1_000_000 / 4;
+        let individual_tick_interval_us: u64 = 1_000_000 / 1;
         let physics_tick_per_seconds: u64 = 10;
         let physics_tick_interval_us: u64 = 1_000_000 / physics_tick_per_seconds;
         let physics_coeff_per_tick: f32 = 1. / physics_tick_per_seconds as f32;

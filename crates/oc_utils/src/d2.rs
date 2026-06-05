@@ -1,5 +1,6 @@
 use std::f32::consts::FRAC_PI_2;
 
+use derive_more::Constructor;
 use geo::{Contains, Triangle, coord};
 use glam::Vec2;
 use rkyv::{Archive, Deserialize, Serialize};
@@ -182,6 +183,52 @@ pub fn apply_angle_on_point(point_to_rotate: &Vec2, reference_point: &Vec2, angl
         reference_point.y + pt.0 * sin + pt.1 * cos,
     );
     Vec2::new(rotated.0, rotated.1)
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    serde::Serialize,
+    serde::Deserialize,
+    PartialEq,
+    Constructor,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Position {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    serde::Serialize,
+    serde::Deserialize,
+    PartialEq,
+    Constructor,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Direction {
+    x: f32,
+    y: f32,
+}
+
+impl From<Direction> for Vec2 {
+    fn from(value: Direction) -> Self {
+        Vec2::new(value.x, value.y)
+    }
+}
+
+impl From<Vec2> for Direction {
+    fn from(value: Vec2) -> Self {
+        Direction::new(value.x, value.y)
+    }
 }
 
 #[cfg(test)]

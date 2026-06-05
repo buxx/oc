@@ -13,7 +13,7 @@ use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
 };
-use oc_individual::behavior::Behavior;
+use oc_individual::{IndividualIndex, order::Order, squad::Squad};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectile;
@@ -50,7 +50,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         map_.height().unwrap() as u64,
         Meters(meta.geo_meters_per_z),
     );
-    let snapshot = SnapshotBuilder::new(map_, individuals, vec![]).build(w, &mod__)?;
+    let tiles = map_.tiles(&w, &mod__).unwrap();
+    let (individuals, squads) = individuals(&w, &tiles);
+    let snapshot = SnapshotBuilder::new(map_, individuals, squads, vec![]).build(w, &mod__)?;
 
     let example = run::Example::builder()
         .world(map)
@@ -92,7 +94,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn individuals(_: &WorldConfig, _: &Vec<Tile>) -> Vec<oc_individual::Individual> {
+fn individuals(
+    _: &WorldConfig,
+    _: &Vec<Tile>,
+) -> (
+    Vec<oc_individual::Individual>,
+    Vec<oc_individual::squad::Squad>,
+) {
     let positions = vec![[150.0, 150.0, 0.0]];
 
     // TODO: avoid repetition with main()
@@ -105,8 +113,8 @@ fn individuals(_: &WorldConfig, _: &Vec<Tile>) -> Vec<oc_individual::Individual>
         Meters(meta.geo_meters_per_z),
     );
 
-    positions
-        .into_iter()
+    let individuals = positions
+        .iter()
         .map(|p| {
             let tile_xy = TileXy(Xy(
                 p[0] as u64 / w.geo_pixels_per_tile,
@@ -115,16 +123,32 @@ fn individuals(_: &WorldConfig, _: &Vec<Tile>) -> Vec<oc_individual::Individual>
             let tile = WorldTileIndex::from_(tile_xy, &w);
 
             oc_individual::Individual::new(
-                p,
+                p.clone(),
                 tile,
                 WorldRegionIndex(0),
-                Behavior::Idle,
+                vec![],
+                oc_individual::behavior::Behavior::Idle,
                 vec![],
                 oc_individual::Status::Operational,
                 oc_individual::Gesture::Idle,
+                oc_individual::behavior::Intent::Idle,
             )
         })
-        .collect()
+        .collect();
+
+    let squads = positions
+        .iter()
+        .enumerate()
+        .map(|(i, _)| {
+            let individual = IndividualIndex(i as u64);
+            oc_individual::squad::Squad {
+                members: vec![individual],
+                orders: vec![Order::Idle],
+            }
+        })
+        .collect();
+
+    (individuals, squads)
 }
 
 fn install(app: &mut bevy::app::App) {

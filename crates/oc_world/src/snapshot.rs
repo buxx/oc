@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use derive_more::Constructor;
 use oc_individual::Individual;
+use oc_individual::squad::Squad;
 use oc_projectile::Projectile;
 use oc_root::WorldConfig;
 use rkyv::rancor::Error;
@@ -15,6 +16,7 @@ pub struct Snapshot {
     pub w: WorldConfig,
     pub tiles: Vec<Tile>,
     pub individuals: Vec<Individual>,
+    pub squads: Vec<Squad>,
     pub projectiles: Vec<Projectile>,
 }
 

@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, path::PathBuf};
 
-use oc_individual::Individual;
+use oc_individual::{Individual, squad::Squad};
 use oc_mod::Mod;
 use oc_projectile::Projectile;
 use oc_root::WorldConfig;
@@ -11,29 +11,34 @@ use oc_world::{
 
 pub mod individual;
 pub mod projectile;
+pub mod squad;
 pub mod tile;
 
-pub struct SnapshotBuilder<T, I, P>
+pub struct SnapshotBuilder<T, I, S, P>
 where
     T: tile::TilesGenerator,
     I: individual::IndividualsGenerator,
+    S: squad::SquadsGenerator,
     P: projectile::ProjectilesGenerator,
 {
     tiles: T,
     individuals: I,
+    squads: S,
     projectiles: P,
 }
 
-impl<T, I, P> SnapshotBuilder<T, I, P>
+impl<T, I, S, P> SnapshotBuilder<T, I, S, P>
 where
     T: tile::TilesGenerator,
     I: individual::IndividualsGenerator,
+    S: squad::SquadsGenerator,
     P: projectile::ProjectilesGenerator,
 {
-    pub fn new(tiles: T, individuals: I, projectiles: P) -> Self {
+    pub fn new(tiles: T, individuals: I, squads: S, projectiles: P) -> Self {
         Self {
             tiles,
             individuals,
+            squads,
             projectiles,
         }
     }
@@ -42,12 +47,14 @@ where
         let (_, snapshot_path) = tempfile::NamedTempFile::new()?.keep()?;
         let tiles = self.tiles.tiles(&w, mod_);
         let individuals = self.individuals.individuals(&w, &tiles);
+        let squads = self.squads.squads(&w, &individuals);
         let projectiles = self.projectiles.projectiles(&w, &tiles);
 
         let snapshot = Snapshot {
             w,
             tiles,
             individuals,
+            squads,
             projectiles,
         };
         snapshot.save(&snapshot_path)?;
@@ -86,6 +93,12 @@ impl individual::IndividualsGenerator for EmptyGenerator<Individual> {
     }
 }
 
+impl squad::SquadsGenerator for EmptyGenerator<Squad> {
+    fn squads(&self, _: &WorldConfig, _: &Vec<Individual>) -> Vec<Squad> {
+        vec![]
+    }
+}
+
 impl projectile::ProjectilesGenerator for EmptyGenerator<Projectile> {
     fn projectiles(&self, _: &WorldConfig, _: &Vec<Tile>) -> Vec<Projectile> {
         vec![]
@@ -104,9 +117,21 @@ impl projectile::ProjectilesGenerator for Vec<Projectile> {
     }
 }
 
+impl squad::SquadsGenerator for Vec<Squad> {
+    fn squads(&self, _: &WorldConfig, _: &Vec<Individual>) -> Vec<Squad> {
+        self.clone()
+    }
+}
+
 impl<T: Fn(&WorldConfig, &Vec<Tile>) -> Vec<Individual>> individual::IndividualsGenerator for T {
     fn individuals(&self, w: &WorldConfig, tiles: &Vec<Tile>) -> Vec<Individual> {
         self(w, tiles)
+    }
+}
+
+impl<T: Fn(&WorldConfig, &Vec<Individual>) -> Vec<Squad>> squad::SquadsGenerator for T {
+    fn squads(&self, w: &WorldConfig, individuals: &Vec<Individual>) -> Vec<Squad> {
+        self(w, individuals)
     }
 }
 
