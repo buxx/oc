@@ -43,13 +43,22 @@ impl WorldLoader {
         let mod_ = self.mod_.clone();
         let tiles = snapshot.tiles;
         let individuals = snapshot.individuals;
+        let squads = snapshot.squads;
         let projectiles = snapshot
             .projectiles
             .into_iter()
             .map(|projectile| (ids.next_projectile_id(), projectile))
             .collect();
 
-        Ok(World::new(w, mod_, meta, tiles, individuals, projectiles))
+        Ok(World::new(
+            w,
+            mod_,
+            meta,
+            tiles,
+            individuals,
+            squads,
+            projectiles,
+        ))
     }
 
     // TODO: add checks

@@ -7,7 +7,7 @@ use oc_root::side::Side;
 use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
 
-use crate::entity::individual::{Behavior, IndividualIndex};
+use crate::entity::individual::{Behavior, IndividualIndex, Orders};
 use crate::ingame::draw::Z_INDIVIDUAL;
 use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
@@ -33,7 +33,16 @@ pub struct SetBehaviorEvent(
 pub struct SetForcesEvent(oc_individual::IndividualIndex, Vec<oc_physics::Force>);
 
 #[derive(Debug, Event)]
+pub struct SetOrdersEvent(
+    oc_individual::IndividualIndex,
+    Vec<oc_individual::order::Order>,
+);
+
+#[derive(Debug, Event)]
 pub struct SetStatusEvent(oc_individual::IndividualIndex, oc_individual::Status);
+
+#[derive(Debug, Event)]
+pub struct SetGestureEvent(oc_individual::IndividualIndex, oc_individual::Gesture);
 
 #[derive(Debug, Deref, Component)]
 pub struct Status(pub oc_individual::Status);
@@ -62,7 +71,7 @@ pub fn on_insert_individual(
             Position(position),
             Tile(individual.1.tile),
             Region(individual.1.region),
-            Behavior(individual.1.behavior),
+            Behavior(individual.1.behavior.clone()),
             Forces(individual.1.forces.clone()),
             Status(individual.1.status),
             Gesture(individual.1.gesture),
@@ -100,19 +109,35 @@ fn on_refresh_render(
 
 pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Commands) {
     let (i, update) = (update.0, &update.1);
+    tracing::trace!(name="ingame-individual-update", i=?i, update=?update);
 
     // TODO: use macro to automatise events declaration and mapping here
-    match update {
+    let refresh = match update {
         oc_individual::Update::SetBehavior(behavior) => {
-            commands.trigger(SetBehaviorEvent(i, *behavior));
+            commands.trigger(SetBehaviorEvent(i, behavior.clone()));
+            false
+        }
+        oc_individual::Update::SetOrders(orders) => {
+            commands.trigger(SetOrdersEvent(i, orders.clone()));
+            false
         }
         oc_individual::Update::SetForces(forces) => {
             commands.trigger(SetForcesEvent(i, forces.clone()));
+            false
         }
         oc_individual::Update::SetStatus(status) => {
             commands.trigger(SetStatusEvent(i, *status));
-            commands.trigger(RefreshRender(i));
+            true
         }
+        oc_individual::Update::SetGesture(gesture) => {
+            commands.trigger(SetGestureEvent(i, gesture.clone()));
+            true
+        }
+        oc_individual::Update::SetIntent(_) => false,
+    };
+
+    if refresh {
+        commands.trigger(RefreshRender(i));
     }
 }
 
@@ -128,12 +153,29 @@ impl Plugin for IndividualPlugin {
             .add_observer(on_insert_individual)
             .add_observer(on_update_individual)
             .add_observer(on_set_behavior_event)
+            .add_observer(on_set_gesture_event)
             .add_observer(on_set_forces_event)
             .add_observer(on_forgotten_region)
             .add_observer(on_forgot_individual)
             .add_observer(on_set_status_event)
             .add_observer(on_refresh_render);
     }
+}
+
+fn on_set_gesture_event(
+    gesture: On<SetGestureEvent>,
+    mut query: Query<&mut Gesture>,
+    state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+) {
+    let Some(entity) = state.get(&gesture.0) else {
+        return;
+    };
+    let Ok(mut gesture_) = query.get_mut(*entity) else {
+        return;
+    };
+    tracing::trace!(name = "update-individual-gesture", i=?gesture.0, gesture=?gesture.1);
+
+    gesture_.0 = gesture.1.clone();
 }
 
 fn on_set_behavior_event(
@@ -149,7 +191,23 @@ fn on_set_behavior_event(
     };
     tracing::trace!(name = "update-individual-behavior", i=?behavior.0, behavior=?behavior.1);
 
-    behavior_.0 = behavior.1;
+    behavior_.0 = behavior.1.clone();
+}
+
+fn on_set_orders_event(
+    orders: On<SetOrdersEvent>,
+    mut query: Query<&mut Orders>,
+    state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+) {
+    let Some(entity) = state.get(&orders.0) else {
+        return;
+    };
+    let Ok(mut orders_) = query.get_mut(*entity) else {
+        return;
+    };
+    tracing::trace!(name = "update-individual-set-orders", i=?orders.0, orders=?orders.1);
+
+    orders_.0 = orders.1.clone();
 }
 
 fn on_set_forces_event(
@@ -163,7 +221,7 @@ fn on_set_forces_event(
     let Ok(mut forces_) = query.get_mut(*entity) else {
         return;
     };
-    tracing::trace!(name = "update-individual-set-force", i=?forces.0, forces=?forces.1);
+    tracing::trace!(name = "update-individual-set-forces", i=?forces.0, forces=?forces.1);
 
     forces_.0 = forces.1.clone();
 }

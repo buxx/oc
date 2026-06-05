@@ -3,6 +3,7 @@ use std::ops::{Deref, DerefMut};
 use oc_geo::region::Region;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_individual::IndividualIndex;
+use oc_individual::squad::SquadIndex;
 use oc_projectile::Projectile;
 use oc_projectile::ProjectileId;
 use oc_root::WcfgInto;
@@ -36,6 +37,7 @@ pub struct Indexes {
     tiles_individuals: SizedIndex<IndividualIndex>,
     regions_individuals: SizedIndex<IndividualIndex>,
     regions_projectiles: SizedIndex<ProjectileId>,
+    individuals_squad: Vec<SquadIndex>,
 }
 
 impl Indexes {
@@ -43,6 +45,7 @@ impl Indexes {
         let mut tiles_individuals = SizedIndex::new(world.w.tiles_count as usize);
         let mut regions_individuals = SizedIndex::new(world.w.regions_count as usize);
         let mut regions_projectiles = SizedIndex::new(world.w.regions_count as usize);
+        let mut individuals_squad = Vec::with_capacity(world.individuals.len());
 
         for (i, individual) in world.individuals().iter().enumerate() {
             let tile: WorldTileIndex = individual.tile;
@@ -50,6 +53,19 @@ impl Indexes {
 
             tiles_individuals[tile.0 as usize].push(i.into());
             regions_individuals[region.0 as usize].push(i.into());
+
+            match world.squads.iter().enumerate().find(|(_, squad)| {
+                squad
+                    .members
+                    .iter()
+                    .find(|member_i| member_i.0 == i as u64)
+                    .is_some()
+            }) {
+                Some((squad_i, _)) => {
+                    individuals_squad.push(SquadIndex(squad_i as u64));
+                }
+                None => panic!("There is not squad owning member {i:?}"),
+            }
         }
 
         for (id, projectile) in world.projectiles() {
@@ -63,6 +79,7 @@ impl Indexes {
             tiles_individuals,
             regions_individuals,
             regions_projectiles,
+            individuals_squad,
         }
     }
 
@@ -117,6 +134,10 @@ impl Indexes {
         &self.regions_projectiles[region.0 as usize]
     }
 
+    pub fn individual_squad(&self, individual: IndividualIndex) -> SquadIndex {
+        self.individuals_squad[individual.0 as usize]
+    }
+
     pub fn react(&mut self, effect: Effect) {
         match effect {
             Effect::Individual(i, effect) => match effect {
@@ -160,3 +181,5 @@ pub enum ProjectileEffect {
 pub trait IntoIndexEffect<T> {
     fn into_index_effect(&self, value: T) -> Effect;
 }
+
+// FIXME BS NOW: test with squad (check individuals_squad correctly set)

@@ -20,9 +20,13 @@ use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::behavior::Behavior;
+use crate::behavior::Intent;
+use crate::order::Order;
 
 pub mod behavior;
 pub mod network;
+pub mod order;
+pub mod squad;
 
 #[derive(
     Archive,
@@ -53,18 +57,23 @@ pub struct Individual {
     pub position: [f32; 3],
     pub tile: WorldTileIndex,
     pub region: WorldRegionIndex,
+    pub orders: Vec<Order>,
     pub behavior: Behavior,
     pub forces: Vec<Force>,
     pub status: Status,
     pub gesture: Gesture,
+    pub intent: Intent,
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Update {
     SetForces(Vec<Force>),
+    SetOrders(Vec<Order>),
     SetBehavior(Behavior),
+    SetGesture(Gesture),
     SetStatus(Status),
+    SetIntent(Intent),
 }
 
 impl Region for Individual {
@@ -104,6 +113,10 @@ impl Individual {
 
     pub fn region(&self) -> WorldRegionIndex {
         self.region
+    }
+
+    pub fn can_follow_order(&self) -> bool {
+        true
     }
 }
 
@@ -179,12 +192,20 @@ pub enum Status {
     Operational,
     Dead,
 }
+impl Status {
+    pub fn can_step(&self) -> bool {
+        match self {
+            Status::Operational => true,
+            Status::Dead => false,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Gesture {
     Idle,
-    Walking,
+    Walking, // FIXME BS NOW: angle / rotation
     Running,
     Crawling,
     Lying,

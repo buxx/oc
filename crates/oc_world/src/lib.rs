@@ -3,11 +3,15 @@ use oc_geo::{
     region::{RegionXy, WorldRegionIndex},
     tile::{TileXy, WorldTileIndex},
 };
-use oc_individual::{Individual, IndividualIndex};
+use oc_individual::{
+    Individual, IndividualIndex,
+    order::Order,
+    squad::{Squad, SquadIndex},
+};
 use oc_mod::Mod;
 use oc_projectile::{Projectile, ProjectileId};
 use oc_root::{WcfgInto, WorldConfig};
-use oc_utils::d2::Xy;
+use oc_utils::d2::{Position, Xy};
 use rustc_hash::FxHashMap;
 
 use crate::{meta::Meta, tile::Tile};
@@ -31,11 +35,12 @@ pub mod tile;
 #[derive(Constructor)]
 pub struct World {
     pub w: WorldConfig,
-    mod_: Mod, // Maybe its place is not in world (when want to access, need to read lock World, but Mod never change)
-    meta: Meta,
-    tiles: Vec<Tile>,
-    individuals: Vec<Individual>,
-    projectiles: FxHashMap<ProjectileId, Projectile>,
+    pub mod_: Mod, // Maybe its place is not in world (when want to access, need to read lock World, but Mod never change)
+    pub meta: Meta,
+    pub tiles: Vec<Tile>,
+    pub individuals: Vec<Individual>,
+    pub squads: Vec<Squad>,
+    pub projectiles: FxHashMap<ProjectileId, Projectile>,
 }
 
 impl World {
@@ -78,6 +83,14 @@ impl World {
 
     pub fn individual_mut(&mut self, i: IndividualIndex) -> &mut Individual {
         &mut self.individuals[i.0 as usize]
+    }
+
+    pub fn squad(&self, i: SquadIndex) -> &Squad {
+        &self.squads[i.0 as usize]
+    }
+
+    pub fn squad_mut(&mut self, i: SquadIndex) -> &mut Squad {
+        &mut self.squads[i.0 as usize]
     }
 
     pub fn projectiles(&self) -> Vec<(&ProjectileId, &Projectile)> {
@@ -124,7 +137,15 @@ mod tests {
         let tiles: Vec<Tile> = (0..w.tiles_count)
             .map(|i| Tile::new(WorldTileIndex(i as u64), NatureIndex(0), 0))
             .collect();
-        let world = World::new(w.clone(), mod_, meta, tiles, vec![], HashMap::default());
+        let world = World::new(
+            w.clone(),
+            mod_,
+            meta,
+            tiles,
+            vec![],
+            vec![],
+            HashMap::default(),
+        );
 
         // When
         let tiles = world.region_tiles(WorldRegionIndex(0));

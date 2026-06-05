@@ -7,6 +7,7 @@ use std::{
 };
 
 use derive_more::Constructor;
+use oc_individual::IndividualIndex;
 use oc_network::{GameConfig, ToClient};
 use oc_root::Client;
 use rayon::{
@@ -139,7 +140,7 @@ impl<E: Client> Runner<E> {
 
                     loop {
                         let elapsed = last.elapsed().as_micros() as u64;
-                        let wait = interval - elapsed.max(interval);
+                        let wait = interval - elapsed.min(interval);
                         #[cfg(feature = "perfs")]
                         {
                             let percent = wait as f32 / interval as f32;
@@ -150,8 +151,12 @@ impl<E: Client> Runner<E> {
                         last = Instant::now();
 
                         for i in &indexes {
+                            let i = IndividualIndex(*i as u64);
                             tracing::trace!(name = "runner-individual", i = ?i);
-                            individual::Processor::new(&ctx, (*i).into()).step();
+
+                            for update in individual::Processor::new(&ctx, i).step() {
+                                update::update(&ctx, update);
+                            }
 
                             #[cfg(feature = "perfs")]
                             ctx.state.perf.increment_individual();

@@ -9,7 +9,10 @@ use oc_geo::{
     region::RegionXy,
     tile::{TileXy, WorldTileIndex},
 };
-use oc_individual::{Gesture, Individual, Status, behavior::Behavior};
+use oc_individual::{
+    Gesture, Individual, Status,
+    behavior::{Behavior, Intent},
+};
 use oc_mod::Mod;
 use oc_projectile::Projectile;
 use oc_root::{WcfgFrom, WcfgInto, WorldConfig, physics::Meters};
@@ -61,6 +64,7 @@ fn individuals(w: &WorldConfig, tiles: &Vec<Tile>) -> Vec<Individual> {
                 vec![],
                 Status::Operational,
                 Gesture::Idle,
+                Intent::Idle,
             )
         })
         .collect()
