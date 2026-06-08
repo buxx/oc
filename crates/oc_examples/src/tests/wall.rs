@@ -1,9 +1,6 @@
 use std::path::PathBuf;
 
-use crate::{
-    logging, run,
-    snapshot::{EmptyGenerator, SnapshotBuilder},
-};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use anyhow::Context;
 use oc_mod::Mod;
 use oc_root::{WorldConfig, physics::Meters};

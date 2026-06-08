@@ -75,6 +75,7 @@ pub enum Update {
     SetGesture(Gesture),
     SetStatus(Status),
     SetIntent(Intent),
+    Accomplished,
 }
 
 impl Region for Individual {

@@ -1,4 +1,8 @@
-use std::{path::PathBuf, time::Duration};
+use std::{
+    path::PathBuf,
+    sync::Mutex,
+    time::{Duration, Instant},
+};
 
 use anyhow::Context;
 use bevy::prelude::*;
@@ -80,14 +84,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let dead = tracker.individuals.iter().find(|event| {
                 matches!(
                     event,
-                    oc_individual::Update::SetStatus(oc_individual::Status::Dead)
+                    (
+                        IndividualIndex(0),
+                        oc_individual::Update::SetStatus(oc_individual::Status::Dead)
+                    )
                 )
             });
 
             assert!(collision.is_some());
             assert!(dead.is_some());
 
-            println!("✅ Test success");
+            println!("✅ (SERVER) All tests passed");
         }
     }
 
@@ -163,14 +170,28 @@ fn install(app: &mut bevy::app::App) {
                 &Status,
                 With<oc_battle_gui::entity::individual::IndividualIndex>,
             >| {
-                let timeout = game.started.elapsed() > Duration::from_secs(10);
-                let dead = individuals
-                    .iter()
-                    .find(|status| matches!(status.0, oc_individual::Status::Dead))
-                    .is_some();
+                static DEAD: Mutex<Option<Instant>> = Mutex::new(None);
 
-                if timeout || dead {
-                    commands.write_message(bevy::app::AppExit::from_code(0));
+                let timeout = game.started.elapsed() > Duration::from_secs(10);
+                let mut dead = DEAD.lock().unwrap();
+                *dead = match *dead {
+                    None => individuals
+                        .iter()
+                        .find(|status| matches!(status.0, oc_individual::Status::Dead))
+                        .is_some()
+                        .then(|| Instant::now()),
+                    Some(value) => {
+                        if value.elapsed().as_secs() > 1 {
+                            println!("✅ (GUI) Individual is dead");
+                            commands.write_message(bevy::app::AppExit::from_code(0));
+                        };
+                        Some(value)
+                    }
+                };
+                if timeout {
+                    eprintln!("❌ (GUI) Timeout reached ! Individual is not dead.");
+                    // FIXME BS NOW: test must check this code !
+                    commands.write_message(bevy::app::AppExit::from_code(1));
                 }
             },
         );

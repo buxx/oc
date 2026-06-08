@@ -5,6 +5,7 @@ use crate::routing::Listening;
 use crate::utils::context::Context;
 use oc_geo::region::{Region, WorldRegionIndex};
 use oc_individual::IndividualIndex;
+use oc_individual::squad::SquadIndex;
 use oc_mod::PickSound;
 use oc_network::ToClient;
 use oc_physics::fx;
@@ -19,6 +20,7 @@ pub enum Update {
     SpawnProjectile(SpawnProjectile, bool), // bool == fx
     RemoveProjectile(ProjectileId),
     UpdateIndividual(IndividualIndex, oc_individual::Update),
+    UpdateSquad(SquadIndex, oc_individual::squad::Update),
 }
 
 pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
@@ -28,7 +30,15 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         Update::Schedule(instant, update) => state.schedule(instant, *update),
         Update::SpawnProjectile(spawn, fx) => state.spawn_projectile(spawn, fx),
         Update::RemoveProjectile(i) => state.remove_projectile(i),
-        Update::UpdateIndividual(i, update) => state.update_individual(i, update),
+        Update::UpdateIndividual(i, update) => {
+            #[cfg(feature = "tracker")]
+            {
+                let mut tracker = ctx.tracker.take();
+                tracker.individuals.push((i, update.clone()));
+            }
+            state.update_individual(i, update)
+        }
+        Update::UpdateSquad(i, update) => state.update_squad(i, update),
     } {
         ctx.broadcast(filter, messages);
     }
@@ -47,6 +57,22 @@ impl<E: Client> super::State<E> {
     ) -> Vec<(Listening, Vec<ToClient>)> {
         let mut world = self.world_mut();
         crate::individual::update::write(&mut world, update, i)
+    }
+
+    fn update_squad(
+        &self,
+        i: SquadIndex,
+        update: oc_individual::squad::Update,
+    ) -> Vec<(Listening, Vec<ToClient>)> {
+        let mut world = self.world_mut();
+
+        match update {
+            oc_individual::squad::Update::Accomplished => {
+                let squad = world.squad_mut(i);
+                squad.orders.pop();
+                vec![]
+            }
+        }
     }
 
     fn spawn_projectile(

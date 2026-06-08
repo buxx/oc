@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use oc_individual::IndividualIndex;
 use oc_physics::Event;
 
 use crate::state::ObjectId;
@@ -20,5 +21,5 @@ impl Tracker {
 #[derive(Debug, Default)]
 pub struct Tracker_ {
     pub physics: Vec<Event<ObjectId>>,
-    pub individuals: Vec<oc_individual::Update>,
+    pub individuals: Vec<(IndividualIndex, oc_individual::Update)>,
 }

@@ -7,7 +7,7 @@ use oc_individual::{
 };
 use oc_physics::Force;
 use oc_root::{Client, physics::MetersSeconds};
-use oc_utils::d2::Direction;
+use oc_utils::{d2::Direction, number::almost_equal};
 
 use crate::{runner, utils::context::Context};
 
@@ -15,12 +15,15 @@ mod move_;
 pub mod physics;
 pub mod update;
 
+const POSITION_TOLERANCE: f32 = 3.0;
+
 #[derive(Constructor)]
 pub struct Processor<'a, E: Client> {
     ctx: &'a Context<E>,
     i: IndividualIndex,
 }
 
+// TODO: a lot of repetition (and locking) due to function split. Find another solution (perf problem ?)
 impl<'a, E: Client> Processor<'a, E> {
     pub fn step(self) -> Vec<runner::update::Update> {
         tracing::trace!(name="individual-step", i=?self.i);
@@ -32,6 +35,11 @@ impl<'a, E: Client> Processor<'a, E> {
         if !individual.status.can_step() {
             tracing::trace!(name="individual-step-cant-step", i=?self.i);
             return vec![];
+        }
+
+        if let Some(updates) = self.accomplished() {
+            tracing::trace!(name = "individual-step-accomplished-updates", updates=?updates);
+            return updates;
         }
 
         let distribute = self.distribute();
@@ -88,6 +96,65 @@ impl<'a, E: Client> Processor<'a, E> {
         updates
     }
 
+    fn is_squad_leader(&self) -> bool {
+        let state = &self.ctx.state;
+        let index = state.indexes();
+        let world = state.world();
+
+        let squad_i = index.individual_squad(self.i);
+        let squad = world.squad(squad_i);
+        // TODO: test if is the squad leader (if its too CPU consuming, manage boolean in individual ?)
+        squad.members.first() == Some(&self.i)
+    }
+
+    fn accomplished(&self) -> Option<Vec<runner::update::Update>> {
+        let state = &self.ctx.state;
+        let world = state.world();
+        let individual = world.individual(self.i);
+        let Some(order) = individual.orders.first() else {
+            tracing::trace!(name = "individual-step-accomplished-no-order", i=?self.i);
+            return None;
+        };
+        let index = state.indexes();
+        let squad_i = index.individual_squad(self.i);
+        let is_squad_leader = self.is_squad_leader();
+
+        match is_squad_leader {
+            // TODO: When squad leader, even if order is accomplished, must wait all squad members accomplished theirs
+            true => match order {
+                Order::Idle => {
+                    // TODO: strange behavior than Idle disapear instantly ?
+                    tracing::trace!(name = "individual-step-accomplished-squad-leader-idle", i=?self.i);
+
+                    // FIXME BS NOW: refacto
+                    let update_i = Update::Accomplished;
+                    let update_i = runner::update::Update::UpdateIndividual(self.i, update_i);
+                    let update_s = oc_individual::squad::Update::Accomplished;
+                    let update_s = runner::update::Update::UpdateSquad(squad_i, update_s);
+                    return Some(vec![update_i, update_s]);
+                }
+                Order::MoveTo(position) => {
+                    if almost_equal(position.x, individual.position[0], POSITION_TOLERANCE)
+                        && almost_equal(position.y, individual.position[1], POSITION_TOLERANCE)
+                    {
+                        tracing::trace!(
+                            name = "individual-step-accomplished-squad-leader-move-to-finished", i=?self.i
+                        );
+                        // FIXME BS NOW: refacto
+                        let update_i = Update::Accomplished;
+                        let update_i = runner::update::Update::UpdateIndividual(self.i, update_i);
+                        let update_s = oc_individual::squad::Update::Accomplished;
+                        let update_s = runner::update::Update::UpdateSquad(squad_i, update_s);
+                        return Some(vec![update_i, update_s]);
+                    } else {
+                        None
+                    }
+                }
+            },
+            false => todo!(),
+        }
+    }
+
     fn distribute(&self) -> Vec<(IndividualIndex, Vec<Order>)> {
         let state = &self.ctx.state;
         let index = state.indexes();
@@ -96,7 +163,7 @@ impl<'a, E: Client> Processor<'a, E> {
         let squad_i = index.individual_squad(self.i);
         let squad = world.squad(squad_i);
         // TODO: test if is the squad leader (if its too CPU consuming, manage boolean in individual ?)
-        if squad.members.first() != Some(&self.i) {
+        if !self.is_squad_leader() {
             tracing::trace!(name="individual-step-distribute-not-leader", i=?self.i);
             return vec![];
         }

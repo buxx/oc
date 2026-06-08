@@ -4,5 +4,6 @@ pub mod collections;
 pub mod d2;
 pub mod error;
 pub mod image;
+pub mod number;
 #[cfg(feature = "tiled")]
 pub mod tileset;

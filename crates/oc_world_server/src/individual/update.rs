@@ -27,7 +27,12 @@ pub fn write(
         Update::SetGesture(gesture) => {
             individual.gesture = gesture.clone();
         }
-        Update::SetIntent(intent) => individual.intent = intent.clone(),
+        Update::SetIntent(intent) => {
+            individual.intent = intent.clone();
+        }
+        Update::Accomplished => {
+            individual.orders.pop();
+        }
     }
 
     let region = individual.region;

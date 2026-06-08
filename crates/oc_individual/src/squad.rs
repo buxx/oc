@@ -36,3 +36,9 @@ pub struct Squad {
     pub members: Vec<IndividualIndex>,
     pub orders: Vec<Order>,
 }
+
+#[derive(Debug, Clone, Archive, rkyv::Deserialize, rkyv::Serialize, PartialEq)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum Update {
+    Accomplished,
+}

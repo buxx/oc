@@ -3,23 +3,31 @@ use std::path::PathBuf;
 use anyhow::Context;
 use bevy::prelude::*;
 use bon::builder;
-use oc_battle_gui::{
-    ingame::{FirstIngameEnter, individual::Status},
-    states::Game,
-};
 use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
 };
-use oc_individual::{IndividualIndex, network::Individual, order::Order, squad::Squad};
+use oc_individual::{IndividualIndex, order::Order, squad::Squad};
 use oc_root::{WcfgFrom, WorldConfig, physics::Meters};
 use oc_utils::d2::{Direction, Xy};
 use oc_world::{meta::Meta, tile::Tile};
+#[cfg(feature = "test")]
+use oc_world_server::tracker::Tracker;
 
 use crate::{run, snapshot::SnapshotBuilder};
 
+#[cfg(feature = "test")]
+type Install = Box<dyn Fn(&mut bevy::app::App)>;
+#[cfg(feature = "test")]
+type Track = Box<dyn Fn(Tracker)>;
+
+#[cfg(not(feature = "test"))]
+type Install = ();
+#[cfg(not(feature = "test"))]
+type Track = ();
+
 #[builder]
-pub fn run(test: bool, setup: Vec<([f32; 2], Order)>) -> Result<(), anyhow::Error> {
+pub fn run(setup: Vec<([f32; 2], Order)>, tests: (Install, Track)) -> Result<(), anyhow::Error> {
     let mod_ = PathBuf::from("mods/tests1");
     let mod__ = oc_mod::Mod::load(&mod_, None)?;
     let map = PathBuf::from("examples/meadow1");
@@ -40,10 +48,20 @@ pub fn run(test: bool, setup: Vec<([f32; 2], Order)>) -> Result<(), anyhow::Erro
     let example = run::Example::builder()
         .world(map)
         .mod_(mod_)
-        .install(Box::new(move |app: &mut bevy::app::App| install(app, test)))
+        // .install(Box::new(move |app: &mut bevy::app::App| {
+        //     install(app)
+        // }))
         .snapshot(snapshot);
 
-    let _ = example.build().run()?;
+    #[cfg(feature = "test")]
+    let example = example.install(tests.0);
+
+    let tracker = example.build().run()?;
+
+    #[cfg(feature = "test")]
+    {
+        tests.1(tracker);
+    }
 
     Ok(())
 }
@@ -99,58 +117,4 @@ fn squads(
             }
         })
         .collect()
-}
-
-fn install(app: &mut bevy::app::App, test: bool) {
-    if test {
-        app.add_systems(
-            Update,
-            |mut commands: Commands,
-             game: Res<Game>,
-             individuals: Query<
-                &Status,
-                With<oc_battle_gui::entity::individual::IndividualIndex>,
-            >| {
-                // let timeout = game.started.elapsed() > Duration::from_secs(10);
-                // let dead = individuals
-                //     .iter()
-                //     .find(|status| matches!(status.0, oc_individual::Status::Dead))
-                //     .is_some();
-
-                // if timeout || dead {
-                //     commands.write_message(bevy::app::AppExit::from_code(0));
-                // }
-            },
-        );
-    };
-    app.add_observer(on_first_ingame_enter);
-}
-
-fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
-    // let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
-
-    // let weapon1 = mod_.weapons.iter().find(|w| w.name() == "Weapon1").unwrap();
-    // let ammunition = weapon1
-    //     .ammunitions()
-    //     .iter()
-    //     .find(|a| a.name() == "Ammo1")
-    //     .unwrap();
-    // let shot = weapon1
-    //     .shots()
-    //     .iter()
-    //     .find(|s| s.name() == "Single")
-    //     .unwrap();
-
-    // for (start, end) in vec![([220.0, 150.0, 5.0], [100.0, 150.0, 5.0])] {
-    //     commands.trigger(ToServerEvent(ToServer::SpawnProjectile(
-    //         SpawnProjectile::new(
-    //             weapon1.index(),
-    //             ammunition.index(),
-    //             shot.index(),
-    //             1,
-    //             start,
-    //             end,
-    //         ),
-    //     )));
-    // }
 }

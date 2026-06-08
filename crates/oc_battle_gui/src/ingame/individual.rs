@@ -44,6 +44,9 @@ pub struct SetStatusEvent(oc_individual::IndividualIndex, oc_individual::Status)
 #[derive(Debug, Event)]
 pub struct SetGestureEvent(oc_individual::IndividualIndex, oc_individual::Gesture);
 
+#[derive(Debug, Event)]
+pub struct AccomplishedEvent(oc_individual::IndividualIndex);
+
 #[derive(Debug, Deref, Component)]
 pub struct Status(pub oc_individual::Status);
 
@@ -142,6 +145,10 @@ pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Com
             true
         }
         oc_individual::Update::SetIntent(_) => false,
+        oc_individual::Update::Accomplished => {
+            commands.trigger(AccomplishedEvent(i));
+            false
+        }
     };
 
     if refresh {
@@ -166,6 +173,8 @@ impl Plugin for IndividualPlugin {
             .add_observer(on_forgotten_region)
             .add_observer(on_forgot_individual)
             .add_observer(on_set_status_event)
+            .add_observer(on_set_orders_event)
+            .add_observer(on_accomplished_event)
             .add_observer(on_refresh_render);
     }
 }
@@ -200,6 +209,22 @@ fn on_set_behavior_event(
     tracing::trace!(name = "update-individual-behavior", i=?behavior.0, behavior=?behavior.1);
 
     behavior_.0 = behavior.1.clone();
+}
+
+fn on_accomplished_event(
+    accomplished: On<AccomplishedEvent>,
+    mut query: Query<&mut Orders>,
+    state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+) {
+    let Some(entity) = state.get(&accomplished.0) else {
+        return;
+    };
+    let Ok(mut orders) = query.get_mut(*entity) else {
+        return;
+    };
+    tracing::trace!(name = "update-individual-accomplished", i=?accomplished.0);
+
+    orders.0.pop();
 }
 
 fn on_set_orders_event(
