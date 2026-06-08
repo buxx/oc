@@ -193,7 +193,7 @@ fn snapshot_(
     };
 
     tracing::info!("Initialize snapshot ({})", path.display());
-    let mut snapshot = Snapshot::new(w, vec![], vec![], vec![]);
+    let mut snapshot = Snapshot::new(w, vec![], vec![], vec![], vec![]);
 
     tracing::info!("Update snapshot tiles");
     let map = reader::MapReader::new(map)?;

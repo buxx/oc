@@ -1,15 +1,10 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
-use oc_examples::{
-    logging, run,
-    snapshot::{EmptyGenerator, SnapshotBuilder},
-};
-use oc_individual::Individual;
+use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
-use oc_projectile::Projectile;
 use oc_root::{WorldConfig, physics::Meters};
-use oc_world::{load::WorldPath, meta::Meta, tile::Tile};
+use oc_world::{load::WorldPath, meta::Meta};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
@@ -25,8 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         map.height().unwrap() as u64,
         Meters(world.geo_meters_per_z),
     );
-    let projectiles = EmptyGenerator::<Projectile>::new();
-    let snapshot = SnapshotBuilder::new(map, individuals, projectiles).build(w, &mod_)?;
+    let snapshot = SnapshotBuilder::new(map, vec![], vec![], vec![]).build(w, &mod_)?;
 
     let example = run::Example::builder()
         .world(map_)
@@ -35,8 +29,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     example.build().run()?;
 
     Ok(())
-}
-
-fn individuals(_w: &WorldConfig, _tiles: &Vec<Tile>) -> Vec<Individual> {
-    vec![]
 }

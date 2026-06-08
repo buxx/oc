@@ -4,13 +4,13 @@ use rkyv::{Archive, Deserialize, Serialize};
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Intent {
-    Idle,
+    Idle(Direction),
     MoveTo(Position),
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Behavior {
-    Idle,
+    Idle(Direction),
     Walk(Direction),
 }

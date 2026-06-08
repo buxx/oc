@@ -1,16 +1,15 @@
 use derive_more::Constructor;
 use glam::Vec2;
 use oc_individual::{
-    Gesture, Individual, IndividualIndex, Update,
+    Gesture, IndividualIndex, Update,
     behavior::{Behavior, Intent},
     order::Order,
 };
 use oc_physics::Force;
 use oc_root::{Client, physics::MetersSeconds};
 use oc_utils::d2::Direction;
-use oc_world::World;
 
-use crate::{runner, state::State, utils::context::Context};
+use crate::{runner, utils::context::Context};
 
 mod move_;
 pub mod physics;
@@ -123,8 +122,8 @@ impl<'a, E: Client> Processor<'a, E> {
         match individual.can_follow_order() {
             // TODO: things which can prohibe follow order
             true => match order {
-                None => Intent::Idle,
-                Some(Order::Idle) => Intent::Idle,
+                None => Intent::Idle(Direction::NORTH),
+                Some(Order::Idle) => Intent::Idle(Direction::NORTH),
                 Some(Order::MoveTo(position)) => Intent::MoveTo(position.clone()),
             },
             false => individual.intent.clone(),
@@ -137,7 +136,7 @@ impl<'a, E: Client> Processor<'a, E> {
         let individual = world.individual(self.i);
 
         match intent {
-            Intent::Idle => Behavior::Idle,
+            Intent::Idle(direction) => Behavior::Idle(direction.clone()),
             Intent::MoveTo(position) => {
                 // TODO: path finding, etc
                 let from = Vec2::new(individual.position[0], individual.position[1]);
@@ -150,14 +149,14 @@ impl<'a, E: Client> Processor<'a, E> {
 
     fn gesture(&self, behavior: &Behavior) -> Gesture {
         match behavior {
-            Behavior::Idle => Gesture::Idle,
-            Behavior::Walk(_) => Gesture::Walking,
+            Behavior::Idle(direction) => Gesture::Idle(direction.clone()),
+            Behavior::Walk(direction) => Gesture::Walking(direction.clone()),
         }
     }
 
     fn forces(&self, behavior: &Behavior) -> Vec<Force> {
         match behavior {
-            Behavior::Idle => vec![],
+            Behavior::Idle(_) => vec![],
             Behavior::Walk(direction) => {
                 // FIXME BSN NOW: z (tile z)
                 let direction = Vec2::from(direction.clone()).extend(0.);

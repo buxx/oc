@@ -33,7 +33,18 @@ impl Xy {
     }
 }
 
-#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    serde::Serialize,
+    serde::Deserialize,
+    PartialEq,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Angle(pub f32);
 
 impl Angle {
@@ -215,8 +226,12 @@ pub struct Position {
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Direction {
-    x: f32,
-    y: f32,
+    pub x: f32,
+    pub y: f32,
+}
+
+impl Direction {
+    pub const NORTH: Self = Self::new(0., 1.);
 }
 
 impl From<Direction> for Vec2 {

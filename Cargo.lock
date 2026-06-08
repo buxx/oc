@@ -5386,7 +5386,9 @@ dependencies = [
 name = "oc_individual"
 version = "0.1.0"
 dependencies = [
+ "bevy",
  "derive_more",
+ "glam 0.32.1",
  "oc_geo",
  "oc_mod",
  "oc_physics",

@@ -61,8 +61,10 @@ pub fn on_insert_individual(
     tracing::trace!(name="spawn-individual", i=?individual.0, position=?individual.1.position);
 
     let sprite = animations.sprite();
-    let animation = SoldierAnimationInfos::new(Side::A, individual.1.status, individual.1.gesture)
-        .animation(&animations);
+    let gesture = individual.1.gesture.clone();
+    let status = individual.1.status;
+    let rotation = gesture.rotation();
+    let animation = SoldierAnimationInfos::new(Side::A, status, gesture).animation(&animations);
     let position = individual.1.position;
 
     let entity = commands
@@ -74,7 +76,7 @@ pub fn on_insert_individual(
             Behavior(individual.1.behavior.clone()),
             Forces(individual.1.forces.clone()),
             Status(individual.1.status),
-            Gesture(individual.1.gesture),
+            Gesture(individual.1.gesture.clone()),
             Volume(individual.1.volume(position, &g.w, &g.mod_).clone()),
             sprite,
             SpritesheetAnimation::new(animation),
@@ -82,7 +84,7 @@ pub fn on_insert_individual(
                 individual.1.position[0],
                 individual.1.position[1].to_gui_y(&g.w),
                 Z_INDIVIDUAL,
-            ),
+            ), // .rotate(rotation),
         ))
         .id();
     state.insert(individual.0, entity);
@@ -90,21 +92,26 @@ pub fn on_insert_individual(
 
 fn on_refresh_render(
     individual: On<RefreshRender>,
-    mut query: Query<(&Status, &Gesture, &mut SpritesheetAnimation), With<IndividualIndex>>,
+    mut query: Query<
+        (&Status, &Gesture, &mut SpritesheetAnimation, &mut Transform),
+        With<IndividualIndex>,
+    >,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
     animations: Res<SoldierAnimations>,
 ) {
     let Some(entity) = state.get(&individual.0) else {
         return;
     };
-    let Ok((status, gesture, mut animation)) = query.get_mut(*entity) else {
+    let Ok((status, gesture, mut animation, mut transform)) = query.get_mut(*entity) else {
         return;
     };
 
-    let animation_ = SoldierAnimationInfos::new(Side::A, status.0, gesture.0);
+    let animation_ = SoldierAnimationInfos::new(Side::A, status.0, gesture.0.clone());
     let animation_ = animation_.animation(&animations);
+    let rotation = gesture.rotation();
 
     animation.switch(animation_);
+    // transform.rotation = rotation;
 }
 
 pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Commands) {

@@ -6,7 +6,7 @@ use std::{
 #[cfg(feature = "perfs")]
 use crate::perf::Perf;
 use oc_geo::tile::WorldTileIndex;
-use oc_individual::{IndividualIndex, order::Order, squad::SquadIndex};
+use oc_individual::IndividualIndex;
 use oc_mod::Mod;
 use oc_projectile::ProjectileId;
 use oc_root::{Client, WorldConfig, ids::Ids};
