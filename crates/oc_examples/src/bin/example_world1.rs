@@ -1,22 +1,10 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
-use oc_examples::{
-    logging, run,
-    snapshot::{EmptyGenerator, SnapshotBuilder},
-};
-use oc_geo::{
-    region::RegionXy,
-    tile::{TileXy, WorldTileIndex},
-};
-use oc_individual::{
-    Gesture, Individual, Status,
-    behavior::{Behavior, Intent},
-};
+use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
-use oc_projectile::Projectile;
-use oc_root::{WcfgFrom, WcfgInto, WorldConfig, physics::Meters};
-use oc_world::{meta::Meta, tile::Tile};
+use oc_root::{WorldConfig, physics::Meters};
+use oc_world::meta::Meta;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
@@ -31,8 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         map.height().unwrap() as u64,
         Meters(meta.geo_meters_per_z),
     );
-    let projectiles = EmptyGenerator::<Projectile>::new();
-    let snapshot = SnapshotBuilder::new(map, individuals, projectiles).build(w, &mod_)?;
+    let snapshot = SnapshotBuilder::new(map, vec![], vec![], vec![]).build(w, &mod_)?;
 
     let example = run::Example::builder()
         .world(PathBuf::from("examples/world1"))
@@ -41,31 +28,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     example.build().run()?;
 
     Ok(())
-}
-
-fn individuals(w: &WorldConfig, tiles: &Vec<Tile>) -> Vec<Individual> {
-    (0..10)
-        .map(|i| {
-            let tile_i = WorldTileIndex(i as u64);
-            let tile_xy = TileXy::from_(tile_i, w);
-            let tile = &tiles[tile_i.0 as usize];
-
-            let position = [
-                ((tile_xy.0.0 * w.geo_pixels_per_tile) + w.geo_pixels_per_tile / 2) as f32,
-                ((tile_xy.0.1 * w.geo_pixels_per_tile) + w.geo_pixels_per_tile / 2) as f32,
-                tile.z as f32,
-            ];
-            let region: RegionXy = tile_xy.into_(w);
-            Individual::new(
-                position,
-                tile_xy.into_(w),
-                region.into_(w),
-                Behavior::Idle,
-                vec![],
-                Status::Operational,
-                Gesture::Idle,
-                Intent::Idle,
-            )
-        })
-        .collect()
 }

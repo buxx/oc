@@ -5,13 +5,12 @@ use oc_geo::{
 };
 use oc_individual::{
     Individual, IndividualIndex,
-    order::Order,
     squad::{Squad, SquadIndex},
 };
 use oc_mod::Mod;
 use oc_projectile::{Projectile, ProjectileId};
 use oc_root::{WcfgInto, WorldConfig};
-use oc_utils::d2::{Position, Xy};
+use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
 
 use crate::{meta::Meta, tile::Tile};

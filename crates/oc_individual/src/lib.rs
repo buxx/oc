@@ -17,6 +17,7 @@ use oc_physics::volume::Volume;
 use oc_root::WorldConfig;
 use oc_root::physics::Meters;
 use oc_utils::collections::WithIds;
+use oc_utils::d2::Direction;
 use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::behavior::Behavior;
@@ -201,12 +202,29 @@ impl Status {
     }
 }
 
-#[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Gesture {
-    Idle,
-    Walking, // FIXME BS NOW: angle / rotation
-    Running,
-    Crawling,
-    Lying,
+    Idle(Direction),
+    Walking(Direction),
+    Running(Direction),
+    Crawling(Direction),
+    Lying(Direction),
+}
+
+#[cfg(feature = "bevy")]
+impl Gesture {
+    pub fn rotation(&self) -> bevy::prelude::Quat {
+        let direction = match self {
+            Gesture::Idle(direction)
+            | Gesture::Walking(direction)
+            | Gesture::Running(direction)
+            | Gesture::Crawling(direction)
+            | Gesture::Lying(direction) => direction,
+        };
+
+        // Remove FRAC_PI_2 because bevy display sprite aligned Est by default
+        let angle = direction.y.atan2(direction.x) - std::f32::consts::FRAC_PI_2;
+        bevy::prelude::Quat::from_rotation_z(angle)
+    }
 }

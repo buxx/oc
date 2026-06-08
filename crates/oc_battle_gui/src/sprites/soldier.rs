@@ -229,11 +229,11 @@ impl IntoAnimation<SoldierAnimations> for SoldierAnimationInfos {
 
         match status {
             oc_individual::Status::Operational => match gesture {
-                oc_individual::Gesture::Idle => animations.idle(*side),
-                oc_individual::Gesture::Walking => animations.walking(*side),
-                oc_individual::Gesture::Running => animations.running(*side),
-                oc_individual::Gesture::Crawling => animations.crawling(*side),
-                oc_individual::Gesture::Lying => animations.lying(*side),
+                oc_individual::Gesture::Idle(_) => animations.idle(*side),
+                oc_individual::Gesture::Walking(_) => animations.walking(*side),
+                oc_individual::Gesture::Running(_) => animations.running(*side),
+                oc_individual::Gesture::Crawling(_) => animations.crawling(*side),
+                oc_individual::Gesture::Lying(_) => animations.lying(*side),
             },
             oc_individual::Status::Dead => animations.dead_lying(*side),
         }

@@ -33,7 +33,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         map.height().unwrap() as u64,
         Meters(meta.geo_meters_per_z),
     );
-    let snapshot = SnapshotBuilder::new(map.clone(), vec![], vec![]).build(w.clone(), &mod__)?;
+    let snapshot =
+        SnapshotBuilder::new(map.clone(), vec![], vec![], vec![]).build(w.clone(), &mod__)?;
     let config = ServerConfig::builder()
         .world(world.clone())
         .mod_(mod_.clone())

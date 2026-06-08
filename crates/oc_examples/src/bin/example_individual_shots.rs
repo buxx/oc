@@ -13,12 +13,12 @@ use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
 };
-use oc_individual::{IndividualIndex, order::Order, squad::Squad};
+use oc_individual::{IndividualIndex, order::Order};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::{WcfgFrom, WorldConfig, physics::Meters};
-use oc_utils::d2::Xy;
+use oc_utils::d2::{Direction, Xy};
 use oc_world::{meta::Meta, tile::Tile};
 
 #[derive(Parser, Debug, Clone)]
@@ -127,11 +127,11 @@ fn individuals(
                 tile,
                 WorldRegionIndex(0),
                 vec![],
-                oc_individual::behavior::Behavior::Idle,
+                oc_individual::behavior::Behavior::Idle(Direction::NORTH),
                 vec![],
                 oc_individual::Status::Operational,
-                oc_individual::Gesture::Idle,
-                oc_individual::behavior::Intent::Idle,
+                oc_individual::Gesture::Idle(Direction::NORTH),
+                oc_individual::behavior::Intent::Idle(Direction::NORTH),
             )
         })
         .collect();

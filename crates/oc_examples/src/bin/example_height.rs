@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         map.height().unwrap() as u64,
         Meters(meta.geo_meters_per_z),
     );
-    let snapshot = SnapshotBuilder::new(map, vec![], vec![]).build(w, &mod_)?;
+    let snapshot = SnapshotBuilder::new(map, vec![], vec![], vec![]).build(w, &mod_)?;
 
     let example = run::Example::builder()
         .world(PathBuf::from("examples/height"))

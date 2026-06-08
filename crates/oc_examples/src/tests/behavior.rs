@@ -13,7 +13,7 @@ use oc_geo::{
 };
 use oc_individual::{IndividualIndex, network::Individual, order::Order, squad::Squad};
 use oc_root::{WcfgFrom, WorldConfig, physics::Meters};
-use oc_utils::d2::Xy;
+use oc_utils::d2::{Direction, Xy};
 use oc_world::{meta::Meta, tile::Tile};
 
 use crate::{run, snapshot::SnapshotBuilder};
@@ -71,11 +71,11 @@ fn individuals(
                 tile_i,
                 WorldRegionIndex(0),
                 vec![],
-                oc_individual::behavior::Behavior::Idle,
+                oc_individual::behavior::Behavior::Idle(Direction::NORTH),
                 vec![],
                 oc_individual::Status::Operational,
-                oc_individual::Gesture::Idle,
-                oc_individual::behavior::Intent::Idle,
+                oc_individual::Gesture::Idle(Direction::NORTH),
+                oc_individual::behavior::Intent::Idle(Direction::NORTH),
             )
         })
         .collect()
