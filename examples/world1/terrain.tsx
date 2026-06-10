@@ -86,4 +86,9 @@
    <property name="ID" value="MiddleRock"/>
   </properties>
  </tile>
+ <tile id="203">
+  <properties>
+   <property name="ID" value="BigRock"/>
+  </properties>
+ </tile>
 </tileset>
