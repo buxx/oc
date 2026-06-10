@@ -4,6 +4,7 @@ use oc_examples::{logging, tests::behavior};
 use oc_individual::order::Order;
 use oc_utils::d2::Position;
 
+#[cfg(feature = "test")]
 const POSITION_TOLERANCE: f32 = 3.0;
 
 #[derive(Parser, Debug, Clone)]
