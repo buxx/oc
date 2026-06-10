@@ -84,4 +84,9 @@
         opacity: 0.15,
         z: Meters(0.8)
     ),
+    (
+        name: "BigRock",
+        opacity: 1.0,
+        z: Meters(2.5)
+    ),
 ]
