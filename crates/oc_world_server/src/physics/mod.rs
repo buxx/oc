@@ -97,10 +97,12 @@ impl<'x, E: Client> Processor<'x, E> {
         let updates = chunk
             .iter()
             .map(|(i, subject)| {
+                // dbg!(self.ctx.state.w.physics_coeff_per_tick);
                 let (position, forces, events_) = oc_physics::step(
                     &self.ctx.state.w,
                     &self.ctx.state._mod,
-                    self.ctx.state.w.physics_coeff_per_tick, (*i, *subject),
+                    self.ctx.state.w.physics_coeff_per_tick,
+                    (*i, *subject),
                     objects,
                     "server"
                 );
@@ -134,12 +136,14 @@ impl<'x, E: Client> Processor<'x, E> {
             .into_iter()
             .flat_map(|(i, updates)| updates.into_iter().map(move |update| (i, update)))
             .filter_map(|(i, update)| {
+                println!("PHYSICS::WRITE::take");
                 let mut world = self.ctx.state.world_mut();
                 let Some(subject) = i.into_subject_mut(&mut world) else {
                     return None; // TODO: its possible ? What to do ? Simply log ?
                 };
                 let effect = write(&update, subject);
 
+                println!("PHYSICS::WRITE::release");
                 Some((i, effect, update))
             })
             .collect()

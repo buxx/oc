@@ -40,12 +40,12 @@ pub fn navmesh(w: &WorldConfig, grid: &[bool]) -> Mesh {
                 let x = col as f32 * tile_size;
                 let y = row as f32 * tile_size;
 
-                dbg!([
-                    [x, y],
-                    [x, y + tile_size],
-                    [x + tile_size, y + tile_size],
-                    [x + tile_size, y],
-                ]);
+                // dbg!([
+                //     [x, y],
+                //     [x, y + tile_size],
+                //     [x + tile_size, y + tile_size],
+                //     [x + tile_size, y],
+                // ]);
                 triangulation.add_obstacle([
                     [x, y].into(),
                     [x, y + tile_size].into(),

@@ -6,10 +6,10 @@ edition = "2024"
 [features]
 bevy = ["dep:bevy"]
 tiled = ["dep:tiled"]
-# image = ["dep:image"]
+debug = ["dep:backtrace"]
 
 [dependencies]
-image.workspace = true                        # should be optional because used only by binoc_root = { path = "../oc_root" }
+image.workspace = true                            # should be optional because used only by binoc_root = { path = "../oc_root" }
 rkyv.workspace = true
 tracing.workspace = true
 bevy = { workspace = true, optional = true }
@@ -21,3 +21,5 @@ serde_derive.workspace = true
 geo.workspace = true
 tiled = { workspace = true, optional = true }
 anyhow.workspace = true
+backtrace = { workspace = true, optional = true }
+uuid.workspace = true

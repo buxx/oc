@@ -195,7 +195,7 @@ impl<'a, E: Client> Processor<'a, E> {
                     let from = Vec2::new(individual.position[0], individual.position[1]);
                     let to = Vec2::new(position.x, position.y);
                     let path = world.navmesh.path(from, to);
-                    dbg!(&path);
+                    // dbg!(&path);
                     match path {
                         Some(path) => Intent::MoveTo(position.clone(), MovePath::from(path)),
                         None => Intent::Idle(Direction::NORTH),
@@ -236,7 +236,7 @@ impl<'a, E: Client> Processor<'a, E> {
             Behavior::Walk(direction) => {
                 // FIXME BSN NOW: z (tile z)
                 let direction = Vec2::from(direction.clone()).extend(0.);
-                dbg!(&direction);
+                // dbg!(&direction);
                 // FIXME BSN NOW: speed (according to behavior, tile)
                 vec![Force::Translation(direction.into(), MetersSeconds(1.0))]
             }

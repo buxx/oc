@@ -55,8 +55,11 @@ impl<E: Client> super::State<E> {
         i: IndividualIndex,
         update: oc_individual::Update,
     ) -> Vec<(Listening, Vec<ToClient>)> {
+        println!("RUNNER::INDIV::WRITE::take");
         let mut world = self.world_mut();
-        crate::individual::update::write(&mut world, update, i)
+        let x = crate::individual::update::write(&mut world, update, i);
+        println!("RUNNER::INDIV::WRITE::release");
+        x
     }
 
     fn update_squad(
@@ -64,15 +67,18 @@ impl<E: Client> super::State<E> {
         i: SquadIndex,
         update: oc_individual::squad::Update,
     ) -> Vec<(Listening, Vec<ToClient>)> {
+        println!("RUNNER::SQUAD::WRITE::take");
         let mut world = self.world_mut();
 
-        match update {
+        let x = match update {
             oc_individual::squad::Update::Accomplished => {
                 let squad = world.squad_mut(i);
                 squad.orders.pop();
                 vec![]
             }
-        }
+        };
+        println!("RUNNER::SQUAD::WRITE::release");
+        x
     }
 
     fn spawn_projectile(
@@ -90,12 +96,14 @@ impl<E: Client> super::State<E> {
 
         // Make both insert and update index at same clock to lock at the same time
         {
+            println!("RUNNER::PROJ::WRITE::take");
             let mut world = self.world_mut();
             let mut indexes = self.indexes_mut();
             let projectiles = world.projectiles_mut();
 
             projectiles.insert(i, projectile.clone());
             indexes.insert_projectile(i, &projectile);
+            println!("RUNNER::PROJ::WRITE::release");
         }
 
         // Broadcast the new projectile (TODO: normalize/refactor to not call loop manually ?)
@@ -121,15 +129,19 @@ impl<E: Client> super::State<E> {
 
     fn remove_projectile(&self, id: ProjectileId) -> Vec<(Listening, Vec<ToClient>)> {
         let projectile = {
+            println!("RUNNER::PROJ2::WRITE::take");
             let mut world = self.world_mut();
             let mut indexes = self.indexes_mut();
 
-            if let Some(projectile) = world.projectiles_mut().remove(&id) {
+            let x = if let Some(projectile) = world.projectiles_mut().remove(&id) {
                 indexes.remove_projectile(&id, &projectile);
                 Some(projectile)
             } else {
                 None
-            }
+            };
+
+            println!("RUNNER::PROJ2::WRITE::take");
+            x
         };
 
         if let Some(projectile) = projectile {

@@ -88,6 +88,11 @@ impl<E: Client> Runner<E> {
                         ctx.state.perf.set_physic_percent(i, 1. - percent);
                     }
 
+                    tracing::trace!(
+                        name = "runner-physics-sleep",
+                        i = i,
+                        wait = wait as f32 / 1_000_000.0
+                    );
                     std::thread::sleep(Duration::from_micros(wait));
                     last = Instant::now();
 
