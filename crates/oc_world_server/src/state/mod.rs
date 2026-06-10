@@ -1,5 +1,5 @@
 use std::{
-    sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{Arc, Mutex, MutexGuard},
     time::Instant,
 };
 
@@ -13,7 +13,12 @@ use oc_root::{Client, WorldConfig, ids::Ids};
 use oc_world::{World, load::WorldLoader, snapshot::Snapshot};
 use serde::{Deserialize, Serialize};
 
-use crate::{config::ServerConfig, index::Indexes, routing::Listeners, runner::update::Update};
+use crate::{
+    config::ServerConfig, index::Indexes, routing::Listeners, runner::update::Update, rw_lock,
+    rw_lock_imports,
+};
+
+rw_lock_imports!();
 
 #[derive(Clone)]
 pub struct State<E: Client> {
@@ -32,9 +37,9 @@ impl<E: Client> State<E> {
     pub fn new(w: WorldConfig, ids: Ids, mod_: Mod, world: World) -> Self {
         #[cfg(feature = "perfs")]
         let perf = Arc::new(Perf::default());
-        let indexes = Arc::new(RwLock::new(Indexes::new(&world)));
-        let world = Arc::new(RwLock::new(world));
-        let listeners = Arc::new(RwLock::new(Listeners::new(&w)));
+        let indexes = Arc::new(rw_lock!(Indexes::new(&world)));
+        let world = Arc::new(rw_lock!(world));
+        let listeners = Arc::new(rw_lock!(Listeners::new(&w)));
         let scheduled = Arc::new(Mutex::new(vec![]));
 
         Self {
@@ -59,6 +64,7 @@ impl<E: Client> State<E> {
     }
 
     pub fn world_mut(&self) -> RwLockWriteGuard<'_, World> {
+        // println!("DEBUG::3");
         self.world.write().expect("Assume lock")
     }
 
@@ -67,6 +73,7 @@ impl<E: Client> State<E> {
     }
 
     pub fn indexes_mut(&self) -> RwLockWriteGuard<'_, Indexes> {
+        // println!("DEBUG::1");
         self.indexes.write().expect("Assume lock")
     }
 
@@ -75,6 +82,7 @@ impl<E: Client> State<E> {
     }
 
     pub fn listeners_mut(&self) -> RwLockWriteGuard<'_, Listeners<E>> {
+        // println!("DEBUG::2");
         self.listeners.write().expect("Assume lock")
     }
 

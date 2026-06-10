@@ -6,10 +6,11 @@ use oc_individual::{
     order::Order,
 };
 use oc_physics::Force;
-use oc_root::{Client, physics::MetersSeconds};
+use oc_root::physics::MetersSeconds;
 use oc_utils::{d2::Direction, number::almost_equal};
+use oc_world::World;
 
-use crate::{runner, utils::context::Context};
+use crate::{index::Indexes, runner};
 
 mod move_;
 pub mod physics;
@@ -18,20 +19,19 @@ pub mod update;
 const POSITION_TOLERANCE: f32 = 3.0;
 
 #[derive(Constructor)]
-pub struct Processor<'a, E: Client> {
-    ctx: &'a Context<E>,
+pub struct Processor<'a> {
+    world: &'a World,
+    index: &'a Indexes,
     i: IndividualIndex,
 }
 
 // TODO: a lot of repetition (and locking) due to function split. Find another solution (perf problem ?)
-impl<'a, E: Client> Processor<'a, E> {
+impl<'a> Processor<'a> {
     pub fn step(self) -> Vec<runner::update::Update> {
         tracing::trace!(name="individual-step", i=?self.i);
         let mut updates = vec![];
 
-        let state = &self.ctx.state;
-        let world = state.world();
-        let individual = world.individual(self.i);
+        let individual = self.world.individual(self.i);
         if !individual.status.can_step() {
             tracing::trace!(name="individual-step-cant-step", i=?self.i);
             return vec![];
@@ -59,7 +59,7 @@ impl<'a, E: Client> Processor<'a, E> {
 
         // Dispatch orders to members if not already own it
         for (member_i, orders) in distribute {
-            let member = world.individual(member_i);
+            let member = self.world.individual(member_i);
             if member.orders != orders {
                 let update = Update::SetOrders(orders);
                 let update = runner::update::Update::UpdateIndividual(self.i, update);
@@ -97,26 +97,19 @@ impl<'a, E: Client> Processor<'a, E> {
     }
 
     fn is_squad_leader(&self) -> bool {
-        let state = &self.ctx.state;
-        let index = state.indexes();
-        let world = state.world();
-
-        let squad_i = index.individual_squad(self.i);
-        let squad = world.squad(squad_i);
+        let squad_i = self.index.individual_squad(self.i);
+        let squad = self.world.squad(squad_i);
         // TODO: test if is the squad leader (if its too CPU consuming, manage boolean in individual ?)
         squad.members.first() == Some(&self.i)
     }
 
     fn accomplished(&self) -> Option<Vec<runner::update::Update>> {
-        let state = &self.ctx.state;
-        let world = state.world();
-        let individual = world.individual(self.i);
+        let individual = self.world.individual(self.i);
         let Some(order) = individual.orders.first() else {
             tracing::trace!(name = "individual-step-accomplished-no-order", i=?self.i);
             return None;
         };
-        let index = state.indexes();
-        let squad_i = index.individual_squad(self.i);
+        let squad_i = self.index.individual_squad(self.i);
         let is_squad_leader = self.is_squad_leader();
 
         match is_squad_leader {
@@ -156,12 +149,8 @@ impl<'a, E: Client> Processor<'a, E> {
     }
 
     fn distribute(&self) -> Vec<(IndividualIndex, Vec<Order>)> {
-        let state = &self.ctx.state;
-        let index = state.indexes();
-        let world = state.world();
-
-        let squad_i = index.individual_squad(self.i);
-        let squad = world.squad(squad_i);
+        let squad_i = self.index.individual_squad(self.i);
+        let squad = self.world.squad(squad_i);
         // TODO: test if is the squad leader (if its too CPU consuming, manage boolean in individual ?)
         if !self.is_squad_leader() {
             tracing::trace!(name="individual-step-distribute-not-leader", i=?self.i);
@@ -181,9 +170,7 @@ impl<'a, E: Client> Processor<'a, E> {
     }
 
     fn decide(&self) -> Intent {
-        let state = &self.ctx.state;
-        let world = state.world();
-        let individual = world.individual(self.i);
+        let individual = self.world.individual(self.i);
         let order = individual.orders.first();
 
         match individual.can_follow_order() {
@@ -194,8 +181,8 @@ impl<'a, E: Client> Processor<'a, E> {
                     // FIXME BS NOW: do not recompute each time the path, use cached one and, regurlarly compute new one
                     let from = Vec2::new(individual.position[0], individual.position[1]);
                     let to = Vec2::new(position.x, position.y);
-                    let path = world.navmesh.path(from, to);
-                    dbg!(&path);
+                    let path = self.world.navmesh.path(from, to);
+                    // dbg!(&path);
                     match path {
                         Some(path) => Intent::MoveTo(position.clone(), MovePath::from(path)),
                         None => Intent::Idle(Direction::NORTH),
@@ -207,9 +194,7 @@ impl<'a, E: Client> Processor<'a, E> {
     }
 
     fn act(&self, intent: &Intent) -> Behavior {
-        let state = &self.ctx.state;
-        let world = state.world();
-        let individual = world.individual(self.i);
+        let individual = self.world.individual(self.i);
 
         match intent {
             Intent::Idle(direction) => Behavior::Idle(direction.clone()),
@@ -236,7 +221,7 @@ impl<'a, E: Client> Processor<'a, E> {
             Behavior::Walk(direction) => {
                 // FIXME BSN NOW: z (tile z)
                 let direction = Vec2::from(direction.clone()).extend(0.);
-                dbg!(&direction);
+                // dbg!(&direction);
                 // FIXME BSN NOW: speed (according to behavior, tile)
                 vec![Force::Translation(direction.into(), MetersSeconds(1.0))]
             }

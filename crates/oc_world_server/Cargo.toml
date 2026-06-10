@@ -5,6 +5,7 @@ edition = "2024"
 
 [features]
 debug = ["oc_network/debug", "oc_projectile/debug"]
+debug_locks = ["oc_utils/debug"]
 perfs = []
 tracker = []
 

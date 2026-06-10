@@ -97,10 +97,12 @@ impl<'x, E: Client> Processor<'x, E> {
         let updates = chunk
             .iter()
             .map(|(i, subject)| {
+                // dbg!(self.ctx.state.w.physics_coeff_per_tick);
                 let (position, forces, events_) = oc_physics::step(
                     &self.ctx.state.w,
                     &self.ctx.state._mod,
-                    self.ctx.state.w.physics_coeff_per_tick, (*i, *subject),
+                    self.ctx.state.w.physics_coeff_per_tick,
+                    (*i, *subject),
                     objects,
                     "server"
                 );

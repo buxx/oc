@@ -2,6 +2,8 @@
 pub mod bevy;
 pub mod collections;
 pub mod d2;
+#[cfg(feature = "debug")]
+pub mod debug;
 pub mod error;
 pub mod image;
 pub mod number;

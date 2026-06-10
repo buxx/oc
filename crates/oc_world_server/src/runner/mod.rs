@@ -88,6 +88,11 @@ impl<E: Client> Runner<E> {
                         ctx.state.perf.set_physic_percent(i, 1. - percent);
                     }
 
+                    tracing::trace!(
+                        name = "runner-physics-sleep",
+                        i = i,
+                        wait = wait as f32 / 1_000_000.0
+                    );
                     std::thread::sleep(Duration::from_micros(wait));
                     last = Instant::now();
 
@@ -154,7 +159,11 @@ impl<E: Client> Runner<E> {
                             let i = IndividualIndex(*i as u64);
                             tracing::trace!(name = "runner-individual", i = ?i);
 
-                            for update in individual::Processor::new(&ctx, i).step() {
+                            for update in {
+                                let world = &ctx.state.world();
+                                let indexes = &ctx.state.indexes();
+                                individual::Processor::new(world, indexes, i).step()
+                            } {
                                 update::update(&ctx, update);
                             }
 
