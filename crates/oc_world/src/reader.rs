@@ -429,7 +429,13 @@ impl MapReader {
                         "Terrain nature ID '{id}' unknown from mod"
                     )))?;
                 let i = WorldTileIndex(tile_id);
-                let tile = Tile { i, nature, z };
+                let prohibe = mod_.nature(nature).prohibe.clone();
+                let tile = Tile {
+                    i,
+                    nature,
+                    z,
+                    prohibe,
+                };
 
                 tiles.push(tile);
                 tile_id += 1;

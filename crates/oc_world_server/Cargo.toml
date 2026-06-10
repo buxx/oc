@@ -15,7 +15,7 @@ oc_geo = { path = "../oc_geo" }
 oc_world = { path = "../oc_world" }
 oc_network = { path = "../oc_network" }
 oc_mod = { path = "../oc_mod" }
-oc_individual = { path = "../oc_individual" }
+oc_individual = { path = "../oc_individual", features = ["polyanya"] }
 oc_projectile = { path = "../oc_projectile" }
 oc_physics = { path = "../oc_physics" }
 derive_more = { workspace = true, features = ["constructor"] }
@@ -38,6 +38,7 @@ glam.workspace = true
 bon.workspace = true
 anyhow.workspace = true
 ctrlc.workspace = true
+polyanya.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true

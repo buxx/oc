@@ -4,6 +4,7 @@ use oc_examples::{logging, tests::behavior};
 use oc_individual::order::Order;
 use oc_utils::d2::Position;
 
+#[cfg(feature = "test")]
 const POSITION_TOLERANCE: f32 = 3.0;
 
 #[derive(Parser, Debug, Clone)]
@@ -18,7 +19,8 @@ struct Args {
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum TestCase {
-    StraightAhead,
+    MoveStraightAhead,
+    MoveStraightAheadObstacle,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,7 +35,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let setup = match args.case {
-        TestCase::StraightAhead => vec![([150., 150.], Order::MoveTo(Position::new(180., 150.)))],
+        TestCase::MoveStraightAhead => {
+            vec![([150., 150.], Order::MoveTo(Position::new(180., 150.)))]
+        }
+        TestCase::MoveStraightAheadObstacle => {
+            vec![([160., 415.], Order::MoveTo(Position::new(235., 415.)))]
+        }
     };
 
     let behavior = behavior::run().setup(setup);
@@ -64,7 +71,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let mut move_done = MOVE_DONE.lock().unwrap();
                         *move_done = match *move_done {
                             None => match args.case {
-                                TestCase::StraightAhead => {
+                                TestCase::MoveStraightAhead => {
                                     individuals.iter().next().and_then(|position| {
                                         (almost_equal(position.0[0], 180., POSITION_TOLERANCE)
                                             && almost_equal(
@@ -94,7 +101,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
             }),
             Box::new(move |tracker| match args.case {
-                TestCase::StraightAhead => {
+                TestCase::MoveStraightAhead => {
                     let tracker = tracker.take();
 
                     let accomplished = (

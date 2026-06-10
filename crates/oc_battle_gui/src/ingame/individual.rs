@@ -8,6 +8,7 @@ use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
 
 use crate::entity::individual::{Behavior, IndividualIndex, Orders};
+use crate::ingame;
 use crate::ingame::draw::Z_INDIVIDUAL;
 use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
@@ -15,7 +16,7 @@ use crate::ingame::input::individual::{
 use crate::ingame::region::ForgottenRegion;
 use crate::sprites::IntoAnimation;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
-use crate::states::GameConfig;
+use crate::states::{AppState, GameConfig};
 
 #[derive(Debug, Deref, Event)]
 pub struct ForgotIndividual(pub oc_individual::IndividualIndex);
@@ -175,7 +176,12 @@ impl Plugin for IndividualPlugin {
             .add_observer(on_set_status_event)
             .add_observer(on_set_orders_event)
             .add_observer(on_accomplished_event)
-            .add_observer(on_refresh_render);
+            .add_observer(on_refresh_render)
+            .add_systems(
+                Update,
+                ingame::physics::physics_step::<oc_individual::IndividualIndex, IndividualIndex>
+                    .run_if(in_state(AppState::InGame)),
+            );
     }
 }
 

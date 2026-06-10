@@ -4,12 +4,11 @@ use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
 };
-use oc_mod::{Mod, nature::NatureIndex};
-use oc_physics::{
-    Force, Physic,
-    collision::{Material, Materials},
-    volume::Volume,
+use oc_mod::{
+    Mod,
+    nature::{NatureIndex, Prohibe},
 };
+use oc_physics::{Force, Physic, collision::Material, volume::Volume};
 use oc_root::{WcfgInto, WorldConfig};
 
 use crate::World;
@@ -24,6 +23,9 @@ pub struct Tile {
     pub i: WorldTileIndex, // Should not be necessary, but oc_physics::step must take a reference ...
     pub nature: NatureIndex,
     pub z: u8,
+    // Copy it from nature for performance consideration.
+    // If it use too much RAM, consider read it through Mod
+    pub prohibe: Prohibe,
 }
 
 impl Tile {
@@ -54,9 +56,8 @@ impl IntoTiles for WorldRegionIndex {
 }
 
 impl Material for Tile {
-    fn material(&self) -> Materials {
-        // TODO: depending on tile
-        Materials::Traversable
+    fn prohibe(&self) -> &Prohibe {
+        &self.prohibe
     }
 }
 

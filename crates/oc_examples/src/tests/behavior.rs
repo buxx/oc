@@ -56,6 +56,7 @@ pub fn run(setup: Vec<([f32; 2], Order)>, tests: (Install, Track)) -> Result<(),
     #[cfg(feature = "test")]
     let example = example.install(tests.0);
 
+    #[allow(unused)]
     let tracker = example.build().run()?;
 
     #[cfg(feature = "test")]

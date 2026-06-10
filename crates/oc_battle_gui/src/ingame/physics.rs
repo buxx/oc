@@ -39,6 +39,7 @@ pub fn physics_step<I, C>(
 
     for (object, mut position, mut forces, material, volume, mut transform) in query {
         let i = object.as_ref();
+        panic!("coucou");
         tracing::trace!(name = "projectile-physics-object", i=?i);
 
         // TODO: Maybe performant bottleneck ?
@@ -55,7 +56,7 @@ pub fn physics_step<I, C>(
             forces.0.clone(),
             material.0,
             volume.0.clone(),
-        ); //, on_physics_event);
+        );
         let (position_, forces_, events) =
             oc_physics::step(&g.w, &g.mod_, delta, (i.clone(), &corps), objects, "gui");
 

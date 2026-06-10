@@ -2,12 +2,9 @@
 mod test {
     use glam::Vec3;
     use oc_geo::tile::WorldTileIndex;
+    use oc_mod::nature::Prohibe;
     use oc_mod::{Mod, nature::NatureIndex};
-    use oc_physics::{
-        Event, Force, Physic,
-        collision::{Material, Materials},
-        volume::Volume,
-    };
+    use oc_physics::{Event, Force, Physic, collision::Material, volume::Volume};
     use oc_root::{
         WorldConfig,
         physics::{Meters, MetersSeconds},
@@ -61,11 +58,7 @@ mod test {
         }
     }
 
-    impl Material for Object {
-        fn material(&self) -> Materials {
-            todo!()
-        }
-    }
+    impl Material for Object {}
 
     #[rstest]
     // Case 1
@@ -121,6 +114,7 @@ mod test {
             i: tile_i,
             nature: NatureIndex(0),
             z: tile_z,
+            prohibe: Prohibe::none(),
         };
 
         let object_i = ObjectId(0);

@@ -9,7 +9,7 @@ use image::imageops::FilterType;
 use oc_geo::region::WorldRegionIndex;
 use oc_mod::Mod;
 use oc_projectile::NextProjectileId;
-use oc_root::{WorldConfig, files, ids::Ids};
+use oc_root::{WorldConfig, files, ids::Ids, material::MaterialKind};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
 
@@ -17,6 +17,7 @@ use crate::{
     World,
     cache::{self, CacheRegionBackgroundError},
     meta::{self, Meta},
+    navmesh::navmesh,
     snapshot::Snapshot,
 };
 
@@ -49,12 +50,24 @@ impl WorldLoader {
             .into_iter()
             .map(|projectile| (ids.next_projectile_id(), projectile))
             .collect();
+        let grid = tiles
+            .iter()
+            .map(|tile| {
+                // FIXME: When vehicle, will need same but for vehicle
+                !mod_
+                    .nature(tile.nature)
+                    .prohibe
+                    .allow(MaterialKind::Individual)
+            })
+            .collect::<Vec<bool>>();
+        let navmesh = navmesh(&w, &grid);
 
         Ok(World::new(
             w,
             mod_,
             meta,
             tiles,
+            navmesh,
             individuals,
             squads,
             projectiles,

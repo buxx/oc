@@ -8,6 +8,7 @@ use crate::physics::Meters;
 pub mod end;
 pub mod files;
 pub mod ids;
+pub mod material;
 pub mod opacity;
 pub mod physics;
 pub mod side;
@@ -49,7 +50,7 @@ impl WorldConfig {
         let region_width = 1000.min(world_width);
         let region_height = 1000.min(world_height);
         let individual_tick_interval_us: u64 = 1_000_000 / 1;
-        let physics_tick_per_seconds: u64 = 10;
+        let physics_tick_per_seconds: u64 = 10; // FIXME BS NOW: si on baisse cette valeur on ne devrait pas voir les choses aller plus doucement !
         let physics_tick_interval_us: u64 = 1_000_000 / physics_tick_per_seconds;
         let physics_coeff_per_tick: f32 = 1. / physics_tick_per_seconds as f32;
         let geo_pixels_per_meters: f32 = 5.;

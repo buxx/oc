@@ -2,7 +2,7 @@ use bevy::color::palettes::css::RED;
 use bevy::prelude::*;
 use oc_geo::region::{Region as _, WorldRegionIndex};
 use oc_physics::Physic;
-use oc_physics::collision::{Material_, Materials};
+use oc_physics::collision::Material_;
 use oc_physics::update::bevy::{
     Forces, PhysicsPlugin, Position, Region, SetPositionEvent, Tile, Volume,
 };
@@ -63,7 +63,7 @@ pub fn on_insert_projectile(
             Tile(projectile.1.tile()),
             Region(projectile.1.region()),
             Forces(projectile.1.forces(&g.w).clone()),
-            Material_(Materials::Traversable),
+            Material_(Some(oc_root::material::MaterialKind::Projectile)),
             Volume(projectile.1.volume(*position, &g.w, &g.mod_).clone()),
             Mesh2d(meshes.add(line)),
             MeshMaterial2d(materials.add(Color::from(RED))),
