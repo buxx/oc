@@ -50,7 +50,9 @@ impl WorldConfig {
         let region_width = 1000.min(world_width);
         let region_height = 1000.min(world_height);
         let individual_tick_interval_us: u64 = 1_000_000 / 1;
-        let physics_tick_per_seconds: u64 = 10; // FIXME BS NOW: si on baisse cette valeur on ne devrait pas voir les choses aller plus doucement !
+        // FIXME: delta is computed statically here (physics_coeff_per_tick) but maybe should
+        // be computed from real eslapsec time between physics iterations
+        let physics_tick_per_seconds: u64 = 5;
         let physics_tick_interval_us: u64 = 1_000_000 / physics_tick_per_seconds;
         let physics_coeff_per_tick: f32 = 1. / physics_tick_per_seconds as f32;
         let geo_pixels_per_meters: f32 = 5.;

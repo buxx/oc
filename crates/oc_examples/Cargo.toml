@@ -5,6 +5,7 @@ edition = "2024"
 
 [features]
 debug = ["oc_network/debug", "oc_world_server/debug"]
+debug_locks = ["oc_utils/debug"]
 test = ["debug", "oc_world_server/tracker"]
 
 [dependencies]
@@ -30,3 +31,4 @@ bevy.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 clap.workspace = true
+parking_lot.workspace = true

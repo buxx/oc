@@ -178,6 +178,7 @@ where
                                         other.volume([other_x, other_y, other_z], w, mod_);
 
                                     tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?step_tile, o=?o, op=?[other_x, other_y, other_z], volume=?volume, volume2=?volume2);
+                                    // FIXME BS NOW: here consider tile prohibe & material kind
                                     if volume.collide(&volume2) {
                                         // FIXME BS NOW: ça collide bien avec la tuile BigRock, mais l'individu continue d'avancer ...?!
                                         tracing::trace!(name="physics-step-translation-collide", origin=origin, i=?i, p=?position, xy=?step_tile);

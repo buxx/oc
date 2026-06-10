@@ -4,10 +4,8 @@ use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
 };
-use oc_mod::{
-    Mod,
-    nature::{NatureIndex, Prohibe},
-};
+use oc_mod::nature::Prohibe;
+use oc_mod::{Mod, nature::NatureIndex};
 use oc_physics::{Force, Physic, collision::Material, volume::Volume};
 use oc_root::{WcfgInto, WorldConfig};
 

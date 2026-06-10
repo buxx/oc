@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_spritesheet_animation::prelude::*;
 use oc_geo::region::WorldRegionIndex;
 use oc_physics::Physic;
+use oc_physics::collision::{Material, Material_};
 use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volume};
 use oc_root::side::Side;
 use oc_root::y::Y;
@@ -82,6 +83,7 @@ pub fn on_insert_individual(
             Status(individual.1.status),
             Gesture(individual.1.gesture.clone()),
             Volume(individual.1.volume(position, &g.w, &g.mod_).clone()),
+            Material_(individual.1.kind()),
             sprite,
             SpritesheetAnimation::new(animation),
             Transform::from_xyz(

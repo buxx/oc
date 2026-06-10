@@ -51,7 +51,8 @@ test:
 test-e2e:
     RUST_LOG=WARN cargo run --bin example_projectiles_wall --features test -- --test
     RUST_LOG=WARN cargo run --bin example_individual_shots --features test -- --test
-    RUST_LOG=WARN cargo run --bin example_individual_behaviors --features test -- straight-ahead --test
+    RUST_LOG=WARN cargo run --bin example_individual_behaviors --features test -- move-straight-ahead --test
+    RUST_LOG=WARN cargo run --bin example_individual_behaviors --features test -- move-straight-ahead-obstacle --test
 
 test-all:
     just test

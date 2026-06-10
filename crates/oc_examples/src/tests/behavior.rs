@@ -16,13 +16,9 @@ use oc_world_server::tracker::Tracker;
 
 use crate::{run, snapshot::SnapshotBuilder};
 
-#[cfg(feature = "test")]
 type Install = Box<dyn Fn(&mut bevy::app::App)>;
 #[cfg(feature = "test")]
 type Track = Box<dyn Fn(Tracker)>;
-
-#[cfg(not(feature = "test"))]
-type Install = ();
 #[cfg(not(feature = "test"))]
 type Track = ();
 
@@ -53,7 +49,6 @@ pub fn run(setup: Vec<([f32; 2], Order)>, tests: (Install, Track)) -> Result<(),
         // }))
         .snapshot(snapshot);
 
-    #[cfg(feature = "test")]
     let example = example.install(tests.0);
 
     #[allow(unused)]
