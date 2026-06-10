@@ -1,25 +1,19 @@
 #[cfg(feature = "bevy")]
 use bevy::prelude::*;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Materials {
-    Solid,
-    Traversable,
-}
-
-impl Materials {
-    pub fn is_solid(&self) -> bool {
-        match self {
-            Materials::Solid => true,
-            Materials::Traversable => false,
-        }
-    }
-}
+use oc_mod::nature::Prohibe;
+use oc_root::material::MaterialKind;
 
 pub trait Material {
-    fn material(&self) -> Materials;
+    fn kind(&self) -> Option<MaterialKind> {
+        None
+    }
+
+    fn prohibe(&self) -> &Prohibe {
+        static PROHIBE_NONE: Prohibe = Prohibe::none();
+        &PROHIBE_NONE
+    }
 }
 
 #[cfg(feature = "bevy")]
 #[derive(Debug, Deref, DerefMut, Component)]
-pub struct Material_(pub Materials);
+pub struct Material_(pub Option<MaterialKind>);

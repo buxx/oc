@@ -10,9 +10,12 @@ pub trait TilesGenerator {
 pub struct SameTileFiller(pub NatureIndex);
 
 impl TilesGenerator for SameTileFiller {
-    fn tiles(&self, w: &WorldConfig, _: &Mod) -> Vec<Tile> {
+    fn tiles(&self, w: &WorldConfig, mod_: &Mod) -> Vec<Tile> {
         (0..w.tiles_count)
-            .map(|i| Tile::new(WorldTileIndex(i), self.0, 0))
+            .map(|i| {
+                let prohibe = mod_.nature(self.0).prohibe.clone();
+                Tile::new(WorldTileIndex(i), self.0, 0, prohibe)
+            })
             .collect()
     }
 }

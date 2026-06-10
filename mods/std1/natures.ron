@@ -2,87 +2,110 @@
     (
         name: "ShortGrass",
         opacity: 0.0,
-        z: Meters(0.0)
+        z: Meters(0.0),
+        prohibe: [],
     ),
     (
         name: "MiddleGrass",
         opacity: 0.002,
-        z: Meters(0.25)
+        z: Meters(0.25),
+        prohibe: [],
     ),
     (
         name: "HighGrass",
         opacity: 0.1,
-        z: Meters(1.0)
+        z: Meters(1.0),
+        prohibe: [],
     ),
     (
         name: "Dirt",
         opacity: 0.0,
-        z: Meters(0.0)
+        z: Meters(0.0),
+        prohibe: [],
     ),
     (
         name: "Mud",
         opacity: 0.0,
-        z: Meters(0.0)
+        z: Meters(0.0),
+        prohibe: [],
     ),
     (
         name: "Sand",
         opacity: 0.0,
-        z: Meters(0.0)
+        z: Meters(0.0),
+        prohibe: [],
     ),
     (
         name: "Gravel",
         opacity: 0.0,
-        z: Meters(0.0)
+        z: Meters(0.0),
+        prohibe: [],
     ),
     (
         name: "Concrete",
         opacity: 0.0,
-        z: Meters(0.0)
+        z: Meters(0.0),
+        prohibe: [],
     ),
     (
         name: "BrickWall",
         opacity: 1.0,
-        z: Meters(2.5)
+        z: Meters(2.5),
+        prohibe: [Individual,Projectile],
     ),
     (
         name: "Trunk",
         opacity: 0.8,
-        z: Meters(4.0)
+        z: Meters(4.0),
+        prohibe: [Individual,Projectile],
     ),
     (
         name: "Water",
         opacity: 0.0,
-        z: Meters(0.0)
+        z: Meters(0.0),
+        prohibe: [],
     ),
     (
         name: "DeepWater",
         opacity: 0.0,
-        z: Meters(0.0)
+        z: Meters(0.0),
+        prohibe: [],
     ),
     (
         name: "Underbrush",
         opacity: 0.025,
-        z: Meters(2.5)
+        z: Meters(2.5),
+        prohibe: [],
     ),
     (
         name: "LightUnderbrush",
         opacity: 0.015,
-        z: Meters(2.5)
+        z: Meters(2.5),
+        prohibe: [],
     ),
     (
         name: "MiddleWoodLogs",
         opacity: 0.015,
-        z: Meters(0.4)
+        z: Meters(0.4),
+        prohibe: [],
     ),
     (
         name: "Hedge",
         opacity: 0.25,
-        z: Meters(2.0)
+        z: Meters(2.0),
+        prohibe: [],
     ),
     (
         name: "MiddleRock",
         opacity: 0.15,
-        z: Meters(0.8)
+        z: Meters(0.8),
+        prohibe: [],
+    ),
+    (
+        name: "BigRock",
+        opacity: 1.0,
+        z: Meters(2.5),
+        prohibe: [Individual,Projectile],
     ),
     (
         name: "BigRock",

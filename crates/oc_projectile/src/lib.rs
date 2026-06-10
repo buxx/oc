@@ -6,12 +6,8 @@ use oc_geo::{
     tile::WorldTileIndex,
 };
 use oc_mod::Mod;
-use oc_physics::{
-    Force, Physic, UpdatePhysic,
-    collision::{Material, Materials},
-    volume::Volume,
-};
-use oc_root::{WorldConfig, ids::Ids};
+use oc_physics::{Force, Physic, UpdatePhysic, collision::Material, volume::Volume};
+use oc_root::{WorldConfig, ids::Ids, material::MaterialKind};
 use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -150,8 +146,8 @@ impl UpdateGeo for Projectile {
 }
 
 impl Material for Projectile {
-    fn material(&self) -> Materials {
-        Materials::Traversable
+    fn kind(&self) -> Option<MaterialKind> {
+        Some(MaterialKind::Projectile)
     }
 }
 

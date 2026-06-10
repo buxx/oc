@@ -12,9 +12,9 @@ use oc_physics::Force;
 use oc_physics::Physic;
 use oc_physics::UpdatePhysic;
 use oc_physics::collision::Material;
-use oc_physics::collision::Materials;
 use oc_physics::volume::Volume;
 use oc_root::WorldConfig;
+use oc_root::material::MaterialKind;
 use oc_root::physics::Meters;
 use oc_utils::collections::WithIds;
 use oc_utils::d2::Direction;
@@ -174,8 +174,8 @@ impl UpdateGeo for Individual {
 }
 
 impl Material for Individual {
-    fn material(&self) -> Materials {
-        Materials::Traversable
+    fn kind(&self) -> Option<MaterialKind> {
+        Some(MaterialKind::Individual)
     }
 }
 

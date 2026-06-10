@@ -5,6 +5,7 @@ edition = "2024"
 
 [features]
 bevy = ["dep:bevy"]
+polyanya = ["dep:polyanya"]
 
 [dependencies]
 oc_root = { path = "../oc_root" }
@@ -18,3 +19,4 @@ serde.workspace = true
 serde_json.workspace = true
 glam.workspace = true
 bevy = { workspace = true, optional = true }
+polyanya = { workspace = true, optional = true }

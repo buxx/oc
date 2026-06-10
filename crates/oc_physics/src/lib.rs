@@ -1,5 +1,5 @@
 use oc_mod::Mod;
-use oc_root::{WorldConfig, physics::MetersSeconds};
+use oc_root::{WorldConfig, material::MaterialKind, physics::MetersSeconds};
 use oc_utils::d2::Xy;
 use rkyv::Archive;
 
@@ -32,7 +32,7 @@ pub struct Corps<I: Clone + std::fmt::Debug> {
     pub i: I,
     position: [f32; 3],
     forces: Vec<Force>,
-    material: collision::Materials,
+    material: Option<MaterialKind>,
     volume: volume::Volume,
 }
 
@@ -41,7 +41,7 @@ impl<I: Clone + std::fmt::Debug> Corps<I> {
         i: I,
         position: [f32; 3],
         forces: Vec<Force>,
-        material: collision::Materials,
+        material: Option<MaterialKind>,
         volume: volume::Volume,
     ) -> Self {
         Self {
@@ -69,7 +69,7 @@ impl<I: Clone + std::fmt::Debug> Physic for Corps<I> {
 }
 
 impl<I: Clone + std::fmt::Debug> collision::Material for Corps<I> {
-    fn material(&self) -> collision::Materials {
+    fn kind(&self) -> Option<MaterialKind> {
         self.material
     }
 }
@@ -110,6 +110,7 @@ where
     let mut events = vec![];
     let mut position = object.position(w);
     let mut forces = vec![];
+    let kind = object.kind();
     tracing::trace!(name="physics-step-start", origin=origin, i=?i, p=?position, forces=?object.forces(w));
 
     'forces: for force in object.forces(w) {
@@ -155,19 +156,30 @@ where
                         | line::Step::Last([step_x, step_y, step_z], step_tile) => {
                             position = [step_x, step_y, step_z];
 
-                            // Test new tile only when line on new tile
+                            // FIXME BS NOW: how individual can be shot if we test it only on tile change ?!
+                            // TODO: maybe test at each pixel ? (but perf ...)
+                            // Test objects only when line on new tile
                             if step_tile != curent_tile {
                                 curent_tile = step_tile;
                                 let volume = object.volume([step_x, step_y, step_z], w, mod_);
                                 tracing::trace!(name="physics-step-translation-newtile", origin=origin, i=?i, p=?position, xy=?step_tile);
 
                                 for (o, other) in at(step_tile) {
+                                    // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
+                                    let kind2 = other.prohibe();
+                                    tracing::trace!(name="physics-step-translation-prohibe-test", origin=origin, i=?i, kind=?kind, kind2=?kind2);
+                                    if kind.map(|kind| kind2.allow(kind)).unwrap_or(true) {
+                                        tracing::trace!(name="physics-step-translation-prohibe-allow", origin=origin, i=?i);
+                                        continue;
+                                    }
+
                                     let [other_x, other_y, other_z] = other.position(w);
                                     let volume2 =
                                         other.volume([other_x, other_y, other_z], w, mod_);
 
                                     tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?step_tile, o=?o, op=?[other_x, other_y, other_z], volume=?volume, volume2=?volume2);
                                     if volume.collide(&volume2) {
+                                        // FIXME BS NOW: ça collide bien avec la tuile BigRock, mais l'individu continue d'avancer ...?!
                                         tracing::trace!(name="physics-step-translation-collide", origin=origin, i=?i, p=?position, xy=?step_tile);
 
                                         let left = i.clone().into();
@@ -209,8 +221,6 @@ mod tests {
     use oc_geo::tile::TileXy;
     use oc_root::{WcfgInto, physics::Meters};
 
-    use crate::collision::Materials;
-
     use super::*;
 
     fn workspace_root() -> PathBuf {
@@ -244,12 +254,12 @@ mod tests {
     }
 
     impl Material for MyObject {
-        fn material(&self) -> Materials {
-            Materials::Traversable
+        fn kind(&self) -> Option<MaterialKind> {
+            None
         }
     }
 
-    struct MyTile(TileXy, Materials);
+    struct MyTile(TileXy);
 
     impl Physic for MyTile {
         fn position(&self, w: &WorldConfig) -> [f32; 3] {
@@ -273,11 +283,7 @@ mod tests {
         }
     }
 
-    impl Material for MyTile {
-        fn material(&self) -> Materials {
-            self.1
-        }
-    }
+    impl Material for MyTile {}
 
     #[test]
     fn test_unidirectional_translation() {
@@ -316,9 +322,9 @@ mod tests {
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
-        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Materials::Solid);
+        let my_traversable_tile = MyTile(TileXy(Xy(0, 0))); // FIXME BS NOW: by nature in mod now
         let my_traversable_tile: Box<&dyn Physic> = Box::new(&my_traversable_tile);
-        let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Materials::Solid);
+        let my_solid_tile = MyTile(TileXy(Xy(1, 0))); // FIXME BS NOW: by nature in mod now
         let my_solid_tile: Box<&dyn Physic> = Box::new(&my_solid_tile);
         let objects = |xy| {
             if xy == Xy(0, 0) {
@@ -376,9 +382,9 @@ mod tests {
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
-        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Materials::Solid);
+        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)));
         let my_traversable_tile: Box<&dyn Physic> = Box::new(&my_traversable_tile);
-        let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Materials::Solid);
+        let my_solid_tile = MyTile(TileXy(Xy(1, 0)));
         let my_solid_tile: Box<&dyn Physic> = Box::new(&my_solid_tile);
         let objects = |xy| {
             if xy == Xy(0, 0) {

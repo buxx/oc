@@ -24,6 +24,7 @@ pub mod interior;
 pub mod load;
 pub mod map;
 pub mod meta;
+pub mod navmesh;
 pub mod physics;
 pub mod reader;
 pub mod snapshot;
@@ -37,6 +38,7 @@ pub struct World {
     pub mod_: Mod, // Maybe its place is not in world (when want to access, need to read lock World, but Mod never change)
     pub meta: Meta,
     pub tiles: Vec<Tile>,
+    pub navmesh: polyanya::Mesh,
     pub individuals: Vec<Individual>,
     pub squads: Vec<Squad>,
     pub projectiles: FxHashMap<ProjectileId, Projectile>,
@@ -121,7 +123,7 @@ impl World {
 mod tests {
     use std::collections::HashMap;
 
-    use oc_mod::nature::NatureIndex;
+    use oc_mod::nature::{NatureIndex, Prohibe};
     use oc_root::physics::Meters;
 
     use super::*;
@@ -134,13 +136,14 @@ mod tests {
         let mod_ = Mod::new("MyMod".to_string(), 1, vec![], vec![], vec![], vec![], 1.5);
         let meta = Meta::new("MyWorld".to_string(), 0, w.geo_meters_per_z.0);
         let tiles: Vec<Tile> = (0..w.tiles_count)
-            .map(|i| Tile::new(WorldTileIndex(i as u64), NatureIndex(0), 0))
+            .map(|i| Tile::new(WorldTileIndex(i as u64), NatureIndex(0), 0, Prohibe::none()))
             .collect();
         let world = World::new(
             w.clone(),
             mod_,
             meta,
             tiles,
+            polyanya::Mesh::default(),
             vec![],
             vec![],
             HashMap::default(),
@@ -156,7 +159,7 @@ mod tests {
         for y in 0..w.region_height as usize {
             for x in 0..w.region_width as usize {
                 let i: WorldTileIndex = TileXy(Xy(x as u64, y as u64)).into_(&w);
-                expected.push((i, Tile::new(i, NatureIndex(0), 0)));
+                expected.push((i, Tile::new(i, NatureIndex(0), 0, Prohibe::none())));
             }
         }
         assert_eq!(tiles, expected);

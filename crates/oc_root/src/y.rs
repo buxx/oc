@@ -1,6 +1,3 @@
-#[cfg(feature = "bevy")]
-use bevy;
-
 use glam::Vec2;
 
 use crate::WorldConfig;
@@ -27,17 +24,6 @@ impl Y<Vec2> for Vec2 {
 
     fn to_gui_y(&self, w: &WorldConfig) -> Vec2 {
         Vec2::new(self.x, w.world_height_pixels as f32 - self.y)
-    }
-}
-
-#[cfg(feature = "bevy")]
-impl Y<bevy::math::Vec2> for bevy::math::Vec2 {
-    fn to_world_y(&self, w: &WorldConfig) -> bevy::math::Vec2 {
-        bevy::math::Vec2::new(self.x, w.world_height_pixels as f32 - self.y)
-    }
-
-    fn to_gui_y(&self, w: &WorldConfig) -> bevy::math::Vec2 {
-        bevy::math::Vec2::new(self.x, w.world_height_pixels as f32 - self.y)
     }
 }
 

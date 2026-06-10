@@ -2,7 +2,7 @@ use derive_more::Constructor;
 use glam::Vec2;
 use oc_individual::{
     Gesture, IndividualIndex, Update,
-    behavior::{Behavior, Intent},
+    behavior::{Behavior, Intent, MovePath},
     order::Order,
 };
 use oc_physics::Force;
@@ -189,9 +189,18 @@ impl<'a, E: Client> Processor<'a, E> {
         match individual.can_follow_order() {
             // TODO: things which can prohibe follow order
             true => match order {
-                None => Intent::Idle(Direction::NORTH),
-                Some(Order::Idle) => Intent::Idle(Direction::NORTH),
-                Some(Order::MoveTo(position)) => Intent::MoveTo(position.clone()),
+                None | Some(Order::Idle) => Intent::Idle(Direction::NORTH),
+                Some(Order::MoveTo(position)) => {
+                    // FIXME BS NOW: do not recompute each time the path, use cached one and, regurlarly compute new one
+                    let from = Vec2::new(individual.position[0], individual.position[1]);
+                    let to = Vec2::new(position.x, position.y);
+                    let path = world.navmesh.path(from, to);
+                    dbg!(&path);
+                    match path {
+                        Some(path) => Intent::MoveTo(position.clone(), MovePath::from(path)),
+                        None => Intent::Idle(Direction::NORTH),
+                    }
+                }
             },
             false => individual.intent.clone(),
         }
@@ -204,7 +213,7 @@ impl<'a, E: Client> Processor<'a, E> {
 
         match intent {
             Intent::Idle(direction) => Behavior::Idle(direction.clone()),
-            Intent::MoveTo(position) => {
+            Intent::MoveTo(position, path) => {
                 // TODO: path finding, etc
                 let from = Vec2::new(individual.position[0], individual.position[1]);
                 let to = Vec2::new(position.x, position.y);
@@ -227,6 +236,7 @@ impl<'a, E: Client> Processor<'a, E> {
             Behavior::Walk(direction) => {
                 // FIXME BSN NOW: z (tile z)
                 let direction = Vec2::from(direction.clone()).extend(0.);
+                dbg!(&direction);
                 // FIXME BSN NOW: speed (according to behavior, tile)
                 vec![Force::Translation(direction.into(), MetersSeconds(1.0))]
             }

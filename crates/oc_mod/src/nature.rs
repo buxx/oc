@@ -1,7 +1,7 @@
 use std::{ops::Deref, path::PathBuf};
 
 use anyhow::Context;
-use oc_root::{WorldConfig, opacity::Opacity, physics::Meters};
+use oc_root::{WorldConfig, material::MaterialKind, opacity::Opacity, physics::Meters};
 use rkyv::Archive;
 use thiserror::Error;
 
@@ -73,10 +73,103 @@ impl IndexedNature {
     serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
+pub enum Traversable {
+    All,
+    None,
+}
+
+impl Traversable {
+    pub fn can_individual(&self) -> bool {
+        matches!(self, Self::All)
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct NatureRaw {
+    pub name: String,
+    pub opacity: f32,
+    pub z: Meters,
+    pub prohibe: Vec<MaterialKind>,
+}
+
+impl From<NatureRaw> for Nature {
+    fn from(value: NatureRaw) -> Self {
+        Self {
+            name: value.name.clone(),
+            opacity: value.opacity,
+            z: value.z.clone(),
+            prohibe: Prohibe::from(value.prohibe),
+        }
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Nature {
     pub name: String,
     pub opacity: f32,
     pub z: Meters,
+    pub prohibe: Prohibe,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Prohibe {
+    individual: bool,
+    projectile: bool,
+}
+
+impl Prohibe {
+    pub const fn none() -> Self {
+        Self {
+            individual: false,
+            projectile: false,
+        }
+    }
+
+    pub fn allow(&self, kind: MaterialKind) -> bool {
+        match kind {
+            MaterialKind::Individual => !self.individual,
+            MaterialKind::Projectile => !self.projectile,
+        }
+    }
+}
+
+impl From<Vec<MaterialKind>> for Prohibe {
+    fn from(value: Vec<MaterialKind>) -> Self {
+        Self {
+            individual: value.contains(&MaterialKind::Individual),
+            projectile: value.contains(&MaterialKind::Projectile),
+        }
+    }
 }
 
 impl Nature {
@@ -102,7 +195,8 @@ pub fn load(path: &PathBuf) -> Result<Vec<IndexedNature>, Error> {
     let path = path.join(NATURES_RON);
     let natures = std::fs::read_to_string(&path);
     let natures = natures.context(format!("Read {}", path.display()))?;
-    let natures: Vec<Nature> = ron::from_str(&natures)?;
+    let natures: Vec<NatureRaw> = ron::from_str(&natures)?;
+    let natures: Vec<Nature> = natures.into_iter().map(|n| Nature::from(n)).collect();
 
     if natures.is_empty() {
         return Err(Error::Empty);
