@@ -29,7 +29,6 @@ where
         let mut sections = vec![];
         let mut last = start;
 
-        // println!("Steps::new::{start:?}->[{end:?}]");
         for step in line::Steps::new(
             self.w.world_width_pixels,
             self.w.world_height_pixels,
@@ -46,10 +45,7 @@ where
                 line::Step::Outside => break,
             };
 
-            // println!("Steps::step::{pos:?}");
             if step_xy != tile.0 {
-                // println!("Steps::step::newtile");
-
                 let mut new_opacity = opacity.0;
                 for obj in (self.at)(step_xy, pos[2]) {
                     // if obj.solid {
@@ -67,12 +63,7 @@ where
                     new_opacity += obj.opacity.0;
                 }
 
-                // println!("Steps::step::new_opacity {new_opacity}");
                 if new_opacity != opacity.0 {
-                    // let x = opacity.0;
-                    // println!(
-                    //     "Steps::step::new_opacity::change::Section::(opacity {x}) {section_start:?}->{last:?}"
-                    // );
                     sections.push(Section {
                         start: last,
                         stop: pos,

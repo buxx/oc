@@ -64,7 +64,6 @@ impl<E: Client> State<E> {
     }
 
     pub fn world_mut(&self) -> RwLockWriteGuard<'_, World> {
-        // println!("DEBUG::3");
         self.world.write().expect("Assume lock")
     }
 
@@ -73,7 +72,6 @@ impl<E: Client> State<E> {
     }
 
     pub fn indexes_mut(&self) -> RwLockWriteGuard<'_, Indexes> {
-        // println!("DEBUG::1");
         self.indexes.write().expect("Assume lock")
     }
 
@@ -82,7 +80,6 @@ impl<E: Client> State<E> {
     }
 
     pub fn listeners_mut(&self) -> RwLockWriteGuard<'_, Listeners<E>> {
-        // println!("DEBUG::2");
         self.listeners.write().expect("Assume lock")
     }
 
