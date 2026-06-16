@@ -280,7 +280,6 @@ fn on_set_status_event(
     };
     tracing::trace!(name = "update-individual-set-status", i=?status.0, status=?status.1);
 
-    // FIXME BS NOW: trigger event to change appearance ?
     status_.0 = status.1;
 }
 
