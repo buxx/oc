@@ -49,9 +49,6 @@ pub fn on_update_individual_physics(
         oc_physics::update::Update::SetVolume(volume, _) => {
             let position = individual.position(w);
             individual.set_volume(volume.clone());
-            // FIXME BS NOW: pourquoi les deux lignes suivantes ?
-            index.remove_individual(w, i, position);
-            index.insert_individual(w, i, individual);
         }
         oc_physics::update::Update::SetPosition(_, _)
         | oc_physics::update::Update::SetRegion(_, _)
