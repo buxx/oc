@@ -47,7 +47,6 @@ pub fn on_update_individual_physics(
             index.insert_individual(w, i, individual);
         }
         oc_physics::update::Update::SetVolume(volume, _) => {
-            let position = individual.position(w);
             individual.set_volume(volume.clone());
         }
         oc_physics::update::Update::SetPosition(_, _)

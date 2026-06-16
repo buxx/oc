@@ -127,19 +127,15 @@ impl<E: Client> super::State<E> {
 
     fn remove_projectile(&self, id: ProjectileId) -> Vec<(Listening, Vec<ToClient>)> {
         let projectile = {
-            println!("RUNNER::PROJ2::WRITE::take");
             let mut world = self.world_mut();
             let mut indexes = self.indexes_mut();
 
-            let x = if let Some(projectile) = world.projectiles_mut().remove(&id) {
+            if let Some(projectile) = world.projectiles_mut().remove(&id) {
                 indexes.remove_projectile(&id, &projectile);
                 Some(projectile)
             } else {
                 None
-            };
-
-            println!("RUNNER::PROJ2::WRITE::take");
-            x
+            }
         };
 
         if let Some(projectile) = projectile {
