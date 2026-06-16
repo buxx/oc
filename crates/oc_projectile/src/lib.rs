@@ -5,7 +5,7 @@ use oc_geo::{
     region::{Region, WorldRegionIndex},
     tile::WorldTileIndex,
 };
-use oc_mod::Mod;
+use oc_mod::{Mod, nature::Traversability};
 use oc_physics::{Force, Physic, UpdatePhysic, collision::Material, volume::Volume};
 use oc_root::{WorldConfig, ids::Ids, material::MaterialKind};
 use oc_utils::collections::WithIds;
@@ -96,12 +96,20 @@ impl Physic for Projectile {
         }
     }
 
-    fn volume(&self, ref_: [f32; 3], _: &WorldConfig, _mod_: &Mod) -> Volume {
-        Volume::Point {
-            x: ref_[0],
-            y: ref_[1],
-            z: ref_[2],
-        }
+    fn volumes(
+        &self,
+        ref_: [f32; 3],
+        _: &WorldConfig,
+        _mod_: &Mod,
+    ) -> Vec<(Volume, Traversability)> {
+        vec![(
+            Volume::Point {
+                x: ref_[0],
+                y: ref_[1],
+                z: ref_[2],
+            },
+            Traversability::all(),
+        )]
     }
 }
 
@@ -124,7 +132,7 @@ impl UpdatePhysic for Projectile {
         }
     }
 
-    fn set_volume(&self, _value: Volume) {
+    fn set_volumes(&self, _value: Vec<(Volume, Traversability)>) {
         // Never need to update projectile volume
     }
 }

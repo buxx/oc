@@ -8,6 +8,7 @@ use oc_geo::region::Region;
 use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::WorldTileIndex;
 use oc_mod::Mod;
+use oc_mod::nature::Traversability;
 use oc_physics::Force;
 use oc_physics::Physic;
 use oc_physics::UpdatePhysic;
@@ -131,15 +132,23 @@ impl Physic for Individual {
         &self.forces
     }
 
-    fn volume(&self, ref_: [f32; 3], w: &WorldConfig, _mod_: &Mod) -> Volume {
-        Volume::Cube {
-            x: ref_[0],
-            y: ref_[1],
-            z: ref_[2],
-            width: Meters(0.8).pixels(w),
-            height: Meters(0.8).pixels(w),
-            depth: Meters(1.8).pixels(w),
-        }
+    fn volumes(
+        &self,
+        ref_: [f32; 3],
+        w: &WorldConfig,
+        _mod_: &Mod,
+    ) -> Vec<(Volume, Traversability)> {
+        vec![(
+            Volume::Cube {
+                x: ref_[0],
+                y: ref_[1],
+                z: ref_[2],
+                width: Meters(0.8).pixels(w),
+                height: Meters(0.8).pixels(w),
+                depth: Meters(1.8).pixels(w),
+            },
+            Traversability::none(),
+        )]
     }
 }
 
@@ -156,7 +165,7 @@ impl UpdatePhysic for Individual {
         self.forces.retain(|f| f != value)
     }
 
-    fn set_volume(&self, _value: Volume) {
+    fn set_volumes(&self, _value: Vec<(Volume, Traversability)>) {
         // No update volume of an individual (for now ...)
     }
 }

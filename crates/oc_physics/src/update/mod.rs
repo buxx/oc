@@ -1,4 +1,5 @@
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
+use oc_mod::nature::Traversability;
 use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::{Force, volume::Volume};
@@ -14,5 +15,5 @@ pub enum Update {
     SetRegion(WorldRegionIndex, WorldRegionIndex), // new, before
     PushForce(Force),
     RemoveForce(Force),
-    SetVolume(Volume, Volume), // new, before
+    SetVolumes(Vec<(Volume, Traversability)>, Vec<(Volume, Traversability)>), // new, before
 }

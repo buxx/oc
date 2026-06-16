@@ -4,7 +4,7 @@ use oc_geo::region::{Region as _, WorldRegionIndex};
 use oc_physics::Physic;
 use oc_physics::collision::Material_;
 use oc_physics::update::bevy::{
-    Forces, PhysicsPlugin, Position, Region, SetPositionEvent, Tile, Volume,
+    Forces, PhysicsPlugin, Position, Region, SetPositionEvent, Tile, Volumes,
 };
 use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
@@ -56,6 +56,7 @@ pub fn on_insert_projectile(
 
     let position = projectile.1.position();
     let line = Polyline2d::new(vec![Vec2::new(position[0], position[1].to_gui_y(&g.w))]);
+
     let entity = commands
         .spawn((
             ProjectileId(projectile.0),
@@ -64,7 +65,7 @@ pub fn on_insert_projectile(
             Region(projectile.1.region()),
             Forces(projectile.1.forces(&g.w).clone()),
             Material_(Some(oc_root::material::MaterialKind::Projectile)),
-            Volume(projectile.1.volume(*position, &g.w, &g.mod_).clone()),
+            Volumes(projectile.1.volumes(*position, &g.w, &g.mod_).clone()),
             Mesh2d(meshes.add(line)),
             MeshMaterial2d(materials.add(Color::from(RED))),
             Transform::from_xyz(

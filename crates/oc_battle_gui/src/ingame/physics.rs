@@ -4,7 +4,7 @@ use oc_individual::IndividualIndex;
 use oc_physics::{
     Corps,
     collision::Material_,
-    update::bevy::{Forces, Position, Volume},
+    update::bevy::{Forces, Position, Volumes},
 };
 use oc_projectile::ProjectileId;
 use oc_root::y::Y;
@@ -24,7 +24,7 @@ pub fn physics_step<I, C>(
         &mut Position,
         &mut Forces,
         &Material_,
-        &Volume,
+        &Volumes,
         &mut Transform,
     )>,
     index: Res<World>,
@@ -48,7 +48,7 @@ pub fn physics_step<I, C>(
             index.at(&g.w, TileXy(xy))
         };
 
-        // FIXME: test perf with references in Corps
+        // TODO: test perf with references in Corps
         let corps = Corps::new(
             i.clone(),
             position.0,

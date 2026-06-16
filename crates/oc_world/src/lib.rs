@@ -123,7 +123,7 @@ impl World {
 mod tests {
     use std::collections::HashMap;
 
-    use oc_mod::nature::{NatureIndex, Prohibe};
+    use oc_mod::nature::{NatureIndex, Traversability};
     use oc_root::physics::Meters;
 
     use super::*;
@@ -136,7 +136,14 @@ mod tests {
         let mod_ = Mod::new("MyMod".to_string(), 1, vec![], vec![], vec![], vec![], 1.5);
         let meta = Meta::new("MyWorld".to_string(), 0, w.geo_meters_per_z.0);
         let tiles: Vec<Tile> = (0..w.tiles_count)
-            .map(|i| Tile::new(WorldTileIndex(i as u64), NatureIndex(0), 0, Prohibe::none()))
+            .map(|i| {
+                Tile::new(
+                    WorldTileIndex(i as u64),
+                    NatureIndex(0),
+                    0,
+                    Traversability::all(),
+                )
+            })
             .collect();
         let world = World::new(
             w.clone(),
@@ -159,7 +166,7 @@ mod tests {
         for y in 0..w.region_height as usize {
             for x in 0..w.region_width as usize {
                 let i: WorldTileIndex = TileXy(Xy(x as u64, y as u64)).into_(&w);
-                expected.push((i, Tile::new(i, NatureIndex(0), 0, Prohibe::none())));
+                expected.push((i, Tile::new(i, NatureIndex(0), 0, Traversability::all())));
             }
         }
         assert_eq!(tiles, expected);

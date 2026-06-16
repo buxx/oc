@@ -24,14 +24,11 @@ example-world1 *args:
 example-minidblue *args:
     cargo run --bin example_minidblue --features debug {{ args }}
 
-example-wall *args:
-    cargo run --bin example_wall --features debug {{ args }}
-
 example-height *args:
     cargo run --bin example_height --features debug {{ args }}
 
-example-projectiles-wall *args:
-    cargo run --bin example_projectiles_wall {{ args }}
+example-projectiles-obstacles *args:
+    cargo run --bin example_projectiles_obstacles --features debug {{ args }}
 
 example-individual-shots *args:
     cargo run --bin example_individual_shots --features debug {{ args }}
@@ -49,11 +46,38 @@ test:
     cargo nextest run
 
 test-e2e:
-    RUST_LOG=WARN cargo run --bin example_projectiles_wall --features test -- --test
+    just test-projectiles-obstacles-one-wall
+    just test-projectiles-obstacles-multiple-wall
+    just test-projectiles-obstacles-one-hill
+    just test-projectiles-obstacles-multiple-hill
+    just test-individual-shots
+    just test-individual-behaviors-move-straight-ahead
+    just test-individual-behaviors-move-straight-ahead-obstacle
+
+test-projectiles-obstacles-one-wall:
+    RUST_LOG=WARN cargo run --bin example_projectiles_obstacles --features test -- one-against-wall --test
+
+test-projectiles-obstacles-multiple-wall:
+    RUST_LOG=WARN cargo run --bin example_projectiles_obstacles --features test -- multiple-against-wall --test
+
+test-projectiles-obstacles-one-hill:
+    RUST_LOG=WARN cargo run --bin example_projectiles_obstacles --features test -- one-against-hill --test
+
+test-projectiles-obstacles-multiple-hill:
+    RUST_LOG=WARN cargo run --bin example_projectiles_obstacles --features test -- multiple-against-hill --test
+
+test-individual-shots:
     RUST_LOG=WARN cargo run --bin example_individual_shots --features test -- --test
+
+test-individual-behaviors-move-straight-ahead:
     RUST_LOG=WARN cargo run --bin example_individual_behaviors --features test -- move-straight-ahead --test
+
+test-individual-behaviors-move-straight-ahead-obstacle:
     RUST_LOG=WARN cargo run --bin example_individual_behaviors --features test -- move-straight-ahead-obstacle --test
 
 test-all:
     just test
     just test-e2e
+
+list:
+    just --list

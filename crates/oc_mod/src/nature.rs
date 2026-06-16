@@ -99,7 +99,7 @@ pub struct NatureRaw {
     pub name: String,
     pub opacity: f32,
     pub z: Meters,
-    pub prohibe: Vec<MaterialKind>,
+    pub deny: Vec<MaterialKind>,
 }
 
 impl From<NatureRaw> for Nature {
@@ -108,7 +108,7 @@ impl From<NatureRaw> for Nature {
             name: value.name.clone(),
             opacity: value.opacity,
             z: value.z.clone(),
-            prohibe: Prohibe::from(value.prohibe),
+            traversability: Traversability::from_deny_list(value.deny),
         }
     }
 }
@@ -128,7 +128,7 @@ pub struct Nature {
     pub name: String,
     pub opacity: f32,
     pub z: Meters,
-    pub prohibe: Prohibe,
+    pub traversability: Traversability,
 }
 
 #[derive(
@@ -142,12 +142,26 @@ pub struct Nature {
     serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub struct Prohibe {
+pub struct Traversability {
     individual: bool,
     projectile: bool,
 }
 
-impl Prohibe {
+impl Traversability {
+    fn from_deny_list(value: Vec<MaterialKind>) -> Self {
+        Self {
+            individual: !value.contains(&MaterialKind::Individual),
+            projectile: !value.contains(&MaterialKind::Projectile),
+        }
+    }
+
+    pub const fn all() -> Self {
+        Self {
+            individual: true,
+            projectile: true,
+        }
+    }
+
     pub const fn none() -> Self {
         Self {
             individual: false,
@@ -157,18 +171,13 @@ impl Prohibe {
 
     pub fn allow(&self, kind: MaterialKind) -> bool {
         match kind {
-            MaterialKind::Individual => !self.individual,
-            MaterialKind::Projectile => !self.projectile,
+            MaterialKind::Individual => self.individual,
+            MaterialKind::Projectile => self.projectile,
         }
     }
-}
 
-impl From<Vec<MaterialKind>> for Prohibe {
-    fn from(value: Vec<MaterialKind>) -> Self {
-        Self {
-            individual: value.contains(&MaterialKind::Individual),
-            projectile: value.contains(&MaterialKind::Projectile),
-        }
+    pub fn deny(&self, kind: MaterialKind) -> bool {
+        !self.allow(kind)
     }
 }
 
