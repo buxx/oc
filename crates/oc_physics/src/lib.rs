@@ -167,6 +167,7 @@ where
                                 for (o, other) in at(step_tile) {
                                     // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
                                     let kind2 = other.prohibe();
+                                    // FIXME BS NOW: ERROR HERE: il faut differencier la partie "sol" de la partie "buisson/mur"
                                     tracing::trace!(name="physics-step-translation-prohibe-test", origin=origin, i=?i, kind=?kind, kind2=?kind2);
                                     if kind.map(|kind| kind2.allow(kind)).unwrap_or(true) {
                                         tracing::trace!(name="physics-step-translation-prohibe-allow", origin=origin, i=?i);
