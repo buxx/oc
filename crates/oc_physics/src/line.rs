@@ -108,12 +108,9 @@ impl Iterator for Steps {
             ));
         }
 
-        // println!("step {0}", self.step);
         if let Some((x, y, z)) = self.bresenham.nth(self.step as usize) {
-            // println!("step => {x},{y},{z}");
             // TODO: maximum z ?
             if x < 0 || y < 0 || x > world_width as isize - 1 || y > world_height as isize - 1 {
-                // println!("Outside ({world_width},{world_height})");
                 self.outside = true;
                 return Some(Step::Outside);
             }

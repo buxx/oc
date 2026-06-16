@@ -444,7 +444,6 @@ fn sample_terrain_z(w: &WorldConfig, world: &World, pos: &Vec3) -> f32 {
         (pos.x / w.geo_pixels_per_tile as f32) as u64,
         (pos.y.to_gui_y(w) / w.geo_pixels_per_tile as f32) as u64,
     );
-    // println!("{x}.{y}");
     let tile = TileXy(Xy(x, y));
     let tile = WorldTileIndex::from_(tile, w);
     let region = WorldRegionIndex::from_(tile, w);
