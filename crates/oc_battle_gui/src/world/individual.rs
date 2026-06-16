@@ -46,8 +46,8 @@ pub fn on_update_individual_physics(
             index.remove_individual(w, i, position);
             index.insert_individual(w, i, individual);
         }
-        oc_physics::update::Update::SetVolume(volume, _) => {
-            individual.set_volume(volume.clone());
+        oc_physics::update::Update::SetVolumes(volumes, _) => {
+            individual.set_volumes(volumes.clone());
         }
         oc_physics::update::Update::SetPosition(_, _)
         | oc_physics::update::Update::SetRegion(_, _)

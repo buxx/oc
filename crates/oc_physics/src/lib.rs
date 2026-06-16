@@ -1,4 +1,4 @@
-use oc_mod::Mod;
+use oc_mod::{Mod, nature::Traversability};
 use oc_root::{WorldConfig, material::MaterialKind, physics::MetersSeconds};
 use oc_utils::d2::Xy;
 use rkyv::Archive;
@@ -17,14 +17,15 @@ pub trait Physic: Material {
     // TODO: maby position should be `Geo` instead `Physics`...
     fn position(&self, w: &WorldConfig) -> [f32; 3];
     fn forces(&self, w: &WorldConfig) -> &Vec<Force>;
-    fn volume(&self, ref_: [f32; 3], w: &WorldConfig, mod_: &Mod) -> Volume;
+    fn volumes(&self, ref_: [f32; 3], w: &WorldConfig, mod_: &Mod)
+    -> Vec<(Volume, Traversability)>;
 }
 
 pub trait UpdatePhysic: Physic + Material {
     fn set_position(&mut self, value: [f32; 3]);
     fn push_force(&mut self, value: Force);
     fn remove_force(&mut self, value: &Force);
-    fn set_volume(&self, value: Volume);
+    fn set_volumes(&self, value: Vec<(Volume, Traversability)>);
 }
 
 #[derive(Debug)]
@@ -33,7 +34,7 @@ pub struct Corps<I: Clone + std::fmt::Debug> {
     position: [f32; 3],
     forces: Vec<Force>,
     material: Option<MaterialKind>,
-    volume: volume::Volume,
+    volumes: Vec<(volume::Volume, Traversability)>,
 }
 
 impl<I: Clone + std::fmt::Debug> Corps<I> {
@@ -42,14 +43,14 @@ impl<I: Clone + std::fmt::Debug> Corps<I> {
         position: [f32; 3],
         forces: Vec<Force>,
         material: Option<MaterialKind>,
-        volume: volume::Volume,
+        volumes: Vec<(volume::Volume, Traversability)>,
     ) -> Self {
         Self {
             i,
             position,
             forces,
             material,
-            volume,
+            volumes,
         }
     }
 }
@@ -63,8 +64,17 @@ impl<I: Clone + std::fmt::Debug> Physic for Corps<I> {
         &self.forces
     }
 
-    fn volume(&self, ref_: [f32; 3], _: &WorldConfig, _mod_: &Mod) -> Volume {
-        self.volume.clone().with_ref(ref_)
+    fn volumes(
+        &self,
+        ref_: [f32; 3],
+        _: &WorldConfig,
+        _mod_: &Mod,
+    ) -> Vec<(Volume, Traversability)> {
+        self.volumes
+            .clone()
+            .into_iter()
+            .map(|(v, t)| (v.with_ref(ref_), t))
+            .collect()
     }
 }
 
@@ -161,37 +171,39 @@ where
                             // Test objects only when line on new tile
                             if step_tile != curent_tile {
                                 curent_tile = step_tile;
-                                let volume = object.volume([step_x, step_y, step_z], w, mod_);
+                                let volumes = object.volumes([step_x, step_y, step_z], w, mod_);
                                 tracing::trace!(name="physics-step-translation-newtile", origin=origin, i=?i, p=?position, xy=?step_tile);
 
                                 for (o, other) in at(step_tile) {
-                                    // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
-                                    let kind2 = other.prohibe();
-                                    // FIXME BS NOW: ERROR HERE: il faut differencier la partie "sol" de la partie "buisson/mur"
-                                    tracing::trace!(name="physics-step-translation-prohibe-test", origin=origin, i=?i, kind=?kind, kind2=?kind2);
-                                    if kind.map(|kind| kind2.allow(kind)).unwrap_or(true) {
-                                        tracing::trace!(name="physics-step-translation-prohibe-allow", origin=origin, i=?i);
-                                        continue;
-                                    }
-
                                     let [other_x, other_y, other_z] = other.position(w);
-                                    let volume2 =
-                                        other.volume([other_x, other_y, other_z], w, mod_);
+                                    let position2 = [other_x, other_y, other_z];
 
-                                    tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?step_tile, o=?o, op=?[other_x, other_y, other_z], volume=?volume, volume2=?volume2);
-                                    // FIXME BS NOW: here consider tile prohibe & material kind
-                                    if volume.collide(&volume2) {
-                                        // FIXME BS NOW: ça collide bien avec la tuile BigRock, mais l'individu continue d'avancer ...?!
-                                        tracing::trace!(name="physics-step-translation-collide", origin=origin, i=?i, p=?position, xy=?step_tile);
+                                    for (volume1, traversability1) in &volumes {
+                                        let volumes2 = other.volumes(position2, w, mod_);
+                                        for (volume2, traversability2) in volumes2 {
+                                            // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
+                                            tracing::trace!(name="physics-step-translation-prohibe-test", origin=origin, i=?i, traversability1=?traversability1, traversability2=?traversability2);
+                                            if kind
+                                                .map(|kind| traversability2.allow(kind))
+                                                .unwrap_or(true)
+                                            {
+                                                tracing::trace!(name="physics-step-translation-prohibe-allow", origin=origin, i=?i);
+                                                continue;
+                                            }
 
-                                        let left = i.clone().into();
-                                        let collision = Event::Collision(left, o);
-                                        events.push(collision);
+                                            tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?step_tile, o=?o, op=?[other_x, other_y, other_z], volume1=?volume1, volume2=?volume2);
+                                            if volume1.collide(&volume2) {
+                                                tracing::trace!(name="physics-step-translation-collide", origin=origin, i=?i, p=?position, xy=?step_tile);
 
-                                        // Do not keep this force by stoping this iteration
-                                        continue 'forces;
+                                                let left = i.clone().into();
+                                                let collision = Event::Collision(left, o);
+                                                events.push(collision);
+
+                                                // Do not keep this force by stoping this iteration
+                                                continue 'forces;
+                                            }
+                                        }
                                     }
-                                    // }
                                 }
                             } else {
                                 curent_tile = step_tile;
@@ -246,12 +258,20 @@ mod tests {
             &self.1
         }
 
-        fn volume(&self, ref_: [f32; 3], _: &WorldConfig, _: &Mod) -> Volume {
-            Volume::Point {
-                x: ref_[0],
-                y: ref_[1],
-                z: ref_[2],
-            }
+        fn volumes(
+            &self,
+            ref_: [f32; 3],
+            _: &WorldConfig,
+            _: &Mod,
+        ) -> Vec<(Volume, Traversability)> {
+            vec![(
+                Volume::Point {
+                    x: ref_[0],
+                    y: ref_[1],
+                    z: ref_[2],
+                },
+                Traversability::all(),
+            )]
         }
     }
 
@@ -273,15 +293,23 @@ mod tests {
             &EMPTY
         }
 
-        fn volume(&self, ref_: [f32; 3], w: &WorldConfig, _: &Mod) -> Volume {
-            Volume::Cube {
-                x: ref_[0],
-                y: ref_[1],
-                z: ref_[2],
-                width: w.geo_pixels_per_tile as f32,
-                height: w.geo_pixels_per_tile as f32,
-                depth: f32::MAX,
-            }
+        fn volumes(
+            &self,
+            ref_: [f32; 3],
+            w: &WorldConfig,
+            _: &Mod,
+        ) -> Vec<(Volume, Traversability)> {
+            vec![(
+                Volume::Cube {
+                    x: ref_[0],
+                    y: ref_[1],
+                    z: ref_[2],
+                    width: w.geo_pixels_per_tile as f32,
+                    height: w.geo_pixels_per_tile as f32,
+                    depth: f32::MAX,
+                },
+                Traversability::none(),
+            )]
         }
     }
 

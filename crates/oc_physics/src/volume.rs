@@ -52,9 +52,7 @@ impl Volume {
 
         self
     }
-}
 
-impl Volume {
     pub fn collide(&self, other: &Self) -> bool {
         match (self, other) {
             (

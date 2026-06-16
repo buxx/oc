@@ -2,6 +2,7 @@ use std::hash::Hash;
 
 use bevy::prelude::*;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
+use oc_mod::nature::Traversability;
 use oc_root::{Wcfg, y::Y as _};
 use oc_utils::bevy::EntityMapping;
 
@@ -21,7 +22,11 @@ pub struct PushForceEvent<I>(pub I, pub crate::Force);
 pub struct RemoveForceEvent<I>(pub I, pub crate::Force);
 
 #[derive(Debug, Event)]
-pub struct SetVolumeEvent<I>(pub I, pub crate::volume::Volume, pub crate::volume::Volume); // new, before
+pub struct SetVolumesEvent<I>(
+    pub I,
+    pub Vec<(crate::volume::Volume, Traversability)>,
+    pub Vec<(crate::volume::Volume, Traversability)>,
+); // new, before
 
 #[derive(Debug, Component)]
 pub struct Position(pub [f32; 3]);
@@ -36,7 +41,7 @@ pub struct Region(pub WorldRegionIndex);
 pub struct Forces(pub Vec<crate::Force>);
 
 #[derive(Debug, Component)]
-pub struct Volume(pub crate::volume::Volume);
+pub struct Volumes(pub Vec<(crate::volume::Volume, Traversability)>);
 
 pub trait UpdatePhysicsEvent<I> {
     fn i(&self) -> I;
@@ -68,8 +73,8 @@ pub fn on_update_physics<
         super::Update::RemoveForce(force) => {
             commands.trigger(RemoveForceEvent(i, force.clone()));
         }
-        super::Update::SetVolume(volume2, volume1) => {
-            commands.trigger(SetVolumeEvent(i, volume2.clone(), volume1.clone()));
+        super::Update::SetVolumes(volumes2, volumes1) => {
+            commands.trigger(SetVolumesEvent(i, volumes2.clone(), volumes1.clone()));
         }
     }
 }
@@ -162,8 +167,8 @@ fn on_remove_force_event<I: Hash + Eq + Send + Sync + 'static>(
 }
 
 fn on_set_volume<I: Hash + Eq + Send + Sync + 'static>(
-    event: On<SetVolumeEvent<I>>,
-    mut query: Query<&mut Volume>,
+    event: On<SetVolumesEvent<I>>,
+    mut query: Query<&mut Volumes>,
     state: Res<EntityMapping<I>>,
 ) {
     let Some(entity) = state.get(&event.0) else {

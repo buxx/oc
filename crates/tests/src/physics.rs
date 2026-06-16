@@ -2,7 +2,7 @@
 mod test {
     use glam::Vec3;
     use oc_geo::tile::WorldTileIndex;
-    use oc_mod::nature::Prohibe;
+    use oc_mod::nature::Traversability;
     use oc_mod::{Mod, nature::NatureIndex};
     use oc_physics::{Event, Force, Physic, collision::Material, volume::Volume};
     use oc_root::{
@@ -49,12 +49,20 @@ mod test {
             &self.1
         }
 
-        fn volume(&self, ref_: [f32; 3], _: &WorldConfig, _: &Mod) -> Volume {
-            Volume::Point {
-                x: ref_[0],
-                y: ref_[1],
-                z: ref_[2],
-            }
+        fn volumes(
+            &self,
+            ref_: [f32; 3],
+            _: &WorldConfig,
+            _: &Mod,
+        ) -> Vec<(Volume, Traversability)> {
+            vec![(
+                Volume::Point {
+                    x: ref_[0],
+                    y: ref_[1],
+                    z: ref_[2],
+                },
+                Traversability::all(),
+            )]
         }
     }
 
@@ -114,7 +122,7 @@ mod test {
             i: tile_i,
             nature: NatureIndex(0),
             z: tile_z,
-            prohibe: Prohibe::none(),
+            prohibe: Traversability::all(),
         };
 
         let object_i = ObjectId(0);

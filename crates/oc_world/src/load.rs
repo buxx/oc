@@ -39,29 +39,34 @@ impl WorldLoader {
 
         // TODO: centralize caching at server startup
         self.cache(&meta)?;
+        tracing::debug!("Cache finished");
 
         let w = self.w.clone();
         let mod_ = self.mod_.clone();
         let tiles = snapshot.tiles;
         let individuals = snapshot.individuals;
         let squads = snapshot.squads;
+        tracing::debug!("Build projectile ids");
         let projectiles = snapshot
             .projectiles
             .into_iter()
             .map(|projectile| (ids.next_projectile_id(), projectile))
             .collect();
-        let grid = tiles
+        tracing::debug!("Build navmesh grid");
+        let walls = tiles
             .iter()
             .map(|tile| {
                 // FIXME: When vehicle, will need same but for vehicle
-                !mod_
-                    .nature(tile.nature)
-                    .prohibe
-                    .allow(MaterialKind::Individual)
+                mod_.nature(tile.nature)
+                    .traversability
+                    .deny(MaterialKind::Individual)
             })
             .collect::<Vec<bool>>();
-        let navmesh = navmesh(&w, &grid);
 
+        tracing::debug!("Build navmesh (from grid with len {})", walls.len());
+        let navmesh = navmesh(&w, &walls);
+
+        tracing::debug!("World built");
         Ok(World::new(
             w,
             mod_,

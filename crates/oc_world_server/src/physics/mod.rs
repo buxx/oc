@@ -304,8 +304,8 @@ where
             subject.remove_force(force);
             None
         }
-        Update::SetVolume(volume, _) => {
-            subject.set_volume(volume.clone());
+        Update::SetVolumes(volume, _) => {
+            subject.set_volumes(volume.clone());
             None
         }
     };

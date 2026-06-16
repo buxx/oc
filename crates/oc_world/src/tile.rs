@@ -4,7 +4,7 @@ use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
 };
-use oc_mod::nature::Prohibe;
+use oc_mod::nature::Traversability;
 use oc_mod::{Mod, nature::NatureIndex};
 use oc_physics::{Force, Physic, collision::Material, volume::Volume};
 use oc_root::{WcfgInto, WorldConfig};
@@ -23,7 +23,7 @@ pub struct Tile {
     pub z: u8,
     // Copy it from nature for performance consideration.
     // If it use too much RAM, consider read it through Mod
-    pub prohibe: Prohibe,
+    pub prohibe: Traversability,
 }
 
 impl Tile {
@@ -53,11 +53,7 @@ impl IntoTiles for WorldRegionIndex {
     }
 }
 
-impl Material for Tile {
-    fn prohibe(&self) -> &Prohibe {
-        &self.prohibe
-    }
-}
+impl Material for Tile {}
 
 impl Physic for Tile {
     fn position(&self, w: &WorldConfig) -> [f32; 3] {
@@ -76,17 +72,41 @@ impl Physic for Tile {
         &EMPTY
     }
 
-    fn volume(&self, ref_: [f32; 3], w: &WorldConfig, mod_: &Mod) -> Volume {
+    fn volumes(
+        &self,
+        ref_: [f32; 3],
+        w: &WorldConfig,
+        mod_: &Mod,
+    ) -> Vec<(Volume, Traversability)> {
         tracing::trace!(name = "tile-volume", ref_ = ?ref_);
         let nature = mod_.nature(self.nature);
         let exceedance = nature.z.0 * w.geo_pixels_per_meters;
-        Volume::Cube {
-            x: ref_[0],
-            y: ref_[1],
-            z: -DEPTH,
-            width: w.geo_pixels_per_tile as f32,
-            height: w.geo_pixels_per_tile as f32,
-            depth: DEPTH + ref_[2] + exceedance,
-        }
+
+        vec![
+            (
+                Volume::Cube {
+                    x: ref_[0],
+                    y: ref_[1],
+                    z: -DEPTH,
+                    width: w.geo_pixels_per_tile as f32,
+                    height: w.geo_pixels_per_tile as f32,
+                    depth: DEPTH + ref_[2] + exceedance,
+                },
+                Traversability::none(),
+            ),
+            (
+                // FIXME BS NOW: tester si ça marche toujours cette affaire
+                Volume::Cube {
+                    x: ref_[0],
+                    y: ref_[1],
+                    z: ref_[2],
+                    width: w.geo_pixels_per_tile as f32,
+                    height: w.geo_pixels_per_tile as f32,
+                    depth: exceedance,
+                },
+                // TODO: perf test with reference ?
+                nature.traversability.clone(),
+            ),
+        ]
     }
 }

@@ -309,40 +309,41 @@ fn on_spawn(
                         let y = y.to_gui_y(&g.w);
                         let z = tile.z_pixels(&g.w);
                         let ref_ = [x, y, z];
-                        let volume = individual.volume(ref_, &g.w, &g.mod_);
-                        let alpha = 1.0;
-                        if let Volume::Cube {
-                            x,
-                            y,
-                            z,
-                            width,
-                            height,
-                            depth,
-                        } = volume
-                        {
-                            let x_length = width;
-                            let y_length = height;
-                            let z_length = depth;
-                            let x = x as f32;
-                            let y = (y as f32).to_gui_y(&g.w);
-                            tracing::trace!(
-                                name = "ingame-height-on-spawn-individuals-individual",
-                                x_length = x_length,
-                                y_length = y_length,
-                                z_length = z_length,
-                                x = x,
-                                y = y,
-                                z = z
-                            );
-                            commands.spawn((
-                                Mesh3d(meshes.add(Cuboid::new(width, height, depth))),
-                                MeshMaterial3d(materials.add(StandardMaterial {
-                                    base_color: Color::srgba(0.0, 0.0, 1.0, alpha),
-                                    alpha_mode: AlphaMode::AlphaToCoverage,
-                                    ..default()
-                                })),
-                                Transform::from_xyz(x, y, z),
-                            ));
+                        for (volume, _) in individual.volumes(ref_, &g.w, &g.mod_) {
+                            let alpha = 1.0;
+                            if let Volume::Cube {
+                                x,
+                                y,
+                                z,
+                                width,
+                                height,
+                                depth,
+                            } = volume
+                            {
+                                let x_length = width;
+                                let y_length = height;
+                                let z_length = depth;
+                                let x = x as f32;
+                                let y = (y as f32).to_gui_y(&g.w);
+                                tracing::trace!(
+                                    name = "ingame-height-on-spawn-individuals-individual",
+                                    x_length = x_length,
+                                    y_length = y_length,
+                                    z_length = z_length,
+                                    x = x,
+                                    y = y,
+                                    z = z
+                                );
+                                commands.spawn((
+                                    Mesh3d(meshes.add(Cuboid::new(width, height, depth))),
+                                    MeshMaterial3d(materials.add(StandardMaterial {
+                                        base_color: Color::srgba(0.0, 0.0, 1.0, alpha),
+                                        alpha_mode: AlphaMode::AlphaToCoverage,
+                                        ..default()
+                                    })),
+                                    Transform::from_xyz(x, y, z),
+                                ));
+                            }
                         }
                     }
                 }
