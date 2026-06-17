@@ -191,7 +191,6 @@ fn install(app: &mut bevy::app::App) {
                 };
                 if timeout {
                     eprintln!("❌ (GUI) Timeout reached ! Individual is not dead.");
-                    // FIXME BS NOW: test must check this code !
                     commands.write_message(bevy::app::AppExit::from_code(1));
                 }
             },
