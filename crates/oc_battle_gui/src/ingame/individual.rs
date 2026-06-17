@@ -152,6 +152,7 @@ pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Com
             commands.trigger(AccomplishedEvent(i));
             false
         }
+        oc_individual::Update::MoveStepAccomplished => false,
     };
 
     if refresh {

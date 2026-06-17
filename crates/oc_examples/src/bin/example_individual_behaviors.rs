@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 use oc_world_server::tracker::Tracker;
 
                 Box::new(move |tracker: Tracker| match args.case {
-                    TestCase::MoveStraightAhead => {
+                    TestCase::MoveStraightAhead | TestCase::MoveStraightAheadObstacle => {
                         let tracker = tracker.take();
 
                         let accomplished = (
@@ -65,7 +65,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         println!("✅ (SERVER) All tests passed");
                     }
-                    TestCase::MoveStraightAheadObstacle => {}
                 })
             }
             #[cfg(not(feature = "test"))]
@@ -113,17 +112,27 @@ fn end_when_success_or_timeout(
     individuals: Query<&oc_physics::update::bevy::Position, With<IndividualIndex>>,
 ) {
     static MOVE_DONE: Mutex<Option<Instant>> = Mutex::new(None);
+    let timeout = match args.0.case {
+        TestCase::MoveStraightAhead => Duration::from_secs(15),
+        TestCase::MoveStraightAheadObstacle => Duration::from_secs(30),
+    };
 
-    let timeout = game.started.elapsed() > Duration::from_secs(15);
+    let timeout = game.started.elapsed() > timeout;
     let mut move_done = MOVE_DONE.lock().unwrap();
     *move_done = match *move_done {
         None => match args.0.case {
+            // TODO: coordinates from const
             TestCase::MoveStraightAhead => individuals.iter().next().and_then(|position| {
                 (almost_equal(position.0[0], 180., POSITION_TOLERANCE)
                     && almost_equal(position.0[1], 150., POSITION_TOLERANCE))
                 .then(|| Instant::now())
             }),
-            TestCase::MoveStraightAheadObstacle => None,
+            // TODO: coordinates from const
+            TestCase::MoveStraightAheadObstacle => individuals.iter().next().and_then(|position| {
+                (almost_equal(position.0[0], 235., POSITION_TOLERANCE)
+                    && almost_equal(position.0[1], 415., POSITION_TOLERANCE))
+                .then(|| Instant::now())
+            }),
         },
         Some(value) => {
             if value.elapsed().as_secs() > 1 {

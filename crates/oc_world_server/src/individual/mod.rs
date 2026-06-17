@@ -111,41 +111,82 @@ impl<'a> Processor<'a> {
         };
         let squad_i = self.index.individual_squad(self.i);
         let is_squad_leader = self.is_squad_leader();
+        let mut updates = None;
 
-        match is_squad_leader {
-            // TODO: When squad leader, even if order is accomplished, must wait all squad members accomplished theirs
-            true => match order {
-                Order::Idle => {
-                    // TODO: strange behavior than Idle disapear instantly ?
-                    tracing::trace!(name = "individual-step-accomplished-squad-leader-idle", i=?self.i);
+        match order {
+            Order::Idle => {
+                // TODO: strange behavior than Idle disapear instantly ?
+                tracing::trace!(name = "individual-step-accomplished-squad-leader-idle-finished", i=?self.i);
 
-                    // FIXME BS NOW: refacto
-                    let update_i = Update::Accomplished;
-                    let update_i = runner::update::Update::UpdateIndividual(self.i, update_i);
-                    let update_s = oc_individual::squad::Update::Accomplished;
-                    let update_s = runner::update::Update::UpdateSquad(squad_i, update_s);
-                    return Some(vec![update_i, update_s]);
-                }
-                Order::MoveTo(position) => {
-                    if almost_equal(position.x, individual.position[0], POSITION_TOLERANCE)
-                        && almost_equal(position.y, individual.position[1], POSITION_TOLERANCE)
-                    {
-                        tracing::trace!(
-                            name = "individual-step-accomplished-squad-leader-move-to-finished", i=?self.i
-                        );
-                        // FIXME BS NOW: refacto
-                        let update_i = Update::Accomplished;
-                        let update_i = runner::update::Update::UpdateIndividual(self.i, update_i);
+                // FIXME BS NOW: refacto
+                let update_i1 = Update::Accomplished;
+                let update_i1 = runner::update::Update::UpdateIndividual(self.i, update_i1);
+                let update_i2 = Update::SetIntent(Intent::Idle(Direction::NORTH)); // TODO direction
+                let update_i2 = runner::update::Update::UpdateIndividual(self.i, update_i2);
+
+                match is_squad_leader {
+                    true => {
+                        // FIXME: not sure than squal leader idle finished indicate all squad accomplished ...
                         let update_s = oc_individual::squad::Update::Accomplished;
                         let update_s = runner::update::Update::UpdateSquad(squad_i, update_s);
-                        return Some(vec![update_i, update_s]);
-                    } else {
-                        None
+                        updates = Some(vec![update_i1, update_i2, update_s]);
+                    }
+                    false => {
+                        updates = Some(vec![update_i1, update_i2]);
+                    }
+                };
+            }
+            Order::MoveTo(position) => {
+                if almost_equal(position.x, individual.position[0], POSITION_TOLERANCE)
+                    && almost_equal(position.y, individual.position[1], POSITION_TOLERANCE)
+                {
+                    tracing::trace!(
+                        name = "individual-step-accomplished-squad-leader-move-to-finished", i=?self.i
+                    );
+                    // FIXME BS NOW: refacto
+                    let update_i1 = Update::Accomplished;
+                    let update_i1 = runner::update::Update::UpdateIndividual(self.i, update_i1);
+                    let update_i2 = Update::SetIntent(Intent::Idle(Direction::NORTH)); // TODO direction
+                    let update_i2 = runner::update::Update::UpdateIndividual(self.i, update_i2);
+
+                    match is_squad_leader {
+                        true => {
+                            // FIXME: not sure than squal leader idle finished indicate all squad accomplished ...
+                            let update_s = oc_individual::squad::Update::Accomplished;
+                            let update_s = runner::update::Update::UpdateSquad(squad_i, update_s);
+                            updates = Some(vec![update_i1, update_i2, update_s]);
+                        }
+                        false => {
+                            updates = Some(vec![update_i1, update_i2]);
+                        }
                     }
                 }
-            },
-            false => todo!(),
+            }
+        };
+
+        if updates.is_some() {
+            return updates;
         }
+
+        match &individual.intent {
+            Intent::Idle(_) => {} // Never end
+            Intent::MoveTo(_, move_path) => {
+                let Some(next) = move_path.iter().next() else {
+                    tracing::trace!(name = "individual-step-accomplished-intent-move-to-no-next");
+                    return updates;
+                };
+
+                if almost_equal(next[0], individual.position[0], POSITION_TOLERANCE)
+                    && almost_equal(next[1], individual.position[1], POSITION_TOLERANCE)
+                {
+                    let update = Update::MoveStepAccomplished;
+                    let update = runner::update::Update::UpdateIndividual(self.i, update);
+                    updates.get_or_insert(vec![]).push(update);
+                }
+            }
+        }
+
+        updates
     }
 
     fn distribute(&self) -> Vec<(IndividualIndex, Vec<Order>)> {
@@ -182,7 +223,6 @@ impl<'a> Processor<'a> {
                     let from = Vec2::new(individual.position[0], individual.position[1]);
                     let to = Vec2::new(position.x, position.y);
                     let path = self.world.navmesh.path(from, to);
-                    // dbg!(&path);
                     match path {
                         Some(path) => Intent::MoveTo(position.clone(), MovePath::from(path)),
                         None => Intent::Idle(Direction::NORTH),
@@ -198,10 +238,14 @@ impl<'a> Processor<'a> {
 
         match intent {
             Intent::Idle(direction) => Behavior::Idle(direction.clone()),
-            Intent::MoveTo(position, path) => {
-                // TODO: path finding, etc
+            Intent::MoveTo(_, path) => {
+                let Some(next) = path.iter().next() else {
+                    tracing::trace!(name = "individual-step-act-move-no-next");
+                    return Behavior::Idle(Direction::NORTH); // should not happen
+                };
+
                 let from = Vec2::new(individual.position[0], individual.position[1]);
-                let to = Vec2::new(position.x, position.y);
+                let to = Vec2::new(next[0], next[1]);
                 let direction = (to - from).normalize_or_zero();
                 Behavior::Walk(Direction::from(direction))
             }
