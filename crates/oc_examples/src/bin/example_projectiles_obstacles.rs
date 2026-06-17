@@ -60,6 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .mod_(PathBuf::from("mods/tests1"))
         .install(Box::new(install))
         .snapshot(snapshot)
+        .test_app_exit_code(args.test)
         .build()
         .run()
         .unwrap();

@@ -62,6 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .world(map)
         .mod_(mod_)
         .install(Box::new(install))
+        .test_app_exit_code(args.test)
         .snapshot(snapshot);
 
     #[allow(unused)]

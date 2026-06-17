@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
-use oc_battle_gui::world::InsertedTiles;
 use oc_examples::{logging, tests::behavior};
 use oc_individual::order::Order;
 use oc_utils::d2::Position;
@@ -44,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let run = behavior::run().setup(setup);
+    let run = behavior::run().test(args.test).setup(setup);
 
     let run = {
         let test_track = {
@@ -80,7 +79,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     app.insert_resource(Args_(args_.clone()));
                     #[cfg(feature = "test")]
                     app.add_systems(Update, end_when_success_or_timeout);
-                    app.add_observer(on_inserted_tiles);
                 })
             },
             test_track,
@@ -145,11 +143,6 @@ fn end_when_success_or_timeout(
 
     if timeout {
         eprintln!("❌ Timeout reached ! Individual didn't reached target");
-        // FIXME BS NOW: test must check this code !
         commands.write_message(bevy::app::AppExit::from_code(1));
     }
-}
-
-fn on_inserted_tiles(_: On<InsertedTiles>, mut commands: Commands) {
-    // commands.trigger(ToggleShowTiles);
 }

@@ -55,25 +55,25 @@ test-e2e:
     just test-individual-behaviors-move-straight-ahead-obstacle
 
 test-projectiles-obstacles-one-wall:
-    RUST_LOG=WARN cargo run --bin example_projectiles_obstacles --features test -- one-against-wall --test
+    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-against-wall --test
 
 test-projectiles-obstacles-multiple-wall:
-    RUST_LOG=WARN cargo run --bin example_projectiles_obstacles --features test -- multiple-against-wall --test
+    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- multiple-against-wall --test
 
 test-projectiles-obstacles-one-hill:
-    RUST_LOG=WARN cargo run --bin example_projectiles_obstacles --features test -- one-against-hill --test
+    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-against-hill --test
 
 test-projectiles-obstacles-multiple-hill:
-    RUST_LOG=WARN cargo run --bin example_projectiles_obstacles --features test -- multiple-against-hill --test
+    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- multiple-against-hill --test
 
 test-individual-shots:
-    RUST_LOG=WARN cargo run --bin example_individual_shots --features test -- --test
+    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- --test
 
 test-individual-behaviors-move-straight-ahead:
-    RUST_LOG=WARN cargo run --bin example_individual_behaviors --features test -- move-straight-ahead --test
+    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead --test
 
 test-individual-behaviors-move-straight-ahead-obstacle:
-    RUST_LOG=WARN cargo run --bin example_individual_behaviors --features test -- move-straight-ahead-obstacle --test
+    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead-obstacle --test
 
 test-all:
     just test

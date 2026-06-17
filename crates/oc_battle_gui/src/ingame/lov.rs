@@ -198,7 +198,7 @@ fn path_objects_at(
 
 fn on_despawn_lov(_: On<DespawnLov>, mut commands: Commands, lovs: Query<(Entity, &Lov)>) {
     tracing::trace!(name = "lov-despawn");
-    for (entity, lov) in lovs {
+    for (entity, _lov) in lovs {
         commands.entity(entity).despawn();
     }
 }

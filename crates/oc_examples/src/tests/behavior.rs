@@ -23,7 +23,11 @@ type Track = Box<dyn Fn(Tracker)>;
 type Track = ();
 
 #[builder]
-pub fn run(setup: Vec<([f32; 2], Order)>, tests: (Install, Track)) -> Result<(), anyhow::Error> {
+pub fn run(
+    setup: Vec<([f32; 2], Order)>,
+    tests: (Install, Track),
+    test: bool,
+) -> Result<(), anyhow::Error> {
     let mod_ = PathBuf::from("mods/tests1");
     let mod__ = oc_mod::Mod::load(&mod_, None)?;
     let map = PathBuf::from("examples/meadow1");
@@ -44,9 +48,7 @@ pub fn run(setup: Vec<([f32; 2], Order)>, tests: (Install, Track)) -> Result<(),
     let example = run::Example::builder()
         .world(map)
         .mod_(mod_)
-        // .install(Box::new(move |app: &mut bevy::app::App| {
-        //     install(app)
-        // }))
+        .test_app_exit_code(test)
         .snapshot(snapshot);
 
     let example = example.install(tests.0);

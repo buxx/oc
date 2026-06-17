@@ -4,6 +4,7 @@ use std::{
 };
 
 use anyhow::Context;
+use bevy::app::AppExit;
 use bon::Builder;
 use oc_root::{files::Files, static_::StaticSource};
 use oc_world::{load::WorldPath, meta::Meta};
@@ -25,6 +26,8 @@ pub struct Example {
     world: PathBuf,
     snapshot: PathBuf,
     install: Option<Box<dyn Fn(&mut bevy::app::App)>>,
+    #[builder(default)]
+    test_app_exit_code: bool,
 }
 
 impl Example {
@@ -88,10 +91,17 @@ impl Example {
         let config = oc_battle_gui::config::Config_::builder().autoconnect(connect);
         let config = config.build();
 
-        oc_battle_gui::run::run()
+        let app_exit = oc_battle_gui::run::run()
             .config(config)
             .maybe_install(self.install)
             .call();
+
+        if self.test_app_exit_code {
+            if let AppExit::Error(code) = app_exit {
+                let exit_code: u8 = code.into();
+                std::process::exit(exit_code as i32);
+            }
+        }
 
         #[cfg(feature = "test")]
         {
