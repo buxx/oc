@@ -111,6 +111,24 @@ impl From<u64> for IndividualIndex {
 }
 
 impl Individual {
+    pub fn fresh<P: Into<[f32; 3]>>(
+        position: P,
+        tile: WorldTileIndex,
+        region: WorldRegionIndex,
+    ) -> Self {
+        Self::new(
+            position.into(),
+            tile,
+            region,
+            vec![],
+            Behavior::Idle(Direction::NORTH),
+            vec![],
+            Status::Operational,
+            Gesture::Idle(Direction::NORTH),
+            Intent::Idle(Direction::NORTH),
+        )
+    }
+
     pub fn tile(&self) -> WorldTileIndex {
         self.tile
     }

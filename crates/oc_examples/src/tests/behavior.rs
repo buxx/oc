@@ -81,18 +81,7 @@ fn individuals(
             let z = tile.z_pixels(w);
             let position = [position[0], position[1], z];
 
-            // FIXME BS NOW: introduce `create` function to initialize fields ...
-            oc_individual::Individual::new(
-                position,
-                tile_i,
-                WorldRegionIndex(0),
-                vec![],
-                oc_individual::behavior::Behavior::Idle(Direction::NORTH),
-                vec![],
-                oc_individual::Status::Operational,
-                oc_individual::Gesture::Idle(Direction::NORTH),
-                oc_individual::behavior::Intent::Idle(Direction::NORTH),
-            )
+            oc_individual::Individual::fresh(position, tile_i, WorldRegionIndex(0))
         })
         .collect()
 }

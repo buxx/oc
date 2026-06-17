@@ -130,17 +130,7 @@ fn individuals(
             ));
             let tile = WorldTileIndex::from_(tile_xy, &w);
 
-            oc_individual::Individual::new(
-                p.clone(),
-                tile,
-                WorldRegionIndex(0),
-                vec![],
-                oc_individual::behavior::Behavior::Idle(Direction::NORTH),
-                vec![],
-                oc_individual::Status::Operational,
-                oc_individual::Gesture::Idle(Direction::NORTH),
-                oc_individual::behavior::Intent::Idle(Direction::NORTH),
-            )
+            oc_individual::Individual::fresh(p.clone(), tile, WorldRegionIndex(0))
         })
         .collect();
 

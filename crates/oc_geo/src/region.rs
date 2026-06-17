@@ -69,10 +69,7 @@ impl WcfgFrom<WorldTileIndex> for WorldRegionIndex {
 
 impl WcfgFrom<TileXy> for RegionXy {
     fn from_(value: TileXy, w: &WorldConfig) -> Self {
-        Self(Xy(
-            value.0.0 / w.region_width,
-            value.0.1 / w.region_height,
-        ))
+        Self(Xy(value.0.0 / w.region_width, value.0.1 / w.region_height))
     }
 }
 

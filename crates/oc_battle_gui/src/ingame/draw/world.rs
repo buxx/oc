@@ -19,10 +19,7 @@ impl WorldMapDisplay {
         let size = window - (WORLD_MAP_WINDOW_PADDING * 2.);
         let center = start + (size / 2.);
         let padding = Vec2::new(WORLD_MAP_WINDOW_PADDING, -WORLD_MAP_WINDOW_PADDING);
-        let world = Vec2::new(
-            w.world_width_pixels as f32,
-            w.world_height_pixels as f32,
-        );
+        let world = Vec2::new(w.world_width_pixels as f32, w.world_height_pixels as f32);
         let ratio = size / world;
 
         Self {
