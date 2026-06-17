@@ -1,4 +1,4 @@
-use oc_individual::{IndividualIndex, Update, network};
+use oc_individual::{IndividualIndex, Update, behavior::Intent, network};
 use oc_network::ToClient;
 use oc_world::World;
 
@@ -33,6 +33,12 @@ pub fn write(
         Update::Accomplished => {
             individual.orders.pop();
         }
+        Update::MoveStepAccomplished => match &mut individual.intent {
+            Intent::Idle(_) => {}
+            Intent::MoveTo(_, path) => {
+                path.pop();
+            }
+        },
     }
 
     let region = individual.region;

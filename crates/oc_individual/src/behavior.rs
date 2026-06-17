@@ -1,4 +1,4 @@
-use derive_more::Deref;
+use derive_more::{Deref, DerefMut};
 use oc_utils::d2::{Direction, Position};
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -16,7 +16,7 @@ pub enum Behavior {
     Walk(Direction),
 }
 
-#[derive(Debug, Clone, Deref, Archive, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deref, DerefMut, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct MovePath(pub Vec<[f32; 2]>);
 

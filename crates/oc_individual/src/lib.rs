@@ -77,6 +77,7 @@ pub enum Update {
     SetStatus(Status),
     SetIntent(Intent),
     Accomplished,
+    MoveStepAccomplished,
 }
 
 impl Region for Individual {
