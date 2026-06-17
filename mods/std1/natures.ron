@@ -110,6 +110,7 @@
     (
         name: "BigRock",
         opacity: 1.0,
-        z: Meters(2.5)
+        z: Meters(2.5),
+        deny: [Individual, Projectile],
     ),
 ]
