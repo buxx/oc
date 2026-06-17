@@ -95,7 +95,6 @@ impl Physic for Tile {
                 Traversability::none(),
             ),
             (
-                // FIXME BS NOW: tester si ça marche toujours cette affaire
                 Volume::Cube {
                     x: ref_[0],
                     y: ref_[1],

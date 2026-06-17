@@ -352,9 +352,9 @@ mod tests {
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
-        let my_traversable_tile = MyTile(TileXy(Xy(0, 0))); // FIXME BS NOW: by nature in mod now
+        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)));
         let my_traversable_tile: Box<&dyn Physic> = Box::new(&my_traversable_tile);
-        let my_solid_tile = MyTile(TileXy(Xy(1, 0))); // FIXME BS NOW: by nature in mod now
+        let my_solid_tile = MyTile(TileXy(Xy(1, 0)));
         let my_solid_tile: Box<&dyn Physic> = Box::new(&my_solid_tile);
         let objects = |xy| {
             if xy == Xy(0, 0) {

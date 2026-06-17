@@ -118,7 +118,6 @@ impl<'a> Processor<'a> {
                 // TODO: strange behavior than Idle disapear instantly ?
                 tracing::trace!(name = "individual-step-accomplished-squad-leader-idle-finished", i=?self.i);
 
-                // FIXME BS NOW: refacto
                 let update_i1 = Update::Accomplished;
                 let update_i1 = runner::update::Update::UpdateIndividual(self.i, update_i1);
                 let update_i2 = Update::SetIntent(Intent::Idle(Direction::NORTH)); // TODO direction
@@ -143,7 +142,7 @@ impl<'a> Processor<'a> {
                     tracing::trace!(
                         name = "individual-step-accomplished-squad-leader-move-to-finished", i=?self.i
                     );
-                    // FIXME BS NOW: refacto
+
                     let update_i1 = Update::Accomplished;
                     let update_i1 = runner::update::Update::UpdateIndividual(self.i, update_i1);
                     let update_i2 = Update::SetIntent(Intent::Idle(Direction::NORTH)); // TODO direction
@@ -204,7 +203,7 @@ impl<'a> Processor<'a> {
         let mut distribution = Vec::with_capacity(squad.members.len());
         for member in &squad.members {
             tracing::trace!(name="individual-step-distribute-to", i=?self.i, member=?member);
-            distribution.push((*member, vec![order.clone()])) // FIXME BS NOW: real orders (according to squad form, situation, order, etc.)
+            distribution.push((*member, vec![order.clone()])) // FIXME: real orders (according to squad form, situation, order, etc.)
         }
 
         distribution
@@ -220,6 +219,7 @@ impl<'a> Processor<'a> {
                 None | Some(Order::Idle) => Intent::Idle(Direction::NORTH),
                 Some(Order::MoveTo(position)) => {
                     // FIXME BS NOW: do not recompute each time the path, use cached one and, regurlarly compute new one
+                    // perdiodic or when collision ?
                     let from = Vec2::new(individual.position[0], individual.position[1]);
                     let to = Vec2::new(position.x, position.y);
                     let path = self.world.navmesh.path(from, to);

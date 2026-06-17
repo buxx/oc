@@ -181,5 +181,3 @@ pub enum ProjectileEffect {
 pub trait IntoIndexEffect<T> {
     fn into_index_effect(&self, value: T) -> Effect;
 }
-
-// FIXME BS NOW: test with squad (check individuals_squad correctly set)
