@@ -1,4 +1,5 @@
 use bevy::audio::{AudioPlugin, SpatialScale};
+use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::sprite_render::Wireframe2dPlugin;
 use bevy_egui::EguiPlugin;
@@ -31,46 +32,55 @@ const AUDIO_SCALE: f32 = 1. / 100.0;
 use debug::DebugPlugin;
 
 #[builder]
-pub fn run(config: Config_, install: Option<Box<dyn Fn(&mut App)>>) -> AppExit {
+pub fn run(
+    config: Config_,
+    install: Option<Box<dyn Fn(&mut App)>>,
+    #[builder(default)] logging: bool,
+) -> AppExit {
     let mut app = App::new();
 
-    app.add_plugins(
-        DefaultPlugins
-            .set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: "Open Combat".into(),
-                    resolution: (1280, 900).into(),
-                    // present_mode: PresentMode::AutoNoVsync,
-                    ..default()
-                }),
+    let default = DefaultPlugins
+        .set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Open Combat".into(),
+                resolution: (1280, 900).into(),
+                // present_mode: PresentMode::AutoNoVsync,
                 ..default()
-            })
-            .set(AudioPlugin {
-                default_spatial_scale: SpatialScale::new_2d(AUDIO_SCALE),
-                ..default()
-            })
-            .set(ImagePlugin::default_nearest()),
-    )
-    .add_plugins(EguiPlugin::default())
-    .add_plugins(Wireframe2dPlugin::default())
-    .add_plugins(SpritesheetAnimationPlugin)
-    .add_plugins(ErrorPlugin)
-    .add_plugins(NetworkPlugin)
-    .add_plugins(FxPlugin)
-    .add_plugins(HomePlugin)
-    .add_plugins(DownloadingPlugin)
-    .add_plugins(IngamePlugin)
-    .add_plugins(Animations)
-    .add_plugins(window::WindowPlugin)
-    .add_plugins(ingame::camera::CameraPlugin)
-    .insert_state(AppState::Home)
-    .init_resource::<Game>()
-    .init_resource::<Wcfg>()
-    .init_resource::<GameConfig>()
-    .init_resource::<states::Window>()
-    .init_state::<InGameState>()
-    .insert_resource(Config(config))
-    .add_systems(Startup, setup::setup);
+            }),
+            ..default()
+        })
+        .set(AudioPlugin {
+            default_spatial_scale: SpatialScale::new_2d(AUDIO_SCALE),
+            ..default()
+        })
+        .set(ImagePlugin::default_nearest());
+
+    let default = match logging {
+        true => default,
+        false => default.disable::<LogPlugin>(),
+    };
+
+    app.add_plugins(default)
+        .add_plugins(EguiPlugin::default())
+        .add_plugins(Wireframe2dPlugin::default())
+        .add_plugins(SpritesheetAnimationPlugin)
+        .add_plugins(ErrorPlugin)
+        .add_plugins(NetworkPlugin)
+        .add_plugins(FxPlugin)
+        .add_plugins(HomePlugin)
+        .add_plugins(DownloadingPlugin)
+        .add_plugins(IngamePlugin)
+        .add_plugins(Animations)
+        .add_plugins(window::WindowPlugin)
+        .add_plugins(ingame::camera::CameraPlugin)
+        .insert_state(AppState::Home)
+        .init_resource::<Game>()
+        .init_resource::<Wcfg>()
+        .init_resource::<GameConfig>()
+        .init_resource::<states::Window>()
+        .init_state::<InGameState>()
+        .insert_resource(Config(config))
+        .add_systems(Startup, setup::setup);
 
     if let Some(install) = install {
         install(&mut app);

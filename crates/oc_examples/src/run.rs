@@ -94,6 +94,7 @@ impl Example {
         let app_exit = oc_battle_gui::run::run()
             .config(config)
             .maybe_install(self.install)
+            .logging(false)
             .call();
 
         if self.test_app_exit_code {
