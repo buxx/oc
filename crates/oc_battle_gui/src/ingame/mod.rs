@@ -5,6 +5,7 @@ use oc_root::Wcfg;
 use crate::ingame::input::left_click::SpawnProjectileLeftClick;
 use crate::{
     ingame::{
+        behavior::BehaviorPlugin,
         draw::world::WorldMapDisplay,
         height::HeightPlugin,
         individual::IndividualPlugin,
@@ -22,6 +23,7 @@ use crate::{
     world::WorldPlugin,
 };
 
+pub mod behavior;
 pub mod camera;
 #[cfg(feature = "debug")]
 pub mod debug;
@@ -65,6 +67,7 @@ impl Plugin for IngamePlugin {
             .add_plugins(HeightPlugin)
             .add_plugins(IndividualPlugin)
             .add_plugins(ProjectilePlugin)
+            .add_plugins(BehaviorPlugin)
             .add_plugins(LovPlugin)
             // TODO: InputPlugin
             .init_resource::<input::State>()

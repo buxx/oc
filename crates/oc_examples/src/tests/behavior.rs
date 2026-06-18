@@ -9,7 +9,7 @@ use oc_geo::{
 };
 use oc_individual::{IndividualIndex, order::Order, squad::Squad};
 use oc_root::{WcfgFrom, WorldConfig, physics::Meters};
-use oc_utils::d2::{Direction, Xy};
+use oc_utils::d2::Xy;
 use oc_world::{meta::Meta, tile::Tile};
 #[cfg(feature = "test")]
 use oc_world_server::tracker::Tracker;

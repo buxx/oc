@@ -8,7 +8,7 @@ use oc_root::side::Side;
 use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
 
-use crate::entity::individual::{Behavior, IndividualIndex, Orders};
+use crate::entity::individual::{Behavior, IndividualIndex, Intent, Orders};
 use crate::ingame;
 use crate::ingame::draw::Z_INDIVIDUAL;
 use crate::ingame::input::individual::{
@@ -47,6 +47,12 @@ pub struct SetStatusEvent(oc_individual::IndividualIndex, oc_individual::Status)
 pub struct SetGestureEvent(oc_individual::IndividualIndex, oc_individual::Gesture);
 
 #[derive(Debug, Event)]
+pub struct SetIntentEvent(
+    oc_individual::IndividualIndex,
+    oc_individual::behavior::Intent,
+);
+
+#[derive(Debug, Event)]
 pub struct AccomplishedEvent(oc_individual::IndividualIndex);
 
 #[derive(Debug, Deref, Component)]
@@ -79,6 +85,7 @@ pub fn on_insert_individual(
             Tile(individual.1.tile),
             Region(individual.1.region),
             Behavior(individual.1.behavior.clone()),
+            Intent(individual.1.intent.clone()),
             Forces(individual.1.forces.clone()),
             Status(individual.1.status),
             Gesture(individual.1.gesture.clone()),
@@ -147,7 +154,10 @@ pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Com
             commands.trigger(SetGestureEvent(i, gesture.clone()));
             true
         }
-        oc_individual::Update::SetIntent(_) => false,
+        oc_individual::Update::SetIntent(intent) => {
+            commands.trigger(SetIntentEvent(i, intent.clone()));
+            false
+        }
         oc_individual::Update::Accomplished => {
             commands.trigger(AccomplishedEvent(i));
             false
@@ -172,6 +182,7 @@ impl Plugin for IndividualPlugin {
             .add_observer(on_insert_individual)
             .add_observer(on_update_individual)
             .add_observer(on_set_behavior_event)
+            .add_observer(on_set_intent_event)
             .add_observer(on_set_gesture_event)
             .add_observer(on_set_forces_event)
             .add_observer(on_forgotten_region)
@@ -202,6 +213,22 @@ fn on_set_gesture_event(
     tracing::trace!(name = "update-individual-gesture", i=?gesture.0, gesture=?gesture.1);
 
     gesture_.0 = gesture.1.clone();
+}
+
+fn on_set_intent_event(
+    intent: On<SetIntentEvent>,
+    mut query: Query<&mut Intent>,
+    state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+) {
+    let Some(entity) = state.get(&intent.0) else {
+        return;
+    };
+    let Ok(mut intent_) = query.get_mut(*entity) else {
+        return;
+    };
+    tracing::trace!(name = "update-individual-intent", i=?intent.0, intent=?intent.1);
+
+    intent_.0 = intent.1.clone();
 }
 
 fn on_set_behavior_event(
