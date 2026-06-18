@@ -254,6 +254,6 @@ impl Gesture {
 
         // Remove FRAC_PI_2 because bevy display sprite aligned Est by default
         let angle = direction.y.atan2(direction.x) - std::f32::consts::FRAC_PI_2;
-        bevy::prelude::Quat::from_rotation_z(angle)
+        bevy::prelude::Quat::from_rotation_z(-angle)
     }
 }

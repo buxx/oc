@@ -24,7 +24,7 @@ type Track = ();
 
 #[builder]
 pub fn run(
-    setup: Vec<([f32; 2], Order)>,
+    setup: Vec<([f32; 2], Vec<Order>)>,
     tests: (Install, Track),
     test: bool,
 ) -> Result<(), anyhow::Error> {
@@ -67,7 +67,7 @@ pub fn run(
 fn individuals(
     w: &WorldConfig,
     tiles: &Vec<Tile>,
-    setup: &Vec<([f32; 2], Order)>,
+    setup: &Vec<([f32; 2], Vec<Order>)>,
 ) -> Vec<oc_individual::Individual> {
     setup
         .iter()
@@ -89,18 +89,18 @@ fn individuals(
 fn squads(
     _w: &WorldConfig,
     _individuals: &Vec<oc_individual::Individual>,
-    setup: &Vec<([f32; 2], Order)>,
+    setup: &Vec<([f32; 2], Vec<Order>)>,
 ) -> Vec<Squad> {
     // For this test, all individual are alone in their squad
     // Test of squad behavior is in other example
     setup
         .iter()
         .enumerate()
-        .map(|(i, (_, order))| {
+        .map(|(i, (_, orders))| {
             let individual = IndividualIndex(i as u64);
             Squad {
                 members: vec![individual],
-                orders: vec![order.clone()],
+                orders: orders.clone(),
             }
         })
         .collect()
