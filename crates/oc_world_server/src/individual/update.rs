@@ -36,7 +36,7 @@ pub fn write(
         Update::MoveStepAccomplished => match &mut individual.intent {
             Intent::Idle(_) => {}
             Intent::MoveTo(_, path) => {
-                path.pop();
+                path.remove(0);
             }
         },
     }
