@@ -10,6 +10,7 @@ use oc_utils::bevy::EntityMapping;
 
 use crate::entity::individual::{Behavior, IndividualIndex, Intent, Orders};
 use crate::ingame;
+use crate::ingame::behavior::{DespawnOrder, DespawnOrders, RefreshOrdersEvent};
 use crate::ingame::draw::Z_INDIVIDUAL;
 use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
@@ -36,8 +37,8 @@ pub struct SetForcesEvent(oc_individual::IndividualIndex, Vec<oc_physics::Force>
 
 #[derive(Debug, Event)]
 pub struct SetOrdersEvent(
-    oc_individual::IndividualIndex,
-    Vec<oc_individual::order::Order>,
+    pub oc_individual::IndividualIndex,
+    pub Vec<oc_individual::order::Order>,
 );
 
 #[derive(Debug, Event)]
@@ -91,6 +92,7 @@ pub fn on_insert_individual(
             Intent(individual.1.intent.clone()),
             Forces(individual.1.forces.clone()),
             Status(individual.1.status),
+            Orders(individual.1.orders.clone()),
             Gesture(individual.1.gesture.clone()),
             Volumes(individual.1.volumes(position, &g.w, &g.mod_).clone()),
             Material_(individual.1.kind()),
@@ -105,6 +107,10 @@ pub fn on_insert_individual(
         ))
         .id();
     state.insert(individual.0, entity);
+    commands.trigger(RefreshOrdersEvent(
+        individual.0,
+        individual.1.orders.clone(),
+    ));
 }
 
 fn on_refresh_render(
@@ -270,7 +276,9 @@ fn on_move_step_accomplished_event(
     match &mut intent.0 {
         oc_individual::behavior::Intent::Idle(_) => {}
         oc_individual::behavior::Intent::MoveTo(_, path) => {
-            path.remove(0);
+            if !path.is_empty() {
+                path.remove(0);
+            }
         }
     }
 }
@@ -279,6 +287,7 @@ fn on_accomplished_event(
     accomplished: On<AccomplishedEvent>,
     mut query: Query<&mut Orders>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut commands: Commands,
 ) {
     let Some(entity) = state.get(&accomplished.0) else {
         return;
@@ -288,7 +297,10 @@ fn on_accomplished_event(
     };
     tracing::trace!(name = "update-individual-accomplished", i=?accomplished.0);
 
-    orders.0.pop();
+    if !orders.0.is_empty() {
+        let order = orders.0.remove(0);
+        commands.trigger(DespawnOrder(accomplished.0, order))
+    }
 }
 
 fn on_set_orders_event(
@@ -364,5 +376,6 @@ pub fn on_forgot_individual(
     if let Some(entity) = individuals.remove(&individual.0) {
         tracing::trace!(name = "remove-individual", i=?individual);
         commands.entity(entity).despawn();
+        commands.trigger(DespawnOrders(individual.0));
     }
 }

@@ -12,6 +12,7 @@ pub const Z_SELECT_WIRES: f32 = 5.0;
 pub const Z_REGION_WIREFRAME: f32 = 1.0;
 pub const Z_LOV: f32 = 10.0;
 pub const Z_PATH: f32 = 9.0;
+pub const Z_ORDER: f32 = 9.1;
 #[cfg(feature = "debug")]
 pub const Z_WORLD_CURSOR: f32 = 1.0;
 pub const Z_WORLD_MAP_BACKGROUND: f32 = 0.0;
