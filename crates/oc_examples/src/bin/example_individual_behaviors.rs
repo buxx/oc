@@ -36,10 +36,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let setup = match args.case {
         TestCase::MoveStraightAhead => {
-            vec![([150., 150.], Order::MoveTo(Position::new(180., 150.)))]
+            vec![(
+                [150., 150.],
+                vec![
+                    Order::MoveTo(Position::new(180., 150.)),
+                    Order::MoveTo(Position::new(190., 150.)),
+                ],
+            )]
         }
         TestCase::MoveStraightAheadObstacle => {
-            vec![([160., 415.], Order::MoveTo(Position::new(235., 415.)))]
+            vec![(
+                [160., 415.],
+                vec![
+                    Order::MoveTo(Position::new(235., 415.)),
+                    Order::MoveTo(Position::new(240., 415.)),
+                ],
+            )]
         }
     };
 
