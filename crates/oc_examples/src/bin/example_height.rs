@@ -40,12 +40,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 struct SetupLovs;
 
 fn setup(app: &mut bevy::app::App) {
-    app.add_observer(on_g_received)
+    app.add_observer(on_game_config_received)
         .add_observer(on_inserted_tiles)
         .add_observer(on_setup_lovs);
 }
 
-fn on_g_received(
+fn on_game_config_received(
     _: On<GameConfigReceived>,
     mut commands: Commands,
     world: Res<oc_battle_gui::world::World>,

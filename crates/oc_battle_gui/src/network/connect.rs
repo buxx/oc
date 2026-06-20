@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex, mpsc::channel};
 
 use bevy::prelude::*;
+use oc_root::identity::Identity;
 
 use crate::network::state::State;
 use crate::network::{input::NetworkMessageReceiver, start_network};
@@ -8,7 +9,7 @@ use crate::states::AppState;
 use crate::{error::OkOrSendError, network::output::ToServerSender};
 
 #[derive(Event)]
-pub struct Connect(pub crate::config::Connect);
+pub struct Connect(pub crate::config::Connect, pub Identity);
 
 #[derive(Event)]
 pub struct Connected;
@@ -29,6 +30,8 @@ pub fn on_connect(
     mut network_state: ResMut<State>,
 ) {
     network_state.server = Some(event.0.clone());
+    network_state.identity = Some(event.1.clone());
+
     match &event.0 {
         crate::config::Connect::Network(socket) => {
             let (input_tx, input_rx) = channel();

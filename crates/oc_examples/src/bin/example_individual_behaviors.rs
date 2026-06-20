@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
 use oc_examples::{logging, tests::behavior};
 use oc_individual::order::Order;
-use oc_utils::d2::Position;
 
 #[cfg(feature = "test")]
 const POSITION_TOLERANCE: f32 = 3.0;
@@ -23,6 +22,20 @@ enum TestCase {
     MoveStraightAheadObstacle,
 }
 
+const MSA_INDIV_POS: [f32; 2] = [150., 150.];
+const MSA_POS1: [f32; 2] = [180., 150.];
+const MSA_POS2: [f32; 2] = [210., 150.];
+
+const MSAO_INDIV_POS: [f32; 2] = [160., 415.];
+const MSAO_POS1: [f32; 2] = [235., 415.];
+const MSAO_POS2: [f32; 2] = [250., 415.];
+
+// FIXME BS NOW: les markers d'Order actuellement affichés sont ceux des individuals
+//                 -> on veut affiche rles markers de squad
+//                 -> et les markers de individual sont plus petits
+//               Mais il faut aussi synchroniser les Squads avec le GUI.
+//               Je pense qu'il faut tous les synchro au début de la connexion. Pour pouvoir les afficher
+//               tous sur la world map par exemple.
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
     let args = Args::parse();
@@ -37,19 +50,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let setup = match args.case {
         TestCase::MoveStraightAhead => {
             vec![(
-                [150., 150.],
+                MSA_INDIV_POS,
                 vec![
-                    Order::MoveTo(Position::new(180., 150.)),
-                    Order::MoveTo(Position::new(190., 150.)),
+                    Order::MoveTo(MSA_POS1.into()),
+                    Order::MoveTo(MSA_POS2.into()),
                 ],
             )]
         }
         TestCase::MoveStraightAheadObstacle => {
             vec![(
-                [160., 415.],
+                MSAO_INDIV_POS,
                 vec![
-                    Order::MoveTo(Position::new(235., 415.)),
-                    Order::MoveTo(Position::new(240., 415.)),
+                    Order::MoveTo(MSAO_POS1.into()),
+                    Order::MoveTo(MSAO_POS2.into()),
                 ],
             )]
         }
@@ -102,6 +115,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[allow(unused)]
 #[derive(Debug, Resource)]
 struct Args_(Args);
 
@@ -123,24 +137,22 @@ fn end_when_success_or_timeout(
 ) {
     static MOVE_DONE: Mutex<Option<Instant>> = Mutex::new(None);
     let timeout = match args.0.case {
-        TestCase::MoveStraightAhead => Duration::from_secs(15),
-        TestCase::MoveStraightAheadObstacle => Duration::from_secs(30),
+        TestCase::MoveStraightAhead => Duration::from_secs(20),
+        TestCase::MoveStraightAheadObstacle => Duration::from_secs(40),
     };
 
     let timeout = game.started.elapsed() > timeout;
     let mut move_done = MOVE_DONE.lock().unwrap();
     *move_done = match *move_done {
         None => match args.0.case {
-            // TODO: coordinates from const
             TestCase::MoveStraightAhead => individuals.iter().next().and_then(|position| {
-                (almost_equal(position.0[0], 180., POSITION_TOLERANCE)
-                    && almost_equal(position.0[1], 150., POSITION_TOLERANCE))
+                (almost_equal(position.0[0], MSA_POS2[0], POSITION_TOLERANCE)
+                    && almost_equal(position.0[1], MSA_POS2[1], POSITION_TOLERANCE))
                 .then(|| Instant::now())
             }),
-            // TODO: coordinates from const
             TestCase::MoveStraightAheadObstacle => individuals.iter().next().and_then(|position| {
-                (almost_equal(position.0[0], 235., POSITION_TOLERANCE)
-                    && almost_equal(position.0[1], 415., POSITION_TOLERANCE))
+                (almost_equal(position.0[0], MSAO_POS2[0], POSITION_TOLERANCE)
+                    && almost_equal(position.0[1], MSAO_POS2[1], POSITION_TOLERANCE))
                 .then(|| Instant::now())
             }),
         },

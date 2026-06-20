@@ -53,7 +53,11 @@ impl IntoTiles for WorldRegionIndex {
     }
 }
 
-impl Material for Tile {}
+impl Material for Tile {
+    fn kind(&self) -> Option<oc_root::material::MaterialKind> {
+        None
+    }
+}
 
 impl Physic for Tile {
     fn position(&self, w: &WorldConfig) -> [f32; 3] {

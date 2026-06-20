@@ -110,6 +110,7 @@ impl<'a> Processor<'a> {
             return None;
         };
         let squad_i = self.index.individual_squad(self.i);
+        let squad = self.world.squad(squad_i);
         let is_squad_leader = self.is_squad_leader();
         let mut updates = None;
 
@@ -125,10 +126,14 @@ impl<'a> Processor<'a> {
 
                 match is_squad_leader {
                     true => {
+                        // FIXME BS NOW: Argh refacto
                         // FIXME: not sure than squal leader idle finished indicate all squad accomplished ...
-                        let update_s = oc_individual::squad::Update::Accomplished;
-                        let update_s = runner::update::Update::UpdateSquad(squad_i, update_s);
-                        updates = Some(vec![update_i1, update_i2, update_s]);
+                        let update_s1 = oc_individual::squad::Update::Accomplished;
+                        let update_s1 = runner::update::Update::UpdateSquad(squad_i, update_s1);
+                        let orders = squad.orders.clone().into_iter().skip(1).collect();
+                        let update_s2 = oc_individual::squad::Update::SetOrders(orders);
+                        let update_s2 = runner::update::Update::UpdateSquad(squad_i, update_s2);
+                        updates = Some(vec![update_i1, update_i2, update_s1, update_s2]);
                     }
                     false => {
                         updates = Some(vec![update_i1, update_i2]);
@@ -150,10 +155,15 @@ impl<'a> Processor<'a> {
 
                     match is_squad_leader {
                         true => {
+                            // FIXME BS NOW: Argh refacto
                             // FIXME: not sure than squal leader idle finished indicate all squad accomplished ...
-                            let update_s = oc_individual::squad::Update::Accomplished;
-                            let update_s = runner::update::Update::UpdateSquad(squad_i, update_s);
-                            updates = Some(vec![update_i1, update_i2, update_s]);
+                            // Must wait all memeber finished associated order.
+                            let update_s1 = oc_individual::squad::Update::Accomplished;
+                            let update_s1 = runner::update::Update::UpdateSquad(squad_i, update_s1);
+                            let orders = squad.orders.clone().into_iter().skip(1).collect();
+                            let update_s2 = oc_individual::squad::Update::SetOrders(orders);
+                            let update_s2 = runner::update::Update::UpdateSquad(squad_i, update_s2);
+                            updates = Some(vec![update_i1, update_i2, update_s1, update_s2]);
                         }
                         false => {
                             updates = Some(vec![update_i1, update_i2]);

@@ -66,14 +66,23 @@ impl<E: Client> super::State<E> {
         update: oc_individual::squad::Update,
     ) -> Vec<(Listening, Vec<ToClient>)> {
         let mut world = self.world_mut();
+        let squad = world.squad_mut(i);
 
-        match update {
+        match &update {
             oc_individual::squad::Update::Accomplished => {
-                let squad = world.squad_mut(i);
-                squad.orders.pop();
-                vec![]
+                // This update is essentially for gui (to log it)
+            }
+            oc_individual::squad::Update::SetOrders(orders) => {
+                squad.orders = orders.clone();
+            }
+            oc_individual::squad::Update::SetPosition(position) => {
+                squad.position = position.clone();
             }
         }
+
+        let update = oc_individual::network::Squad::Update(i, update);
+        let update = ToClient::Squad(update);
+        vec![(Listening::Side(squad.side), vec![update])]
     }
 
     fn spawn_projectile(

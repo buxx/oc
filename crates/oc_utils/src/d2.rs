@@ -213,6 +213,12 @@ pub struct Position {
     pub y: f32,
 }
 
+impl From<[f32; 2]> for Position {
+    fn from(value: [f32; 2]) -> Self {
+        Self::new(value[0], value[1])
+    }
+}
+
 #[derive(
     Debug,
     Clone,

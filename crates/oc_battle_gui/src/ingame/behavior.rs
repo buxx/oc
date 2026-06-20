@@ -7,8 +7,13 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     entity::individual::{IndividualIndex, Intent},
-    ingame::{draw, individual::SetOrdersEvent},
+    ingame::{
+        draw,
+        individual::SetOrdersEvent,
+        region::{ForgottenRegion, ListeningRegion},
+    },
     states::{GameConfig, InGameState},
+    world::World,
 };
 
 const PATH_COLOR: Color = Color::srgba(1.0, 1.0, 1.0, 0.15);
@@ -19,47 +24,113 @@ pub struct BehaviorPlugin;
 struct PathGizmos;
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
-pub struct Orders(FxHashMap<oc_individual::IndividualIndex, Vec<(Order, Entity)>>);
+pub struct IndividualOrders(FxHashMap<oc_individual::IndividualIndex, Vec<(Order, Entity)>>);
+
+#[derive(Debug, Resource, Default, Deref, DerefMut)]
+pub struct SquadOrders(FxHashMap<oc_individual::squad::SquadIndex, Vec<(Order, Entity)>>);
 
 #[derive(Debug, Event)]
-pub struct RefreshOrdersEvent(
+pub struct RefreshIndividualOrdersEvent(
     pub oc_individual::IndividualIndex,
     pub Vec<oc_individual::order::Order>,
 );
 
 #[derive(Debug, Event)]
-pub struct SpawnOrder(oc_individual::IndividualIndex, oc_individual::order::Order);
+pub struct RefreshSquadsOrdersEvent(
+    pub oc_individual::squad::SquadIndex,
+    pub Vec<oc_individual::order::Order>,
+);
 
 #[derive(Debug, Event)]
-pub struct DespawnOrder(
+pub struct SpawnIndividualOrder(oc_individual::IndividualIndex, oc_individual::order::Order);
+
+#[derive(Debug, Event)]
+pub struct SpawnSquadOrder(
+    oc_individual::squad::SquadIndex,
+    oc_individual::order::Order,
+);
+
+#[derive(Debug, Event)]
+pub struct SpawnSquadOrders(
+    pub oc_individual::squad::SquadIndex,
+    pub Vec<oc_individual::order::Order>,
+);
+
+#[derive(Debug, Event)]
+pub struct DespawnIndividualOrder(
     pub oc_individual::IndividualIndex,
     pub oc_individual::order::Order,
 );
 
 #[derive(Debug, Event)]
-pub struct DespawnOrders(pub oc_individual::IndividualIndex);
+pub struct DespawnIndividualOrders(pub oc_individual::IndividualIndex);
 
-pub enum OrderSprite {
+#[derive(Debug, Event)]
+pub struct DespawnSquadOrders(pub oc_individual::squad::SquadIndex);
+
+#[derive(Debug, Event)]
+pub struct DespawnSquadOrder(
+    pub oc_individual::squad::SquadIndex,
+    oc_individual::order::Order,
+);
+
+pub enum IndividualOrderSprite {
     Move,
 }
 
-impl OrderSprite {
+impl IndividualOrderSprite {
     pub fn rect(&self) -> Rect {
-        match self {
-            OrderSprite::Move => Rect::new(0., 100., 11., 111.),
-        }
+        const START_X: f32 = 22.;
+        const START_Y: f32 = 100.;
+        const WIDTH: f32 = 11.;
+        const HEIGHT: f32 = 11.;
+
+        let i = match self {
+            Self::Move => 0,
+        } as f32;
+
+        let start_y = START_Y + (i * HEIGHT);
+        Rect::new(START_X, start_y, START_X + WIDTH, start_y + HEIGHT)
+    }
+}
+
+pub enum SquadOrderSprite {
+    Move,
+}
+
+impl SquadOrderSprite {
+    pub fn rect(&self) -> Rect {
+        const START_X: f32 = 0.;
+        const START_Y: f32 = 100.;
+        const WIDTH: f32 = 11.;
+        const HEIGHT: f32 = 11.;
+
+        let i = match self {
+            Self::Move => 0,
+        } as f32;
+
+        let start_y = START_Y + (i * HEIGHT);
+        Rect::new(START_X, start_y, START_X + WIDTH, start_y + HEIGHT)
     }
 }
 
 impl Plugin for BehaviorPlugin {
     fn build(&self, app: &mut App) {
         app.init_gizmo_group::<PathGizmos>()
-            .init_resource::<Orders>()
-            .add_observer(on_set_orders_event)
-            .add_observer(on_refresh_orders_event)
-            .add_observer(on_spawn_order)
-            .add_observer(on_despawn_order)
-            .add_observer(on_despawn_orders)
+            .init_resource::<IndividualOrders>()
+            .init_resource::<SquadOrders>()
+            .add_observer(on_set_individual_orders)
+            .add_observer(on_refresh_individual_orders)
+            .add_observer(on_spawn_individual_order)
+            .add_observer(on_despawn_individual_order)
+            .add_observer(on_despawn_individual_orders)
+            .add_observer(on_refresh_squad_orders)
+            .add_observer(on_spawn_squad_order)
+            .add_observer(on_spawn_squad_orders)
+            .add_observer(on_despawn_squad_order)
+            .add_observer(on_despawn_squad_orders)
+            .add_observer(on_listening_region)
+            .add_observer(on_forgotten_region)
             .add_systems(Startup, setup)
             .add_systems(Update, draw_paths.run_if(in_state(InGameState::Battle)));
     }
@@ -98,16 +169,18 @@ fn draw_paths(
     }
 }
 
-fn on_set_orders_event(event: On<SetOrdersEvent>, mut commands: Commands) {
-    tracing::trace!(name = "ingame-behavio-on-set-orders-trigger-refresh-orders", event=?event);
-    commands.trigger(RefreshOrdersEvent(event.0, event.1.clone()))
+// FIXME BS NOW: on voit la trace toute les secondes ! (manque if != qqpart)
+fn on_set_individual_orders(event: On<SetOrdersEvent>, mut commands: Commands) {
+    tracing::trace!(name = "ingame-behavio-on-set-individual-orders-trigger-refresh-orders", event=?event);
+    commands.trigger(RefreshIndividualOrdersEvent(event.0, event.1.clone()))
 }
 
-fn on_refresh_orders_event(
-    event: On<RefreshOrdersEvent>,
-    orders: Res<Orders>,
+fn on_refresh_individual_orders(
+    event: On<RefreshIndividualOrdersEvent>,
+    orders: Res<IndividualOrders>,
     mut commands: Commands,
 ) {
+    tracing::trace!(name = "ingame-behavio-on-refresh-individual-orders", event=?event);
     let (i, orders_) = (event.0, &event.1);
 
     // Search for new ones
@@ -117,8 +190,8 @@ fn on_refresh_orders_event(
             .map(|orders| orders.iter().find(|(o, _)| o.equal(order)))
             .is_none()
         {
-            tracing::trace!(name = "ingame-behavio-on-refresh-orders-trigger-spawn-orders", i=?i, order=?order);
-            commands.trigger(SpawnOrder(i, order.clone()));
+            tracing::trace!(name = "ingame-behavio-on-refresh-individual-orders-trigger-spawn-order", i=?i, order=?order);
+            commands.trigger(SpawnIndividualOrder(i, order.clone()));
         }
     }
 
@@ -126,17 +199,48 @@ fn on_refresh_orders_event(
     if let Some(orders) = orders.get(&i) {
         for (order, _) in orders {
             if orders_.iter().find(|o| o.equal(order)).is_none() {
-                tracing::trace!(name = "ingame-behavio-on-refresh-orders-trigger-despawn-orders", i=?i, order=?order);
-                commands.trigger(DespawnOrder(i, order.clone()));
+                tracing::trace!(name = "ingame-behavio-on-refresh-individual-orders-trigger-despawn-order", i=?i, order=?order);
+                commands.trigger(DespawnIndividualOrder(i, order.clone()));
             }
         }
     }
 }
 
-fn on_spawn_order(
-    event: On<SpawnOrder>,
+fn on_refresh_squad_orders(
+    event: On<RefreshSquadsOrdersEvent>,
+    orders: Res<SquadOrders>,
+    mut commands: Commands,
+) {
+    tracing::trace!(name = "ingame-behavio-on-refresh-squad-orders", event=?event);
+    let (i, orders_) = (event.0, &event.1);
+
+    // Search for new ones
+    for order in orders_ {
+        if orders
+            .get(&i)
+            .map(|orders| orders.iter().find(|(o, _)| o.equal(order)))
+            .is_none()
+        {
+            tracing::trace!(name = "ingame-behavio-on-refresh-squad-orders-trigger-spawn-order", i=?i, order=?order);
+            commands.trigger(SpawnSquadOrder(i, order.clone()));
+        }
+    }
+
+    // Search for missing ones
+    if let Some(orders) = orders.get(&i) {
+        for (order, _) in orders {
+            if orders_.iter().find(|o| o.equal(order)).is_none() {
+                tracing::trace!(name = "ingame-behavio-on-refresh-squad-orders-trigger-despawn-order", i=?i, order=?order);
+                commands.trigger(DespawnSquadOrder(i, order.clone()));
+            }
+        }
+    }
+}
+
+fn on_spawn_individual_order(
+    event: On<SpawnIndividualOrder>,
     g: Res<GameConfig>,
-    mut orders: ResMut<Orders>,
+    mut orders: ResMut<IndividualOrders>,
     asset_server: Res<AssetServer>,
     mut commands: Commands,
 ) {
@@ -146,13 +250,13 @@ fn on_spawn_order(
     let image = asset_server.load("ui/ui.png");
     let (rect, position) = match &event.1 {
         Order::Idle => (Some(Rect::new(0., 0., 0., 0.)), d2::Position::new(0., 0.)), // Should not happen
-        Order::MoveTo(position) => (Some(OrderSprite::Move.rect()), position.clone()),
+        Order::MoveTo(position) => (Some(IndividualOrderSprite::Move.rect()), position.clone()),
     };
     let x = position.x;
     let y = position.y;
-    let translation = Vec3::new(x as f32, (y as f32).to_gui_y(&g.w), draw::Z_ORDER);
+    let translation = Vec3::new(x as f32, (y as f32).to_gui_y(&g.w), draw::Z_INDIV_ORDER);
 
-    tracing::trace!(name = "ingame-behavio-on-spawn-orders-spawn", position=?position, rect=?rect, translation=?translation);
+    tracing::trace!(name = "ingame-behavior-on-spawn-individual-orders-spawn", position=?position, rect=?rect, translation=?translation);
 
     let sprite = Sprite {
         image,
@@ -168,7 +272,11 @@ fn on_spawn_order(
         .push((event.1.clone(), entity));
 }
 
-fn on_despawn_order(event: On<DespawnOrder>, mut orders: ResMut<Orders>, mut commands: Commands) {
+fn on_despawn_individual_order(
+    event: On<DespawnIndividualOrder>,
+    mut orders: ResMut<IndividualOrders>,
+    mut commands: Commands,
+) {
     if let Some(orders) = orders.get_mut(&event.0) {
         if let Some(x) = orders.iter().position(|(o, _)| o.equal(&event.1)) {
             let (_, entity) = orders.remove(x);
@@ -177,7 +285,101 @@ fn on_despawn_order(event: On<DespawnOrder>, mut orders: ResMut<Orders>, mut com
     }
 }
 
-fn on_despawn_orders(event: On<DespawnOrders>, mut orders: ResMut<Orders>, mut commands: Commands) {
+fn on_despawn_individual_orders(
+    event: On<DespawnIndividualOrders>,
+    mut orders: ResMut<IndividualOrders>,
+    mut commands: Commands,
+) {
+    if let Some(orders) = orders.get_mut(&event.0) {
+        for (_, entity) in orders {
+            commands.entity(*entity).despawn();
+        }
+    }
+    orders.remove(&event.0);
+}
+
+/// Spawn squad orders in listened region
+fn on_listening_region(region: On<ListeningRegion>, world: Res<World>, mut commands: Commands) {
+    if let Some(squads) = world.squads.get(&region.0) {
+        for (i, squad) in squads {
+            commands.trigger(SpawnSquadOrders(*i, squad.orders.clone()))
+        }
+    }
+}
+
+/// Despawn squad orders in forgotten region
+fn on_forgotten_region(region: On<ForgottenRegion>, world: Res<World>, mut commands: Commands) {
+    if let Some(squads) = world.squads.get(&region.0) {
+        for (i, _) in squads {
+            commands.trigger(DespawnSquadOrders(*i))
+        }
+    }
+}
+
+fn on_spawn_squad_order(
+    event: On<SpawnSquadOrder>,
+    g: Res<GameConfig>,
+    mut orders: ResMut<SquadOrders>,
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+) {
+    let Some(g) = &g.0 else {
+        return;
+    };
+    let image = asset_server.load("ui/ui.png");
+    let (rect, position) = match &event.1 {
+        Order::Idle => (Some(Rect::new(0., 0., 0., 0.)), d2::Position::new(0., 0.)), // Should not happen
+        Order::MoveTo(position) => (Some(SquadOrderSprite::Move.rect()), position.clone()),
+    };
+    let x = position.x;
+    let y = position.y;
+    let translation = Vec3::new(x as f32, (y as f32).to_gui_y(&g.w), draw::Z_SQUAD_ORDER);
+
+    tracing::trace!(name = "ingame-behavior-on-spawn-squad-orders-spawn", position=?position, rect=?rect, translation=?translation);
+
+    let sprite = Sprite {
+        image,
+        rect,
+        ..default()
+    };
+    let transform = Transform::from_translation(translation);
+    let entity = commands.spawn((sprite, transform)).id();
+
+    orders
+        .entry(event.0)
+        .or_insert_with(|| vec![])
+        .push((event.1.clone(), entity));
+}
+
+fn on_spawn_squad_orders(event: On<SpawnSquadOrders>, mut commands: Commands) {
+    let (i, orders) = (event.0, &event.1);
+
+    for order in orders {
+        commands.trigger(SpawnSquadOrder(i, order.clone()));
+    }
+}
+
+fn on_despawn_squad_order(
+    event: On<DespawnSquadOrder>,
+    mut orders: ResMut<SquadOrders>,
+    mut commands: Commands,
+) {
+    tracing::trace!(name = "ingame-behavio-on-despawn-squad-order", event=?event);
+    if let Some(orders) = orders.get_mut(&event.0) {
+        if let Some(x) = orders.iter().position(|(o, _)| o.equal(&event.1)) {
+            let (_, entity) = orders.remove(x);
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+// FIXME BS NOW
+fn on_despawn_squad_orders(
+    event: On<DespawnSquadOrders>,
+    mut orders: ResMut<SquadOrders>,
+    mut commands: Commands,
+) {
+    tracing::trace!(name = "ingame-behavio-on-despawn-squad-orders", event=?event);
     if let Some(orders) = orders.get_mut(&event.0) {
         for (_, entity) in orders {
             commands.entity(*entity).despawn();

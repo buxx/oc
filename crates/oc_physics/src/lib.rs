@@ -277,11 +277,11 @@ mod tests {
 
     impl Material for MyObject {
         fn kind(&self) -> Option<MaterialKind> {
-            None
+            Some(MaterialKind::Projectile)
         }
     }
 
-    struct MyTile(TileXy);
+    struct MyTile(TileXy, Traversability);
 
     impl Physic for MyTile {
         fn position(&self, w: &WorldConfig) -> [f32; 3] {
@@ -308,12 +308,16 @@ mod tests {
                     height: w.geo_pixels_per_tile as f32,
                     depth: f32::MAX,
                 },
-                Traversability::none(),
+                self.1.clone(),
             )]
         }
     }
 
-    impl Material for MyTile {}
+    impl Material for MyTile {
+        fn kind(&self) -> Option<MaterialKind> {
+            None
+        }
+    }
 
     #[test]
     fn test_unidirectional_translation() {
@@ -352,9 +356,9 @@ mod tests {
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
-        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)));
+        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Traversability::all());
         let my_traversable_tile: Box<&dyn Physic> = Box::new(&my_traversable_tile);
-        let my_solid_tile = MyTile(TileXy(Xy(1, 0)));
+        let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
         let my_solid_tile: Box<&dyn Physic> = Box::new(&my_solid_tile);
         let objects = |xy| {
             if xy == Xy(0, 0) {
@@ -400,6 +404,16 @@ mod tests {
 
     #[test]
     fn test_unidirectional_translation_high_speed_collision() {
+        tracing_subscriber::fmt()
+            .with_target(false)
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::builder()
+                    .with_default_directive(tracing::level_filters::LevelFilter::TRACE.into())
+                    .from_env()
+                    .unwrap(),
+            )
+            .init();
+
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
@@ -412,9 +426,9 @@ mod tests {
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction, speed);
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
-        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)));
+        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Traversability::all());
         let my_traversable_tile: Box<&dyn Physic> = Box::new(&my_traversable_tile);
-        let my_solid_tile = MyTile(TileXy(Xy(1, 0)));
+        let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
         let my_solid_tile: Box<&dyn Physic> = Box::new(&my_solid_tile);
         let objects = |xy| {
             if xy == Xy(0, 0) {

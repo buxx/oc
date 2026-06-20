@@ -17,6 +17,7 @@ pub fn on_insert_individual(
     let i = insert.0;
     let individual = &insert.1;
 
+    // FIXME BS NOW: traced each seconds ?!
     tracing::trace!(name="world-individual-insert", i=?i);
     index.insert_individual(w, i, individual.clone());
 }

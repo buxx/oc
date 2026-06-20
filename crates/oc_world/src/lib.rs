@@ -9,11 +9,11 @@ use oc_individual::{
 };
 use oc_mod::Mod;
 use oc_projectile::{Projectile, ProjectileId};
-use oc_root::{WcfgInto, WorldConfig};
+use oc_root::{WcfgInto, WorldConfig, identity::Identity};
 use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
 
-use crate::{meta::Meta, tile::Tile};
+use crate::{meta::Meta, resume::WorldResume, tile::Tile};
 
 pub mod cache;
 pub mod control;
@@ -27,6 +27,7 @@ pub mod meta;
 pub mod navmesh;
 pub mod physics;
 pub mod reader;
+pub mod resume;
 pub mod snapshot;
 pub mod spawn;
 pub mod terrain;
@@ -116,6 +117,18 @@ impl World {
 
     pub fn mod_(&self) -> &Mod {
         &self.mod_
+    }
+
+    pub fn resume(&self, identity: &Identity) -> WorldResume {
+        let squads = self
+            .squads
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.side == identity.side)
+            .map(|(i, s)| (SquadIndex(i as u64), s.clone()))
+            .collect();
+
+        WorldResume { squads }
     }
 }
 

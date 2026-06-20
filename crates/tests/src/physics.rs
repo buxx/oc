@@ -66,7 +66,11 @@ mod test {
         }
     }
 
-    impl Material for Object {}
+    impl Material for Object {
+        fn kind(&self) -> Option<oc_root::material::MaterialKind> {
+            None
+        }
+    }
 
     #[rstest]
     // Case 1

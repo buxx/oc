@@ -1,5 +1,7 @@
 use bevy::prelude::*;
+use oc_network::ToServer;
 use oc_root::Wcfg;
+use oc_world::resume::WorldResume;
 
 #[cfg(feature = "debug")]
 use crate::ingame::input::left_click::SpawnProjectileLeftClick;
@@ -13,11 +15,13 @@ use crate::{
         lov::LovPlugin,
         projectile::ProjectilePlugin,
         region::on_listening_region,
+        squad::SquadPlugin,
         world::{
             on_adjust_minimap, on_despawn_world_map_background, on_spawn_minimap,
             on_spawn_visible_battle_square, on_spawn_world_map_background, on_update_battle_square,
         },
     },
+    network::{self, output::ToServerEvent},
     setup::spawn_camera2d,
     states::{AppState, InGameState},
     world::WorldPlugin,
@@ -36,6 +40,7 @@ pub mod lov;
 pub mod physics;
 pub mod projectile;
 pub mod region;
+pub mod squad;
 pub mod world;
 
 pub struct IngamePlugin;
@@ -45,6 +50,9 @@ pub struct FirstIngameEnter;
 
 #[derive(Debug, Event)]
 pub struct GameConfigReceived;
+
+#[derive(Debug, Event, Deref)]
+pub struct WorldResumeEvent(pub WorldResume);
 
 #[derive(Debug, Event)]
 pub struct SwitchToWorldMap;
@@ -66,11 +74,13 @@ impl Plugin for IngamePlugin {
         app.add_plugins(WorldPlugin)
             .add_plugins(HeightPlugin)
             .add_plugins(IndividualPlugin)
+            .add_plugins(SquadPlugin)
             .add_plugins(ProjectilePlugin)
             .add_plugins(BehaviorPlugin)
             .add_plugins(LovPlugin)
             // TODO: InputPlugin
             .init_resource::<input::State>()
+            .add_observer(on_game_config_received)
             .add_observer(on_to_client)
             .add_observer(on_update_battle_square)
             .add_observer(on_spawn_minimap)
@@ -216,4 +226,15 @@ pub fn on_switch_to_world_map(
 
     tracing::debug!("Set game state to world");
     *ingame = NextState::Pending(InGameState::World);
+}
+
+fn on_game_config_received(
+    _: On<GameConfigReceived>,
+    mut commands: Commands,
+    network_state: Res<network::state::State>,
+) {
+    let Some(identity) = &network_state.identity else {
+        return;
+    };
+    commands.trigger(ToServerEvent(ToServer::RequestInit(identity.clone())));
 }

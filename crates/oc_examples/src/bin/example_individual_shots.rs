@@ -21,8 +21,8 @@ use oc_individual::{IndividualIndex, order::Order};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectile;
-use oc_root::{WcfgFrom, WorldConfig, physics::Meters};
-use oc_utils::d2::{Direction, Xy};
+use oc_root::{WcfgFrom, WorldConfig, physics::Meters, side::Side};
+use oc_utils::d2::Xy;
 use oc_world::{meta::Meta, tile::Tile};
 
 #[derive(Parser, Debug, Clone)]
@@ -130,16 +130,18 @@ fn individuals(
             ));
             let tile = WorldTileIndex::from_(tile_xy, &w);
 
-            oc_individual::Individual::fresh(p.clone(), tile, WorldRegionIndex(0))
+            oc_individual::Individual::fresh(Side::A, p.clone(), tile, WorldRegionIndex(0))
         })
         .collect();
 
     let squads = positions
         .iter()
         .enumerate()
-        .map(|(i, _)| {
+        .map(|(i, position)| {
             let individual = IndividualIndex(i as u64);
             oc_individual::squad::Squad {
+                side: Side::A,
+                position: [position[0], position[1]],
                 members: vec![individual],
                 orders: vec![Order::Idle],
             }

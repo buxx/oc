@@ -17,6 +17,7 @@ use oc_physics::volume::Volume;
 use oc_root::WorldConfig;
 use oc_root::material::MaterialKind;
 use oc_root::physics::Meters;
+use oc_root::side::Side;
 use oc_utils::collections::WithIds;
 use oc_utils::d2::Direction;
 use rkyv::{Archive, Deserialize, Serialize};
@@ -56,6 +57,7 @@ impl Display for IndividualIndex {
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Individual {
+    pub side: Side,
     pub position: [f32; 3],
     pub tile: WorldTileIndex,
     pub region: WorldRegionIndex,
@@ -112,11 +114,13 @@ impl From<u64> for IndividualIndex {
 
 impl Individual {
     pub fn fresh<P: Into<[f32; 3]>>(
+        side: Side,
         position: P,
         tile: WorldTileIndex,
         region: WorldRegionIndex,
     ) -> Self {
         Self::new(
+            side,
             position.into(),
             tile,
             region,

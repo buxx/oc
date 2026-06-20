@@ -3,9 +3,7 @@ use bevy::prelude::*;
 use oc_root::material::MaterialKind;
 
 pub trait Material {
-    fn kind(&self) -> Option<MaterialKind> {
-        None
-    }
+    fn kind(&self) -> Option<MaterialKind>;
 }
 
 #[cfg(feature = "bevy")]

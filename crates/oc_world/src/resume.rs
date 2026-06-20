@@ -1,20 +1,17 @@
+use oc_individual::squad::{Squad, SquadIndex};
 use rkyv::Archive;
 
 #[derive(
     Debug,
     Clone,
-    Copy,
     Archive,
     rkyv::Deserialize,
     rkyv::Serialize,
     serde::Serialize,
     serde::Deserialize,
     PartialEq,
-    Eq,
-    Hash,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub enum Side {
-    A,
-    B,
+pub struct WorldResume {
+    pub squads: Vec<(SquadIndex, Squad)>,
 }
