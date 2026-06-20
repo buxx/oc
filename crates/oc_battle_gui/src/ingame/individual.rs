@@ -10,7 +10,9 @@ use oc_utils::bevy::EntityMapping;
 
 use crate::entity::individual::{Behavior, IndividualIndex, Intent, Orders};
 use crate::ingame;
-use crate::ingame::behavior::{DespawnOrder, DespawnOrders, RefreshOrdersEvent};
+use crate::ingame::behavior::{
+    DespawnIndividualOrder, DespawnIndividualOrders, RefreshIndividualOrdersEvent,
+};
 use crate::ingame::draw::Z_INDIVIDUAL;
 use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
@@ -107,7 +109,7 @@ pub fn on_insert_individual(
         ))
         .id();
     state.insert(individual.0, entity);
-    commands.trigger(RefreshOrdersEvent(
+    commands.trigger(RefreshIndividualOrdersEvent(
         individual.0,
         individual.1.orders.clone(),
     ));
@@ -299,7 +301,7 @@ fn on_accomplished_event(
 
     if !orders.0.is_empty() {
         let order = orders.0.remove(0);
-        commands.trigger(DespawnOrder(accomplished.0, order))
+        commands.trigger(DespawnIndividualOrder(accomplished.0, order))
     }
 }
 
@@ -376,6 +378,6 @@ pub fn on_forgot_individual(
     if let Some(entity) = individuals.remove(&individual.0) {
         tracing::trace!(name = "remove-individual", i=?individual);
         commands.entity(entity).despawn();
-        commands.trigger(DespawnOrders(individual.0));
+        commands.trigger(DespawnIndividualOrders(individual.0));
     }
 }

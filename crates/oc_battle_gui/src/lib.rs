@@ -6,6 +6,7 @@ pub mod entity;
 pub mod error;
 pub mod fx;
 pub mod home;
+pub mod identity;
 pub mod individual;
 pub mod ingame;
 pub mod network;

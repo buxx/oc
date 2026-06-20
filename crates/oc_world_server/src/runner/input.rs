@@ -6,6 +6,7 @@ use oc_mod::Mod;
 use oc_network::{ToClient, ToServer};
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::Client;
+use oc_root::identity::Identity;
 use oc_utils::error::OkOrLogError;
 use oc_world::tile::IntoTiles;
 
@@ -25,11 +26,28 @@ pub struct Dealer<'a, E: Client> {
 impl<'a, E: Client> Dealer<'a, E> {
     pub fn deal(&self, message: ToServer) -> Vec<Update> {
         match message {
+            ToServer::RequestInit(indentity) => self.init(indentity),
             ToServer::ListenRegion(region) => self.listen_region(region),
             ToServer::ForgotRegion(region) => self.forgot_region(region),
             ToServer::Refresh => self.refresh(),
             ToServer::SpawnProjectile(spawn) => self.spawn_projectile(spawn),
         }
+    }
+
+    fn init(&self, identity: Identity) -> Vec<Update> {
+        {
+            let mut listeners = self.state.listeners_mut();
+            listeners.identify(self.endpoint.clone(), identity.clone());
+        }
+
+        let world = self.state.world();
+        let resume = world.resume(&identity);
+        let message = ToClient::WorldResume(resume);
+        let message = (self.endpoint.clone(), message);
+
+        self.output.send(message).ok_or_log();
+
+        vec![]
     }
 
     fn listen_region(&self, region: WorldRegionIndex) -> Vec<Update> {

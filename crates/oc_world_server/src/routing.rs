@@ -1,11 +1,14 @@
 use oc_geo::region::WorldRegionIndex;
-use oc_root::WorldConfig;
+use oc_root::{WorldConfig, identity::Identity, side::Side};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::hash::Hash;
 
 pub struct Listeners<T: Clone + PartialEq + Hash + std::cmp::Eq> {
     // All endpoints currently listening something (aka all clients)
     all: Vec<T>,
+    identities: FxHashMap<T, Identity>,
+    // Endpoints listening side
+    side_identitides: FxHashMap<Side, Vec<T>>,
     // Endpoints listening specifics regions (level 1 vector is all regions vector)
     regions_listeners: Vec<Vec<T>>,
     // Which regions listen
@@ -16,6 +19,8 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
     pub fn new(w: &WorldConfig) -> Self {
         Self {
             all: vec![],
+            side_identitides: FxHashMap::default(),
+            identities: FxHashMap::default(),
             regions_listeners: vec![vec![]; w.regions_count as usize],
             listeners_regions: FxHashMap::default(),
         }
@@ -25,9 +30,27 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
         self.all.push(endpoint)
     }
 
+    pub fn identify(&mut self, listener: T, identity: Identity) {
+        self.identities.insert(listener.clone(), identity.clone());
+        self.side_identitides
+            .entry(identity.side)
+            .or_insert_with(|| vec![])
+            .push(listener);
+    }
+
+    #[allow(unused)]
+    pub fn identity(&mut self, listener: &T) -> Option<&Identity> {
+        self.identities.get(listener)
+    }
+
     // TODO: test me
     pub fn remove(&mut self, listener: &T) {
-        self.all.retain(|listener_| listener_ != listener);
+        self.all.retain(|l| l != listener);
+        if let Some(identity) = self.identities.remove(listener) {
+            if let Some(identities) = self.side_identitides.get_mut(&identity.side) {
+                identities.retain(|l| l != listener);
+            }
+        }
 
         let regions = self.listener_regions(listener).clone();
         for region in regions {
@@ -76,6 +99,10 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
                     .filter(|l| !after_listeners.contains(l))
                     .collect::<FxHashSet<_>>()
             }
+            Listening::Side(side) => match self.side_identitides.get(&side) {
+                Some(listeners) => listeners.clone().into_iter().collect::<FxHashSet<_>>(),
+                None => FxHashSet::default(),
+            },
         }
     }
 
@@ -93,4 +120,6 @@ pub enum Listening {
     EnterBorder(WorldRegionIndex, WorldRegionIndex),
     /// Will match with all listener listening region1 and NOT listening region2
     ExitBorder(WorldRegionIndex, WorldRegionIndex),
+    /// Will match with all listener which are this side
+    Side(Side),
 }

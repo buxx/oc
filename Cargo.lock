@@ -2177,6 +2177,7 @@ dependencies = [
  "ptr_meta",
  "rancor",
  "simdutf8",
+ "uuid",
 ]
 
 [[package]]
@@ -5464,6 +5465,7 @@ dependencies = [
  "tempfile",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
@@ -5620,6 +5622,7 @@ dependencies = [
  "rkyv",
  "serde",
  "serde_derive",
+ "uuid",
 ]
 
 [[package]]

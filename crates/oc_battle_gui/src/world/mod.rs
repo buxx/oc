@@ -1,9 +1,12 @@
 use bevy::prelude::*;
 use oc_geo::{
-    region::WorldRegionIndex,
+    region::{RegionXy, WorldRegionIndex},
     tile::{TileXy, WorldHeightIndex, WorldTileIndex},
 };
-use oc_individual::{Individual, IndividualIndex};
+use oc_individual::{
+    Individual, IndividualIndex,
+    squad::{Squad, SquadIndex},
+};
 use oc_physics::Physic;
 use oc_root::{WcfgFrom, WcfgInto, WorldConfig};
 #[cfg(feature = "debug")]
@@ -12,7 +15,10 @@ use oc_utils::d2::Xy;
 use oc_world::tile::Tile;
 use rustc_hash::FxHashMap;
 
-use crate::ingame::physics::ObjectId;
+use crate::{
+    ingame::{WorldResumeEvent, behavior::SpawnSquadOrders, physics::ObjectId},
+    states::GameConfig,
+};
 
 pub mod individual;
 pub mod tile;
@@ -29,6 +35,7 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<World>()
+            .add_observer(on_world_resume)
             .add_observer(tile::on_insert_tiles)
             .add_observer(tile::on_forgotten_region)
             .add_observer(individual::on_insert_individual)
@@ -57,6 +64,8 @@ pub struct World {
     pub tiles: Index<WorldTileIndex, Tile>,
     pub heights: Index<WorldHeightIndex, u8>,
     pub terrain: Option<oc_world::terrain::Terrain>,
+    pub squads: Index<SquadIndex, Squad>,
+    pub squads_refs: FxHashMap<SquadIndex, WorldRegionIndex>,
 }
 
 impl World {
@@ -101,6 +110,7 @@ impl World {
         let tile: WorldTileIndex = tile_xy.into_(w);
         let region: WorldRegionIndex = tile.into_(w);
 
+        // FIXME BS NOW: traced each seconds ?!
         tracing::trace!(name = "world-individual-insert", i=?i, region=?region, tile=?tile);
 
         let value = (i, individual);
@@ -215,5 +225,32 @@ impl World {
         let z = (tile.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters) + plus_z.pixels(w);
         let p = [p.0, p.1, z];
         Some(p)
+    }
+}
+
+fn on_world_resume(
+    event: On<WorldResumeEvent>,
+    g: Res<GameConfig>,
+    mut world: ResMut<World>,
+    mut commands: Commands,
+) {
+    let Some(g) = &g.0 else { return };
+
+    for (i, squad) in &event.0.squads {
+        let position = squad.position;
+        let tile_xy = TileXy::from_(position, &g.w);
+        let region = RegionXy::from_(tile_xy, &g.w);
+        let region = WorldRegionIndex::from_(region, &g.w);
+
+        world
+            .squads
+            .entry(region)
+            .or_insert_with(|| FxHashMap::default())
+            .insert(*i, squad.clone());
+        world.squads_refs.insert(*i, region);
+
+        // FIXME BS NOW: debug here ?
+        tracing::trace!(name="world-on-world-resume-trigger-spawn-squad-orders", i=?i, orders=?squad.orders);
+        commands.trigger(SpawnSquadOrders(*i, squad.orders.clone()));
     }
 }

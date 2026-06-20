@@ -8,7 +8,7 @@ use oc_geo::{
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::{IndividualIndex, order::Order, squad::Squad};
-use oc_root::{WcfgFrom, WorldConfig, physics::Meters};
+use oc_root::{WcfgFrom, WorldConfig, physics::Meters, side::Side};
 use oc_utils::d2::Xy;
 use oc_world::{meta::Meta, tile::Tile};
 #[cfg(feature = "test")]
@@ -81,7 +81,7 @@ fn individuals(
             let z = tile.z_pixels(w);
             let position = [position[0], position[1], z];
 
-            oc_individual::Individual::fresh(position, tile_i, WorldRegionIndex(0))
+            oc_individual::Individual::fresh(Side::A, position, tile_i, WorldRegionIndex(0))
         })
         .collect()
 }
@@ -96,9 +96,11 @@ fn squads(
     setup
         .iter()
         .enumerate()
-        .map(|(i, (_, orders))| {
+        .map(|(i, (position, orders))| {
             let individual = IndividualIndex(i as u64);
             Squad {
+                side: Side::A,
+                position: *position,
                 members: vec![individual],
                 orders: orders.clone(),
             }

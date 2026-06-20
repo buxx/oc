@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use oc_individual::network::Individual;
+use oc_individual::network::{Individual, Squad};
 use oc_network::ToClient;
 use oc_projectile::network::Projectile;
 use oc_root::Wcfg;
@@ -7,12 +7,12 @@ use oc_root::Wcfg;
 use crate::{
     fx::FxEvent,
     ingame::{
-        GameConfigReceived,
+        GameConfigReceived, WorldResumeEvent,
         individual::ForgotIndividual,
         input::{
             individual::{
                 InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
-                UpdateProjectilePhysicsEvent,
+                UpdateProjectilePhysicsEvent, UpdateSquadEvent,
             },
             projectile::InsertProjectileEvent,
         },
@@ -38,6 +38,14 @@ pub fn on_to_client(
             w.0 = Some(config.w.clone());
             commands.trigger(GameConfigReceived);
         }
+        ToClient::WorldResume(resume) => {
+            commands.trigger(WorldResumeEvent(resume.clone()));
+        }
+        ToClient::Squad(message) => match message {
+            Squad::Update(i, update) => {
+                commands.trigger(UpdateSquadEvent(*i, update.clone()));
+            }
+        },
         ToClient::Individual(message) => match message {
             Individual::Insert(i, individual) => {
                 commands.trigger(InsertIndividualEvent(*i, individual.clone()));
