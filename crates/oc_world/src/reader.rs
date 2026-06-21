@@ -434,7 +434,7 @@ impl MapReader {
                     i,
                     nature,
                     z,
-                    prohibe,
+                    allow: prohibe,
                 };
 
                 tiles.push(tile);

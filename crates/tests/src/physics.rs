@@ -68,7 +68,7 @@ mod test {
 
     impl Material for Object {
         fn kind(&self) -> Option<oc_root::material::MaterialKind> {
-            None
+            Some(oc_root::material::MaterialKind::Projectile)
         }
     }
 
@@ -111,8 +111,6 @@ mod test {
         #[case] tile_meters: Meters,
         #[case] expected: ([f32; 3], Vec<Force>, Vec<Event<ObjectsId>>),
     ) {
-        init_tracing();
-
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let geo_meters_per_z = Meters(0.1);
@@ -126,7 +124,7 @@ mod test {
             i: tile_i,
             nature: NatureIndex(0),
             z: tile_z,
-            prohibe: Traversability::all(),
+            allow: Traversability::all(),
         };
 
         let object_i = ObjectId(0);

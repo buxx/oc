@@ -23,7 +23,7 @@ pub struct Tile {
     pub z: u8,
     // Copy it from nature for performance consideration.
     // If it use too much RAM, consider read it through Mod
-    pub prohibe: Traversability,
+    pub allow: Traversability,
 }
 
 impl Tile {

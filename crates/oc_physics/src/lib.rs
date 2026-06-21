@@ -404,16 +404,6 @@ mod tests {
 
     #[test]
     fn test_unidirectional_translation_high_speed_collision() {
-        tracing_subscriber::fmt()
-            .with_target(false)
-            .with_env_filter(
-                tracing_subscriber::EnvFilter::builder()
-                    .with_default_directive(tracing::level_filters::LevelFilter::TRACE.into())
-                    .from_env()
-                    .unwrap(),
-            )
-            .init();
-
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
