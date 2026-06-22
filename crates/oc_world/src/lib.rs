@@ -30,6 +30,7 @@ pub mod reader;
 pub mod resume;
 pub mod snapshot;
 pub mod spawn;
+pub mod squad;
 pub mod terrain;
 pub mod tile;
 

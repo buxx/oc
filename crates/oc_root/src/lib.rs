@@ -53,7 +53,7 @@ impl WorldConfig {
         let individual_tick_interval_us: u64 = 1_000_000 / 1;
         // FIXME: delta is computed statically here (physics_coeff_per_tick) but maybe should
         // be computed from real eslapsec time between physics iterations
-        let physics_tick_per_seconds: u64 = 5;
+        let physics_tick_per_seconds: u64 = 10;
         let physics_tick_interval_us: u64 = 1_000_000 / physics_tick_per_seconds;
         let physics_coeff_per_tick: f32 = 1. / physics_tick_per_seconds as f32;
         let geo_pixels_per_meters: f32 = 5.;

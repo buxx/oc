@@ -22,11 +22,11 @@ enum TestCase {
     MoveStraightAheadObstacle,
 }
 
-const MSA_INDIV_POS: [f32; 2] = [150., 150.];
+const MSA_LEADER_POS: [f32; 2] = [150., 150.];
 const MSA_POS1: [f32; 2] = [180., 150.];
 const MSA_POS2: [f32; 2] = [210., 150.];
 
-const MSAO_INDIV_POS: [f32; 2] = [160., 415.];
+const MSAO_LEADER_POS: [f32; 2] = [160., 415.];
 const MSAO_POS1: [f32; 2] = [235., 415.];
 const MSAO_POS2: [f32; 2] = [250., 415.];
 
@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let setup = match args.case {
         TestCase::MoveStraightAhead => {
             vec![(
-                MSA_INDIV_POS,
+                MSA_LEADER_POS,
                 vec![
                     Order::MoveTo(MSA_POS1.into()),
                     Order::MoveTo(MSA_POS2.into()),
@@ -59,7 +59,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         TestCase::MoveStraightAheadObstacle => {
             vec![(
-                MSAO_INDIV_POS,
+                MSAO_LEADER_POS,
                 vec![
                     Order::MoveTo(MSAO_POS1.into()),
                     Order::MoveTo(MSAO_POS2.into()),

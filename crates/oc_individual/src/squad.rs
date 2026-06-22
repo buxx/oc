@@ -46,3 +46,8 @@ pub enum Update {
     SetPosition([f32; 2]),
     Accomplished,
 }
+
+#[derive(Debug, Clone, Copy)]
+pub enum SquadFormation {
+    Line,
+}

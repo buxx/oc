@@ -7,10 +7,14 @@ use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
 };
-use oc_individual::{IndividualIndex, order::Order, squad::Squad};
+use oc_individual::{
+    IndividualIndex,
+    order::Order,
+    squad::{Squad, SquadFormation},
+};
 use oc_root::{WcfgFrom, WorldConfig, physics::Meters, side::Side};
 use oc_utils::d2::Xy;
-use oc_world::{meta::Meta, tile::Tile};
+use oc_world::{meta::Meta, squad::SquadPositions, tile::Tile};
 #[cfg(feature = "test")]
 use oc_world_server::tracker::Tracker;
 
@@ -71,18 +75,28 @@ fn individuals(
 ) -> Vec<oc_individual::Individual> {
     setup
         .iter()
-        .map(|(position, _)| {
-            let tile_xy = TileXy(Xy(
-                position[0] as u64 / w.geo_pixels_per_tile,
-                position[1] as u64 / w.geo_pixels_per_tile,
-            ));
-            let tile_i = WorldTileIndex::from_(tile_xy, &w);
-            let tile = &tiles[tile_i.0 as usize];
-            let z = tile.z_pixels(w);
-            let position = [position[0], position[1], z];
-
-            oc_individual::Individual::fresh(Side::A, position, tile_i, WorldRegionIndex(0))
+        .map(|(position, orders)| {
+            (
+                position,
+                orders,
+                SquadPositions::compute(world, position, SquadFormation::Line, 2),
+            )
         })
+        .map(|(position, _, squad_positions)| {
+            (0..2).map(|i| {
+                let tile_xy = TileXy(Xy(
+                    position[0] as u64 / w.geo_pixels_per_tile,
+                    position[1] as u64 / w.geo_pixels_per_tile,
+                ));
+                let tile_i = WorldTileIndex::from_(tile_xy, &w);
+                let tile = &tiles[tile_i.0 as usize];
+                let z = tile.z_pixels(w);
+                let position = [position[0], position[1], z];
+
+                oc_individual::Individual::fresh(Side::A, position, tile_i, WorldRegionIndex(0))
+            })
+        })
+        .flatten()
         .collect()
 }
 
