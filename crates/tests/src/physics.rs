@@ -23,13 +23,6 @@ mod test {
             .to_path_buf()
     }
 
-    fn init_tracing() {
-        let _ = tracing_subscriber::fmt()
-            .with_test_writer()
-            .with_env_filter("ERROR")
-            .try_init();
-    }
-
     #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
     enum ObjectsId {
         Tile(WorldTileIndex),

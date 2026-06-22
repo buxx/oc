@@ -7,6 +7,14 @@ check:
     cargo check --tests
     cargo check --features debug,perfs,tracker,test
 
+make-caches:
+    cargo build
+    cargo build --features debug,perfs
+    cargo build --features test
+    cargo build --tests
+    cargo build --release
+    just check
+
 serve-minidblue:
     cargo run --bin oc_world_server --features debug -- \
       ./mods/std1 ./examples/minidblue ./examples/minidblue.snapshot
