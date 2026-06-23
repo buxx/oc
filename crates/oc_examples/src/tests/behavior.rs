@@ -13,8 +13,8 @@ use oc_individual::{
     squad::{Squad, SquadFormation},
 };
 use oc_root::{WcfgFrom, WorldConfig, physics::Meters, side::Side};
-use oc_utils::d2::Xy;
-use oc_world::{meta::Meta, squad::SquadPositions, tile::Tile};
+use oc_utils::d2::{Angle, Xy};
+use oc_world::{meta::Meta, tile::Tile};
 #[cfg(feature = "test")]
 use oc_world_server::tracker::Tracker;
 
@@ -79,11 +79,11 @@ fn individuals(
             (
                 position,
                 orders,
-                SquadPositions::compute(world, position, SquadFormation::Line, 2),
+                SquadFormation::Line.positions(w, (*position).into(), Angle::from_degrees(90.), 2),
             )
         })
-        .map(|(position, _, squad_positions)| {
-            (0..2).map(|i| {
+        .map(|(_, _, positions)| {
+            positions.into_iter().map(|position| {
                 let tile_xy = TileXy(Xy(
                     position[0] as u64 / w.geo_pixels_per_tile,
                     position[1] as u64 / w.geo_pixels_per_tile,
@@ -101,7 +101,7 @@ fn individuals(
 }
 
 fn squads(
-    _w: &WorldConfig,
+    w: &WorldConfig,
     _individuals: &Vec<oc_individual::Individual>,
     setup: &Vec<([f32; 2], Vec<Order>)>,
 ) -> Vec<Squad> {
@@ -109,15 +109,19 @@ fn squads(
     // Test of squad behavior is in other example
     setup
         .iter()
-        .enumerate()
-        .map(|(i, (position, orders))| {
-            let individual = IndividualIndex(i as u64);
-            Squad {
-                side: Side::A,
-                position: *position,
-                members: vec![individual],
-                orders: orders.clone(),
-            }
+        .map(|(position, orders)| {
+            (
+                position,
+                orders,
+                SquadFormation::Line.positions(w, (*position).into(), Angle::from_degrees(90.), 2),
+            )
+        })
+        .map(|(_, orders, positions)| Squad {
+            side: Side::A,
+            position: positions[0].into(),
+            members: vec![IndividualIndex(0), IndividualIndex(1)],
+            actives: 2,
+            orders: orders.clone(),
         })
         .collect()
 }

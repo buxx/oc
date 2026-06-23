@@ -12,7 +12,7 @@ use crate::{
         individual::SetOrdersEvent,
         region::{ForgottenRegion, ListeningRegion},
     },
-    states::{GameConfig, InGameState},
+    states::{AppState, GameConfig, InGameState},
     world::World,
 };
 
@@ -132,7 +132,12 @@ impl Plugin for BehaviorPlugin {
             .add_observer(on_listening_region)
             .add_observer(on_forgotten_region)
             .add_systems(Startup, setup)
-            .add_systems(Update, draw_paths.run_if(in_state(InGameState::Battle)));
+            .add_systems(
+                Update,
+                draw_paths
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle)),
+            );
     }
 }
 

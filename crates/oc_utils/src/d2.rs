@@ -52,6 +52,10 @@ impl Angle {
         Self(f32::atan2(to_point.y - from_point.y, to_point.x - from_point.x) + FRAC_PI_2)
     }
 
+    pub fn from_degrees(degrees: f32) -> Self {
+        Self(degrees * (std::f32::consts::PI / 180.0))
+    }
+
     pub fn zero() -> Self {
         Self(0.)
     }
@@ -237,7 +241,11 @@ pub struct Direction {
 }
 
 impl Direction {
-    pub const NORTH: Self = Self::new(0., 1.);
+    pub const NORTH: Self = Self::new(0., -1.);
+
+    pub fn angle(&self) -> Angle {
+        Angle(-(self.y.atan2(self.x) + std::f32::consts::FRAC_PI_2))
+    }
 }
 
 impl From<Direction> for Vec2 {

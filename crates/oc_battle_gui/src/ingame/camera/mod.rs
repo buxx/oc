@@ -19,7 +19,10 @@ use crate::{
 };
 
 #[cfg(feature = "debug")]
-use crate::ingame::region::debug::{DespawnRegionWireFrameDebug, SpawnRegionWireFrameDebug};
+use crate::ingame::{
+    camera::debug::individual::ShowFormationPositions,
+    region::debug::{DespawnRegionWireFrameDebug, SpawnRegionWireFrameDebug},
+};
 
 #[cfg(feature = "debug")]
 pub mod debug;
@@ -80,10 +83,12 @@ impl Plugin for CameraPlugin {
 
         #[cfg(feature = "debug")]
         app.init_resource::<debug::tile::ShowTiles>()
+            .init_resource::<ShowFormationPositions>()
             .init_resource::<EntityMapping<WorldTileIndex>>()
             .init_resource::<EntityMapping<WorldHeightIndex>>()
             .add_observer(debug::tile::on_toggle_show_tiles)
             .add_observer(debug::tile::on_insert_tiles)
+            .add_observer(debug::individual::on_toggle_show_formation_positions)
             .add_observer(
                 debug::tile::on_spawn_region::<
                     debug::tile::SpawnRegionTiles,

@@ -248,16 +248,17 @@ pub enum Gesture {
 #[cfg(feature = "bevy")]
 impl Gesture {
     pub fn rotation(&self) -> bevy::prelude::Quat {
-        let direction = match self {
+        let angle = self.direction().angle();
+        bevy::prelude::Quat::from_rotation_z(angle.0)
+    }
+
+    pub fn direction(&self) -> Direction {
+        match self {
             Gesture::Idle(direction)
             | Gesture::Walking(direction)
             | Gesture::Running(direction)
             | Gesture::Crawling(direction)
-            | Gesture::Lying(direction) => direction,
-        };
-
-        // Remove FRAC_PI_2 because bevy display sprite aligned Est by default
-        let angle = direction.y.atan2(direction.x) - std::f32::consts::FRAC_PI_2;
-        bevy::prelude::Quat::from_rotation_z(-angle)
+            | Gesture::Lying(direction) => direction.clone(),
+        }
     }
 }

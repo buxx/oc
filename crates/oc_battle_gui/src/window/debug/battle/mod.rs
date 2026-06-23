@@ -37,6 +37,7 @@ pub struct Refresh;
 pub struct Context {
     refresh: refresh::Refresh,
     show_tiles: bool,
+    show_formation_positions: bool,
     // Cursor
     cursor: Option<Vec2>,
     point: Option<Vec2>,
@@ -66,6 +67,7 @@ impl Default for Context {
         Self {
             refresh: Default::default(),
             show_tiles: Default::default(),
+            show_formation_positions: Default::default(),
             cursor: Default::default(),
             point: Default::default(),
             tile: Default::default(),

@@ -78,6 +78,9 @@ impl<E: Client> super::State<E> {
             oc_individual::squad::Update::SetPosition(position) => {
                 squad.position = position.clone();
             }
+            oc_individual::squad::Update::SetActives(actives) => {
+                squad.actives = *actives;
+            }
         }
 
         let update = oc_individual::network::Squad::Update(i, update);

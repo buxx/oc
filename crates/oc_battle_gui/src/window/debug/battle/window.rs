@@ -8,7 +8,7 @@ use oc_root::WorldConfig;
 use strum::IntoEnumIterator;
 
 use crate::ingame::{
-    camera::debug::tile::ToggleShowTiles,
+    camera::debug::{individual::ToggleShowFormationPositions, tile::ToggleShowTiles},
     input::left_click::{LeftClickMode, LeftClickModeType, SetLeftClick},
     lov::SpawnLovConfig,
 };
@@ -48,6 +48,7 @@ impl Window {
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     let show_tiles = &mut context.context.show_tiles;
+                    let show_formation_positions = &mut context.context.show_formation_positions;
 
                     bevy_egui::egui::ComboBox::from_label("Refresh every")
                         .selected_text(format!("{:?}", context.context.refresh))
@@ -73,6 +74,12 @@ impl Window {
 
                     if ui.checkbox(show_tiles, "Tiles").changed() {
                         context.commands.trigger(ToggleShowTiles);
+                    }
+                    if ui
+                        .checkbox(show_formation_positions, "Formations")
+                        .changed()
+                    {
+                        context.commands.trigger(ToggleShowFormationPositions);
                     }
 
                     ui.separator();
