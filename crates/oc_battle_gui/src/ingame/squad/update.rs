@@ -10,14 +10,6 @@ use crate::states::GameConfig;
 use crate::world::World;
 use oc_individual::squad::Update;
 
-pub struct SquadPlugin;
-
-impl Plugin for SquadPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_observer(on_update_squad);
-    }
-}
-
 pub fn on_update_squad(
     event: On<UpdateSquadEvent>,
     g: Res<GameConfig>,
@@ -57,6 +49,10 @@ pub fn on_update_squad(
                 } else {
                     None
                 }
+            }
+            Update::SetActives(actives) => {
+                squad.actives = *actives;
+                None
             }
             Update::Accomplished => None,
         }

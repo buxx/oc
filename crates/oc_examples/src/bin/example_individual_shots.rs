@@ -17,7 +17,7 @@ use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
 };
-use oc_individual::{IndividualIndex, order::Order};
+use oc_individual::{IndividualIndex, order::Order, squad::SquadFormation};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectile;
@@ -143,6 +143,8 @@ fn individuals(
                 side: Side::A,
                 position: [position[0], position[1]],
                 members: vec![individual],
+                actives: 2,
+                formation: SquadFormation::Line,
                 orders: vec![Order::Idle],
             }
         })

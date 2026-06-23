@@ -8,13 +8,13 @@ use oc_geo::{
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::{
-    IndividualIndex,
+    Gesture, IndividualIndex,
     order::Order,
     squad::{Squad, SquadFormation},
 };
-use oc_root::{WcfgFrom, WorldConfig, physics::Meters, side::Side};
-use oc_utils::d2::Xy;
-use oc_world::{meta::Meta, squad::SquadPositions, tile::Tile};
+use oc_root::{WcfgFrom, WorldConfig, physics::Meters, side::Side, y::V};
+use oc_utils::d2::{Direction, Xy};
+use oc_world::{meta::Meta, tile::Tile};
 #[cfg(feature = "test")]
 use oc_world_server::tracker::Tracker;
 
@@ -25,6 +25,8 @@ type Install = Box<dyn Fn(&mut bevy::app::App)>;
 type Track = Box<dyn Fn(Tracker)>;
 #[cfg(not(feature = "test"))]
 type Track = ();
+
+const MEMBER_COUNT: usize = 2;
 
 #[builder]
 pub fn run(
@@ -76,14 +78,18 @@ fn individuals(
     setup
         .iter()
         .map(|(position, orders)| {
-            (
-                position,
-                orders,
-                SquadPositions::compute(world, position, SquadFormation::Line, 2),
-            )
+            let positions = SquadFormation::Line.positions(
+                w,
+                V::Server,
+                (*position).into(),
+                Direction::new(0.5, 0.5).angle(), // FIXME BS NOW
+                MEMBER_COUNT,
+            );
+            // dbg!(&positions);
+            (position, orders, positions)
         })
-        .map(|(position, _, squad_positions)| {
-            (0..2).map(|i| {
+        .map(|(_, _, positions)| {
+            positions.into_iter().map(|position| {
                 let tile_xy = TileXy(Xy(
                     position[0] as u64 / w.geo_pixels_per_tile,
                     position[1] as u64 / w.geo_pixels_per_tile,
@@ -94,6 +100,7 @@ fn individuals(
                 let position = [position[0], position[1], z];
 
                 oc_individual::Individual::fresh(Side::A, position, tile_i, WorldRegionIndex(0))
+                    .with_gesture(Gesture::Idle(Direction::new(0.5, 0.5))) // FIXME BS NOW
             })
         })
         .flatten()
@@ -109,15 +116,17 @@ fn squads(
     // Test of squad behavior is in other example
     setup
         .iter()
-        .enumerate()
-        .map(|(i, (position, orders))| {
-            let individual = IndividualIndex(i as u64);
-            Squad {
-                side: Side::A,
-                position: *position,
-                members: vec![individual],
-                orders: orders.clone(),
-            }
+        .map(|(position, orders)| (position, orders))
+        .map(|(position, orders)| Squad {
+            side: Side::A,
+            position: position.clone().into(),
+            members: (0..MEMBER_COUNT)
+                .into_iter()
+                .map(|i| IndividualIndex(i as u64))
+                .collect::<Vec<IndividualIndex>>(),
+            actives: MEMBER_COUNT as u8,
+            formation: SquadFormation::Line,
+            orders: orders.clone(),
         })
         .collect()
 }

@@ -36,3 +36,9 @@ impl Y<[f32; 3]> for [f32; 3] {
         [self[0], w.world_height_pixels as f32 - self[1], self[2]]
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub enum V {
+    Server,
+    Gui,
+}

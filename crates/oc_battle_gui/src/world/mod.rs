@@ -66,6 +66,7 @@ pub struct World {
     pub terrain: Option<oc_world::terrain::Terrain>,
     pub squads: Index<SquadIndex, Squad>,
     pub squads_refs: FxHashMap<SquadIndex, WorldRegionIndex>,
+    pub individual_squad: FxHashMap<IndividualIndex, SquadIndex>,
 }
 
 impl World {
@@ -248,8 +249,10 @@ fn on_world_resume(
             .or_insert_with(|| FxHashMap::default())
             .insert(*i, squad.clone());
         world.squads_refs.insert(*i, region);
+        for member in &squad.members {
+            world.individual_squad.insert(*member, *i);
+        }
 
-        // FIXME BS NOW: debug here ?
         tracing::trace!(name="world-on-world-resume-trigger-spawn-squad-orders", i=?i, orders=?squad.orders);
         commands.trigger(SpawnSquadOrders(*i, squad.orders.clone()));
     }

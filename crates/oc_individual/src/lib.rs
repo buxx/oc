@@ -125,12 +125,17 @@ impl Individual {
             tile,
             region,
             vec![],
-            Behavior::Idle(Direction::NORTH),
+            Behavior::Idle(Direction::default()),
             vec![],
             Status::Operational,
-            Gesture::Idle(Direction::NORTH),
-            Intent::Idle(Direction::NORTH),
+            Gesture::Idle(Direction::default()),
+            Intent::Idle(Direction::default()),
         )
+    }
+
+    pub fn with_gesture(mut self, value: Gesture) -> Self {
+        self.gesture = value;
+        self
     }
 
     pub fn tile(&self) -> WorldTileIndex {
@@ -248,16 +253,17 @@ pub enum Gesture {
 #[cfg(feature = "bevy")]
 impl Gesture {
     pub fn rotation(&self) -> bevy::prelude::Quat {
-        let direction = match self {
+        let angle = self.direction().angle();
+        bevy::prelude::Quat::from_rotation_z(angle.0)
+    }
+
+    pub fn direction(&self) -> Direction {
+        match self {
             Gesture::Idle(direction)
             | Gesture::Walking(direction)
             | Gesture::Running(direction)
             | Gesture::Crawling(direction)
-            | Gesture::Lying(direction) => direction,
-        };
-
-        // Remove FRAC_PI_2 because bevy display sprite aligned Est by default
-        let angle = direction.y.atan2(direction.x) - std::f32::consts::FRAC_PI_2;
-        bevy::prelude::Quat::from_rotation_z(-angle)
+            | Gesture::Lying(direction) => direction.clone(),
+        }
     }
 }

@@ -5523,6 +5523,7 @@ dependencies = [
  "oc_utils",
  "polyanya",
  "rkyv",
+ "rstest",
  "serde",
  "serde_json",
 ]

@@ -21,6 +21,11 @@ use crate::ingame::region::ForgottenRegion;
 use crate::sprites::IntoAnimation;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
 use crate::states::{AppState, GameConfig};
+use crate::world::World;
+
+#[cfg(feature = "debug")]
+#[derive(Default, Reflect, GizmoConfigGroup)]
+pub struct PositionsGizmos;
 
 #[derive(Debug, Deref, Event)]
 pub struct ForgotIndividual(pub oc_individual::IndividualIndex);
@@ -67,6 +72,46 @@ pub struct Status(pub oc_individual::Status);
 #[derive(Debug, Deref, Component)]
 pub struct Gesture(pub oc_individual::Gesture);
 
+#[cfg(feature = "debug")]
+pub fn setup(mut config: ResMut<GizmoConfigStore>) {
+    tracing::trace!(name = "ingame-individual-setup");
+    let (gizmos, _) = config.config_mut::<PositionsGizmos>();
+    gizmos.line.width = 2.0;
+}
+
+#[cfg(feature = "debug")]
+fn positions(
+    g: Res<GameConfig>,
+    individuals: Query<(&IndividualIndex, &Position)>,
+    mut gizmos: Gizmos<PositionsGizmos>,
+    world: Res<World>,
+) {
+    let Some(g) = &g.0 else { return };
+    for (i, position) in individuals {
+        // FIXME BS NOW in function in world
+        let Some(squad) = world.individual_squad.get(&i.0) else {
+            continue;
+        };
+        let Some(region) = world.squads_refs.get(squad) else {
+            continue;
+        };
+        let Some(squad) = world
+            .squads
+            .get(&region)
+            .and_then(|squads| squads.get(squad))
+        else {
+            continue;
+        };
+        let color = match squad.leader() == i.0 {
+            true => Color::srgba(0.0, 1.0, 1.0, 0.5),
+            false => Color::srgba(1.0, 0., 0., 0.5),
+        };
+        let position = Vec2::new(position.0[0], position.0[1].to_gui_y(&g.w));
+        // tracing::trace!(name="spawn-individual-circle", i=?i, position=?position);
+        gizmos.circle_2d(position, 3., color);
+    }
+}
+
 pub fn on_insert_individual(
     individual: On<InsertIndividualEvent>,
     mut commands: Commands,
@@ -108,6 +153,7 @@ pub fn on_insert_individual(
             .with_rotation(rotation),
         ))
         .id();
+
     state.insert(individual.0, entity);
     commands.trigger(RefreshIndividualOrdersEvent(
         individual.0,
@@ -211,6 +257,20 @@ impl Plugin for IndividualPlugin {
                 ingame::physics::physics_step::<oc_individual::IndividualIndex, IndividualIndex>
                     .run_if(in_state(AppState::InGame)),
             );
+
+        #[cfg(feature = "debug")]
+        {
+            use crate::states::InGameState;
+
+            app.init_gizmo_group::<PositionsGizmos>();
+            app.add_systems(Startup, setup);
+            app.add_systems(
+                Update,
+                positions
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle)),
+            );
+        }
     }
 }
 
@@ -309,6 +369,7 @@ fn on_set_orders_event(
     orders: On<SetOrdersEvent>,
     mut query: Query<&mut Orders>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut commands: Commands,
 ) {
     let Some(entity) = state.get(&orders.0) else {
         return;
@@ -319,6 +380,9 @@ fn on_set_orders_event(
     tracing::trace!(name = "update-individual-set-orders", i=?orders.0, orders=?orders.1);
 
     orders_.0 = orders.1.clone();
+    // FIXME BS NOW: on voit la trace toute les secondes ! (manque if != qqpart)
+    tracing::trace!(name = "ingame-behavior-on-set-individual-orders-trigger-refresh-orders", i=?orders.0, events=?orders);
+    commands.trigger(RefreshIndividualOrdersEvent(orders.0, orders.1.clone()))
 }
 
 fn on_set_forces_event(

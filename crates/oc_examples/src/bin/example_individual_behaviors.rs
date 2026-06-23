@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
+use oc_battle_gui::ingame::camera::squad::ToggleShowFormationPositions;
 use oc_examples::{logging, tests::behavior};
 use oc_individual::order::Order;
 
@@ -18,9 +19,12 @@ struct Args {
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum TestCase {
+    Idle,
     MoveStraightAhead,
     MoveStraightAheadObstacle,
 }
+
+const IDLE_LEADER_POS: [f32; 2] = [150., 150.];
 
 const MSA_LEADER_POS: [f32; 2] = [150., 150.];
 const MSA_POS1: [f32; 2] = [180., 150.];
@@ -48,6 +52,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let setup = match args.case {
+        TestCase::Idle => {
+            vec![(IDLE_LEADER_POS, vec![])]
+        }
         TestCase::MoveStraightAhead => {
             vec![(
                 MSA_LEADER_POS,
@@ -77,6 +84,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 use oc_world_server::tracker::Tracker;
 
                 Box::new(move |tracker: Tracker| match args.case {
+                    // TODO: test if squad member reach expected position
+                    TestCase::Idle => {}
+                    // TODO: test if leader accomplished twice (two orders), reached expected position
+                    //       + squad members
                     TestCase::MoveStraightAhead | TestCase::MoveStraightAheadObstacle => {
                         let tracker = tracker.take();
 
@@ -101,7 +112,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             {
                 let args_ = args.clone();
                 Box::new(move |app| {
-                    app.insert_resource(Args_(args_.clone()));
+                    app.insert_resource(Args_(args_.clone()))
+                        .add_systems(Startup, |mut commands: Commands| {
+                            commands.trigger(ToggleShowFormationPositions)
+                        });
                     #[cfg(feature = "test")]
                     app.add_systems(Update, end_when_success_or_timeout);
                 })
@@ -137,6 +151,7 @@ fn end_when_success_or_timeout(
 ) {
     static MOVE_DONE: Mutex<Option<Instant>> = Mutex::new(None);
     let timeout = match args.0.case {
+        TestCase::Idle => Duration::from_secs(10),
         TestCase::MoveStraightAhead => Duration::from_secs(20),
         TestCase::MoveStraightAheadObstacle => Duration::from_secs(40),
     };
@@ -145,6 +160,9 @@ fn end_when_success_or_timeout(
     let mut move_done = MOVE_DONE.lock().unwrap();
     *move_done = match *move_done {
         None => match args.0.case {
+            // TODO: Test squad member position
+            TestCase::Idle => None,
+            // TODO: Test squad members positions
             TestCase::MoveStraightAhead => individuals.iter().next().and_then(|position| {
                 (almost_equal(position.0[0], MSA_POS2[0], POSITION_TOLERANCE)
                     && almost_equal(position.0[1], MSA_POS2[1], POSITION_TOLERANCE))

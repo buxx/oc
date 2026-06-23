@@ -2,7 +2,7 @@ use std::f32::consts::FRAC_PI_2;
 
 use derive_more::Constructor;
 use geo::{Contains, Triangle, coord};
-use glam::Vec2;
+use glam::{Vec2, Vec3};
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, Eq)]
@@ -50,6 +50,10 @@ pub struct Angle(pub f32);
 impl Angle {
     pub fn from_points(to_point: &Vec2, from_point: &Vec2) -> Self {
         Self(f32::atan2(to_point.y - from_point.y, to_point.x - from_point.x) + FRAC_PI_2)
+    }
+
+    pub fn from_degrees(degrees: f32) -> Self {
+        Self(degrees * (std::f32::consts::PI / 180.0))
     }
 
     pub fn zero() -> Self {
@@ -219,6 +223,18 @@ impl From<[f32; 2]> for Position {
     }
 }
 
+impl From<Vec2> for Position {
+    fn from(value: Vec2) -> Self {
+        Self::new(value.x, value.y)
+    }
+}
+
+impl From<Position> for Vec2 {
+    fn from(value: Position) -> Self {
+        Self::new(value.x, value.y)
+    }
+}
+
 #[derive(
     Debug,
     Clone,
@@ -236,8 +252,29 @@ pub struct Direction {
     pub y: f32,
 }
 
+impl Default for Direction {
+    fn default() -> Self {
+        Self::NORTH
+    }
+}
+
 impl Direction {
     pub const NORTH: Self = Self::new(0., 1.);
+    pub const EST: Self = Self::new(1., 0.);
+    pub const SOUTH: Self = Self::new(0., -1.);
+    pub const WEST: Self = Self::new(-1., 0.);
+
+    pub fn from_points2d(a: Vec2, b: Vec2) -> Self {
+        Self::from((b - a).normalize_or_zero())
+    }
+
+    pub fn from_points3d(&self, a: Vec3, b: Vec3) -> Self {
+        Self::from((b - a).normalize_or_zero())
+    }
+
+    pub fn angle(&self) -> Angle {
+        Angle(self.y.atan2(self.x) - std::f32::consts::FRAC_PI_2)
+    }
 }
 
 impl From<Direction> for Vec2 {
@@ -248,6 +285,12 @@ impl From<Direction> for Vec2 {
 
 impl From<Vec2> for Direction {
     fn from(value: Vec2) -> Self {
+        Direction::new(value.x, value.y)
+    }
+}
+
+impl From<Vec3> for Direction {
+    fn from(value: Vec3) -> Self {
         Direction::new(value.x, value.y)
     }
 }
