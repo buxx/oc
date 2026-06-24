@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use oc_individual::squad::SquadFormation;
 use oc_physics::update::bevy::Position;
 use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
@@ -15,6 +14,7 @@ use crate::{
 };
 
 const FORMATION_POSITON_COLOR: Color = Color::srgba(0.5, 1.0, 0.0, 0.2);
+const FORMATION_POSITON_COLOR_DEBUG: Color = Color::srgba(0.5, 1.0, 0.0, 1.0);
 
 pub struct DebugPlugin;
 
@@ -48,6 +48,7 @@ pub fn draw_formations(
     world: Res<world::World>,
     individuals: Res<EntityMapping<oc_individual::IndividualIndex>>,
     individual: Query<(&Position, &Gesture), With<IndividualIndex>>,
+    debug: Res<ShowFormationPositions>,
 ) {
     if !show.0 {
         return;
@@ -57,6 +58,10 @@ pub fn draw_formations(
     };
     let Some(regions) = &state.regions else {
         return;
+    };
+    let color = match debug.0 {
+        true => FORMATION_POSITON_COLOR_DEBUG,
+        false => FORMATION_POSITON_COLOR,
     };
 
     tracing::trace!(name = "ingame-squad-debug-formations-draw", regions=?regions);
@@ -78,10 +83,10 @@ pub fn draw_formations(
             let angle = gesture.0.direction().angle();
 
             // FXME BS NOW: squad formation from squad instead hardcoded
-            let positions = SquadFormation::Line.positions(&g.w, position, angle, count);
+            let positions = squad.formation.positions(&g.w, position, angle, count);
             for position in positions {
                 tracing::trace!(name = "ingame-squad-debug-formations-draw-point", i=?i, position=?position);
-                gizmos.circle_2d(position, 1., FORMATION_POSITON_COLOR);
+                gizmos.circle_2d(position, 1., color);
             }
         }
     }

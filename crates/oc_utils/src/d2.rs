@@ -2,7 +2,7 @@ use std::f32::consts::FRAC_PI_2;
 
 use derive_more::Constructor;
 use geo::{Contains, Triangle, coord};
-use glam::Vec2;
+use glam::{Vec2, Vec3};
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, Eq)]
@@ -223,6 +223,18 @@ impl From<[f32; 2]> for Position {
     }
 }
 
+impl From<Vec2> for Position {
+    fn from(value: Vec2) -> Self {
+        Self::new(value.x, value.y)
+    }
+}
+
+impl From<Position> for Vec2 {
+    fn from(value: Position) -> Self {
+        Self::new(value.x, value.y)
+    }
+}
+
 #[derive(
     Debug,
     Clone,
@@ -241,7 +253,15 @@ pub struct Direction {
 }
 
 impl Direction {
-    pub const NORTH: Self = Self::new(0., -1.);
+    pub const NORTH: Self = Self::new(0., 1.);
+
+    pub fn from_points2d(a: Vec2, b: Vec2) -> Self {
+        Self::from((b - a).normalize_or_zero())
+    }
+
+    pub fn from_points3d(&self, a: Vec3, b: Vec3) -> Self {
+        Self::from((b - a).normalize_or_zero())
+    }
 
     pub fn angle(&self) -> Angle {
         Angle(-(self.y.atan2(self.x) + std::f32::consts::FRAC_PI_2))
@@ -256,6 +276,12 @@ impl From<Direction> for Vec2 {
 
 impl From<Vec2> for Direction {
     fn from(value: Vec2) -> Self {
+        Direction::new(value.x, value.y)
+    }
+}
+
+impl From<Vec3> for Direction {
+    fn from(value: Vec3) -> Self {
         Direction::new(value.x, value.y)
     }
 }

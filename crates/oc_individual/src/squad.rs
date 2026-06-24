@@ -42,6 +42,8 @@ pub struct Squad {
     /// FIXME BS NOW: must be computed regurarly
     /// Number of alive members
     pub actives: u8,
+    /// Formation of squad (to place members)
+    pub formation: SquadFormation,
     /// Order given to this squad.
     pub orders: Vec<Order>,
     /// FIXME BS NOW: must be computed regurarly
@@ -69,7 +71,18 @@ pub enum Update {
 
 const TILES_BETWEEN_POSITIONS: f32 = 4.;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    serde::Serialize,
+    serde::Deserialize,
+    PartialEq,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
 pub enum SquadFormation {
     /// Formation make a line, squad leader at center
     Line,

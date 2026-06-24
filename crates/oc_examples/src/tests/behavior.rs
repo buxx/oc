@@ -26,6 +26,8 @@ type Track = Box<dyn Fn(Tracker)>;
 #[cfg(not(feature = "test"))]
 type Track = ();
 
+const MEMBER_COUNT: usize = 2;
+
 #[builder]
 pub fn run(
     setup: Vec<([f32; 2], Vec<Order>)>,
@@ -79,7 +81,12 @@ fn individuals(
             (
                 position,
                 orders,
-                SquadFormation::Line.positions(w, (*position).into(), Angle::from_degrees(90.), 2),
+                SquadFormation::Line.positions(
+                    w,
+                    (*position).into(),
+                    Angle::from_degrees(90.),
+                    MEMBER_COUNT,
+                ),
             )
         })
         .map(|(_, _, positions)| {
@@ -113,14 +120,20 @@ fn squads(
             (
                 position,
                 orders,
-                SquadFormation::Line.positions(w, (*position).into(), Angle::from_degrees(90.), 2),
+                SquadFormation::Line.positions(
+                    w,
+                    (*position).into(),
+                    Angle::from_degrees(90.),
+                    MEMBER_COUNT,
+                ),
             )
         })
         .map(|(_, orders, positions)| Squad {
             side: Side::A,
             position: positions[0].into(),
             members: vec![IndividualIndex(0), IndividualIndex(1)],
-            actives: 2,
+            actives: MEMBER_COUNT as u8,
+            formation: SquadFormation::Line,
             orders: orders.clone(),
         })
         .collect()
