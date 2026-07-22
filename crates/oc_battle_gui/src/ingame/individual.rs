@@ -21,6 +21,7 @@ use crate::ingame::region::ForgottenRegion;
 use crate::sprites::IntoAnimation;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
 use crate::states::{AppState, GameConfig};
+#[cfg(feature = "debug")]
 use crate::world::World;
 
 #[cfg(feature = "debug")]

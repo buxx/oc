@@ -162,7 +162,7 @@ mod tests {
         let formation = SquadFormation::Line;
 
         // When
-        let positions = formation.positions(&w, reference, angle, count);
+        let positions = formation.positions(&w, V::Gui, reference, angle, count);
 
         // Then
         assert_eq!(positions, expected);
