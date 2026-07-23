@@ -51,6 +51,26 @@ impl WcfgFrom<(f32, f32)> for TileXy {
 }
 
 // a little bit tricky ...
+impl WcfgFrom<glam::Vec2> for TileXy {
+    fn from_(value: glam::Vec2, w: &WorldConfig) -> Self {
+        TileXy(Xy(
+            value.x as u64 / w.geo_pixels_per_tile,
+            value.y as u64 / w.geo_pixels_per_tile,
+        ))
+    }
+}
+
+// a little bit tricky ...
+impl WcfgFrom<glam::Vec3> for TileXy {
+    fn from_(value: glam::Vec3, w: &WorldConfig) -> Self {
+        TileXy(Xy(
+            value.x as u64 / w.geo_pixels_per_tile,
+            value.y as u64 / w.geo_pixels_per_tile,
+        ))
+    }
+}
+
+// a little bit tricky ...
 impl WcfgFrom<TileXy> for [f32; 3] {
     fn from_(value: TileXy, w: &WorldConfig) -> Self {
         [

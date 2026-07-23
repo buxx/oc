@@ -5,6 +5,7 @@ edition = "2024"
 
 [features]
 bevy = ["dep:bevy"]
+tests = []
 
 [dependencies]
 oc_root = { path = "../oc_root" }

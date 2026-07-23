@@ -14,7 +14,7 @@ use oc_projectile::ProjectileId;
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::Client;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Update {
     Schedule(Instant, Box<Update>),
     SpawnProjectile(SpawnProjectile, bool), // bool == fx

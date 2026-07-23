@@ -62,10 +62,15 @@ pub struct Individual {
     pub tile: WorldTileIndex,
     pub region: WorldRegionIndex,
     pub orders: Vec<Order>,
+    /// Behavior is the general behavior of individual, like defending a direction
     pub behavior: Behavior,
+    /// Forces are physical forces applied to this individual
     pub forces: Vec<Force>,
+    /// Status is "in game" status, like be able to act, or not (dead, incapacitated, etc)
     pub status: Status,
+    /// Gesture is the physical gesture of individual, like walking to take its defending position
     pub gesture: Gesture,
+    /// Intent is the intention of individual, like taking cover, to accomplish its defending behavior
     pub intent: Intent,
 }
 
@@ -112,6 +117,12 @@ impl From<u64> for IndividualIndex {
     }
 }
 
+impl From<i32> for IndividualIndex {
+    fn from(value: i32) -> Self {
+        Self(value as u64)
+    }
+}
+
 impl Individual {
     pub fn fresh<P: Into<[f32; 3]>>(
         side: Side,
@@ -133,8 +144,18 @@ impl Individual {
         )
     }
 
+    pub fn with_behavior(mut self, value: Behavior) -> Self {
+        self.behavior = value;
+        self
+    }
+
     pub fn with_gesture(mut self, value: Gesture) -> Self {
         self.gesture = value;
+        self
+    }
+
+    pub fn with_intent(mut self, value: Intent) -> Self {
+        self.intent = value;
         self
     }
 

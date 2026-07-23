@@ -7,9 +7,9 @@ use oc_geo::{
 use oc_mod::nature::Traversability;
 use oc_mod::{Mod, nature::NatureIndex};
 use oc_physics::{Force, Physic, collision::Material, volume::Volume};
-use oc_root::{WcfgInto, WorldConfig};
+use oc_root::{WcfgInto, WorldConfig, material::MaterialKind};
 
-use crate::World;
+use crate::{World, navmesh::Walls};
 use derive_more::Constructor;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -111,5 +111,18 @@ impl Physic for Tile {
                 nature.traversability.clone(),
             ),
         ]
+    }
+}
+
+impl Walls for Vec<Tile> {
+    fn as_walls(&self, mod_: &Mod) -> Vec<bool> {
+        self.iter()
+            .map(|tile| {
+                // FIXME: When vehicle, will need same but for vehicle
+                mod_.nature(tile.nature)
+                    .traversability
+                    .deny(MaterialKind::Individual)
+            })
+            .collect::<Vec<bool>>()
     }
 }

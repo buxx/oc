@@ -23,6 +23,17 @@ pub struct Meta {
     pub geo_meters_per_z: f32,
 }
 
+#[cfg(feature = "tests")]
+impl Default for Meta {
+    fn default() -> Self {
+        Self {
+            name: "TestMeta".to_string(),
+            revision: 0,
+            geo_meters_per_z: 0.1,
+        }
+    }
+}
+
 impl Meta {
     pub fn from_file(path: &PathBuf) -> Result<Self, LoadError> {
         // TODO

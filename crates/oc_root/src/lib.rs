@@ -44,6 +44,7 @@ pub struct WorldConfig {
     pub geo_lov_step: u64,
     pub minimap_width_pixels: u64,
     pub minimap_height_pixels: u64,
+    pub formation_tiles_between_positions: u64,
 }
 
 impl WorldConfig {
@@ -73,6 +74,8 @@ impl WorldConfig {
         let minimap_width_pixels: u64 = 2048;
         let minimap_height_pixels: u64 = 2048;
 
+        let formation_tiles_between_positions = 2;
+
         Self {
             world_width,
             world_height,
@@ -98,6 +101,7 @@ impl WorldConfig {
             geo_lov_step,
             minimap_width_pixels,
             minimap_height_pixels,
+            formation_tiles_between_positions,
         }
     }
 
@@ -144,6 +148,11 @@ impl WorldConfig {
 
     pub fn geo_lov_step(mut self, value: u64) -> Self {
         self.geo_lov_step = value;
+        self
+    }
+
+    pub fn formation_tiles_between_positions(mut self, value: u64) -> Self {
+        self.formation_tiles_between_positions = value;
         self
     }
 }

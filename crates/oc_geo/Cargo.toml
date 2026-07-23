@@ -11,6 +11,7 @@ oc_utils = { path = "../oc_utils" }
 derive_more = { workspace = true, features = ["constructor"] }
 rkyv.workspace = true
 serde = { workspace = true, features = ["derive"] }
+glam.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true

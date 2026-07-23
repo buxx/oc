@@ -5502,6 +5502,7 @@ name = "oc_geo"
 version = "0.1.0"
 dependencies = [
  "derive_more",
+ "glam",
  "oc_root",
  "oc_utils",
  "rkyv",
@@ -5731,6 +5732,7 @@ dependencies = [
  "rustc-hash 2.1.1",
  "serde",
  "serde_json",
+ "tests",
  "thiserror 2.0.18",
  "tokio",
  "tokio-util",
@@ -7474,6 +7476,7 @@ dependencies = [
 name = "tests"
 version = "0.1.0"
 dependencies = [
+ "bon",
  "glam",
  "oc_geo",
  "oc_individual",
@@ -7485,6 +7488,7 @@ dependencies = [
  "oc_utils",
  "oc_world",
  "rstest",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_derive",
  "tracing-subscriber",

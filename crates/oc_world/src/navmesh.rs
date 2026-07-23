@@ -1,4 +1,5 @@
 use oc_geo::tile::{TileXy, WorldTileIndex};
+use oc_mod::Mod;
 use oc_root::{WcfgFrom, WorldConfig};
 use oc_utils::d2::Xy;
 use polyanya::*;
@@ -62,4 +63,8 @@ pub fn navmesh(w: &WorldConfig, grid: &[bool]) -> Mesh {
     mesh.bake(); // builds internal spatial index for fast queries
 
     mesh
+}
+
+pub trait Walls {
+    fn as_walls(&self, mod_: &Mod) -> Vec<bool>;
 }

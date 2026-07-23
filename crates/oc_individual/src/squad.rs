@@ -106,13 +106,13 @@ impl SquadFormation {
                     return vec![reference];
                 }
 
-                const TILES_BETWEEN_POSITIONS: f32 = 2.;
                 let dir_x = f32::cos(angle.0);
                 let dir_y = match v {
                     V::Server => f32::sin(angle.0),
                     V::Gui => -f32::sin(angle.0),
                 };
-                let space = TILES_BETWEEN_POSITIONS * w.geo_pixels_per_tile as f32;
+                let space =
+                    w.formation_tiles_between_positions as f32 * w.geo_pixels_per_tile as f32;
 
                 // Leader is already at `reference`. Remaining members fan out
                 // alternately left/right, one rank further out each pair:

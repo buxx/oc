@@ -42,4 +42,5 @@ ctrlc.workspace = true
 polyanya.workspace = true
 
 [dev-dependencies]
+tests = { path = "../tests" }
 rstest.workspace = true

@@ -192,46 +192,60 @@ impl<'a> Processor<'a> {
         updates
     }
 
+    /// Build updates to ensure each member of squad receive order according to situation.
     fn distribute(&self) -> Vec<(IndividualIndex, Vec<Order>)> {
         let squad_i = self.index.individual_squad(self.i);
         let squad = self.world.squad(squad_i);
+        let order = squad.orders.first();
+        let mut distribution = Vec::with_capacity(squad.members.len());
         let is_squad_leader = self.i == squad.leader();
+
         // TODO: test if is the squad leader (if its too CPU consuming, manage boolean in individual ?)
         if !is_squad_leader {
             tracing::trace!(name="individual-step-distribute-not-leader", i=?self.i);
-            return vec![];
+            return distribution;
         }
-        let Some(order) = squad.orders.first() else {
-            return vec![];
+
+        if let Some(order) = order {
+            // Squad leader own the squad order
+            distribution.push((squad.leader(), vec![order.clone()]));
         };
+
         let leader = self.world.individual(squad.leader());
         let gesture = &leader.gesture;
-
         let reference = Vec2::new(leader.position[0], leader.position[1]);
         let count = squad.actives as usize;
         let direction = gesture.direction();
         let angle = direction.angle();
-        // FIXME BS NOW HERE POINT ?!
+
         let positions =
             squad
                 .formation
                 .positions(&self.world.w, V::Server, reference, angle, count);
-        tracing::trace!(name="indiviual-step-distribute-formation", i=?self.i, squad_i=?squad_i, reference=?reference, direction=?direction, angle=?angle, positions=?positions);
+        tracing::trace!(name="individual-step-distribute-formation", i=?self.i, squad_i=?squad_i, reference=?reference, direction=?direction, angle=?angle, positions=?positions);
 
-        let mut distribution = Vec::with_capacity(squad.members.len());
-        distribution.push((squad.leader(), vec![order.clone()])); // Squad leader must keep the original order
-
-        for (member, position) in squad.members.iter().zip(positions).skip(1) {
-            match order {
-                Order::Idle | Order::MoveTo(_) => {
-                    let orders = vec![Order::MoveTo(position.into())];
-                    tracing::trace!(name="indiviual-step-distribute-to", i=?self.i, squad_i=?squad_i, order=?order, member=?member, orders=?orders);
-                    distribution.push((*member, orders))
+        for (member, position) in squad
+            .members
+            .iter()
+            .zip(positions)
+            // Skip leader as already disributed before
+            .skip(1)
+        {
+            // According to order, choose appropriate order to distribute (move if move, move fast if move fast, etc.)
+            let orders = match order {
+                Some(order) => match order {
+                    Order::Idle => vec![Order::MoveTo(position.into())],
+                    Order::MoveTo(_) => vec![Order::MoveTo(position.into())],
+                },
+                None => {
+                    vec![Order::MoveTo(position.into())]
                 }
-            }
+            };
+            tracing::trace!(name="individual-step-distribute-to", i=?self.i, squad_i=?squad_i, order=?order, member=?member, orders=?orders);
+            distribution.push((*member, orders))
         }
 
-        tracing::trace!(name="indiviual-step-distribution", i=?self.i, squad_i=?squad_i, order=?order, distribution=?distribution);
+        tracing::trace!(name="individual-step-distribution", i=?self.i, squad_i=?squad_i, order=?order, distribution=?distribution);
         distribution
     }
 
@@ -261,7 +275,7 @@ impl<'a> Processor<'a> {
             false => individual.intent.clone(),
         };
 
-        tracing::trace!(name="indiviual-step-decide", i=?self.i, order=?order, intent=?intent);
+        tracing::trace!(name="individual-step-decide", i=?self.i, order=?order, intent=?intent);
         intent
     }
 
@@ -302,5 +316,148 @@ impl<'a> Processor<'a> {
                 vec![Force::Translation(direction.into(), MetersSeconds(1.0))]
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use glam::{Vec2, Vec3};
+    use oc_individual::{
+        Gesture, IndividualIndex,
+        behavior::{Behavior, Intent},
+        order::Order,
+    };
+    use oc_root::{WorldConfig, physics::Meters};
+    use oc_utils::d2::{Direction, Position};
+    use oc_world::World;
+
+    use crate::{index::Indexes, individual::Processor, runner::update::Update};
+    use tests::{individual::TestIndividual, squad::TestSquadBuilder, world::TestWorld};
+
+    // Test orders distribution when squad own move to order
+    #[test]
+    fn test_distribute_move() {
+        // Given
+        let w = WorldConfig::new(100, 100, Meters(0.1))
+            .formation_tiles_between_positions(2)
+            .geo_pixels_per_tile(5);
+        // test parameters (assume individual are all Idle in EST direction)
+        let individual_1_position = Vec3::new(100., 100., 0.);
+        let individual_2_position = Vec3::new(90., 110., 0.);
+        let squad_position = Vec2::new(individual_1_position.x, individual_1_position.y);
+        let move_to_position = Position::new(150., 100.);
+        let move_to_order = Order::MoveTo(move_to_position);
+        // expected
+        let expected_individual_1_move_to_position = Position::new(150., 100.);
+        let expected_individual_2_move_to_position = Position::new(100., 110.);
+
+        let world = world(
+            w,
+            individual_1_position,
+            individual_2_position,
+            squad_position,
+            vec![move_to_order],
+        );
+        let index = Indexes::new(&world);
+        let processor = Processor::new(&world, &index, 0.into());
+
+        // When
+        let orders = processor.step();
+
+        // Then
+        assert_eq!(
+            orders,
+            vec![
+                Update::UpdateIndividual(
+                    IndividualIndex(0),
+                    oc_individual::Update::SetOrders(vec![Order::MoveTo(
+                        expected_individual_1_move_to_position
+                    )])
+                ),
+                Update::UpdateIndividual(
+                    IndividualIndex(1),
+                    oc_individual::Update::SetOrders(vec![Order::MoveTo(
+                        expected_individual_2_move_to_position
+                    )])
+                )
+            ]
+        );
+    }
+
+    // Test orders distribution when squad have no order and squad member not at correct place
+    #[test]
+    fn test_distribute_idle() {
+        // Given
+        let w = WorldConfig::new(100, 100, Meters(0.1))
+            .formation_tiles_between_positions(2)
+            .geo_pixels_per_tile(5);
+        // test parameters (assume individual are all Idle in EST direction)
+        let individual_1_position = Vec3::new(100., 100., 0.);
+        let individual_2_position = Vec3::new(90., 110., 0.);
+        let squad_position = Vec2::new(individual_1_position.x, individual_1_position.y);
+        // expected
+        let expected_individual_2_move_to_position = Position::new(100., 110.);
+
+        let world = world(
+            w,
+            individual_1_position,
+            individual_2_position,
+            squad_position,
+            vec![],
+        );
+        let index = Indexes::new(&world);
+        let processor = Processor::new(&world, &index, 0.into());
+
+        // When
+        let orders = processor.step();
+
+        // Then
+        assert_eq!(
+            orders,
+            vec![Update::UpdateIndividual(
+                IndividualIndex(1),
+                oc_individual::Update::SetOrders(vec![Order::MoveTo(
+                    expected_individual_2_move_to_position
+                )])
+            )]
+        );
+    }
+
+    // Refactored function which generate a world with one squad composed of two members.
+    // Both individuals Idle in EST direction.
+    fn world(
+        w: WorldConfig,
+        individual_1_position: Vec3,
+        individual_2_position: Vec3,
+        squad_position: Vec2,
+        squad_orders: Vec<Order>,
+    ) -> World {
+        let individual1 = TestIndividual::builder();
+        let individual1 = individual1.position(individual_1_position);
+        let individual1 = individual1
+            .gesture(Gesture::Idle(Direction::EST)) // Gesture & Behavior & Intent are important
+            .behavior(Behavior::Idle(Direction::EST)) // to conditionate the .step() response
+            .intent(Intent::Idle(Direction::EST));
+        let individual1 = individual1.build().make(&w);
+        let individual2 = TestIndividual::builder();
+        let individual2 = individual2.position(individual_2_position);
+        let individual2 = individual2
+            .gesture(Gesture::Idle(Direction::EST)) // Gesture & Behavior & Intent are important
+            .behavior(Behavior::Idle(Direction::EST)) // to conditionate the .step() response
+            .intent(Intent::Idle(Direction::EST));
+        let individual2 = individual2.build().make(&w);
+
+        let squad = TestSquadBuilder::builder();
+        let squad = squad.position(squad_position);
+        let squad = squad.members(vec![0.into(), 1.into()]);
+        let squad = squad.orders(squad_orders);
+        let squad = squad.build().make();
+
+        let world = TestWorld::builder();
+        let world = world.individuals(vec![individual1, individual2]);
+        let world = world.squads(vec![squad]);
+        let world = world.build().make(&w);
+
+        world
     }
 }
