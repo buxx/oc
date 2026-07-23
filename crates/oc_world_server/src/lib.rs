@@ -15,3 +15,6 @@ pub mod static_;
 #[cfg(feature = "tracker")]
 pub mod tracker;
 pub mod utils;
+
+#[cfg(test)]
+pub mod test;

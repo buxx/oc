@@ -27,6 +27,12 @@ impl From<(isize, isize, isize)> for Xy {
     }
 }
 
+impl From<Vec3> for Xy {
+    fn from(value: Vec3) -> Self {
+        Self(value.x as u64, value.y as u64)
+    }
+}
+
 impl Xy {
     pub fn distance(self, other: Self) -> f32 {
         ((other.0 as f32 - self.0 as f32).powi(2) + (other.1 as f32 - self.1 as f32).powi(2)).sqrt()

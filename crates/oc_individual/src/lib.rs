@@ -112,6 +112,12 @@ impl From<u64> for IndividualIndex {
     }
 }
 
+impl From<i32> for IndividualIndex {
+    fn from(value: i32) -> Self {
+        Self(value as u64)
+    }
+}
+
 impl Individual {
     pub fn fresh<P: Into<[f32; 3]>>(
         side: Side,

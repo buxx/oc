@@ -216,7 +216,7 @@ impl<'a> Processor<'a> {
             squad
                 .formation
                 .positions(&self.world.w, V::Server, reference, angle, count);
-        tracing::trace!(name="indiviual-step-distribute-formation", i=?self.i, squad_i=?squad_i, reference=?reference, direction=?direction, angle=?angle, positions=?positions);
+        tracing::trace!(name="individual-step-distribute-formation", i=?self.i, squad_i=?squad_i, reference=?reference, direction=?direction, angle=?angle, positions=?positions);
 
         let mut distribution = Vec::with_capacity(squad.members.len());
         distribution.push((squad.leader(), vec![order.clone()])); // Squad leader must keep the original order
@@ -225,13 +225,13 @@ impl<'a> Processor<'a> {
             match order {
                 Order::Idle | Order::MoveTo(_) => {
                     let orders = vec![Order::MoveTo(position.into())];
-                    tracing::trace!(name="indiviual-step-distribute-to", i=?self.i, squad_i=?squad_i, order=?order, member=?member, orders=?orders);
+                    tracing::trace!(name="individual-step-distribute-to", i=?self.i, squad_i=?squad_i, order=?order, member=?member, orders=?orders);
                     distribution.push((*member, orders))
                 }
             }
         }
 
-        tracing::trace!(name="indiviual-step-distribution", i=?self.i, squad_i=?squad_i, order=?order, distribution=?distribution);
+        tracing::trace!(name="individual-step-distribution", i=?self.i, squad_i=?squad_i, order=?order, distribution=?distribution);
         distribution
     }
 
@@ -261,7 +261,7 @@ impl<'a> Processor<'a> {
             false => individual.intent.clone(),
         };
 
-        tracing::trace!(name="indiviual-step-decide", i=?self.i, order=?order, intent=?intent);
+        tracing::trace!(name="individual-step-decide", i=?self.i, order=?order, intent=?intent);
         intent
     }
 
@@ -302,5 +302,35 @@ impl<'a> Processor<'a> {
                 vec![Force::Translation(direction.into(), MetersSeconds(1.0))]
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use glam::Vec3;
+    use oc_root::{WorldConfig, physics::Meters};
+
+    use super::*;
+    use crate::{
+        index::Indexes,
+        individual::Processor,
+        test::{individual::TestIndividual, squad::TestSquadBuilder, world::TestWorld},
+    };
+
+    #[test]
+    fn test_distribute_move() {
+        // Given
+        let w = WorldConfig::new(100, 100, Meters(0.1));
+        let individual1 = TestIndividual::builder().i(0).build().make(&w);
+        let individual2 = TestIndividual::builder().i(1).build();
+        let squad = TestSquadBuilder::builder();
+        let squad = squad.position(Vec3::new(100.0, 100.0, 0.));
+        let squad = squad.members(vec![0.into(), 1.into()]);
+        let squad = squad.build().make();
+        let world = TestWorld::builder();
+        let world = world.squads(vec![squad]);
+        let world = world.build().make();
+        let index = Indexes::new(&world);
+        let processor = Processor::new(&world, &index, 0.into());
     }
 }
