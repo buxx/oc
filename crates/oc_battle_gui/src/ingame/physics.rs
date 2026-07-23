@@ -8,7 +8,7 @@ use oc_physics::{
 };
 use oc_projectile::ProjectileId;
 use oc_root::y::Y;
-use oc_utils::d2::Xy;
+use oc_utils::{d2::Xy, let_some};
 
 use crate::{ingame::projectile::ForgotProjectile, states::GameConfig, world::World};
 
@@ -32,7 +32,7 @@ pub fn physics_step<I, C>(
     I: Clone + Send + Sync + Into<ObjectId> + std::fmt::Debug + 'static,
     C: Component + AsRef<I>,
 {
-    let Some(g) = &g.0 else { return };
+    let_some!(g = &g.0, return);
 
     // tracing::trace!(name = "projectile-physics-start");
     let delta = time.delta_secs() / 1.;

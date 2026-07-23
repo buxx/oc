@@ -9,3 +9,17 @@ pub mod image;
 pub mod number;
 #[cfg(feature = "tiled")]
 pub mod tileset;
+
+#[macro_export]
+macro_rules! let_some {
+    ($pat:pat = $expr:expr, $or:expr) => {
+        let Some($pat) = $expr else { $or };
+    };
+}
+
+#[macro_export]
+macro_rules! let_ok {
+    ($pat:pat = $expr:expr, $or:expr) => {
+        let Ok($pat) = $expr else { $or };
+    };
+}

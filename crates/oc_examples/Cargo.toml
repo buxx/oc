@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-debug = ["oc_network/debug", "oc_world_server/debug"]
+debug = ["oc_network/debug", "oc_world_server/debug", "oc_battle_gui/debug"]
 debug_locks = ["oc_utils/debug"]
 test = ["debug", "oc_world_server/tracker"]
 

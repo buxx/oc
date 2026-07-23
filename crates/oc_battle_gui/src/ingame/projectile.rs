@@ -8,6 +8,7 @@ use oc_physics::update::bevy::{
 };
 use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
+use oc_utils::{let_ok, let_some};
 
 use crate::entity::projectile::ProjectileId;
 use crate::ingame;
@@ -49,9 +50,7 @@ pub fn on_insert_projectile(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let Some(g) = &g.0 else {
-        return;
-    };
+    let_some!(g = &g.0, return);
     tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position(), forces=?projectile.1.forces(&g.w));
 
     let position = projectile.1.position();
@@ -85,15 +84,9 @@ fn on_update_position(
     query: Query<&Mesh2d>,
 ) {
     let (i, position, previous) = (position.0, &position.1, &position.2);
-    let Some(entity) = projectiles.get(&i) else {
-        return;
-    };
-    let Ok(mesh) = query.get(*entity) else {
-        return;
-    };
-    let Some(mesh) = meshes.get_mut(mesh) else {
-        return;
-    };
+    let_some!(entity = projectiles.get(&i), return);
+    let_ok!(mesh = query.get(*entity), return);
+    let_some!(mesh = meshes.get_mut(mesh), return);
 
     let position = Vec2::new(position[0], position[1]);
     let previous = Vec2::new(previous[0], previous[1]);

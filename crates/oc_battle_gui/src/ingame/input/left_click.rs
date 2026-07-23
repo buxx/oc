@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use oc_network::ToServer;
 use oc_root::Wcfg;
 use oc_root::physics::Meters;
+use oc_utils::{let_ok, let_some};
 use strum_macros::EnumIter;
 
 use crate::ingame::debug::projectile::SpawnProjectileProfile;
@@ -75,14 +76,11 @@ pub fn click_debug(
     if ignore.0 {
         return;
     }
-    let Some(w) = &w.0 else { return };
-    let Some(cursor) = window.cursor_position() else {
-        return;
-    };
+    let_some!(w = &w.0, return);
+    let_some!(cursor = window.cursor_position(), return);
     let (camera, transform) = *camera;
-    let Ok(point) = camera.viewport_to_world_2d(transform, cursor) else {
-        return;
-    };
+    let point = camera.viewport_to_world_2d(transform, cursor);
+    let_ok!(point = point, return);
 
     match &mode.0 {
         LeftClickMode::Select => {
@@ -188,13 +186,10 @@ pub fn on_spawn_clicks_line(
     mut materials: ResMut<Assets<ColorMaterial>>,
     state: Res<super::State>,
 ) {
-    let Some(cursor) = window.cursor_position() else {
-        return;
-    };
+    let_some!(cursor = window.cursor_position(), return);
     let (camera, transform) = *camera;
-    let Ok(point) = camera.viewport_to_world_2d(transform, cursor) else {
-        return;
-    };
+    let point = camera.viewport_to_world_2d(transform, cursor);
+    let_ok!(point = point, return);
 
     let mut points = state.clicks.clone();
     points.push(point);

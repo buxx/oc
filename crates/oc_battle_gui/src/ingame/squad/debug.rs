@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use oc_physics::update::bevy::Position;
 use oc_root::y::{V, Y};
-use oc_utils::bevy::EntityMapping;
+use oc_utils::{bevy::EntityMapping, let_some};
 
 use crate::{
     entity::individual::IndividualIndex,
@@ -53,12 +53,8 @@ pub fn draw_formations(
     if !show.0 {
         return;
     }
-    let Some(g) = &g.0 else {
-        return;
-    };
-    let Some(regions) = &state.regions else {
-        return;
-    };
+    let_some!(g = &g.0, return);
+    let_some!(regions = &state.regions, return);
     let color = match debug.0 {
         true => FORMATION_POSITON_COLOR_DEBUG,
         false => FORMATION_POSITON_COLOR,
@@ -66,16 +62,12 @@ pub fn draw_formations(
 
     tracing::trace!(name = "ingame-squad-debug-formations-draw", regions=?regions);
     for region in regions {
-        let Some(squads) = world.squads.get(&region.0) else {
-            return;
-        };
+        let_some!(squads = world.squads.get(&region.0), return);
 
         for (i, squad) in squads {
             let leader = squad.leader();
             let count = squad.members.len(); // TODO: active members (compute must be cached in Squad)
-            let Some(leader) = individuals.get(&leader) else {
-                continue;
-            };
+            let_some!(leader = individuals.get(&leader), continue);
             let Ok((position, gesture)) = individual.get(*leader) else {
                 continue;
             };

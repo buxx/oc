@@ -250,8 +250,8 @@ pub enum Gesture {
     Lying(Direction),
 }
 
-#[cfg(feature = "bevy")]
 impl Gesture {
+    #[cfg(feature = "bevy")]
     pub fn rotation(&self) -> bevy::prelude::Quat {
         let angle = self.direction().angle();
         bevy::prelude::Quat::from_rotation_z(angle.0)

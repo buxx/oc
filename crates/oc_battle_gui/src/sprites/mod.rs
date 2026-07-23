@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_spritesheet_animation::prelude::*;
 use oc_root::files::Files;
+use oc_utils::let_some;
 
 use crate::{
     ingame::GameConfigReceived, network, sprites::soldier::SoldierAnimations, states::GameConfig,
@@ -26,10 +27,8 @@ fn on_game_config_received(
     mut animations: ResMut<Assets<Animation>>,
     mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    let Some(g) = &g.0 else { return };
-    let Some(connect) = network.server.clone() else {
-        return;
-    };
+    let_some!(g = &g.0, return);
+    let_some!(connect = network.server.clone(), return);
 
     let mod_ = g.mod_.canonical();
     let world = g.meta.canonical();

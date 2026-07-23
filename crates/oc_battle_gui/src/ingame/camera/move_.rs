@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use oc_root::Wcfg;
+use oc_utils::{let_ok, let_some};
 
 use crate::{
     ingame::camera::{
@@ -68,9 +69,8 @@ pub fn on_moved_battle_camera(
     let width = window.resolution.width();
     let height = window.resolution.height();
     let center = Vec2::new(width / 2., height / 2.);
-    let Ok(center) = camera.viewport_to_world_2d(transform, center) else {
-        return;
-    };
+    let center = camera.viewport_to_world_2d(transform, center);
+    let_ok!(center = center, return);
 
     commands.trigger(UpdateVisibleBattleSquare(center));
     commands.trigger(UpdateRegions(center));
@@ -87,12 +87,10 @@ pub fn move_in_world_map(
     if ignore.0 {
         return;
     }
-    let Some(w) = &w.0 else { return };
+    let_some!(w = &w.0, return);
 
     if buttons.just_released(MouseButton::Left) {
-        let Some(cursor) = window.cursor_position() else {
-            return;
-        };
+        let_some!(cursor = window.cursor_position(), return);
 
         let point = window_point_to_world_map_point(w, cursor, window.size());
         let center = Vec3::new(

@@ -8,6 +8,7 @@ use oc_root::y::Y;
 use oc_root::{WcfgFrom, WcfgInto, files};
 use oc_utils::bevy::EntityMapping;
 use oc_utils::d2::Xy;
+use oc_utils::let_some;
 use oc_world::terrain::Terrain;
 use oc_world::tile::Tile;
 
@@ -241,7 +242,7 @@ pub fn tile_under_cursor(
     entities: Res<EntityMapping<WorldTileIndex>>,
     mut tiles: Query<(&TerrainTile, &mut Sprite)>,
 ) {
-    let Some(g) = &g.0 else { return };
+    let_some!(g = &g.0, return);
     let (camera, transform) = *camera_;
     if let Some(cursor) = window_.cursor_position() {
         if let Ok(cursor) = camera.viewport_to_world_2d(transform, cursor) {

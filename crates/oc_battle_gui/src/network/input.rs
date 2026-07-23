@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex, mpsc::Receiver};
 
 use bevy::prelude::*;
 use oc_network::ToClient;
+use oc_utils::let_some;
 
 use crate::network::connect::{Connected, Disconnected, FailedToConnect};
 
@@ -23,9 +24,7 @@ pub enum NetworkMessage {
 }
 
 pub fn network_message_router(mut commands: Commands, messages: Res<NetworkMessageReceiver>) {
-    let Some(messages) = &messages.0 else {
-        return;
-    };
+    let_some!(messages = &messages.0, return);
     let messages = messages.lock().expect("Assume mutex");
     let messages = messages.try_iter();
 

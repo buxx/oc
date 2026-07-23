@@ -5,7 +5,7 @@ use oc_geo::{
 };
 use oc_network::ToServer;
 use oc_root::{Wcfg, WcfgInto, WorldConfig, y::Y};
-use oc_utils::d2::Xy;
+use oc_utils::{d2::Xy, let_some};
 
 use crate::{
     ingame::region::{ForgottenRegion, ListeningRegion},
@@ -27,7 +27,7 @@ pub fn on_update_regions(
     mut commands: Commands,
     mut state: ResMut<super::State>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let_some!(w = &w.0, return);
     tracing::trace!(name="update-regions", point=?point.0);
     static EMPTY: Vec<Region> = vec![];
     let current = state.regions.as_ref().unwrap_or(&EMPTY);

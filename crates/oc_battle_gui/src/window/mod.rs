@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_egui::{EguiContexts, EguiPrimaryContextPass};
 use oc_mod::Mod;
 use oc_root::WorldConfig;
+use oc_utils::let_some;
 
 use crate::{states, window::menu::battle::BattleMenuWindowPlugin};
 
@@ -86,12 +87,8 @@ fn show(
     g: Res<states::GameConfig>,
     mut pointer: ResMut<PointerInWindow>,
 ) -> Result {
-    let Some(window) = &mut window.0 else {
-        return Ok(());
-    };
-    let Some(g) = &g.0 else {
-        return Ok(());
-    };
+    let_some!(window = &mut window.0, return Ok(()));
+    let_some!(g = &g.0, return Ok(()));
 
     window.show(&mut contexts, &mut commands, &g.mod_, &g.w)?;
     pointer.0 = contexts.ctx_mut()?.is_pointer_over_area();

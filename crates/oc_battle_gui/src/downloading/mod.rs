@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use oc_root::files::{self};
+use oc_utils::let_some;
 
 use crate::{
     http_to_file, network,
@@ -28,10 +29,8 @@ fn download(
     network: Res<network::state::State>,
     mut world_: ResMut<World>,
 ) -> Result<(), BevyError> {
-    let Some(g) = &g.0 else { return Ok(()) };
-    let Some(connect) = network.server.clone() else {
-        return Ok(());
-    };
+    let_some!(g = &g.0, return Ok(()));
+    let_some!(connect = network.server.clone(), return Ok(()));
 
     let mod__ = g.mod_.canonical();
     let world = g.meta.canonical();

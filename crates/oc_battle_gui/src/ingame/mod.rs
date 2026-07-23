@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use oc_network::ToServer;
 use oc_root::Wcfg;
+use oc_utils::{let_ok, let_some};
 use oc_world::resume::WorldResume;
 
 #[cfg(feature = "debug")]
@@ -134,9 +135,7 @@ fn on_restore_battle_center(
     state: Res<camera::State>,
     mut camera: Single<&mut Transform, With<Camera2d>>,
 ) {
-    let Some(previously) = state.previously else {
-        return;
-    };
+    let_some!(previously = state.previously, return);
 
     tracing::debug!("Restore battle center ({previously:?})");
     camera.translation.x = previously.x;
@@ -172,9 +171,8 @@ pub fn on_switch_to_height_map(
     let width = window.resolution.width();
     let height = window.resolution.height();
     let center = Vec2::new(width / 2., height / 2.);
-    let Ok(center) = camera.viewport_to_world_2d(transform, center) else {
-        return;
-    };
+    let center = camera.viewport_to_world_2d(transform, center);
+    let_ok!(center = center, return);
 
     commands.entity(*camera2d).despawn();
     *ingame = NextState::Pending(InGameState::Height);
@@ -216,7 +214,7 @@ pub fn on_switch_to_world_map(
     mut ingame: ResMut<NextState<InGameState>>,
 ) {
     tracing::debug!("Switch to world map");
-    let Some(w) = &w.0 else { return };
+    let_some!(w = &w.0, return);
 
     let display = WorldMapDisplay::from_env(w, window.size());
     tracing::debug!("Set camera focus on World");
@@ -233,8 +231,6 @@ fn on_game_config_received(
     mut commands: Commands,
     network_state: Res<network::state::State>,
 ) {
-    let Some(identity) = &network_state.identity else {
-        return;
-    };
+    let_some!(identity = &network_state.identity, return);
     commands.trigger(ToServerEvent(ToServer::RequestInit(identity.clone())));
 }

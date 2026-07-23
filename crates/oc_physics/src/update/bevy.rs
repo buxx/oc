@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_mod::nature::Traversability;
 use oc_root::{Wcfg, y::Y as _};
-use oc_utils::bevy::EntityMapping;
+use oc_utils::{bevy::EntityMapping, let_ok, let_some};
 
 #[derive(Debug, Event)]
 pub struct SetPositionEvent<I>(pub I, pub [f32; 3], pub [f32; 3]); // new, before
@@ -85,12 +85,8 @@ fn on_set_position_event<I: Hash + Eq + Send + Sync + std::fmt::Debug + 'static>
     state: Res<EntityMapping<I>>,
     w: Res<Wcfg>,
 ) {
-    let Some(w) = &w.0 else {
-        return;
-    };
-    let Some(entity) = state.get(&event.0) else {
-        return;
-    };
+    let_some!(w = &w.0, return);
+    let_some!(entity = state.get(&event.0), return);
     let Ok((mut position_, mut transform)) = query.get_mut(*entity) else {
         return;
     };
@@ -107,12 +103,8 @@ fn on_set_tile_event<I: Hash + Eq + Send + Sync + 'static>(
     mut query: Query<&mut Tile>,
     state: Res<EntityMapping<I>>,
 ) {
-    let Some(entity) = state.get(&event.0) else {
-        return;
-    };
-    let Ok(mut component) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&event.0), return);
+    let_ok!(mut component = query.get_mut(*entity), return);
     // tracing::trace!(name="update-individual-tile", i=?tile.0, tile=?tile.1);
 
     component.0 = event.1;
@@ -123,12 +115,8 @@ fn on_set_region_event<I: Hash + Eq + Send + Sync + 'static>(
     mut query: Query<&mut Region>,
     state: Res<EntityMapping<I>>,
 ) {
-    let Some(entity) = state.get(&event.0) else {
-        return;
-    };
-    let Ok(mut component) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&event.0), return);
+    let_ok!(mut component = query.get_mut(*entity), return);
     // tracing::trace!(name="update-individual-region", i=?region.0, region=?region.1);
 
     component.0 = event.1;
@@ -139,12 +127,8 @@ fn on_push_force_event<I: Hash + Eq + Send + Sync + 'static>(
     mut query: Query<&mut Forces>,
     state: Res<EntityMapping<I>>,
 ) {
-    let Some(entity) = state.get(&event.0) else {
-        return;
-    };
-    let Ok(mut component) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&event.0), return);
+    let_ok!(mut component = query.get_mut(*entity), return);
     // tracing::trace!(name = "update-individual-force-push", i=?force.0, force=?force.1);
 
     component.0.push(event.1.clone());
@@ -155,12 +139,8 @@ fn on_remove_force_event<I: Hash + Eq + Send + Sync + 'static>(
     mut query: Query<&mut Forces>,
     state: Res<EntityMapping<I>>,
 ) {
-    let Some(entity) = state.get(&event.0) else {
-        return;
-    };
-    let Ok(mut component) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&event.0), return);
+    let_ok!(mut component = query.get_mut(*entity), return);
     // tracing::trace!(name = "update-individual-force-remove", i=?force.0, force=?force.1);
 
     component.0.retain(|f| f != &event.1);
@@ -171,12 +151,8 @@ fn on_set_volume<I: Hash + Eq + Send + Sync + 'static>(
     mut query: Query<&mut Volumes>,
     state: Res<EntityMapping<I>>,
 ) {
-    let Some(entity) = state.get(&event.0) else {
-        return;
-    };
-    let Ok(mut component) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&event.0), return);
+    let_ok!(mut component = query.get_mut(*entity), return);
     // tracing::trace!(name="update-individual-region", i=?region.0, region=?region.1);
 
     component.0 = event.1.clone();

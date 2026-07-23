@@ -7,6 +7,8 @@ use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Vo
 use oc_root::side::Side;
 use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
+use oc_utils::let_ok;
+use oc_utils::let_some;
 
 use crate::entity::individual::{Behavior, IndividualIndex, Intent, Orders};
 use crate::ingame;
@@ -87,22 +89,11 @@ fn positions(
     mut gizmos: Gizmos<PositionsGizmos>,
     world: Res<World>,
 ) {
-    let Some(g) = &g.0 else { return };
+    let_some!(g = &g.0, return);
+
     for (i, position) in individuals {
-        // FIXME BS NOW in function in world
-        let Some(squad) = world.individual_squad.get(&i.0) else {
-            continue;
-        };
-        let Some(region) = world.squads_refs.get(squad) else {
-            continue;
-        };
-        let Some(squad) = world
-            .squads
-            .get(&region)
-            .and_then(|squads| squads.get(squad))
-        else {
-            continue;
-        };
+        let_some!(squad = world.individual_squad(i.0), continue);
+
         let color = match squad.leader() == i.0 {
             true => Color::srgba(0.0, 1.0, 1.0, 0.5),
             false => Color::srgba(1.0, 0., 0., 0.5),
@@ -120,7 +111,7 @@ pub fn on_insert_individual(
     mut state: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
     animations: Res<SoldierAnimations>,
 ) {
-    let Some(g) = &g.0 else { return };
+    let_some!(g = &g.0, return);
     tracing::trace!(name="spawn-individual", i=?individual.0, position=?individual.1.position);
 
     let sprite = animations.sprite();
@@ -171,9 +162,7 @@ fn on_refresh_render(
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
     animations: Res<SoldierAnimations>,
 ) {
-    let Some(entity) = state.get(&individual.0) else {
-        return;
-    };
+    let_some!(entity = state.get(&individual.0), return);
     let Ok((status, gesture, mut animation, mut transform)) = query.get_mut(*entity) else {
         return;
     };
@@ -280,12 +269,8 @@ fn on_set_gesture_event(
     mut query: Query<&mut Gesture>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
 ) {
-    let Some(entity) = state.get(&gesture.0) else {
-        return;
-    };
-    let Ok(mut gesture_) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&gesture.0), return);
+    let_ok!(mut gesture_ = query.get_mut(*entity), return);
     tracing::trace!(name = "update-individual-gesture", i=?gesture.0, gesture=?gesture.1);
 
     gesture_.0 = gesture.1.clone();
@@ -296,12 +281,8 @@ fn on_set_intent_event(
     mut query: Query<&mut Intent>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
 ) {
-    let Some(entity) = state.get(&intent.0) else {
-        return;
-    };
-    let Ok(mut intent_) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&intent.0), return);
+    let_ok!(mut intent_ = query.get_mut(*entity), return);
     tracing::trace!(name = "update-individual-intent", i=?intent.0, intent=?intent.1);
 
     intent_.0 = intent.1.clone();
@@ -312,12 +293,8 @@ fn on_set_behavior_event(
     mut query: Query<&mut Behavior>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
 ) {
-    let Some(entity) = state.get(&behavior.0) else {
-        return;
-    };
-    let Ok(mut behavior_) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&behavior.0), return);
+    let_ok!(mut behavior_ = query.get_mut(*entity), return);
     tracing::trace!(name = "update-individual-behavior", i=?behavior.0, behavior=?behavior.1);
 
     behavior_.0 = behavior.1.clone();
@@ -328,12 +305,8 @@ fn on_move_step_accomplished_event(
     mut query: Query<&mut Intent>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
 ) {
-    let Some(entity) = state.get(&accomplished.0) else {
-        return;
-    };
-    let Ok(mut intent) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&accomplished.0), return);
+    let_ok!(mut intent = query.get_mut(*entity), return);
     tracing::trace!(name = "update-individual-move-step-accomplished", i=?accomplished.0);
 
     match &mut intent.0 {
@@ -352,12 +325,8 @@ fn on_accomplished_event(
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
     mut commands: Commands,
 ) {
-    let Some(entity) = state.get(&accomplished.0) else {
-        return;
-    };
-    let Ok(mut orders) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&accomplished.0), return);
+    let_ok!(mut orders = query.get_mut(*entity), return);
     tracing::trace!(name = "update-individual-accomplished", i=?accomplished.0);
 
     if !orders.0.is_empty() {
@@ -372,12 +341,8 @@ fn on_set_orders_event(
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
     mut commands: Commands,
 ) {
-    let Some(entity) = state.get(&orders.0) else {
-        return;
-    };
-    let Ok(mut orders_) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&orders.0), return);
+    let_ok!(mut orders_ = query.get_mut(*entity), return);
     tracing::trace!(name = "update-individual-set-orders", i=?orders.0, orders=?orders.1);
 
     orders_.0 = orders.1.clone();
@@ -391,12 +356,8 @@ fn on_set_forces_event(
     mut query: Query<&mut Forces>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
 ) {
-    let Some(entity) = state.get(&forces.0) else {
-        return;
-    };
-    let Ok(mut forces_) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&forces.0), return);
+    let_ok!(mut forces_ = query.get_mut(*entity), return);
     tracing::trace!(name = "update-individual-set-forces", i=?forces.0, forces=?forces.1);
 
     forces_.0 = forces.1.clone();
@@ -407,12 +368,8 @@ fn on_set_status_event(
     mut query: Query<&mut Status>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
 ) {
-    let Some(entity) = state.get(&status.0) else {
-        return;
-    };
-    let Ok(mut status_) = query.get_mut(*entity) else {
-        return;
-    };
+    let_some!(entity = state.get(&status.0), return);
+    let_ok!(mut status_ = query.get_mut(*entity), return);
     tracing::trace!(name = "update-individual-set-status", i=?status.0, status=?status.1);
 
     status_.0 = status.1;

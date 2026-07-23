@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_geo::tile::TileXy;
 use oc_root::WcfgFrom;
+use oc_utils::let_some;
 use rustc_hash::FxHashMap;
 
 use crate::ingame::behavior::RefreshSquadsOrdersEvent;
@@ -16,20 +17,14 @@ pub fn on_update_squad(
     mut world: ResMut<World>,
     mut commands: Commands,
 ) {
-    let Some(g) = &g.0 else { return };
+    let_some!(g = &g.0, return);
     let (i, update) = (event.0, &event.1);
-    let Some(region) = world.squads_refs.get(&i).cloned() else {
-        return;
-    };
+    let_some!(region = world.squads_refs.get(&i).cloned(), return);
 
     // Update can have modified region of squad
     let now_region = {
-        let Some(squads) = world.squads.get_mut(&region) else {
-            return;
-        };
-        let Some(squad) = squads.get_mut(&i) else {
-            return;
-        };
+        let_some!(squads = world.squads.get_mut(&region), return);
+        let_some!(squad = squads.get_mut(&i), return);
 
         match update {
             Update::SetOrders(orders) => {

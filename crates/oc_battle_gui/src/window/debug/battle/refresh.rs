@@ -5,6 +5,7 @@ use oc_geo::{region::RegionXy, tile::TileXy};
 use oc_physics::update::bevy::{Forces, Position, Region, Tile};
 use oc_root::y::Y;
 use oc_root::{Wcfg, WcfgInto};
+use oc_utils::let_some;
 
 use crate::world::World;
 use crate::{
@@ -43,7 +44,7 @@ pub fn on_refresh(
     camera_: Single<(&Camera, &GlobalTransform)>,
     world: Res<World>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let_some!(w = &w.0, return);
 
     #[allow(irrefutable_let_patterns)] // TODO: no more irrefutable when more windows
     if let Some(crate::window::Window::BattleDebug(window)) = &mut window.0 {

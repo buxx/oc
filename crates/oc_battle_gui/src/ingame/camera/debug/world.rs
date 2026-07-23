@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use oc_root::Wcfg;
+use oc_utils::let_some;
 
 use crate::ingame::{
     camera::map::{window_point_to_world_map_point, world_map_point_to_bevy_world_point},
@@ -16,7 +17,7 @@ pub fn setup(
     mut materials: ResMut<Assets<ColorMaterial>>,
     window: Single<&Window>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let_some!(w = &w.0, return);
     let display = WorldMapDisplay::from_env(w, window.size());
     commands.spawn((
         WorldCursor,
@@ -31,10 +32,8 @@ pub fn cursor(
     w: Res<Wcfg>,
     mut cursor: Single<&mut Transform, With<WorldCursor>>,
 ) {
-    let Some(w) = &w.0 else { return };
-    let Some(point) = window.cursor_position() else {
-        return;
-    };
+    let_some!(w = &w.0, return);
+    let_some!(point = window.cursor_position(), return);
 
     // We do the compute in way then in opposite way to test code
     let point = window_point_to_world_map_point(w, point, window.size());

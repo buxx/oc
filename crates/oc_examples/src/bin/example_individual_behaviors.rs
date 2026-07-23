@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
+#[cfg(feature = "debug")]
 use oc_battle_gui::ingame::camera::squad::ToggleShowFormationPositions;
 use oc_examples::{logging, tests::behavior};
 use oc_individual::order::Order;
@@ -112,10 +113,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             {
                 let args_ = args.clone();
                 Box::new(move |app| {
-                    app.insert_resource(Args_(args_.clone()))
-                        .add_systems(Startup, |mut commands: Commands| {
-                            commands.trigger(ToggleShowFormationPositions)
-                        });
+                    app.insert_resource(Args_(args_.clone()));
+
+                    #[cfg(feature = "debug")]
+                    app.add_systems(Startup, |mut commands: Commands| {
+                        commands.trigger(ToggleShowFormationPositions)
+                    });
                     #[cfg(feature = "test")]
                     app.add_systems(Update, end_when_success_or_timeout);
                 })

@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use oc_physics::fx::{Audio, Fx};
 use oc_root::files;
+use oc_utils::let_some;
 
 use crate::{network, states::GameConfig};
 
@@ -36,10 +37,9 @@ fn on_fx(
     g: Res<GameConfig>,
     network: Res<network::state::State>,
 ) {
-    let Some(g) = &g.0 else { return };
-    let Some(connect) = network.server.clone() else {
-        return;
-    };
+    let_some!(g = &g.0, return);
+    let_some!(connect = network.server.clone(), return);
+
     let mod_ = g.mod_.canonical();
     let world = g.meta.canonical();
     let files = files::Files::new(mod_, world).into_gui(g.static_.clone(), connect.into());

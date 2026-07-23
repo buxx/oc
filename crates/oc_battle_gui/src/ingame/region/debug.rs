@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_root::{Wcfg, WcfgInto};
+use oc_utils::let_some;
 
 use super::{ForgottenRegion, ListeningRegion};
 use crate::entity::world::region::RegionWireFrame;
@@ -28,7 +29,7 @@ pub fn on_spawn_region_wire_frame_debug(
     mut materials: ResMut<Assets<ColorMaterial>>,
     window: Single<&Window>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let_some!(w = &w.0, return);
 
     // Battle display
     let width = w.region_width as f32 * w.geo_pixels_per_tile as f32;
@@ -76,7 +77,7 @@ pub fn on_despawn_region_wire_frame_debug(
     w: Res<Wcfg>,
     query: Query<(Entity, &RegionWireFrame), With<RegionWireFrameDebug>>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let_some!(w = &w.0, return);
     let region: RegionXy = region.0.into_(w);
     for (entity, region_) in query {
         if region_.0 == region {

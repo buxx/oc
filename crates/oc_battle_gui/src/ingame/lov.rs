@@ -5,7 +5,7 @@ use oc_geo::tile::TileXy;
 #[cfg(feature = "debug")]
 use oc_mod::DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS;
 use oc_root::{Wcfg, WorldConfig, physics::Meters, y::Y};
-use oc_utils::d2::Xy;
+use oc_utils::{d2::Xy, let_ok, let_some};
 
 #[cfg(feature = "debug")]
 use crate::ingame::input::left_click::{LeftClick, LeftClickMode};
@@ -87,10 +87,8 @@ fn setup(mut config: ResMut<GizmoConfigStore>) {
 
 fn on_spawn_lov(spawn: On<SpawnLov>, w: Res<Wcfg>, mut commands: Commands, world: Res<World>) {
     tracing::trace!(name = "lov-spawn", spawn=?spawn);
-    let Some(w) = &w.0 else { return };
-    let Some(tile) = world.tile_at(w, &spawn.start.to_gui_y(w)) else {
-        return;
-    };
+    let_some!(w = &w.0, return);
+    let_some!(tile = world.tile_at(w, &spawn.start.to_gui_y(w)), return);
     let z = tile.z_pixels(w) + spawn.start_pluz_z.0 * w.geo_pixels_per_meters;
     let start = spawn.start.extend(z);
 
@@ -115,12 +113,9 @@ fn update_lov(
         return;
     }
     let (camera, transform) = *camera;
-    let Some(cursor) = window.cursor_position() else {
-        return;
-    };
-    let Ok(position) = camera.viewport_to_world_2d(transform, cursor) else {
-        return;
-    };
+    let_some!(cursor = window.cursor_position(), return);
+    let point = camera.viewport_to_world_2d(transform, cursor);
+    let_ok!(position = point, return);
 
     for lov in lovs {
         tracing::trace!(name="update-lov-trigger-for", lov=?lov, position=?position);
@@ -143,23 +138,16 @@ fn on_update_lov_for(
     world: Res<World>,
 ) {
     tracing::trace!(name = "on-update-lov-for-try");
-    let Some(g) = &g.0 else {
-        tracing::trace!(name = "on-update-lov-for-no-w");
-        return;
-    };
+    let_some!(g = &g.0, return);
     let (lov, position) = (update.0, update.1);
-    let Ok(mut lov) = lovs.get_mut(lov) else {
-        tracing::trace!(name = "on-update-lov-for-no-entity");
-        return;
-    };
+    let_ok!(mut lov = lovs.get_mut(lov), return);
 
     let start = lov.start;
     let start_ = [start.x, start.y.to_gui_y(&g.w), start.z];
-    let Some(stop_tile) = world.tile_at(&g.w, &position.to_gui_y(&g.w)) else {
-        tracing::trace!(name = "on-update-lov-for-no-tile", position=?position.to_gui_y(&g.w));
-        return;
-    };
+    let stop_tile = world.tile_at(&g.w, &position.to_gui_y(&g.w));
+    let_some!(stop_tile = stop_tile, return);
     tracing::trace!(name = "on-update-lov-for");
+
     let stop = position.extend(stop_tile.z_pixels(&g.w) + lov.stop_plus_z.pixels(&g.w));
     let end_ = [stop.x, stop.y.to_gui_y(&g.w), stop.z];
     let at = |xy, z| path_objects_at(&g.w, &g.mod_, &world, xy, z);

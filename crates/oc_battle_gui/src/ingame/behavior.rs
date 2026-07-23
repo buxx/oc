@@ -2,13 +2,15 @@ use bevy::prelude::*;
 use oc_individual::order::Order;
 use oc_physics::update::bevy::Position;
 use oc_root::y::Y;
-use oc_utils::d2;
+use oc_utils::{d2, let_some};
 use rustc_hash::FxHashMap;
+
+#[cfg(feature = "debug")]
+use crate::ingame::camera::squad::ShowFormationPositions;
 
 use crate::{
     entity::individual::{IndividualIndex, Intent},
     ingame::{
-        camera::squad::ShowFormationPositions,
         draw,
         region::{ForgottenRegion, ListeningRegion},
     },
@@ -17,6 +19,7 @@ use crate::{
 };
 
 const PATH_COLOR: Color = Color::srgba(1.0, 1.0, 1.0, 0.15);
+#[cfg(feature = "debug")]
 const PATH_COLOR_DEBUG: Color = Color::srgba(1.0, 1.0, 1.0, 1.0);
 
 pub struct BehaviorPlugin;
@@ -153,14 +156,17 @@ fn draw_paths(
     g: Res<GameConfig>,
     intents: Query<(&Intent, &Position), With<IndividualIndex>>,
     mut gizmos: Gizmos<PathGizmos>,
-    debug: Res<ShowFormationPositions>,
+    #[cfg(feature = "debug")] debug: Res<ShowFormationPositions>,
 ) {
-    let Some(g) = &g.0 else {
-        return;
-    };
-    let color = match debug.0 {
-        true => PATH_COLOR_DEBUG,
-        false => PATH_COLOR,
+    let_some!(g = &g.0, return);
+    #[cfg(not(feature = "debug"))]
+    let color = PATH_COLOR;
+    #[cfg(feature = "debug")]
+    let color = {
+        match debug.0 {
+            true => PATH_COLOR_DEBUG,
+            false => PATH_COLOR,
+        }
     };
 
     for (intent, position) in intents {
@@ -249,9 +255,7 @@ fn on_spawn_individual_order(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
 ) {
-    let Some(g) = &g.0 else {
-        return;
-    };
+    let_some!(g = &g.0, return);
     let image = asset_server.load("ui/ui.png");
     let (rect, position) = match &event.1 {
         Order::Idle => (Some(Rect::new(0., 0., 0., 0.)), d2::Position::new(0., 0.)), // Should not happen
@@ -329,9 +333,7 @@ fn on_spawn_squad_order(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
 ) {
-    let Some(g) = &g.0 else {
-        return;
-    };
+    let_some!(g = &g.0, return);
     let image = asset_server.load("ui/ui.png");
     let (rect, position) = match &event.1 {
         Order::Idle => (Some(Rect::new(0., 0., 0., 0.)), d2::Position::new(0., 0.)), // Should not happen
@@ -379,7 +381,6 @@ fn on_despawn_squad_order(
     }
 }
 
-// FIXME BS NOW
 fn on_despawn_squad_orders(
     event: On<DespawnSquadOrders>,
     mut orders: ResMut<SquadOrders>,

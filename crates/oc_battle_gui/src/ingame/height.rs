@@ -12,6 +12,7 @@ use oc_physics::volume::Volume;
 use oc_root::y::Y;
 use oc_root::{Wcfg, WcfgFrom, WcfgInto, WorldConfig};
 use oc_utils::d2::Xy;
+use oc_utils::{let_ok, let_some};
 
 use crate::states::{AppState, GameConfig, InGameState};
 use crate::world::World;
@@ -57,9 +58,7 @@ fn rotate_camera_by_mouse(
     mut mouse_motion: MessageReader<MouseMotion>,
     mut query: Query<&mut Transform, With<Camera3d>>,
 ) {
-    let Ok(mut transform) = query.single_mut() else {
-        return;
-    };
+    let_ok!(mut transform = query.single_mut(), return);
 
     if mouse_buttons.pressed(MouseButton::Left) {
         for event in mouse_motion.read() {
@@ -128,9 +127,7 @@ fn move_camera_by_keyboard(
     keys: Res<ButtonInput<KeyCode>>,
     mut query: Query<&mut Transform, With<Camera3d>>,
 ) {
-    let Ok(mut transform) = query.single_mut() else {
-        return;
-    };
+    let_ok!(mut transform = query.single_mut(), return);
 
     let mut direction = Vec3::ZERO;
 
@@ -168,7 +165,7 @@ fn on_spawn(
     mut commands: Commands,
 ) {
     tracing::debug!("Spawn height map");
-    let Some(g) = &g.0 else { return };
+    let_some!(g = &g.0, return);
     let center = center.0;
     tracing::trace!(name="ingame-height-on-spawn-center", center=?center);
 
@@ -378,10 +375,8 @@ fn update_cursor_world_pos(
     w: Res<Wcfg>,
     world: Res<World>,
 ) {
-    let Ok(window) = windows.single() else { return };
-    let Ok((camera, cam_transform)) = cameras.single() else {
-        return;
-    };
+    let_ok!(window = windows.single(), return);
+    let_ok!((camera, cam_transform) = cameras.single(), return);
 
     let Some(cursor_px) = window.cursor_position() else {
         cursor_pos.0 = None;

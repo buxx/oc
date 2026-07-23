@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use oc_root::{Wcfg, files};
+use oc_utils::let_some;
 
 use crate::{
     entity::world::{VisibleBattleSquare, WorldMapBackground, minimap::Minimap},
@@ -38,14 +39,13 @@ pub fn on_spawn_minimap(
     g: Res<GameConfig>,
     network: Res<network::state::State>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let_some!(w = &w.0, return);
     let (Some(g), Some(connect)) = (&g.0, &network.server) else {
         return;
     };
     // let Some(mod_) = &mod_.0 else { return };
     // let Some(meta) = &meta.0 else { return };
-    // let Some(connect) = network.server.clone() else {
-    //     return;
+    // let_some!(connect = network.server.clone(),      return);
     // };
 
     let display = WorldMapDisplay::from_env(w, window.size());
@@ -75,7 +75,7 @@ pub fn on_adjust_minimap(
     mut minimap: Single<&mut Transform, With<Minimap>>,
     window: Single<&Window>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let_some!(w = &w.0, return);
     tracing::debug!("Adjust world minimap");
     let display = WorldMapDisplay::from_env(w, window.size());
     let x = display.center.x;
@@ -97,7 +97,7 @@ pub fn on_spawn_visible_battle_square(
     mut materials: ResMut<Assets<ColorMaterial>>,
     window: Single<&Window>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let_some!(w = &w.0, return);
     let display = WorldMapDisplay::from_env(w, window.size());
 
     commands.spawn((
@@ -116,7 +116,7 @@ pub fn on_spawn_world_map_background(
     mut materials: ResMut<Assets<ColorMaterial>>,
     window: Single<&Window>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let_some!(w = &w.0, return);
     let display = WorldMapDisplay::from_env(w, window.size());
 
     commands.spawn((
@@ -142,7 +142,7 @@ pub fn on_update_battle_square(
     square: Single<(&mut Transform, &mut Mesh2d), With<VisibleBattleSquare>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let Some(w) = &w.0 else { return };
+    let_some!(w = &w.0, return);
     let (mut transform, mut mesh) = square.into_inner();
     let display = WorldMapDisplay::from_env(w, window.size());
     let point = world_map_point_to_bevy_world_point(w, center.0, window.size());

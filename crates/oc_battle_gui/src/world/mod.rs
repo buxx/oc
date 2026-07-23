@@ -12,6 +12,7 @@ use oc_root::{WcfgFrom, WcfgInto, WorldConfig};
 #[cfg(feature = "debug")]
 use oc_root::{physics::Meters, y::Y};
 use oc_utils::d2::Xy;
+use oc_utils::let_some;
 use oc_world::tile::Tile;
 use rustc_hash::FxHashMap;
 
@@ -216,16 +217,23 @@ impl World {
         p: &Vec2,
         plus_z: Meters,
     ) -> Option<[f32; 3]> {
-        use oc_root::WcfgFrom;
-
         let p = (p.x, p.y.to_world_y(w));
         let tile = TileXy::from_(p, w);
-        let Some(tile) = self.tile(w, tile) else {
-            return None;
-        };
+        let_some!(tile = self.tile(w, tile), return None);
         let z = (tile.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters) + plus_z.pixels(w);
         let p = [p.0, p.1, z];
         Some(p)
+    }
+
+    // TODO: remove cfg feature when used in no"debug" code
+    #[cfg(feature = "debug")]
+    pub fn individual_squad(&self, i: IndividualIndex) -> Option<&Squad> {
+        self.individual_squad.get(&i).and_then(|squad| {
+            self.squads_refs
+                .get(squad)
+                .and_then(|region| self.squads.get(region))
+                .and_then(|squads| squads.get(squad))
+        })
     }
 }
 
@@ -235,7 +243,7 @@ fn on_world_resume(
     mut world: ResMut<World>,
     mut commands: Commands,
 ) {
-    let Some(g) = &g.0 else { return };
+    let_some!(g = &g.0, return);
 
     for (i, squad) in &event.0.squads {
         let position = squad.position;

@@ -50,8 +50,77 @@ example-stress-gui-projectiles:
 example-stress-server-projectiles:
     cargo run --bin example_stress_projectiles_server --features perfs --release
 
+[working-directory: 'crates/oc_battle_gui']
+test-battle_gui:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/oc_geo']
+test-geo:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/oc_individual']
+test-individual:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/oc_lov']
+test-lov:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/oc_mod']
+test-mod:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/oc_network']
+test-network:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/oc_physics']
+test-physics:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/oc_projectile']
+test-projectile:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/oc_root']
+test-root:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/oc_utils']
+test-utils:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/oc_world']
+test-world:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/oc_world_generator']
+test-world_generator:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/oc_world_server']
+test-world_server:
+    cargo nextest run --no-tests=pass
+
+[working-directory: 'crates/tests']
+test-tests:
+    cargo nextest run --no-tests=pass
+
 test:
-    cargo nextest run
+    just test-battle_gui
+    just test-geo
+    just test-individual
+    just test-lov
+    just test-mod
+    just test-network
+    just test-physics
+    just test-projectile
+    just test-root
+    just test-utils
+    just test-world
+    just test-world_generator
+    just test-world_server
+    just test-tests
 
 test-e2e:
     just test-projectiles-obstacles-one-wall
