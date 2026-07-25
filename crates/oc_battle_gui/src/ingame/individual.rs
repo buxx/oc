@@ -346,7 +346,6 @@ fn on_set_orders_event(
     tracing::trace!(name = "update-individual-set-orders", i=?orders.0, orders=?orders.1);
 
     orders_.0 = orders.1.clone();
-    // FIXME BS NOW: on voit la trace toute les secondes ! (manque if != qqpart)
     tracing::trace!(name = "ingame-behavior-on-set-individual-orders-trigger-refresh-orders", i=?orders.0, events=?orders);
     commands.trigger(RefreshIndividualOrdersEvent(orders.0, orders.1.clone()))
 }

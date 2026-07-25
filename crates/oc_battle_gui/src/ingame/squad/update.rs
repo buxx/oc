@@ -15,22 +15,42 @@ pub fn on_update_squad(
     event: On<UpdateSquadEvent>,
     g: Res<GameConfig>,
     mut world: ResMut<World>,
-    mut commands: Commands,
+    commands: Commands,
 ) {
     let_some!(g = &g.0, return);
     let (i, update) = (event.0, &event.1);
     let_some!(region = world.squads_refs.get(&i).cloned(), return);
 
+    for event in update_squad(g, &mut world, i, region, update) {
+        commands.trigger(event);
+    }
+}
+
+enum UpdateSquadEffect {
+    RefreshSquadsOrders(RefreshSquadsOrdersEvent),
+}
+
+fn update_squad(
+    g: &oc_network::GameConfig,
+    world: &mut World,
+    i: oc_individual::squad::SquadIndex,
+    region: WorldRegionIndex,
+    update: &Update,
+) -> Vec<UpdateSquadEffect> {
     // Update can have modified region of squad
-    let now_region = {
+    let (new_region, events) = {
         let_some!(squads = world.squads.get_mut(&region), return);
         let_some!(squad = squads.get_mut(&i), return);
 
         match update {
             Update::SetOrders(orders) => {
                 squad.orders = orders.clone();
-                commands.trigger(RefreshSquadsOrdersEvent(i, orders.clone()));
-                None
+                (
+                    None,
+                    vec![UpdateSquadEffect::RefreshSquadsOrders(
+                        RefreshSquadsOrdersEvent(i, orders.clone()),
+                    )],
+                )
             }
             Update::SetPosition(position) => {
                 let now_tile = TileXy::from_(*position, &g.w);
@@ -40,21 +60,21 @@ pub fn on_update_squad(
                 squad.position = *position;
 
                 if now_region != region {
-                    Some(now_region)
+                    (Some(now_region), vec![])
                 } else {
-                    None
+                    (None, vec![])
                 }
             }
             Update::SetActives(actives) => {
                 squad.actives = *actives;
-                None
+                (None, vec![])
             }
-            Update::Accomplished => None,
+            Update::Accomplished => (None, vec![]),
         }
     };
 
     // If squad now in new region
-    if let Some(now_region) = now_region {
+    if let Some(now_region) = new_region {
         // Remove squad from ol region
         if let Some(squads) = world.squads.get_mut(&region) {
             if let Some(squad) = squads.remove(&i) {
@@ -69,4 +89,6 @@ pub fn on_update_squad(
 
         world.squads_refs.insert(i, now_region);
     }
+
+    events
 }
