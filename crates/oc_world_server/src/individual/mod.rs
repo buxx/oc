@@ -334,7 +334,7 @@ mod tests {
     use oc_world::World;
 
     use crate::{index::Indexes, individual::Processor, runner::update::Update};
-    use tests::{individual::TestIndividual, squad::TestSquadBuilder, world::TestWorld};
+    use tests::{individual::TestIndividual, squad::TestSquad, world::TestWorld};
 
     // Test orders distribution when squad own move to order
     #[test]
@@ -517,7 +517,7 @@ mod tests {
             .intent(Intent::Idle(Direction::EST));
         let individual2 = individual2.build().make(&w);
 
-        let squad = TestSquadBuilder::builder();
+        let squad = TestSquad::builder();
         let squad = squad.position(squad_position);
         let squad = squad.members(vec![0.into(), 1.into()]);
         let squad = squad.orders(squad_orders);
@@ -542,7 +542,7 @@ mod tests {
             .intent(Intent::Idle(Direction::EST));
         let individual = individual.build().make(&w);
 
-        let squad = TestSquadBuilder::builder();
+        let squad = TestSquad::builder();
         let squad = squad.position(Vec2::new(position.x, position.y));
         let squad = squad.members(vec![0.into()]);
         let squad = squad.orders(orders);

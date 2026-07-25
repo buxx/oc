@@ -8,7 +8,7 @@ use oc_individual::{
 use oc_root::side::Side;
 
 #[derive(Debug, Builder)]
-pub struct TestSquadBuilder {
+pub struct TestSquad {
     #[builder(default = Side::A)]
     side: Side,
     members: Vec<IndividualIndex>,
@@ -20,7 +20,7 @@ pub struct TestSquadBuilder {
     orders: Vec<Order>,
 }
 
-impl TestSquadBuilder {
+impl TestSquad {
     pub fn make(self) -> Squad {
         Squad {
             side: self.side,

@@ -39,7 +39,7 @@ pub struct RefreshIndividualOrdersEvent(
     pub Vec<oc_individual::order::Order>,
 );
 
-#[derive(Debug, Event)]
+#[derive(Debug, Event, PartialEq)]
 pub struct RefreshSquadsOrdersEvent(
     pub oc_individual::squad::SquadIndex,
     pub Vec<oc_individual::order::Order>,

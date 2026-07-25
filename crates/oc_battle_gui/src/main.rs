@@ -28,6 +28,9 @@ mod utils;
 mod window;
 mod world;
 
+#[cfg(test)]
+pub mod tests;
+
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct Args {

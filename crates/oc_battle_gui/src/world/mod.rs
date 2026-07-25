@@ -61,12 +61,12 @@ impl<K: std::fmt::Debug, V: std::fmt::Debug> Default for Index<K, V> {
 #[derive(Resource, Default)]
 pub struct World {
     pub individuals: Index<WorldTileIndex, Vec<(IndividualIndex, Individual)>>,
-    pub individuals_refs: FxHashMap<IndividualIndex, (WorldRegionIndex, WorldTileIndex)>,
+    pub individuals_refs: FxHashMap<IndividualIndex, (WorldRegionIndex, WorldTileIndex)>, // TODO: remove pub and ensure x_ref
     pub tiles: Index<WorldTileIndex, Tile>,
     pub heights: Index<WorldHeightIndex, u8>,
     pub terrain: Option<oc_world::terrain::Terrain>,
     pub squads: Index<SquadIndex, Squad>,
-    pub squads_refs: FxHashMap<SquadIndex, WorldRegionIndex>,
+    pub squads_refs: FxHashMap<SquadIndex, WorldRegionIndex>, // TODO: remove pub and ensure x_ref
     pub individual_squad: FxHashMap<IndividualIndex, SquadIndex>,
 }
 

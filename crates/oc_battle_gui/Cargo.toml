@@ -5,7 +5,6 @@ edition = "2024"
 
 [features]
 debug = ["bevy/bevy_dev_tools", "oc_network/debug"]
-test = []
 
 [dependencies]
 oc_root = { path = "../oc_root", features = ["bevy"] }
@@ -43,3 +42,6 @@ glam.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
+
+[dev-dependencies]
+tests = { path = "../tests" }
