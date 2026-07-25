@@ -26,7 +26,8 @@ type Track = Box<dyn Fn(Tracker)>;
 #[cfg(not(feature = "test"))]
 type Track = ();
 
-const MEMBER_COUNT: usize = 2;
+const MEMBER_COUNT: usize = 1;
+const DIRECTION: Direction = Direction::SOUTH;
 
 #[builder]
 pub fn run(
@@ -82,7 +83,7 @@ fn individuals(
                 w,
                 V::Server,
                 (*position).into(),
-                Direction::new(0.5, 0.5).angle(), // FIXME BS NOW
+                DIRECTION.angle(),
                 MEMBER_COUNT,
             );
             // dbg!(&positions);
@@ -100,7 +101,7 @@ fn individuals(
                 let position = [position[0], position[1], z];
 
                 oc_individual::Individual::fresh(Side::A, position, tile_i, WorldRegionIndex(0))
-                    .with_gesture(Gesture::Idle(Direction::new(0.5, 0.5))) // FIXME BS NOW
+                    .with_gesture(Gesture::Idle(DIRECTION))
             })
         })
         .flatten()

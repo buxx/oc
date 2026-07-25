@@ -50,6 +50,7 @@ impl<'a> Processor<'a> {
         tracing::trace!(
             name = "individual-step-with",
             i = ?self.i,
+            individual = ?individual,
             distribute = ?distribute,
             intent = ?intent,
             behavior = ?behavior,
@@ -326,6 +327,7 @@ mod tests {
         Gesture, IndividualIndex,
         behavior::{Behavior, Intent},
         order::Order,
+        squad::SquadIndex,
     };
     use oc_root::{WorldConfig, physics::Meters};
     use oc_utils::d2::{Direction, Position};
@@ -351,7 +353,7 @@ mod tests {
         let expected_individual_1_move_to_position = Position::new(150., 100.);
         let expected_individual_2_move_to_position = Position::new(100., 110.);
 
-        let world = world(
+        let world = two_individuals_world(
             w,
             individual_1_position,
             individual_2_position,
@@ -362,11 +364,11 @@ mod tests {
         let processor = Processor::new(&world, &index, 0.into());
 
         // When
-        let orders = processor.step();
+        let updates = processor.step();
 
         // Then
         assert_eq!(
-            orders,
+            updates,
             vec![
                 Update::UpdateIndividual(
                     IndividualIndex(0),
@@ -398,7 +400,7 @@ mod tests {
         // expected
         let expected_individual_2_move_to_position = Position::new(100., 110.);
 
-        let world = world(
+        let world = two_individuals_world(
             w,
             individual_1_position,
             individual_2_position,
@@ -409,11 +411,11 @@ mod tests {
         let processor = Processor::new(&world, &index, 0.into());
 
         // When
-        let orders = processor.step();
+        let updates = processor.step();
 
         // Then
         assert_eq!(
-            orders,
+            updates,
             vec![Update::UpdateIndividual(
                 IndividualIndex(1),
                 oc_individual::Update::SetOrders(vec![Order::MoveTo(
@@ -423,9 +425,77 @@ mod tests {
         );
     }
 
+    // Test update when individual have no order
+    #[test]
+    fn test_idle() {
+        // Given
+        let w = WorldConfig::new(100, 100, Meters(0.1))
+            .formation_tiles_between_positions(2)
+            .geo_pixels_per_tile(5);
+        // test parameters (assume individual are all Idle in EST direction)
+        let position = Vec3::new(100., 100., 0.);
+
+        let world = one_individual_world(w, position, vec![]);
+        let index = Indexes::new(&world);
+        let processor = Processor::new(&world, &index, 0.into());
+
+        // When
+        let updates = processor.step();
+
+        // Then
+        assert_eq!(updates, vec![]);
+    }
+
+    // Test update when individual have idle order in other direction than current
+    #[test]
+    fn test_idle_order() {
+        // Given
+        let w = WorldConfig::new(100, 100, Meters(0.1))
+            .formation_tiles_between_positions(2)
+            .geo_pixels_per_tile(5);
+        // test parameters (assume individual are all Idle in EST direction)
+        let position = Vec3::new(100., 100., 0.);
+
+        let mut world = one_individual_world(w, position, vec![Order::Idle]);
+        let index = Indexes::new(&world);
+
+        // When-Then
+        {
+            let processor = Processor::new(&world, &index, 0.into());
+            let updates = processor.step();
+            assert_eq!(
+                updates,
+                vec![Update::UpdateIndividual(
+                    IndividualIndex(0),
+                    oc_individual::Update::SetOrders(vec![Order::Idle])
+                )]
+            );
+        }
+
+        // When-Then
+        world.individuals[0].orders = vec![Order::Idle];
+        let processor = Processor::new(&world, &index, 0.into());
+        let updates = processor.step();
+        assert_eq!(
+            updates,
+            vec![
+                Update::UpdateIndividual(IndividualIndex(0), oc_individual::Update::Accomplished),
+                Update::UpdateIndividual(
+                    IndividualIndex(0),
+                    oc_individual::Update::SetIntent(Intent::Idle(Direction::EST))
+                ),
+                Update::UpdateSquad(SquadIndex(0), oc_individual::squad::Update::Accomplished),
+                Update::UpdateSquad(
+                    SquadIndex(0),
+                    oc_individual::squad::Update::SetOrders(vec![])
+                ),
+            ]
+        );
+    }
+
     // Refactored function which generate a world with one squad composed of two members.
     // Both individuals Idle in EST direction.
-    fn world(
+    fn two_individuals_world(
         w: WorldConfig,
         individual_1_position: Vec3,
         individual_2_position: Vec3,
@@ -455,6 +525,31 @@ mod tests {
 
         let world = TestWorld::builder();
         let world = world.individuals(vec![individual1, individual2]);
+        let world = world.squads(vec![squad]);
+        let world = world.build().make(&w);
+
+        world
+    }
+
+    // Refactored function which generate a world with one squad composed of one member.
+    // Individuals Idle in EST direction.
+    fn one_individual_world(w: WorldConfig, position: Vec3, orders: Vec<Order>) -> World {
+        let individual = TestIndividual::builder();
+        let individual = individual.position(position);
+        let individual = individual
+            .gesture(Gesture::Idle(Direction::EST)) // Gesture & Behavior & Intent are important
+            .behavior(Behavior::Idle(Direction::EST)) // to conditionate the .step() response
+            .intent(Intent::Idle(Direction::EST));
+        let individual = individual.build().make(&w);
+
+        let squad = TestSquadBuilder::builder();
+        let squad = squad.position(Vec2::new(position.x, position.y));
+        let squad = squad.members(vec![0.into()]);
+        let squad = squad.orders(orders);
+        let squad = squad.build().make();
+
+        let world = TestWorld::builder();
+        let world = world.individuals(vec![individual]);
         let world = world.squads(vec![squad]);
         let world = world.build().make(&w);
 
