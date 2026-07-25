@@ -46,6 +46,8 @@ fn update_squad(
     region: WorldRegionIndex,
     update: &Update,
 ) -> Vec<UpdateSquadEffect> {
+    tracing::trace!(name = "ingame-squad-update", i=?i, update=?update);
+
     // Update can have modified region of squad
     let (new_region, events) = {
         let_some!(squads = world.squads.get_mut(&region), return vec![]);

@@ -39,14 +39,12 @@ pub struct Squad {
     pub side: Side,
     /// Individual identifiers in this squad. Integrity must be checked before game run
     pub members: Vec<IndividualIndex>,
-    /// FIXME BS NOW: must be computed regurarly
     /// Number of alive members
     pub actives: u8,
     /// Formation of squad (to place members)
     pub formation: SquadFormation,
     /// Order given to this squad.
     pub orders: Vec<Order>,
-    /// FIXME BS NOW: must be computed regurarly
     /// Computed position of the squad (leader position)
     pub position: [f32; 2],
 }

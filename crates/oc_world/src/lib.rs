@@ -87,6 +87,10 @@ impl World {
         &mut self.individuals[i.0 as usize]
     }
 
+    pub fn squads(&self) -> &[Squad] {
+        &self.squads
+    }
+
     pub fn squad(&self, i: SquadIndex) -> &Squad {
         &self.squads[i.0 as usize]
     }

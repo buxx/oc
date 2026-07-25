@@ -7,6 +7,8 @@ use std::sync::{
 pub struct Perf {
     pub individual_ticks: AtomicU64,
     pub individual_percents: Mutex<Vec<f32>>,
+    pub squad_ticks: AtomicU64,
+    pub squad_percents: Mutex<Vec<f32>>,
     pub physic_ticks: AtomicU64,
     pub physic_percents: Mutex<Vec<f32>>,
 }
@@ -24,6 +26,19 @@ impl Perf {
 
     pub fn set_individual_percent(&self, i: usize, value: f32) {
         self.individual_percents.lock().expect("Assume available")[i] = value;
+    }
+
+    pub fn squads_ticks(&self) -> u64 {
+        self.squad_ticks.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub fn increment_squad(&self) {
+        self.squad_ticks
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub fn set_squad_percent(&self, i: usize, value: f32) {
+        self.squad_percents.lock().expect("Assume available")[i] = value;
     }
 
     pub fn physics_ticks(&self) -> u64 {

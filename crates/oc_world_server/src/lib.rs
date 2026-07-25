@@ -10,6 +10,7 @@ pub mod projectile;
 pub mod routing;
 pub mod runner;
 pub mod schedule;
+pub mod squad;
 pub mod state;
 pub mod static_;
 #[cfg(feature = "tracker")]

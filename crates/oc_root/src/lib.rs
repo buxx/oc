@@ -33,6 +33,7 @@ pub struct WorldConfig {
     pub region_width_pixels: u64,
     pub region_height_pixels: u64,
     pub individual_tick_interval_us: u64,
+    pub squad_tick_interval_us: u64,
     pub physics_tick_per_seconds: u64,
     pub physics_tick_interval_us: u64,
     pub physics_coeff_per_tick: f32,
@@ -52,6 +53,7 @@ impl WorldConfig {
         let region_width = 1000.min(world_width);
         let region_height = 1000.min(world_height);
         let individual_tick_interval_us: u64 = 1_000_000 / 1;
+        let squad_tick_interval_us: u64 = (1_000_000 as f32 / 0.5) as u64;
         // FIXME: delta is computed statically here (physics_coeff_per_tick) but maybe should
         // be computed from real eslapsec time between physics iterations
         let physics_tick_per_seconds: u64 = 10;
@@ -90,6 +92,7 @@ impl WorldConfig {
             region_width_pixels,
             region_height_pixels,
             individual_tick_interval_us,
+            squad_tick_interval_us,
             physics_tick_per_seconds,
             physics_tick_interval_us,
             physics_coeff_per_tick,

@@ -12,7 +12,6 @@ use oc_world::World;
 
 use crate::{index::Indexes, runner};
 
-pub mod physics;
 pub mod update;
 
 const POSITION_TOLERANCE: f32 = 3.0;

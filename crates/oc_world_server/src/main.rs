@@ -26,6 +26,7 @@ mod projectile;
 mod routing;
 mod runner;
 mod schedule;
+mod squad;
 mod state;
 mod static_;
 #[cfg(feature = "tracker")]

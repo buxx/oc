@@ -7,7 +7,7 @@ use std::{
 };
 
 use derive_more::Constructor;
-use oc_individual::IndividualIndex;
+use oc_individual::{IndividualIndex, squad::SquadIndex};
 use oc_network::{GameConfig, ToClient};
 use oc_root::Client;
 use rayon::{
@@ -18,8 +18,8 @@ use rayon::{
 #[cfg(feature = "tracker")]
 use crate::tracker::Tracker;
 use crate::{
-    bridge::Event, config::ServerConfig, individual, physics, runner::input::Dealer, state::State,
-    utils::context::Context,
+    bridge::Event, config::ServerConfig, individual, physics, runner::input::Dealer, squad,
+    state::State, utils::context::Context,
 };
 
 pub mod input;
@@ -44,6 +44,7 @@ impl<E: Client> Runner<E> {
         self.listen_input(input);
         self.start_physics();
         self.start_individuals();
+        self.start_squads();
         self.start_scheduler();
 
         let _ = ready.send(Ok(()));
@@ -169,6 +170,77 @@ impl<E: Client> Runner<E> {
 
                             #[cfg(feature = "perfs")]
                             ctx.state.perf.increment_individual();
+                        }
+                    }
+                });
+            });
+    }
+
+    fn start_squads(&self) {
+        tracing::debug!("Start squads");
+
+        let ctx = Context::new(
+            self.state.clone(),
+            self.output.clone(),
+            #[cfg(feature = "tracker")]
+            self.tracker.clone(),
+        );
+        let squads_count = {
+            let world = self.state.world();
+            world.squads().len()
+        };
+        let size = (squads_count as f32 / ctx.cpus as f32).ceil() as usize;
+        if size == 0 {
+            return;
+        }
+
+        #[cfg(feature = "perfs")]
+        {
+            *ctx.state
+                .perf
+                .squads_percents
+                .lock()
+                .expect("Assume available") = vec![0.; ctx.cpus];
+        }
+        let interval = ctx.state.w.squad_tick_interval_us;
+
+        (0..squads_count)
+            .collect::<Vec<usize>>()
+            .par_chunks(size)
+            .enumerate()
+            .for_each(|(_i, indexes)| {
+                let indexes = indexes.to_vec();
+                let ctx = ctx.clone();
+
+                std::thread::spawn(move || {
+                    let mut last = Instant::now();
+
+                    loop {
+                        let elapsed = last.elapsed().as_micros() as u64;
+                        let wait = interval - elapsed.min(interval);
+                        #[cfg(feature = "perfs")]
+                        {
+                            let percent = wait as f32 / interval as f32;
+                            ctx.state.perf.set_squad_percent(_i, 1. - percent);
+                        }
+
+                        std::thread::sleep(Duration::from_micros(wait));
+                        last = Instant::now();
+
+                        for i in &indexes {
+                            let i = SquadIndex(*i as u64);
+                            tracing::trace!(name = "runner-squad", i = ?i);
+
+                            for update in {
+                                let world = &ctx.state.world();
+                                let indexes = &ctx.state.indexes();
+                                squad::Processor::new(world, indexes, i).step()
+                            } {
+                                update::update(&ctx, update);
+                            }
+
+                            #[cfg(feature = "perfs")]
+                            ctx.state.perf.squad_individual();
                         }
                     }
                 });
