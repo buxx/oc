@@ -39,10 +39,7 @@ pub struct WorldConfig {
     pub physics_coeff_per_tick: f32,
     pub geo_pixels_per_meters: f32,
     pub geo_pixels_per_tile: u64,
-    pub geo_bresenham_precision: f32,
-    pub geo_bresenham_step: u64,
     pub geo_meters_per_z: Meters,
-    pub geo_lov_step: u64,
     pub minimap_width_pixels: u64,
     pub minimap_height_pixels: u64,
     pub formation_tiles_between_positions: u64,
@@ -61,9 +58,6 @@ impl WorldConfig {
         let physics_coeff_per_tick: f32 = 1. / physics_tick_per_seconds as f32;
         let geo_pixels_per_meters: f32 = 5.;
         let geo_pixels_per_tile: u64 = geo_pixels_per_meters as u64;
-        let geo_bresenham_precision: f32 = 100.;
-        let geo_bresenham_step: u64 = 250;
-        let geo_lov_step: u64 = 0; // TODO: don't work if not 0 (pointillés)
 
         let tiles_count = world_width * world_height;
         let regions_count = tiles_count / (region_width * region_height);
@@ -98,10 +92,7 @@ impl WorldConfig {
             physics_coeff_per_tick,
             geo_pixels_per_meters,
             geo_pixels_per_tile,
-            geo_bresenham_precision,
-            geo_bresenham_step,
             geo_meters_per_z,
-            geo_lov_step,
             minimap_width_pixels,
             minimap_height_pixels,
             formation_tiles_between_positions,
@@ -129,16 +120,6 @@ impl WorldConfig {
         self
     }
 
-    pub fn geo_bresenham_precision(mut self, value: f32) -> Self {
-        self.geo_bresenham_precision = value;
-        self
-    }
-
-    pub fn geo_bresenham_step(mut self, value: u64) -> Self {
-        self.geo_bresenham_step = value;
-        self
-    }
-
     pub fn geo_pixels_per_meters(mut self, value: f32) -> Self {
         self.geo_pixels_per_meters = value;
         self
@@ -146,11 +127,6 @@ impl WorldConfig {
 
     pub fn geo_pixels_per_tile(mut self, value: u64) -> Self {
         self.geo_pixels_per_tile = value;
-        self
-    }
-
-    pub fn geo_lov_step(mut self, value: u64) -> Self {
-        self.geo_lov_step = value;
         self
     }
 

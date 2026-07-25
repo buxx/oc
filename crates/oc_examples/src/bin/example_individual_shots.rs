@@ -109,6 +109,7 @@ fn individuals(
     Vec<oc_individual::Individual>,
     Vec<oc_individual::squad::Squad>,
 ) {
+    // FIXME BS NOW: add a test with individual on other tile (but volume on bullet path)
     let positions = vec![[150.0, 150.0, 0.0]];
 
     // TODO: avoid repetition with main()

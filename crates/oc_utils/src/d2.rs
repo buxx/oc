@@ -3,6 +3,7 @@ use std::f32::consts::FRAC_PI_2;
 use derive_more::Constructor;
 use geo::{Contains, Triangle, coord};
 use glam::{Vec2, Vec3};
+use oc_root::WcfgFrom;
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, Eq)]
@@ -30,6 +31,33 @@ impl From<(isize, isize, isize)> for Xy {
 impl From<Vec3> for Xy {
     fn from(value: Vec3) -> Self {
         Self(value.x as u64, value.y as u64)
+    }
+}
+
+impl WcfgFrom<(f32, f32)> for Xy {
+    fn from_(value: (f32, f32), w: &oc_root::WorldConfig) -> Self {
+        Self(
+            value.0 as u64 / w.geo_pixels_per_tile,
+            value.1 as u64 / w.geo_pixels_per_tile,
+        )
+    }
+}
+
+impl WcfgFrom<(isize, isize)> for Xy {
+    fn from_(value: (isize, isize), w: &oc_root::WorldConfig) -> Self {
+        Self(
+            value.0 as u64 / w.geo_pixels_per_tile,
+            value.1 as u64 / w.geo_pixels_per_tile,
+        )
+    }
+}
+
+impl WcfgFrom<(usize, usize)> for Xy {
+    fn from_(value: (usize, usize), w: &oc_root::WorldConfig) -> Self {
+        Self(
+            value.0 as u64 / w.geo_pixels_per_tile,
+            value.1 as u64 / w.geo_pixels_per_tile,
+        )
     }
 }
 

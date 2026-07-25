@@ -151,7 +151,7 @@ fn on_update_lov_for(
     let stop = position.extend(stop_tile.z_pixels(&g.w) + lov.stop_plus_z.pixels(&g.w));
     let end_ = [stop.x, stop.y.to_gui_y(&g.w), stop.z];
     let at = |xy, z| path_objects_at(&g.w, &g.mod_, &world, xy, z);
-    let path = oc_lov::PathBuilder::new(&g.w, at, g.w.geo_lov_step).build_(start_, end_);
+    let path = oc_lov::PathBuilder::new(&g.w, at).build_(start_, end_);
 
     let sections = path.sections.iter().map(|section| {
         let color = Color::srgb(0.0 + section.opacity.0, 1.0 - section.opacity.0, 0.0);

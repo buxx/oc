@@ -106,6 +106,9 @@ test-world_server:
 test-tests:
     cargo nextest run --no-tests=pass
 
+# When run tests from workspace root, it trigger a massive parallelized compile works which need
+# a lot of disk simultaneous read/write. One of my computer can't follow ... So, a simple solution
+# is here is run test from each separated crate.
 test:
     just test-battle_gui
     just test-geo
@@ -128,8 +131,10 @@ test-e2e:
     just test-projectiles-obstacles-one-hill
     just test-projectiles-obstacles-multiple-hill
     just test-individual-shots
-    just test-individual-behaviors-move-straight-ahead
-    just test-individual-behaviors-move-straight-ahead-obstacle
+    just test-individual-behaviors-move-straight-ahead1
+    just test-individual-behaviors-move-straight-ahead-obstacle1
+    just test-individual-behaviors-move-straight-ahead2
+    just test-individual-behaviors-move-straight-ahead-obstacle2
 
 test-projectiles-obstacles-one-wall:
     RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-against-wall --test
@@ -146,11 +151,17 @@ test-projectiles-obstacles-multiple-hill:
 test-individual-shots:
     RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- --test
 
-test-individual-behaviors-move-straight-ahead:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead --test
+test-individual-behaviors-move-straight-ahead1:
+    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead --test --count 1
 
-test-individual-behaviors-move-straight-ahead-obstacle:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead-obstacle --test
+test-individual-behaviors-move-straight-ahead-obstacle1:
+    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead-obstacle --test --count 1
+
+test-individual-behaviors-move-straight-ahead2:
+    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead --test --count 2
+
+test-individual-behaviors-move-straight-ahead-obstacle2:
+    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead-obstacle --test --count 2
 
 test-all:
     just test

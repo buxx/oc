@@ -9,6 +9,7 @@ mod test {
         WorldConfig,
         physics::{Meters, MetersSeconds},
     };
+    use oc_utils::d2::Xy;
     use oc_world::tile::Tile;
     use rstest::rstest;
     use serde::Serialize;
@@ -76,27 +77,19 @@ mod test {
     )]
     // Case 2
     #[case(
-        // Object at identical pos than tile, with movement to the ground
-        (0., 0., Meters(0.)), vec![Force::Translation([0., 0., -1.], MetersSeconds(1.))],
-        // produce no collision, because collisions tested on new tile hovering only
-        Meters(0.),
-        ([0., 0., -5.], vec![Force::Translation([0., 0., -1.], MetersSeconds(1.))], vec![])
-    )]
-    // Case 3
-    #[case(
         // Object at other pos than tile, with movement to the ground, in the tile
         (5.1, 5.1, Meters(0.)), vec![Force::Translation([-1., -1., -1.], MetersSeconds(1.))],
         // produce collision
         Meters(0.),
-        ([2.6, 2.6, -2.5], vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
+        ([4.0, 4.0, -1.0], vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
     )]
-    // Case 4
+    // Case 3
     #[case(
-        // Incomming object a 10 meters
+        // Incoming object at 10 meters
         (5.1, 5.1, Meters(10.)), vec![Force::Translation([-1., -1., 0.], MetersSeconds(1.))],
         // produce collision with a tile at 12 meters
         Meters(12.),
-        ([2.6, 2.6, 50.0], vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
+        ([4.0, 4.0, 50.0], vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
     )]
     fn test_tile_collision_in_meters_zero(
         #[case] object_pos: (f32, f32, Meters),
@@ -125,6 +118,15 @@ mod test {
         let object_y = object_pos.1;
         let object_z = object_pos.2.0 * w.geo_pixels_per_meters;
         let object = Object(Vec3::new(object_x, object_y, object_z), object_forces);
+        let tile: Box<&dyn Physic> = Box::new(&tile);
+
+        let objects = |xy| {
+            if xy == Xy(0, 0) {
+                vec![(ObjectsId::Tile(tile_i), tile.clone())]
+            } else {
+                vec![]
+            }
+        };
 
         // When
         let delta = 1.0;
@@ -133,7 +135,7 @@ mod test {
             &mod_,
             delta,
             (ObjectsId::Object(object_i), &object),
-            |_| vec![(ObjectsId::Tile(tile_i), Box::new(&tile))],
+            objects,
             "tests",
         );
 

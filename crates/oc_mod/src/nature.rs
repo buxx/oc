@@ -143,8 +143,8 @@ pub struct Nature {
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Traversability {
-    individual: bool,
-    projectile: bool,
+    pub individual: bool,
+    pub projectile: bool,
 }
 
 impl Traversability {

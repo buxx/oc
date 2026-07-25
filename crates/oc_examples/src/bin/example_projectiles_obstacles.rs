@@ -13,6 +13,8 @@ use oc_world::{load::WorldPath, meta::Meta, reader};
 use oc_world_server::state::ObjectId;
 
 use oc_projectile::spawn::SpawnProjectile;
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::EnvFilter;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -40,6 +42,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             panic!("To enable test, feature `test` must be enabled too")
         }
     }
+
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .with_env_filter(
+            EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .from_env()?,
+        )
+        .init();
 
     let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None)?;
     let map_ = PathBuf::from("examples/height");

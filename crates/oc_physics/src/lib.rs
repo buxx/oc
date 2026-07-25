@@ -1,13 +1,13 @@
+use crate::{collision::Material, volume::Volume};
+use line_drawing::Bresenham3d;
 use oc_mod::{Mod, nature::Traversability};
-use oc_root::{WorldConfig, material::MaterialKind, physics::MetersSeconds};
+use oc_root::{WcfgFrom, WorldConfig, physics::MetersSeconds};
 use oc_utils::d2::Xy;
 use rkyv::Archive;
 
-use crate::{collision::Material, volume::Volume};
-
 pub mod collision;
+pub mod corps;
 pub mod fx;
-pub mod line;
 pub mod reactive;
 pub mod translation;
 pub mod update;
@@ -26,62 +26,6 @@ pub trait UpdatePhysic: Physic + Material {
     fn push_force(&mut self, value: Force);
     fn remove_force(&mut self, value: &Force);
     fn set_volumes(&self, value: Vec<(Volume, Traversability)>);
-}
-
-#[derive(Debug)]
-pub struct Corps<I: Clone + std::fmt::Debug> {
-    pub i: I,
-    position: [f32; 3],
-    forces: Vec<Force>,
-    material: Option<MaterialKind>,
-    volumes: Vec<(volume::Volume, Traversability)>,
-}
-
-impl<I: Clone + std::fmt::Debug> Corps<I> {
-    pub fn new(
-        i: I,
-        position: [f32; 3],
-        forces: Vec<Force>,
-        material: Option<MaterialKind>,
-        volumes: Vec<(volume::Volume, Traversability)>,
-    ) -> Self {
-        Self {
-            i,
-            position,
-            forces,
-            material,
-            volumes,
-        }
-    }
-}
-
-impl<I: Clone + std::fmt::Debug> Physic for Corps<I> {
-    fn position(&self, _: &WorldConfig) -> [f32; 3] {
-        self.position
-    }
-
-    fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
-        &self.forces
-    }
-
-    fn volumes(
-        &self,
-        ref_: [f32; 3],
-        _: &WorldConfig,
-        _mod_: &Mod,
-    ) -> Vec<(Volume, Traversability)> {
-        self.volumes
-            .clone()
-            .into_iter()
-            .map(|(v, t)| (v.with_ref(ref_), t))
-            .collect()
-    }
-}
-
-impl<I: Clone + std::fmt::Debug> collision::Material for Corps<I> {
-    fn kind(&self) -> Option<MaterialKind> {
-        self.material
-    }
 }
 
 // TODO: gravité
@@ -113,8 +57,9 @@ pub fn step<'a, I, O, F, Z>(
 where
     I: Clone + Into<Z> + std::fmt::Debug,
     O: Physic,
+    // FIXME BS NOW: il va falloir maintenir un index qui prend en compte les volumes !! (un individual au bord de deux tiles par ex.)
     F: Fn(Xy) -> Vec<(Z, Box<&'a dyn Physic>)>,
-    Z: std::fmt::Debug + serde::Serialize,
+    Z: std::fmt::Debug + serde::Serialize + PartialEq,
 {
     let (i, object) = object;
     let mut events = vec![];
@@ -123,6 +68,8 @@ where
     let kind = object.kind();
     tracing::trace!(name="physics-step-start", origin=origin, i=?i, p=?position, forces=?object.forces(w));
 
+    // FIXME BS NOW: lorsque plusieurs appels, on veut conserver la position f32 translaté (sinon, les pixels nous ramene toujours a un arrondie)
+    // ---> ecrire un test unitaire
     'forces: for force in object.forces(w) {
         match force {
             Force::Translation(direction, speed) => {
@@ -143,80 +90,79 @@ where
                     x_ = x_,
                     y_ = y_,
                     z_ = z_,
-                    speed = speed
+                    speed = speed,
+                    pixels = pixels,
                 );
 
-                let mut curent_tile = Xy(
-                    x as u64 / w.geo_pixels_per_tile,
-                    y as u64 / w.geo_pixels_per_tile,
-                );
+                let start = (x as isize, y as isize, z as isize);
+                let end = (x_ as isize, y_ as isize, z_ as isize);
+                let world_width = w.world_width_pixels as u64;
+                let world_height = w.world_width_pixels as u64;
+                let mut interupted = false;
 
-                for step in line::Steps::new(
-                    w.world_width_pixels,
-                    w.world_height_pixels,
-                    w.geo_bresenham_precision,
-                    w.geo_bresenham_step,
-                    w.geo_pixels_per_tile,
-                    (x, y, z),
-                    (x_, y_, z_),
-                ) {
-                    match step {
-                        line::Step::First([step_x, step_y, step_z], step_tile)
-                        | line::Step::Inside([step_x, step_y, step_z], step_tile)
-                        | line::Step::Last([step_x, step_y, step_z], step_tile) => {
-                            position = [step_x, step_y, step_z];
+                'pixels: for (pixel_x, pixel_y, pixel_z) in Bresenham3d::new(start, end) {
+                    if pixel_x < 0
+                        || pixel_y < 0
+                        || pixel_x >= world_width as isize
+                        || pixel_y >= world_height as isize
+                    {
+                        tracing::trace!(name="physics-step-translation-outside", origin=origin, i=?i, pixel=?(pixel_x, pixel_y, pixel_z));
+                        // Outside world
+                        interupted = true;
+                        // FIXME BS NOW: tester si on a pas regressé sur la dispoarition de l'objet (sortie de carte)
+                        break 'pixels;
+                    }
 
-                            // FIXME BS NOW: how individual can be shot if we test it only on tile change ?!
-                            // TODO: maybe test at each pixel ? (but perf ...)
-                            // Test objects only when line on new tile
-                            if step_tile != curent_tile {
-                                curent_tile = step_tile;
-                                let volumes = object.volumes([step_x, step_y, step_z], w, mod_);
-                                tracing::trace!(name="physics-step-translation-newtile", origin=origin, i=?i, p=?position, xy=?step_tile);
+                    let pixel = [pixel_x as f32, pixel_y as f32, pixel_z as f32];
+                    let xy = Xy::from_((pixel_x, pixel_y), w);
+                    position = [pixel_x as f32, pixel_y as f32, pixel_z as f32];
 
-                                for (o, other) in at(step_tile) {
-                                    let [other_x, other_y, other_z] = other.position(w);
-                                    let position2 = [other_x, other_y, other_z];
+                    tracing::trace!(name="physics-step-translation-line-pixel", origin=origin, i=?i, pixel=?pixel, xy=?xy);
+                    let volumes = object.volumes(pixel, w, mod_);
 
-                                    for (volume1, traversability1) in &volumes {
-                                        let volumes2 = other.volumes(position2, w, mod_);
-                                        for (volume2, traversability2) in volumes2 {
-                                            // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
-                                            tracing::trace!(name="physics-step-translation-prohibe-test", origin=origin, i=?i, traversability1=?traversability1, traversability2=?traversability2);
-                                            if kind
-                                                .map(|kind| traversability2.allow(kind))
-                                                .unwrap_or(true)
-                                            {
-                                                tracing::trace!(name="physics-step-translation-prohibe-allow", origin=origin, i=?i);
-                                                continue;
-                                            }
-
-                                            tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?step_tile, o=?o, op=?[other_x, other_y, other_z], volume1=?volume1, volume2=?volume2);
-                                            if volume1.collide(&volume2) {
-                                                tracing::trace!(name="physics-step-translation-collide", origin=origin, i=?i, p=?position, xy=?step_tile);
-
-                                                let left = i.clone().into();
-                                                let collision = Event::Collision(left, o);
-                                                events.push(collision);
-
-                                                // Do not keep this force by stoping this iteration
-                                                continue 'forces;
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                curent_tile = step_tile;
-                            }
-
-                            tracing::trace!(name="physics-step-translation-updated", origin=origin, i=?i, p=?position, xy=?step_tile);
+                    for (o, other) in at(xy) {
+                        // Do not test collision with itself (it is possible than `at` return it)
+                        // NOTE: Maybe not the most optimized thing ?
+                        if o == i.clone().into() {
+                            continue;
                         }
-                        line::Step::Outside => {
-                            tracing::trace!(name="physics-step-translation-no-tile", origin=origin, i=?i, p=?position);
-                            events.push(Event::NoTile(i.clone().into()));
-                            continue 'forces;
+
+                        tracing::trace!(name="physics-step-translation-other", origin=origin, i=?i, o=?o);
+
+                        let [other_x, other_y, other_z] = other.position(w);
+                        let position2 = [other_x, other_y, other_z];
+
+                        for (volume1, traversability1) in &volumes {
+                            let volumes2 = other.volumes(position2, w, mod_);
+                            'other_volumes: for (volume2, traversability2) in volumes2 {
+                                // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
+                                tracing::trace!(name="physics-step-translation-prohibe-test", origin=origin, i=?i, traversability1=?traversability1, traversability2=?traversability2);
+                                if kind.map(|kind| traversability2.allow(kind)).unwrap_or(true) {
+                                    tracing::trace!(name="physics-step-translation-prohibe-allow", origin=origin, i=?i);
+                                    continue 'other_volumes;
+                                }
+
+                                tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?xy, o=?o, op=?[other_x, other_y, other_z], volume1=?volume1, volume2=?volume2);
+                                if volume1.collide(&volume2) {
+                                    tracing::trace!(name="physics-step-translation-collide", origin=origin, i=?i, p=?position, xy=?xy);
+
+                                    let left = i.clone().into();
+                                    let collision = Event::Collision(left, o);
+                                    events.push(collision);
+
+                                    // Do not keep this force by stopping this iteration
+                                    position = pixel;
+                                    continue 'forces;
+                                }
+                            }
                         }
                     }
+
+                    tracing::trace!(name="physics-step-translation-updated", origin=origin, i=?i, p=?position);
+                }
+                if !interupted {
+                    // If not interupted, position is now end of translation (bresenham3d accept only usize)
+                    position = [x_, y_, z_];
                 }
             }
         }
@@ -233,7 +179,7 @@ mod tests {
     use std::path::PathBuf;
 
     use oc_geo::tile::TileXy;
-    use oc_root::{WcfgInto, physics::Meters};
+    use oc_root::{WcfgInto, material::MaterialKind, physics::Meters};
 
     use super::*;
 
@@ -247,8 +193,8 @@ mod tests {
     }
 
     struct MyObject([f32; 3], Vec<Force>);
-    #[derive(Debug, Clone, serde::Serialize)]
-    struct MyObjectId;
+    #[derive(Debug, Clone, serde::Serialize, PartialEq)]
+    struct MyObjectId(usize);
 
     impl Physic for MyObject {
         fn position(&self, _: &WorldConfig) -> [f32; 3] {
@@ -319,27 +265,128 @@ mod tests {
         }
     }
 
+    struct MyIndividual([f32; 3]);
+
+    impl Physic for MyIndividual {
+        fn position(&self, _w: &WorldConfig) -> [f32; 3] {
+            self.0
+        }
+
+        fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
+            static EMPTY: Vec<Force> = vec![];
+            &EMPTY
+        }
+
+        fn volumes(
+            &self,
+            ref_: [f32; 3],
+            _w: &WorldConfig,
+            _: &Mod,
+        ) -> Vec<(Volume, Traversability)> {
+            vec![(
+                Volume::Cube {
+                    x: ref_[0],
+                    y: ref_[1],
+                    z: ref_[2],
+                    width: 2.0,
+                    height: 2.0,
+                    depth: 10.,
+                },
+                Traversability::none(),
+            )]
+        }
+    }
+
+    impl Material for MyIndividual {
+        fn kind(&self) -> Option<MaterialKind> {
+            None
+        }
+    }
+
     #[test]
-    fn test_unidirectional_translation() {
+    fn test_unidirectional_translation_x() {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
-            .geo_bresenham_precision(100.)
             .geo_pixels_per_meters(10.);
         let delta = w.physics_coeff_per_tick;
-        let direction = [1.0, 0.0, 0.0]; // South
+        let direction = [1.0, 0.0, 0.0];
         let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction, speed);
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
 
         // When
-        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&w, &mod_, delta, (MyObjectId, &object), |_| vec![], "test");
+        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) = step(
+            &w,
+            &mod_,
+            delta,
+            (MyObjectId(0), &object),
+            |_| vec![],
+            "test",
+        );
 
         // Then
         let expected_new_position = [5.0, 0.0, 0.0];
         assert_eq!(new_position, expected_new_position);
+    }
+
+    #[test]
+    fn test_unidirectional_translation_outside() {
+        // Given
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
+        let w = WorldConfig::new(10, 10, Meters(0.1))
+            .physics_coeff_per_tick(1.0)
+            .geo_pixels_per_meters(10.);
+        let delta = w.physics_coeff_per_tick;
+        let direction = [1.0, 0.0, 0.0];
+        let speed = MetersSeconds(100.0);
+        let force = Force::Translation(direction, speed);
+        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
+
+        // When
+        let (new_position, _, events): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) = step(
+            &w,
+            &mod_,
+            delta,
+            (MyObjectId(0), &object),
+            |_| vec![],
+            "test",
+        );
+
+        // Then
+        let expected_new_position = [49.0, 0.0, 0.0];
+        assert_eq!(new_position, expected_new_position);
+        // FIXME BS NOW: remplacer le système pour savoir quand ça sort de l'écran
+        assert_eq!(events, vec![]);
+    }
+
+    #[test]
+    fn test_unidirectional_translation_multisteps() {
+        // Given
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
+        let w = WorldConfig::new(1000, 1000, Meters(0.1))
+            .physics_coeff_per_tick(1.0)
+            .geo_pixels_per_meters(10.);
+        let delta = w.physics_coeff_per_tick;
+        let direction = [1.0, 0.0, 0.0]; // South
+        let speed = MetersSeconds(0.01); // 1% of 10 pixels = 0.1 pixel
+        let force = Force::Translation(direction, speed);
+        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
+
+        // When
+        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) = step(
+            &w,
+            &mod_,
+            delta,
+            (MyObjectId(0), &object),
+            |_| vec![],
+            "test",
+        );
+
+        // Then
+        let expected_new_x = "0.1"; // step must complete bresenham pixel (which are isize) with end (force) position
+        assert_eq!(&format!("{:.01}", new_position[0]), expected_new_x);
     }
 
     #[test]
@@ -348,8 +395,6 @@ mod tests {
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
-            .geo_bresenham_precision(100.)
-            .geo_bresenham_step(250)
             .geo_pixels_per_meters(10.);
         let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 0.0, 0.0]; // South
@@ -362,18 +407,18 @@ mod tests {
         let my_solid_tile: Box<&dyn Physic> = Box::new(&my_solid_tile);
         let objects = |xy| {
             if xy == Xy(0, 0) {
-                return vec![(MyObjectId, my_traversable_tile.clone())];
+                return vec![(MyObjectId(1), my_traversable_tile.clone())];
             } else {
-                return vec![(MyObjectId, my_solid_tile.clone())];
+                return vec![(MyObjectId(2), my_solid_tile.clone())];
             }
         };
 
         // When
         let (new_position, new_forces, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&w, &mod_, delta, (MyObjectId, &object), objects, "test");
+            step(&w, &mod_, delta, (MyObjectId(0), &object), objects, "test");
 
         // Then
-        let expected_new_position = [5.01, 0.0, 0.0];
+        let expected_new_position = [5.0, 0.0, 0.0];
         let expected_new_forces: Vec<Force> = vec![];
         assert_eq!(new_position, expected_new_position);
         assert_eq!(new_forces, expected_new_forces);
@@ -385,7 +430,6 @@ mod tests {
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
-            .geo_bresenham_precision(100.)
             .geo_pixels_per_meters(10.);
         let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 0.0, 0.0]; // South
@@ -394,8 +438,14 @@ mod tests {
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
 
         // When
-        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&w, &mod_, delta, (MyObjectId, &object), |_| vec![], "test");
+        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) = step(
+            &w,
+            &mod_,
+            delta,
+            (MyObjectId(0), &object),
+            |_| vec![],
+            "test",
+        );
 
         // Then
         let expected_new_position = [50.0, 0.0, 0.0];
@@ -408,8 +458,6 @@ mod tests {
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
-            .geo_bresenham_precision(100.)
-            .geo_bresenham_step(250)
             .geo_pixels_per_meters(10.);
         let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 0.0, 0.0]; // South
@@ -422,18 +470,18 @@ mod tests {
         let my_solid_tile: Box<&dyn Physic> = Box::new(&my_solid_tile);
         let objects = |xy| {
             if xy == Xy(0, 0) {
-                return vec![(MyObjectId, my_traversable_tile.clone())];
+                return vec![(MyObjectId(1), my_traversable_tile.clone())];
             } else {
-                return vec![(MyObjectId, my_solid_tile.clone())];
+                return vec![(MyObjectId(2), my_solid_tile.clone())];
             }
         };
 
         // When
         let (new_position, new_forces, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&w, &mod_, delta, (MyObjectId, &object), objects, "test");
+            step(&w, &mod_, delta, (MyObjectId(0), &object), objects, "test");
 
         // Then
-        let expected_new_position = [5.01, 0.0, 0.0];
+        let expected_new_position = [5., 0.0, 0.0];
         let expected_new_forces: Vec<Force> = vec![];
         assert_eq!(new_position, expected_new_position);
         assert_eq!(new_forces, expected_new_forces);
@@ -445,7 +493,6 @@ mod tests {
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000, Meters(0.1))
             .physics_coeff_per_tick(0.5)
-            .geo_bresenham_precision(100.)
             .geo_pixels_per_meters(10.);
         let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 1.0, 0.0]; // South
@@ -454,11 +501,90 @@ mod tests {
         let object = MyObject([0.0, 0.0, 0.0], vec![force]);
 
         // When
-        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(&w, &mod_, delta, (MyObjectId, &object), |_| vec![], "test");
+        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) = step(
+            &w,
+            &mod_,
+            delta,
+            (MyObjectId(0), &object),
+            |_| vec![],
+            "test",
+        );
 
         // Then
         let expected_new_position = [5.0, 5.0, 0.0];
         assert_eq!(new_position, expected_new_position);
     }
+
+    #[test]
+    fn test_collision_with_volume_on_same_tile_centered() {
+        // Given
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
+        let w = WorldConfig::new(1000, 1000, Meters(0.1))
+            .physics_coeff_per_tick(0.5)
+            .geo_pixels_per_meters(10.)
+            .geo_pixels_per_tile(5);
+        let delta = w.physics_coeff_per_tick;
+        let direction = [-1.0, 0.0, 0.0]; // West
+        let speed = MetersSeconds(1.0);
+        let force = Force::Translation(direction, speed);
+        let object = MyObject([7.0, 2.0, 5.0], vec![force]);
+        let individual = MyIndividual([2.0, 2.0, 0.0]); // MyIndividual volume is 2 px !
+        let individual: Box<&dyn Physic> = Box::new(&individual);
+
+        let objects = |xy| {
+            // Expect collision when on tile 0,0
+            if xy == Xy(0, 0) {
+                vec![(MyObjectId(1), individual.clone())]
+            } else {
+                vec![]
+            }
+        };
+
+        // When
+        let (position, forces, events): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
+            step(&w, &mod_, delta, (MyObjectId(0), &object), objects, "test");
+
+        // Then
+        assert_eq!(position, [4.0, 2.0, 5.0]); // x axis hit first, at MySubject (x) 2.0 (position) + 2.0 (width)
+        assert_eq!(forces, Vec::<Force>::new());
+        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
+    }
+
+    #[test]
+    fn test_collision_with_volume_on_same_tile_decal() {
+        // Given
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
+        let w = WorldConfig::new(1000, 1000, Meters(0.1))
+            .physics_coeff_per_tick(0.5)
+            .geo_pixels_per_meters(10.)
+            .geo_pixels_per_tile(5);
+        let delta = w.physics_coeff_per_tick;
+        let direction = [-1.0, 0.0, 0.0]; // West
+        let speed = MetersSeconds(1.0);
+        let force = Force::Translation(direction, speed);
+        let object = MyObject([7.5, 2.5, 5.0], vec![force]); // Tile 1 (.5) on x; tile 0 (0.5) on y
+        let individual = MyIndividual([1.0, 1.0, 0.0]); // MyIndividual volume size (see MyIndividual Physics impl) should be impacted
+        let individual: Box<&dyn Physic> = Box::new(&individual);
+
+        let objects = |xy| {
+            // Expect collision when on tile 0,0
+            if xy == Xy(0, 0) {
+                vec![(MyObjectId(1), individual.clone())]
+            } else {
+                vec![]
+            }
+        };
+
+        // When
+        let (position, forces, events): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
+            step(&w, &mod_, delta, (MyObjectId(0), &object), objects, "test");
+
+        // Then
+        assert_eq!(position, [3.0, 2.0, 5.0]);
+        assert_eq!(forces, Vec::<Force>::new());
+        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
+    }
+
+    #[test]
+    fn test_collision_with_volume_on_near_tile() {}
 }

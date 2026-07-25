@@ -192,11 +192,16 @@ impl Physic for Individual {
                 x: ref_[0],
                 y: ref_[1],
                 z: ref_[2],
+                // FIXME BS NOW: le test de shot échoue lorsque 1px près, bugged ?
+                // FIXME BS NOW: test sur tile a coté !
                 width: Meters(0.8).pixels(w),
                 height: Meters(0.8).pixels(w),
                 depth: Meters(1.8).pixels(w),
             },
-            Traversability::none(),
+            Traversability {
+                individual: true, // TODO: prevent individual collisions ? Will need enhance physic model ...
+                projectile: false,
+            },
         )]
     }
 }

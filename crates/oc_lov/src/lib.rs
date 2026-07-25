@@ -1,6 +1,6 @@
 use derive_more::Constructor;
+use line_drawing::Bresenham3d;
 use oc_geo::tile::TileXy;
-use oc_physics::line;
 use oc_root::{
     WcfgFrom, WorldConfig,
     opacity::{CumulatedOpacity, Opacity},
@@ -14,10 +14,8 @@ where
 {
     w: &'a WorldConfig,
     at: F,
-    step: u64,
 }
 
-// FIXME: on ne devrait pas simplement utiliser Bresahim2d où les pixels sont les coordonées de tuiles ?
 impl<'a, F> PathBuilder<'a, F>
 where
     F: Fn(Xy, f32) -> Vec<Step>,
@@ -29,25 +27,16 @@ where
         let mut sections = vec![];
         let mut last = start;
 
-        for step in line::Steps::new(
-            self.w.world_width_pixels,
-            self.w.world_height_pixels,
-            1.0,
-            self.step,
-            self.w.geo_pixels_per_tile,
-            start.into(),
-            end.into(),
-        ) {
-            let (pos, step_xy) = match step {
-                line::Step::First(pos, xy)
-                | line::Step::Last(pos, xy)
-                | line::Step::Inside(pos, xy) => (pos, xy),
-                line::Step::Outside => break,
-            };
+        let start_ = (start[0] as isize, start[1] as isize, start[2] as isize);
+        let end_ = (end[0] as isize, end[1] as isize, end[2] as isize);
 
-            if step_xy != tile.0 {
+        for (pixel_x, pixel_y, pixel_z) in Bresenham3d::new(start_, end_) {
+            let pixel = [pixel_x as f32, pixel_y as f32, pixel_z as f32];
+            let xy = Xy::from_((pixel_x, pixel_y), self.w);
+
+            if xy != tile.0 {
                 let mut new_opacity = opacity.0;
-                for obj in (self.at)(step_xy, pos[2]) {
+                for obj in (self.at)(xy, pixel[2]) {
                     // if obj.solid {
                     //     sections.push(Section {
                     //         start: section_start,
@@ -66,18 +55,18 @@ where
                 if new_opacity != opacity.0 {
                     sections.push(Section {
                         start: last,
-                        stop: pos,
+                        stop: pixel,
                         opacity,
                         nature: Nature::Visibility,
                     });
-                    last = pos;
+                    last = pixel;
                     opacity.0 = new_opacity.min(1.0);
                     if opacity.0 >= 1.0 {
                         break;
                     }
                 }
 
-                tile.0 = step_xy;
+                tile.0 = xy;
             }
         }
 
@@ -142,7 +131,7 @@ mod test {
         };
 
         // When
-        let path = PathBuilder::new(&w, at, 0).build_(start, end);
+        let path = PathBuilder::new(&w, at).build_(start, end);
 
         // Then
         assert_eq!(
@@ -190,7 +179,7 @@ mod test {
         };
 
         // When
-        let path = PathBuilder::new(&w, at, 0).build_(start, end);
+        let path = PathBuilder::new(&w, at).build_(start, end);
 
         // Then
         assert_eq!(
@@ -234,7 +223,7 @@ mod test {
         };
 
         // When
-        let path = PathBuilder::new(&w, at, 0).build_(start, end);
+        let path = PathBuilder::new(&w, at).build_(start, end);
 
         // Then
         assert_eq!(

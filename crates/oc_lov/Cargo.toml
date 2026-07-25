@@ -16,6 +16,7 @@ thiserror.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 glam.workspace = true
+line_drawing.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true

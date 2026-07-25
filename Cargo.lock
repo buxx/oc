@@ -5536,6 +5536,7 @@ version = "0.1.0"
 dependencies = [
  "derive_more",
  "glam",
+ "line_drawing",
  "oc_geo",
  "oc_physics",
  "oc_root",
@@ -5640,6 +5641,7 @@ dependencies = [
  "geo 0.27.0",
  "glam",
  "image 0.25.9",
+ "oc_root",
  "rkyv",
  "rustc-hash 2.1.1",
  "serde",

@@ -26,12 +26,12 @@ type Track = Box<dyn Fn(Tracker)>;
 #[cfg(not(feature = "test"))]
 type Track = ();
 
-const MEMBER_COUNT: usize = 1;
 const DIRECTION: Direction = Direction::SOUTH;
 
 #[builder]
 pub fn run(
     setup: Vec<([f32; 2], Vec<Order>)>,
+    count: usize,
     tests: (Install, Track),
     test: bool,
 ) -> Result<(), anyhow::Error> {
@@ -48,8 +48,8 @@ pub fn run(
     );
     let tiles = map_.tiles(&w, &mod__).unwrap();
 
-    let individuals = individuals(&w, &tiles, &setup);
-    let squads = squads(&w, &individuals, &setup);
+    let individuals = individuals(&w, &tiles, &setup, count);
+    let squads = squads(&w, &individuals, &setup, count);
     let snapshot = SnapshotBuilder::new(map_, individuals, squads, vec![]).build(w, &mod__)?;
 
     let example = run::Example::builder()
@@ -75,6 +75,7 @@ fn individuals(
     w: &WorldConfig,
     tiles: &Vec<Tile>,
     setup: &Vec<([f32; 2], Vec<Order>)>,
+    count: usize,
 ) -> Vec<oc_individual::Individual> {
     setup
         .iter()
@@ -84,7 +85,7 @@ fn individuals(
                 V::Server,
                 (*position).into(),
                 DIRECTION.angle(),
-                MEMBER_COUNT,
+                count,
             );
             // dbg!(&positions);
             (position, orders, positions)
@@ -112,6 +113,7 @@ fn squads(
     _w: &WorldConfig,
     _individuals: &Vec<oc_individual::Individual>,
     setup: &Vec<([f32; 2], Vec<Order>)>,
+    count: usize,
 ) -> Vec<Squad> {
     // For this test, all individual are alone in their squad
     // Test of squad behavior is in other example
@@ -121,11 +123,11 @@ fn squads(
         .map(|(position, orders)| Squad {
             side: Side::A,
             position: position.clone().into(),
-            members: (0..MEMBER_COUNT)
+            members: (0..count)
                 .into_iter()
                 .map(|i| IndividualIndex(i as u64))
                 .collect::<Vec<IndividualIndex>>(),
-            actives: MEMBER_COUNT as u8,
+            actives: count as u8,
             formation: SquadFormation::Line,
             orders: orders.clone(),
         })

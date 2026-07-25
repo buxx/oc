@@ -14,6 +14,10 @@ struct Args {
     #[arg()]
     case: TestCase,
 
+    /// Number of squad members
+    #[arg(long)]
+    count: usize,
+
     #[arg(long, action)]
     test: bool,
 }
@@ -70,7 +74,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let run = behavior::run().test(args.test).setup(setup);
+    let run = behavior::run()
+        .test(args.test)
+        .setup(setup)
+        .count(args.count);
 
     let run = {
         let test_track = {

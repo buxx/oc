@@ -2,8 +2,8 @@ use bevy::prelude::*;
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::IndividualIndex;
 use oc_physics::{
-    Corps,
     collision::Material_,
+    corps::Corps,
     update::bevy::{Forces, Position, Volumes},
 };
 use oc_projectile::ProjectileId;
@@ -101,7 +101,7 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
 }
 
 // TODO: move code (use same than server, refacto it)
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, PartialEq)]
 pub enum ObjectId {
     #[allow(unused)]
     Individual(IndividualIndex),
