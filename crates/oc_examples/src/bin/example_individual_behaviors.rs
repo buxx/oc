@@ -35,12 +35,6 @@ const MSAO_LEADER_POS: [f32; 2] = [160., 415.];
 const MSAO_POS1: [f32; 2] = [235., 415.];
 const MSAO_POS2: [f32; 2] = [250., 415.];
 
-// FIXME BS NOW: les markers d'Order actuellement affichés sont ceux des individuals
-//                 -> on veut affiche rles markers de squad
-//                 -> et les markers de individual sont plus petits
-//               Mais il faut aussi synchroniser les Squads avec le GUI.
-//               Je pense qu'il faut tous les synchro au début de la connexion. Pour pouvoir les afficher
-//               tous sur la world map par exemple.
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
     let args = Args::parse();

@@ -112,7 +112,6 @@ impl World {
         let tile: WorldTileIndex = tile_xy.into_(w);
         let region: WorldRegionIndex = tile.into_(w);
 
-        // FIXME BS NOW: traced each seconds ?!
         tracing::trace!(name = "world-individual-insert", i=?i, region=?region, tile=?tile);
 
         let value = (i, individual);
