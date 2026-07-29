@@ -108,61 +108,54 @@ impl<'a> Processor<'a> {
         let mut updates = None;
         let direction = individual.gesture.direction();
 
+        // Builds the "accomplished" update batch for given individual, appending squad-level
+        // updates when this individual is a squad leader.
+        let accomplished_updates =
+            |i: IndividualIndex, direction: Direction| -> Vec<runner::update::Update> {
+                let i_accomplish = Update::Accomplished;
+                let i_accomplish = runner::update::Update::UpdateIndividual(i, i_accomplish);
+
+                let i_idle = Update::SetIntent(Intent::Idle(direction));
+                let i_idle = runner::update::Update::UpdateIndividual(i, i_idle);
+
+                let mut updates = vec![i_accomplish, i_idle];
+
+                if is_squad_leader {
+                    // FIXME: Must wait all members finished associated order (only relevant for MoveTo,
+                    // kept here since Idle currently shares the same behavior).
+                    let accomplish = oc_individual::squad::Update::Accomplished;
+                    let accomplish = runner::update::Update::UpdateSquad(squad_i, accomplish);
+
+                    let orders = squad.orders.clone().into_iter().skip(1).collect();
+                    let orders = oc_individual::squad::Update::SetOrders(orders);
+                    let orders = runner::update::Update::UpdateSquad(squad_i, orders);
+
+                    updates.extend(vec![accomplish, orders]);
+                }
+
+                updates
+            };
+
         match order {
             Order::Idle => {
                 // TODO: strange behavior than Idle disapear instantly ?
-                tracing::trace!(name = "individual-step-accomplished-squad-leader-idle-finished", i=?self.i);
+                tracing::trace!(
+                    name = "individual-step-accomplished-squad-leader-idle-finished",
+                    i = ?self.i
+                );
 
-                let i_accomplish = Update::Accomplished;
-                let i_accomplish = runner::update::Update::UpdateIndividual(self.i, i_accomplish);
-                let i_idle = Update::SetIntent(Intent::Idle(direction));
-                let i_idle = runner::update::Update::UpdateIndividual(self.i, i_idle);
-
-                match is_squad_leader {
-                    true => {
-                        // FIXME BS NOW: Argh refacto
-                        let accomplish = oc_individual::squad::Update::Accomplished;
-                        let accomplish = runner::update::Update::UpdateSquad(squad_i, accomplish);
-                        let orders = squad.orders.clone().into_iter().skip(1).collect();
-                        let orders = oc_individual::squad::Update::SetOrders(orders);
-                        let orders = runner::update::Update::UpdateSquad(squad_i, orders);
-                        updates = Some(vec![i_accomplish, i_idle, accomplish, orders]);
-                    }
-                    false => {
-                        updates = Some(vec![i_accomplish, i_idle]);
-                    }
-                };
+                updates = Some(accomplished_updates(self.i, direction));
             }
             Order::MoveTo(position) => {
                 if almost_equal(position.x, individual.position[0], POSITION_TOLERANCE)
                     && almost_equal(position.y, individual.position[1], POSITION_TOLERANCE)
                 {
                     tracing::trace!(
-                        name = "individual-step-accomplished-squad-leader-move-to-finished", i=?self.i
+                        name = "individual-step-accomplished-squad-leader-move-to-finished",
+                        i = ?self.i
                     );
 
-                    let i_accomplish = Update::Accomplished;
-                    let i_accomplish =
-                        runner::update::Update::UpdateIndividual(self.i, i_accomplish);
-                    let idle = Update::SetIntent(Intent::Idle(direction));
-                    let idle = runner::update::Update::UpdateIndividual(self.i, idle);
-
-                    match is_squad_leader {
-                        true => {
-                            // FIXME BS NOW: Argh refacto
-                            // FIXME: Must wait all memeber finished associated order.
-                            let accomplish = oc_individual::squad::Update::Accomplished;
-                            let accomplish =
-                                runner::update::Update::UpdateSquad(squad_i, accomplish);
-                            let orders = squad.orders.clone().into_iter().skip(1).collect();
-                            let orders = oc_individual::squad::Update::SetOrders(orders);
-                            let orders = runner::update::Update::UpdateSquad(squad_i, orders);
-                            updates = Some(vec![i_accomplish, idle, accomplish, orders]);
-                        }
-                        false => {
-                            updates = Some(vec![i_accomplish, idle]);
-                        }
-                    }
+                    updates = Some(accomplished_updates(self.i, direction));
                 }
             }
         };
