@@ -260,8 +260,7 @@ impl<'a> Processor<'a> {
                 match order {
                     None | Some(Order::Idle) => Intent::Idle(direction),
                     Some(Order::MoveTo(position)) => {
-                        // FIXME BS NOW: do not recompute each time the path, use cached one and, regurlarly compute new one
-                        // perdiodic or when collision ?
+                        // TODO: think about a way to cache that ? Or not if don't take too much CPU
                         let from = Vec2::new(individual.position[0], individual.position[1]);
                         let to = Vec2::new(position.x, position.y);
                         let path = self.world.navmesh.path(from, to);
