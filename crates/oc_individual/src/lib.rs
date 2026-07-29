@@ -196,8 +196,6 @@ impl Physic for Individual {
                 x: ref_[0],
                 y: ref_[1],
                 z: ref_[2],
-                // FIXME BS NOW: le test de shot échoue lorsque 1px près, bugged ?
-                // FIXME BS NOW: test sur tile a coté !
                 width: INDIVIDUAL_VOLUME_WIDTH.pixels(w),
                 height: INDIVIDUAL_VOLUME_HEIGHT.pixels(w),
                 depth: INDIVIDUAL_VOLUME_DEPTH.pixels(w),

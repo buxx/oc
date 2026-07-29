@@ -57,7 +57,6 @@ pub fn step<'a, I, O, F, Z>(
 where
     I: Clone + Into<Z> + std::fmt::Debug,
     O: Physic,
-    // FIXME BS NOW: il va falloir maintenir un index qui prend en compte les volumes !! (un individual au bord de deux tiles par ex.)
     F: Fn(Xy) -> Vec<(Z, Box<&'a dyn Physic>)>,
     Z: std::fmt::Debug + serde::Serialize + PartialEq,
 {
@@ -68,8 +67,6 @@ where
     let kind = object.kind();
     tracing::trace!(name="physics-step-start", origin=origin, i=?i, p=?position, forces=?object.forces(w));
 
-    // FIXME BS NOW: lorsque plusieurs appels, on veut conserver la position f32 translaté (sinon, les pixels nous ramene toujours a un arrondie)
-    // ---> ecrire un test unitaire
     'forces: for force in object.forces(w) {
         match force {
             Force::Translation(direction, speed) => {
