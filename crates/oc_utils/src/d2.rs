@@ -329,9 +329,38 @@ impl From<Vec3> for Direction {
     }
 }
 
+// Function content IA generated
+pub fn shape_cover_tiles(
+    point: [f32; 2],
+    width: f32,
+    height: f32,
+    tile_width: f32,
+    tile_height: f32,
+) -> Vec<[isize; 2]> {
+    #[inline]
+    fn range_indices(pos: f32, size: f32, tile: f32) -> (isize, isize) {
+        let min_idx = (pos / tile) as isize;
+        let end = pos + size;
+        let max_idx = (end / tile).ceil() as isize - 1;
+        (min_idx, max_idx)
+    }
+
+    let (col_min, col_max) = range_indices(point[0], width, tile_width);
+    let (row_min, row_max) = range_indices(point[1], height, tile_height);
+
+    let mut result = Vec::new();
+    for row in row_min..=row_max {
+        for col in col_min..=col_max {
+            result.push([col, row]);
+        }
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
     #[test]
     fn test_distance_line_x() {
@@ -383,5 +412,23 @@ mod tests {
 
         // Then
         assert_eq!(distance, 1.4142135);
+    }
+
+    #[rstest]
+    #[case([0., 0.], 2., 2., vec![[0, 0]])]
+    #[case([4., 0.], 2., 2., vec![[0, 0], [1, 0]])]
+    #[case([0., 4.], 2., 2., vec![[0, 0], [0, 1]])]
+    #[case([4., 4.], 2., 2., vec![[0, 0], [1, 0], [0, 1], [1, 1]])]
+    #[case([0., 0.], 10., 2., vec![[0, 0], [1, 0]])]
+    #[case([0., 0.], 2., 10., vec![[0, 0], [0, 1]])]
+    #[case([0., 0.], 10., 10., vec![[0, 0], [1, 0], [0, 1], [1, 1]])]
+    fn test_shape_cover_tiles(
+        #[case] point: [f32; 2],
+        #[case] width: f32,
+        #[case] height: f32,
+        #[case] expected: Vec<[isize; 2]>,
+    ) {
+        let result = shape_cover_tiles(point, width, height, 5., 5.);
+        assert_eq!(result, expected);
     }
 }
