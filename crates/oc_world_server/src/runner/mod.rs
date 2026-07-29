@@ -198,7 +198,7 @@ impl<E: Client> Runner<E> {
         {
             *ctx.state
                 .perf
-                .squads_percents
+                .squad_percents
                 .lock()
                 .expect("Assume available") = vec![0.; ctx.cpus];
         }
@@ -240,7 +240,7 @@ impl<E: Client> Runner<E> {
                             }
 
                             #[cfg(feature = "perfs")]
-                            ctx.state.perf.squad_individual();
+                            ctx.state.perf.increment_squad();
                         }
                     }
                 });
