@@ -128,7 +128,7 @@ fn install(app: &mut bevy::app::App) {
 
     if args.test {
         app.add_systems(Update, |mut commands: Commands, game: Res<Game>| {
-            if game.started.elapsed() > Duration::from_secs(3) {
+            if game.started.elapsed() > Duration::from_secs(5) {
                 commands.write_message(bevy::app::AppExit::from_code(0));
             }
         });

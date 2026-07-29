@@ -162,7 +162,7 @@ impl<'x, E: Client> Processor<'x, E> {
                 // Update indexes
                 {
                     let mut indexes = self.ctx.state.indexes_mut();
-                    indexes.react(i.into_index_effect(effect.clone()));
+                    indexes.react(i.into_index_effect(effect.clone()), &self.ctx.state.w);
                 }
 
                 // Broadcast to new listener if required
@@ -278,15 +278,18 @@ where
     let region = subject.region();
 
     let effect = match update {
-        Update::SetPosition(position, _) => {
+        Update::SetPosition(position, position_) => {
             subject.set_position(*position);
-            None
+            Some(Effect::Position {
+                before: *position_,
+                after: *position,
+            })
         }
         Update::SetTile(tile_, _) => {
             subject.set_tile(*tile_);
             Some(Effect::Tile {
-                before: tile,
-                after: *tile_,
+                _before: tile,
+                _after: *tile_,
             })
         }
         Update::SetRegion(region_, _) => {
@@ -315,9 +318,13 @@ where
 
 #[derive(Debug, Clone)]
 pub enum Effect {
+    Position {
+        before: [f32; 3],
+        after: [f32; 3],
+    },
     Tile {
-        before: WorldTileIndex,
-        after: WorldTileIndex,
+        _before: WorldTileIndex,
+        _after: WorldTileIndex,
     },
     Region {
         before: WorldRegionIndex,

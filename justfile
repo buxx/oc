@@ -130,7 +130,9 @@ test-e2e:
     just test-projectiles-obstacles-multiple-wall
     just test-projectiles-obstacles-one-hill
     just test-projectiles-obstacles-multiple-hill
-    just test-individual-shots
+    just test-individual-shots-same-pixel
+    just test-individual-shots-in-volume
+    just test-individual-shots-different-tile
     just test-individual-behaviors-move-straight-ahead1
     just test-individual-behaviors-move-straight-ahead-obstacle1
     just test-individual-behaviors-move-straight-ahead2
@@ -148,8 +150,14 @@ test-projectiles-obstacles-one-hill:
 test-projectiles-obstacles-multiple-hill:
     RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- multiple-against-hill --test
 
-test-individual-shots:
-    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- --test
+test-individual-shots-same-pixel:
+    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- same-pixel --test
+
+test-individual-shots-in-volume:
+    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- in-volume --test
+
+test-individual-shots-different-tile:
+    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- different-tile --test
 
 test-individual-behaviors-move-straight-ahead1:
     RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead --test --count 1

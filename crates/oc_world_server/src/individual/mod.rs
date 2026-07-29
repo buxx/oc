@@ -353,13 +353,13 @@ mod tests {
         let expected_individual_2_move_to_position = Position::new(100., 110.);
 
         let world = two_individuals_world(
-            w,
+            &w,
             individual_1_position,
             individual_2_position,
             squad_position,
             vec![move_to_order],
         );
-        let index = Indexes::new(&world);
+        let index = Indexes::new(&world, &w);
         let processor = Processor::new(&world, &index, 0.into());
 
         // When
@@ -400,13 +400,13 @@ mod tests {
         let expected_individual_2_move_to_position = Position::new(100., 110.);
 
         let world = two_individuals_world(
-            w,
+            &w,
             individual_1_position,
             individual_2_position,
             squad_position,
             vec![],
         );
-        let index = Indexes::new(&world);
+        let index = Indexes::new(&world, &w);
         let processor = Processor::new(&world, &index, 0.into());
 
         // When
@@ -434,8 +434,8 @@ mod tests {
         // test parameters (assume individual are all Idle in EST direction)
         let position = Vec3::new(100., 100., 0.);
 
-        let world = one_individual_world(w, position, vec![]);
-        let index = Indexes::new(&world);
+        let world = one_individual_world(&w, position, vec![]);
+        let index = Indexes::new(&world, &w);
         let processor = Processor::new(&world, &index, 0.into());
 
         // When
@@ -455,8 +455,8 @@ mod tests {
         // test parameters (assume individual are all Idle in EST direction)
         let position = Vec3::new(100., 100., 0.);
 
-        let mut world = one_individual_world(w, position, vec![Order::Idle]);
-        let index = Indexes::new(&world);
+        let mut world = one_individual_world(&w, position, vec![Order::Idle]);
+        let index = Indexes::new(&world, &w);
 
         // When-Then
         {
@@ -495,7 +495,7 @@ mod tests {
     // Refactored function which generate a world with one squad composed of two members.
     // Both individuals Idle in EST direction.
     fn two_individuals_world(
-        w: WorldConfig,
+        w: &WorldConfig,
         individual_1_position: Vec3,
         individual_2_position: Vec3,
         squad_position: Vec2,
@@ -507,14 +507,14 @@ mod tests {
             .gesture(Gesture::Idle(Direction::EST)) // Gesture & Behavior & Intent are important
             .behavior(Behavior::Idle(Direction::EST)) // to conditionate the .step() response
             .intent(Intent::Idle(Direction::EST));
-        let individual1 = individual1.build().make(&w);
+        let individual1 = individual1.build().make(w);
         let individual2 = TestIndividual::builder();
         let individual2 = individual2.position(individual_2_position);
         let individual2 = individual2
             .gesture(Gesture::Idle(Direction::EST)) // Gesture & Behavior & Intent are important
             .behavior(Behavior::Idle(Direction::EST)) // to conditionate the .step() response
             .intent(Intent::Idle(Direction::EST));
-        let individual2 = individual2.build().make(&w);
+        let individual2 = individual2.build().make(w);
 
         let squad = TestSquad::builder();
         let squad = squad.position(squad_position);
@@ -525,21 +525,21 @@ mod tests {
         let world = TestWorld::builder();
         let world = world.individuals(vec![individual1, individual2]);
         let world = world.squads(vec![squad]);
-        let world = world.build().make(&w);
+        let world = world.build().make(w);
 
         world
     }
 
     // Refactored function which generate a world with one squad composed of one member.
     // Individuals Idle in EST direction.
-    fn one_individual_world(w: WorldConfig, position: Vec3, orders: Vec<Order>) -> World {
+    fn one_individual_world(w: &WorldConfig, position: Vec3, orders: Vec<Order>) -> World {
         let individual = TestIndividual::builder();
         let individual = individual.position(position);
         let individual = individual
             .gesture(Gesture::Idle(Direction::EST)) // Gesture & Behavior & Intent are important
             .behavior(Behavior::Idle(Direction::EST)) // to conditionate the .step() response
             .intent(Intent::Idle(Direction::EST));
-        let individual = individual.build().make(&w);
+        let individual = individual.build().make(w);
 
         let squad = TestSquad::builder();
         let squad = squad.position(Vec2::new(position.x, position.y));

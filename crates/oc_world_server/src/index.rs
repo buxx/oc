@@ -1,12 +1,14 @@
 use std::ops::{Deref, DerefMut};
 
 use oc_geo::region::Region;
+use oc_geo::tile::TileXy;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
-use oc_individual::IndividualIndex;
 use oc_individual::squad::SquadIndex;
+use oc_individual::{INDIVIDUAL_VOLUME_HEIGHT, INDIVIDUAL_VOLUME_WIDTH, IndividualIndex};
 use oc_projectile::Projectile;
 use oc_projectile::ProjectileId;
-use oc_root::WcfgInto;
+use oc_root::{WcfgFrom, WcfgInto, WorldConfig};
+use oc_utils::d2::{Xy, shape_cover_tiles};
 use oc_world::World;
 
 use crate::physics;
@@ -41,17 +43,32 @@ pub struct Indexes {
 }
 
 impl Indexes {
-    pub fn new(world: &World) -> Self {
+    pub fn new(world: &World, w: &WorldConfig) -> Self {
         let mut tiles_individuals = SizedIndex::new(world.w.tiles_count as usize);
         let mut regions_individuals = SizedIndex::new(world.w.regions_count as usize);
         let mut regions_projectiles = SizedIndex::new(world.w.regions_count as usize);
         let mut individuals_squad = Vec::with_capacity(world.individuals.len());
 
         for (i, individual) in world.individuals().iter().enumerate() {
+            let position = individual.position;
             let tile: WorldTileIndex = individual.tile;
             let region: WorldRegionIndex = tile.into_(&world.w);
 
-            tiles_individuals[tile.0 as usize].push(i.into());
+            for tile_ in shape_cover_tiles(
+                [position[0], position[1]],
+                INDIVIDUAL_VOLUME_WIDTH.pixels(w),
+                INDIVIDUAL_VOLUME_HEIGHT.pixels(w),
+                w.geo_pixels_per_tile as f32,
+                w.geo_pixels_per_tile as f32,
+            ) {
+                let tile_ = TileXy(Xy(tile_[0] as u64, tile_[1] as u64));
+                if tile_.0.0 >= w.world_width || tile_.0.1 >= w.world_height {
+                    continue;
+                }
+                let tile_ = WorldTileIndex::from_(tile_, w);
+                tiles_individuals[tile_.0 as usize].push(i.into());
+            }
+
             regions_individuals[region.0 as usize].push(i.into());
 
             match world.squads.iter().enumerate().find(|(_, squad)| {
@@ -92,14 +109,43 @@ impl Indexes {
         self.regions_projectiles[region.0 as usize].retain(|p| p != id);
     }
 
-    fn update_individual_tile(
+    fn update_individual_position(
         &mut self,
         i: IndividualIndex,
-        now: WorldTileIndex,
-        before: WorldTileIndex,
+        now: [f32; 2],
+        // TODO: maintain individual positions index to compute it internally ?
+        before: [f32; 2],
+        w: &WorldConfig,
     ) {
-        self.tiles_individuals[before.0 as usize].retain(|i_| *i_ != i);
-        self.tiles_individuals[now.0 as usize].push(i);
+        for before in shape_cover_tiles(
+            before,
+            INDIVIDUAL_VOLUME_WIDTH.pixels(w),
+            INDIVIDUAL_VOLUME_HEIGHT.pixels(w),
+            w.geo_pixels_per_tile as f32,
+            w.geo_pixels_per_tile as f32,
+        ) {
+            let before = TileXy(Xy(before[0] as u64, before[1] as u64));
+            if before.0.0 >= w.world_width || before.0.1 >= w.world_height {
+                continue;
+            }
+            let before = WorldTileIndex::from_(before, w);
+            self.tiles_individuals[before.0 as usize].retain(|i_| *i_ != i);
+        }
+
+        for now in shape_cover_tiles(
+            now,
+            INDIVIDUAL_VOLUME_WIDTH.pixels(w),
+            INDIVIDUAL_VOLUME_HEIGHT.pixels(w),
+            w.geo_pixels_per_tile as f32,
+            w.geo_pixels_per_tile as f32,
+        ) {
+            let now = TileXy(Xy(now[0] as u64, now[1] as u64));
+            if now.0.0 >= w.world_width || now.0.1 >= w.world_height {
+                continue;
+            }
+            let now = WorldTileIndex::from_(now, w);
+            self.tiles_individuals[now.0 as usize].push(i);
+        }
     }
 
     fn update_individual_region(
@@ -138,13 +184,19 @@ impl Indexes {
         self.individuals_squad[individual.0 as usize]
     }
 
-    pub fn react(&mut self, effect: Effect) {
+    pub fn react(&mut self, effect: Effect, w: &WorldConfig) {
         match effect {
             Effect::Individual(i, effect) => match effect {
                 IndividualEffect::Physic(effect) => match effect {
-                    physics::Effect::Tile { before, after } => {
-                        self.update_individual_tile(i, after, before)
+                    physics::Effect::Position { before, after } => {
+                        let now = [after[0], after[1]];
+                        let before = [before[0], before[1]];
+                        self.update_individual_position(i, now, before, w)
                     }
+                    physics::Effect::Tile {
+                        _before: _,
+                        _after: _,
+                    } => {}
                     physics::Effect::Region { before, after } => {
                         self.update_individual_region(i, after, before)
                     }
@@ -152,9 +204,13 @@ impl Indexes {
             },
             Effect::Projectile(i, effect) => match effect {
                 ProjectileEffect::Physic(effect) => match effect {
-                    physics::Effect::Tile {
+                    physics::Effect::Position {
                         before: _,
                         after: _,
+                    }
+                    | physics::Effect::Tile {
+                        _before: _,
+                        _after: _,
                     } => {}
                     physics::Effect::Region { before, after } => {
                         self.update_projectile_region(i, after, before)
@@ -180,4 +236,70 @@ pub enum ProjectileEffect {
 
 pub trait IntoIndexEffect<T> {
     fn into_index_effect(&self, value: T) -> Effect;
+}
+
+#[cfg(test)]
+mod tests {
+    use ::tests::{individual::TestIndividual, world::TestWorld};
+    use glam::Vec3;
+    use oc_root::{WorldConfig, physics::Meters};
+
+    use super::*;
+
+    #[test]
+    fn test_indexes_individuals() {
+        // Given
+        let w = WorldConfig::new(2, 2, Meters(0.1));
+        let individual = TestIndividual::builder()
+            .position(Vec3::new(4., 4., 0.))
+            .build()
+            .make(&w);
+        let world = TestWorld::builder()
+            .individuals(vec![individual])
+            .build()
+            .make(&w);
+
+        // When
+        let indexes = Indexes::new(&world, &w);
+
+        // Then
+        let x0y0 = indexes.tile_individuals(WorldTileIndex(0));
+        let x1y0 = indexes.tile_individuals(WorldTileIndex(1));
+        let x0y1 = indexes.tile_individuals(WorldTileIndex(2));
+        let x1y1 = indexes.tile_individuals(WorldTileIndex(3));
+
+        assert_eq!(x0y0, &vec![IndividualIndex(0)]);
+        assert_eq!(x1y0, &vec![IndividualIndex(0)]);
+        assert_eq!(x0y1, &vec![IndividualIndex(0)]);
+        assert_eq!(x1y1, &vec![IndividualIndex(0)]);
+    }
+
+    #[test]
+    fn test_indexes_individuals_removed() {
+        // Given
+        let w = WorldConfig::new(2, 2, Meters(0.1));
+        let individual = TestIndividual::builder()
+            .position(Vec3::new(4., 4., 0.))
+            .build()
+            .make(&w);
+        let world = TestWorld::builder()
+            .individuals(vec![individual])
+            .build()
+            .make(&w);
+        let mut indexes = Indexes::new(&world, &w);
+
+        // When
+        indexes.update_individual_position(IndividualIndex(0), [9., 9.], [4., 4.], &w);
+
+        // Then
+        let x0y0 = indexes.tile_individuals(WorldTileIndex(0));
+        let x1y0 = indexes.tile_individuals(WorldTileIndex(1));
+        let x0y1 = indexes.tile_individuals(WorldTileIndex(2));
+        let x1y1 = indexes.tile_individuals(WorldTileIndex(3));
+
+        assert_eq!(x0y0, &Vec::<IndividualIndex>::new());
+        assert_eq!(x1y0, &Vec::<IndividualIndex>::new());
+        assert_eq!(x0y1, &Vec::<IndividualIndex>::new());
+        assert_eq!(x1y1, &vec![IndividualIndex(0)]);
+    }
 }

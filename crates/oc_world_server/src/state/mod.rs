@@ -37,7 +37,7 @@ impl<E: Client> State<E> {
     pub fn new(w: WorldConfig, ids: Ids, mod_: Mod, world: World) -> Self {
         #[cfg(feature = "perfs")]
         let perf = Arc::new(Perf::default());
-        let indexes = Arc::new(rw_lock!(Indexes::new(&world)));
+        let indexes = Arc::new(rw_lock!(Indexes::new(&world, &w)));
         let world = Arc::new(rw_lock!(world));
         let listeners = Arc::new(rw_lock!(Listeners::new(&w)));
         let scheduled = Arc::new(Mutex::new(vec![]));

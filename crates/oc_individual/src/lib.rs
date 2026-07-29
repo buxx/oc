@@ -31,6 +31,10 @@ pub mod network;
 pub mod order;
 pub mod squad;
 
+pub const INDIVIDUAL_VOLUME_WIDTH: Meters = Meters(0.8);
+pub const INDIVIDUAL_VOLUME_HEIGHT: Meters = Meters(0.8);
+pub const INDIVIDUAL_VOLUME_DEPTH: Meters = Meters(1.8);
+
 #[derive(
     Archive,
     rkyv::Deserialize,
@@ -194,9 +198,9 @@ impl Physic for Individual {
                 z: ref_[2],
                 // FIXME BS NOW: le test de shot échoue lorsque 1px près, bugged ?
                 // FIXME BS NOW: test sur tile a coté !
-                width: Meters(0.8).pixels(w),
-                height: Meters(0.8).pixels(w),
-                depth: Meters(1.8).pixels(w),
+                width: INDIVIDUAL_VOLUME_WIDTH.pixels(w),
+                height: INDIVIDUAL_VOLUME_HEIGHT.pixels(w),
+                depth: INDIVIDUAL_VOLUME_DEPTH.pixels(w),
             },
             Traversability {
                 individual: true, // TODO: prevent individual collisions ? Will need enhance physic model ...

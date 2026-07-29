@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::Context;
 use bevy::prelude::*;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use oc_battle_gui::{
     ingame::{FirstIngameEnter, individual::Status},
     network::output::ToServerEvent,
@@ -28,8 +28,18 @@ use oc_world::{meta::Meta, tile::Tile};
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 struct Args {
+    #[arg()]
+    case: TestCase,
+
     #[arg(long, action)]
     test: bool,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum TestCase {
+    SamePixel,
+    InVolume,
+    DifferentTile,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -55,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Meters(meta.geo_meters_per_z),
     );
     let tiles = map_.tiles(&w, &mod__).unwrap();
-    let (individuals, squads) = individuals(&w, &tiles);
+    let (individuals, squads) = individuals(&args, &w, &tiles);
     let snapshot = SnapshotBuilder::new(map_, individuals, squads, vec![]).build(w, &mod__)?;
 
     let example = run::Example::builder()
@@ -103,14 +113,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn individuals(
+    args: &Args,
     _: &WorldConfig,
     _: &Vec<Tile>,
 ) -> (
     Vec<oc_individual::Individual>,
     Vec<oc_individual::squad::Squad>,
 ) {
-    // FIXME BS NOW: add a test with individual on other tile (but volume on bullet path)
-    let positions = vec![[150.0, 150.0, 0.0]];
+    let positions = match args.case {
+        TestCase::SamePixel => vec![[151.0, 151.0, 0.0]],
+        TestCase::InVolume => vec![[150.0, 150.0, 0.0]],
+        TestCase::DifferentTile => vec![[149.0, 149.0, 0.0]],
+    };
 
     // TODO: avoid repetition with main()
     let meta = Meta::from_file(&PathBuf::from("examples/meadow1/meta.toml")).unwrap();
@@ -210,7 +224,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
         .find(|s| s.name() == "Single")
         .unwrap();
 
-    for (start, end) in vec![([220.0, 150.0, 5.0], [100.0, 150.0, 5.0])] {
+    for (start, end) in vec![([220.0, 151.0, 5.0], [100.0, 151.0, 5.0])] {
         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(
             SpawnProjectile::new(
                 weapon1.index(),
