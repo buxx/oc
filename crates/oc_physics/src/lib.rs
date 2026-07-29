@@ -37,7 +37,9 @@ pub enum Force {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub enum Event<T: serde::Serialize> {
+    /// Physics application result position outside the world
     NoTile(T),
+    /// Physics application result a collide between two objects
     Collision(T, T),
 }
 
@@ -106,7 +108,8 @@ where
                         tracing::trace!(name="physics-step-translation-outside", origin=origin, i=?i, pixel=?(pixel_x, pixel_y, pixel_z));
                         // Outside world
                         interupted = true;
-                        // FIXME BS NOW: tester si on a pas regressé sur la dispoarition de l'objet (sortie de carte)
+                        let i = i.clone().into();
+                        events.push(Event::NoTile(i));
                         break 'pixels;
                     }
 
@@ -354,8 +357,7 @@ mod tests {
         // Then
         let expected_new_position = [49.0, 0.0, 0.0];
         assert_eq!(new_position, expected_new_position);
-        // FIXME BS NOW: remplacer le système pour savoir quand ça sort de l'écran
-        assert_eq!(events, vec![]);
+        assert_eq!(events, vec![Event::NoTile(MyObjectId(0))]);
     }
 
     #[test]
@@ -581,7 +583,4 @@ mod tests {
         assert_eq!(forces, Vec::<Force>::new());
         assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
     }
-
-    #[test]
-    fn test_collision_with_volume_on_near_tile() {}
 }
