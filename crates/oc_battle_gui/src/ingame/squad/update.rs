@@ -120,7 +120,7 @@ mod tests {
             .region_width(10)
             .region_height(10);
         let squad = TestSquad::builder()
-            .position(Vec2::new(0., 0.))
+            .position(glam::Vec2::new(0., 0.))
             .members(vec![oc_individual::IndividualIndex(0)])
             .build()
             .make();
