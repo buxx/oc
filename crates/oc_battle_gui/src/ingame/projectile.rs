@@ -86,7 +86,7 @@ fn on_update_position(
     let (i, position, previous) = (position.0, &position.1, &position.2);
     let_some!(entity = projectiles.get(&i), return);
     let_ok!(mesh = query.get(*entity), return);
-    let_some!(mesh = meshes.get_mut(mesh), return);
+    let_some!(mut mesh = meshes.get_mut(mesh), return);
 
     let position = Vec2::new(position[0], position[1]);
     let previous = Vec2::new(previous[0], previous[1]);

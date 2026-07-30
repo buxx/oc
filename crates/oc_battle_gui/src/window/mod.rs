@@ -91,7 +91,7 @@ fn show(
     let_some!(g = &g.0, return Ok(()));
 
     window.show(&mut contexts, &mut commands, &g.mod_, &g.w)?;
-    pointer.0 = contexts.ctx_mut()?.is_pointer_over_area();
+    pointer.0 = contexts.ctx_mut()?.is_pointer_over_egui();
 
     Ok(())
 }
