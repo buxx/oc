@@ -479,7 +479,7 @@ pub fn setup_light3d(commands: &mut Commands) {
         DirectionalLight {
             color: WHITE.into(),
             illuminance: 4500.,
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             ..default()
         },
     ));
