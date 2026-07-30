@@ -28,6 +28,7 @@ impl Perf {
         self.individual_percents.lock().expect("Assume available")[i] = value;
     }
 
+    #[allow(unused)]
     pub fn squads_ticks(&self) -> u64 {
         self.squad_ticks.load(std::sync::atomic::Ordering::Relaxed)
     }

@@ -6,6 +6,9 @@ members = ["crates/*"]
 codegen-units = 1
 lto = "thin"
 
+[profile.bench]
+debug = true
+
 [workspace.dependencies]
 bevy = "0.18"
 bevy_spritesheet_animation = "6"

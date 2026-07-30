@@ -5,7 +5,7 @@ use oc_physics::Physic;
 use oc_physics::collision::{Material, Material_};
 use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volumes};
 use oc_root::side::Side;
-use oc_root::y::Y;
+use oc_root::y::{V, Y};
 use oc_utils::bevy::EntityMapping;
 use oc_utils::let_ok;
 use oc_utils::let_some;
@@ -117,7 +117,7 @@ pub fn on_insert_individual(
     let sprite = animations.sprite();
     let gesture = individual.1.gesture.clone();
     let status = individual.1.status;
-    let rotation = gesture.rotation();
+    let rotation = gesture.rotation(V::Gui);
     let animation = SoldierAnimationInfos::new(Side::A, status, gesture).animation(&animations);
     let position = individual.1.position;
 
@@ -162,16 +162,21 @@ fn on_refresh_render(
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
     animations: Res<SoldierAnimations>,
 ) {
-    let_some!(entity = state.get(&individual.0), return);
+    let i = individual.0;
+    let_some!(entity = state.get(&i), return);
     let Ok((status, gesture, mut animation, mut transform)) = query.get_mut(*entity) else {
         return;
     };
 
     let animation_ = SoldierAnimationInfos::new(Side::A, status.0, gesture.0.clone());
     let animation_ = animation_.animation(&animations);
-    let rotation = gesture.rotation();
+    let rotation = gesture.rotation(V::Gui);
 
-    animation.switch(animation_);
+    tracing::trace!(name = "ingame-individual-on-refresh-render", i=?i, animation_=?animation_);
+    // Only switch (and thus reset frame/repetition indices) if the target animation actually changed.
+    if animation.animation != animation_ {
+        animation.switch(animation_);
+    }
     transform.rotation = rotation;
 }
 

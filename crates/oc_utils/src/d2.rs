@@ -3,7 +3,7 @@ use std::f32::consts::FRAC_PI_2;
 use derive_more::Constructor;
 use geo::{Contains, Triangle, coord};
 use glam::{Vec2, Vec3};
-use oc_root::WcfgFrom;
+use oc_root::{WcfgFrom, y::V};
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, Eq)]
@@ -306,8 +306,12 @@ impl Direction {
         Self::from((b - a).normalize_or_zero())
     }
 
-    pub fn angle(&self) -> Angle {
-        Angle(self.y.atan2(self.x) - std::f32::consts::FRAC_PI_2)
+    pub fn angle(&self, v: V) -> Angle {
+        let y = match v {
+            V::Server => self.y,
+            V::Gui => -self.y,
+        };
+        Angle(y.atan2(self.x) - std::f32::consts::FRAC_PI_2)
     }
 }
 

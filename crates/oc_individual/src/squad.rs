@@ -134,7 +134,7 @@ impl SquadFormation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use oc_root::physics::Meters;
+    use oc_root::{physics::Meters, y::V};
     use oc_utils::d2::Direction;
     use rstest::rstest;
 
@@ -146,9 +146,9 @@ mod tests {
     #[case(4, Angle::zero(), vec![Vec2::new(100., 100.), Vec2::new(80., 100.), Vec2::new(120., 100.), Vec2::new(60., 100.)])]
     #[case(5, Angle::zero(), vec![Vec2::new(100., 100.), Vec2::new(80., 100.), Vec2::new(120., 100.), Vec2::new(60., 100.), Vec2::new(140., 100.)])]
     //
-    #[case(1, Direction::EST.angle(), vec![Vec2::new(100., 100.)])]
-    #[case(2, Direction::EST.angle(), vec![Vec2::new(100., 100.), Vec2::new(100., 80.)])]
-    #[case(3, Direction::EST.angle(), vec![Vec2::new(100., 100.), Vec2::new(100., 80.), Vec2::new(100., 120.)])]
+    #[case(1, Direction::EST.angle(V::Server), vec![Vec2::new(100., 100.)])]
+    #[case(2, Direction::EST.angle(V::Server), vec![Vec2::new(100., 100.), Vec2::new(100., 80.)])]
+    #[case(3, Direction::EST.angle(V::Server), vec![Vec2::new(100., 100.), Vec2::new(100., 80.), Vec2::new(100., 120.)])]
     fn test_formation_line_positions(
         #[case] count: usize,
         #[case] angle: Angle,

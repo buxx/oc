@@ -18,6 +18,8 @@ use oc_root::WorldConfig;
 use oc_root::material::MaterialKind;
 use oc_root::physics::Meters;
 use oc_root::side::Side;
+#[cfg(feature = "bevy")]
+use oc_root::y::V;
 use oc_utils::collections::WithIds;
 use oc_utils::d2::Direction;
 use rkyv::{Archive, Deserialize, Serialize};
@@ -280,8 +282,8 @@ pub enum Gesture {
 
 impl Gesture {
     #[cfg(feature = "bevy")]
-    pub fn rotation(&self) -> bevy::prelude::Quat {
-        let angle = self.direction().angle();
+    pub fn rotation(&self, v: V) -> bevy::prelude::Quat {
+        let angle = self.direction().angle(v);
         bevy::prelude::Quat::from_rotation_z(angle.0)
     }
 

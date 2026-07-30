@@ -209,7 +209,7 @@ impl<'a> Processor<'a> {
         let reference = Vec2::new(leader.position[0], leader.position[1]);
         let count = squad.actives as usize;
         let direction = gesture.direction();
-        let angle = direction.angle();
+        let angle = direction.angle(V::Server);
 
         let positions =
             squad

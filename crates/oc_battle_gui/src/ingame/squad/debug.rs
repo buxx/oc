@@ -72,8 +72,7 @@ pub fn draw_formations(
                 continue;
             };
             let position = Vec2::new(position.0[0], position.0[1].to_gui_y(&g.w));
-            let angle = gesture.0.direction().angle();
-            // dbg!(gesture.0.direction());
+            let angle = gesture.0.direction().angle(V::Gui);
             let positions = squad
                 .formation
                 .positions(&g.w, V::Gui, position, angle, count);

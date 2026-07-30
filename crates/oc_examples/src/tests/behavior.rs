@@ -84,7 +84,7 @@ fn individuals(
                 w,
                 V::Server,
                 (*position).into(),
-                DIRECTION.angle(),
+                DIRECTION.angle(V::Server),
                 count,
             );
             // dbg!(&positions);

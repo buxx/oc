@@ -32,6 +32,3 @@ gungraun = "0.19"
 [[bench]]
 name = "shape_cover_tiles"
 harness = false
-
-[profile.bench]
-debug = true
