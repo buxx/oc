@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 use bevy::prelude::*;
-use bevy_egui::egui;
 use derive_more::Constructor;
 use oc_geo::{region::RegionXy, tile::TileXy};
 use oc_individual::IndividualIndex;
@@ -143,11 +142,11 @@ pub enum View {
 impl<'a, 'b, 'w, 's, 'c> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's, 'c> {
     type Tab = Tab;
 
-    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
+    fn title(&mut self, tab: &mut Self::Tab) -> egui_dock::egui::WidgetText {
         tab.to_string().into()
     }
 
-    fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
+    fn ui(&mut self, ui: &mut egui_dock::egui::Ui, tab: &mut Self::Tab) {
         let context = &mut self.context;
         let commands = &mut self.commands;
         let mod_ = self.mod_;

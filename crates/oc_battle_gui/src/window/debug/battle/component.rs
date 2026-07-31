@@ -15,7 +15,7 @@ impl super::Context {
     pub fn ui_components(
         &mut self,
         w: &WorldConfig,
-        ui: &mut egui::Ui,
+        ui: &mut egui_dock::egui::Ui,
         commands: &mut Commands,
         _mod_: &Mod,
     ) {

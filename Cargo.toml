@@ -34,22 +34,22 @@ axum = "0.8"
 tokio = "1"
 tokio-util = "0.7"
 reqwest = "0.13"
-bevy_egui = "0.40"
-egui_dock = "0.18"
+bevy_egui = "0.41"
+egui_dock = "0.20"
 strum = "0.28"
 strum_macros = "0.28"
 ron = "0.12"
 tar = "0.4"
 flate2 = "1"
-glam = "0.30.10"  # version stucked by polyanya requirements
+glam = "0.33"  # version stucked by polyanya requirements
 fastrand = "2"
 bon = "3.9"
 fs_extra = "1"
 tempfile = "3"
 tiled = "0.10.2"
-geo = "0.32"
+geo = "0.33"
 ctrlc = "3"
-polyanya = "0.16"
+polyanya = { git = "https://github.com/buxx/polyanya.git", branch = "main" }  # Forked to solve glam version conflict
 parking_lot = { version = "0.12", features = ["deadlock_detection"] }
 backtrace = "0.3"
 

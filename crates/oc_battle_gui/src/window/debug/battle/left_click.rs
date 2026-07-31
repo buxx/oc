@@ -15,7 +15,7 @@ impl super::Context {
     pub fn ui_left_click(
         &mut self,
         _: &WorldConfig,
-        ui: &mut egui::Ui,
+        ui: &mut egui_dock::egui::Ui,
         commands: &mut Commands,
         mod_: &Mod,
     ) {

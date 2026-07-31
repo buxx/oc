@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_egui::egui;
 use oc_mod::Mod;
 use oc_root::WorldConfig;
 
@@ -7,7 +6,7 @@ impl super::Context {
     pub fn ui_cursor(
         &mut self,
         _: &WorldConfig,
-        ui: &mut egui::Ui,
+        ui: &mut egui_dock::egui::Ui,
         _commands: &mut Commands,
         _mod_: &Mod,
     ) {

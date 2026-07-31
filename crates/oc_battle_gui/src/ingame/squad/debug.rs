@@ -71,14 +71,14 @@ pub fn draw_formations(
             let Ok((position, gesture)) = individual.get(*leader) else {
                 continue;
             };
-            let position = Vec2::new(position.0[0], position.0[1].to_gui_y(&g.w));
+            let position = glam::Vec2::new(position.0[0], position.0[1].to_gui_y(&g.w));
             let angle = gesture.0.direction().angle(V::Gui);
             let positions = squad
                 .formation
                 .positions(&g.w, V::Gui, position, angle, count);
             for position in positions {
                 tracing::trace!(name = "ingame-squad-debug-formations-draw-point", i=?i, position=?position);
-                gizmos.circle_2d(position, 1., color);
+                gizmos.circle_2d(bevy::math::Vec2::new(position.x, position.y), 1., color);
             }
         }
     }

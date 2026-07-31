@@ -254,8 +254,8 @@ impl<'a> Processor<'a> {
                     None | Some(Order::Idle) => Intent::Idle(direction),
                     Some(Order::MoveTo(position)) => {
                         // TODO: think about a way to cache that ? Or not if don't take too much CPU
-                        let from = glam::Vec2::new(individual.position[0], individual.position[1]);
-                        let to = glam::Vec2::new(position.x, position.y);
+                        let from = (individual.position[0], individual.position[1]);
+                        let to = (position.x, position.y);
                         let path = self.world.navmesh.path(from, to);
                         match path {
                             Some(path) => Intent::MoveTo(position.clone(), MovePath::from(path)),
