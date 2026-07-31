@@ -6,13 +6,11 @@ use oc_geo::tile::TileXy;
 use oc_mod::DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS;
 use oc_root::{Wcfg, WorldConfig, physics::Meters, y::Y};
 use oc_utils::{d2::Xy, let_ok, let_some};
+use strum_macros::{Display, EnumIter};
 
-#[cfg(feature = "debug")]
 use crate::ingame::input::left_click::{LeftClick, LeftClickMode};
 
 use crate::states::GameConfig;
-#[cfg(feature = "debug")]
-use crate::window::debug::battle::LovClickMode;
 
 use crate::{ingame::draw, states::InGameState, world::World};
 
@@ -25,10 +23,8 @@ pub struct UpdateLovFor(pub Entity, pub Vec2);
 #[derive(Debug, Event)]
 pub struct DespawnLov;
 
-#[cfg(feature = "debug")]
 #[derive(Debug, Clone)]
 pub struct SpawnLovConfig {
-    #[cfg(feature = "debug")]
     pub click: LovClickMode,
     pub start_pluz_z: Meters,
     pub stop_pluz_z: Meters,
@@ -59,6 +55,20 @@ pub struct Lov {
     pub stop: Vec3,
     pub stop_plus_z: Meters,
     pub sections: Vec<(Vec2, Vec2, Color)>,
+}
+
+#[derive(Debug, Clone, Copy, Default, Display, EnumIter, PartialEq, Eq)]
+pub enum SpawnProjectileClickMode {
+    TwoClicks,
+    #[default]
+    DraggedClick,
+}
+
+#[derive(Debug, Clone, Copy, Default, Display, EnumIter, PartialEq, Eq)]
+pub enum LovClickMode {
+    TwoClicks,
+    #[default]
+    DraggedClick,
 }
 
 #[derive(Default, Reflect, GizmoConfigGroup)]

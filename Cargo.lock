@@ -3363,6 +3363,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "enum_type_derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "epaint"
 version = "0.34.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5965,6 +5974,7 @@ dependencies = [
  "clap",
  "derive_more",
  "egui_dock",
+ "enum_type_derive",
  "flate2",
  "fs_extra",
  "glam 0.33.2",
@@ -6043,6 +6053,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "derive_more",
+ "enum_type_derive",
  "glam 0.33.2",
  "oc_geo",
  "oc_mod",

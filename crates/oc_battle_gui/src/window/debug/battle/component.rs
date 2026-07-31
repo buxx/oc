@@ -5,11 +5,21 @@ use bevy_egui::prelude::*;
 use oc_geo::region::RegionXy;
 use oc_mod::Mod;
 use oc_root::{WcfgInto, WorldConfig};
+use strum_macros::EnumIter;
 
 use crate::{
     ingame::camera::{GoToPoint, region::Region},
-    window::debug::{battle::View, subject::Subject},
+    window::debug::subject::Subject,
 };
+
+#[derive(Debug, Clone, EnumIter, Default)]
+pub enum View {
+    #[default]
+    None,
+    Regions,
+    Individuals,
+    Projectiles,
+}
 
 impl super::Context {
     pub fn ui_components(
@@ -21,29 +31,29 @@ impl super::Context {
     ) {
         ui.horizontal(|ui| {
             if ui.button("x").clicked() {
-                self.view = View::None;
+                self.component_view = View::None;
             }
             if ui
                 .button(format!("Regions ({})", self.regions.len()))
                 .clicked()
             {
-                self.view = View::Regions;
+                self.component_view = View::Regions;
             };
             if ui
                 .button(format!("Individuals ({})", self.individuals.len()))
                 .clicked()
             {
-                self.view = View::Individuals;
+                self.component_view = View::Individuals;
             };
             if ui
                 .button(format!("Projectiles ({})", self.projectiles.len()))
                 .clicked()
             {
-                self.view = View::Projectiles;
+                self.component_view = View::Projectiles;
             };
         });
 
-        if let Some(action) = match self.view {
+        if let Some(action) = match self.component_view {
             View::None => None,
             View::Regions => self.ui_regions(w, ui, &self.regions),
             View::Individuals => self.ui_subjects(w, ui, &self.individuals),

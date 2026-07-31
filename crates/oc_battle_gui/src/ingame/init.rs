@@ -10,7 +10,8 @@ use crate::{
 };
 
 pub fn init(mut commands: Commands) {
-    tracing::debug!("Trigger FirstIngameEnter");
+    tracing::debug!("Init InGame");
+    commands.insert_resource(super::state::State::default());
     commands.trigger(FirstIngameEnter);
 }
 

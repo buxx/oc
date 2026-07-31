@@ -42,6 +42,7 @@ pub mod physics;
 pub mod projectile;
 pub mod region;
 pub mod squad;
+pub mod state;
 pub mod world;
 
 pub struct IngamePlugin;

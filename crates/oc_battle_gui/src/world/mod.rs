@@ -224,15 +224,12 @@ impl World {
         Some(p)
     }
 
-    // TODO: remove cfg feature when used in no"debug" code
-    #[cfg(feature = "debug")]
-    pub fn individual_squad(&self, i: IndividualIndex) -> Option<&Squad> {
-        self.individual_squad.get(&i).and_then(|squad| {
-            self.squads_refs
-                .get(squad)
-                .and_then(|region| self.squads.get(region))
-                .and_then(|squads| squads.get(squad))
-        })
+    pub fn individual_squad(&self, i: IndividualIndex) -> Option<(SquadIndex, &Squad)> {
+        let i = self.individual_squad.get(&i)?;
+        let region = self.squads_refs.get(i)?;
+        let squads = self.squads.get(region)?;
+        let squad = squads.get(i)?;
+        Some((*i, squad))
     }
 }
 

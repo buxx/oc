@@ -19,11 +19,13 @@ use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
 };
 use crate::ingame::region::ForgottenRegion;
-use crate::ingame::{self, squad};
+use crate::ingame::squad::menu::contextual::{
+    PrepareOpenSquadContextualMenu, on_prepare_open_squad_contextual_menu,
+};
+use crate::ingame::{self};
 use crate::sprites::IntoAnimation;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
 use crate::states::{AppState, GameConfig};
-#[cfg(feature = "debug")]
 use crate::world::World;
 
 #[cfg(feature = "debug")]
@@ -92,7 +94,7 @@ fn positions(
     let_some!(g = &g.0, return);
 
     for (i, position) in individuals {
-        let_some!(squad = world.individual_squad(i.0), continue);
+        let_some!((_, squad) = world.individual_squad(i.0), continue);
 
         let color = match squad.leader() == i.0 {
             true => Color::srgba(0.0, 1.0, 1.0, 0.5),
@@ -110,7 +112,6 @@ pub fn on_insert_individual(
     g: Res<GameConfig>,
     mut state: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
     animations: Res<SoldierAnimations>,
-    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     let_some!(g = &g.0, return);
     tracing::trace!(name="spawn-individual", i=?individual.0, position=?individual.1.position);
@@ -121,7 +122,6 @@ pub fn on_insert_individual(
     let rotation = gesture.rotation(V::Gui);
     let animation = SoldierAnimationInfos::new(Side::A, status, gesture).animation(&animations);
     let position = individual.1.position;
-    let mesh = meshes.add(Rectangle::new(5.0, 5.0));
 
     let entity = commands
         .spawn((
@@ -152,9 +152,9 @@ pub fn on_insert_individual(
                 .with_rotation(rotation),
             ),
             // Surface (clicking, etc)
-            (Mesh2d(mesh), Pickable::default()),
+            (Pickable::default(),),
         ))
-        .observe(squad::menu::contextual::on_click)
+        .observe(on_click)
         .id();
 
     state.insert(individual.0, entity);
@@ -162,6 +162,24 @@ pub fn on_insert_individual(
         individual.0,
         individual.1.orders.clone(),
     ));
+}
+
+fn on_click(
+    event: On<Pointer<Click>>,
+    mut commands: Commands,
+    mut state: ResMut<super::state::State>,
+    world: Res<World>,
+    query: Query<&IndividualIndex>,
+) {
+    if event.button == PointerButton::Secondary {
+        let individual = event.original_event_target();
+        let_ok!(individual = query.get(individual), return);
+        let_some!((squad, _) = world.individual_squad(individual.0), return);
+
+        // FIXME BS NOW: add selected squads to debug window
+        state.set_selected_squads(vec![squad]);
+        commands.trigger(PrepareOpenSquadContextualMenu(individual.0))
+    }
 }
 
 fn on_refresh_render(
@@ -258,6 +276,7 @@ impl Plugin for IndividualPlugin {
             .add_observer(on_accomplished_event)
             .add_observer(on_move_step_accomplished_event)
             .add_observer(on_refresh_render)
+            .add_observer(on_prepare_open_squad_contextual_menu)
             .add_systems(
                 Update,
                 ingame::physics::physics_step::<oc_individual::IndividualIndex, IndividualIndex>

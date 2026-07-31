@@ -36,6 +36,9 @@ impl super::Context {
             LeftClickModeType::Select => {
                 commands.trigger(SetLeftClick(LeftClickMode::Select));
             }
+            LeftClickModeType::Order => {
+                // TODO: must have OrderType list too
+            }
             LeftClickModeType::LineOfView => {
                 let click_mode = &mut self.lov_click_mode;
                 let click_mode_before = *click_mode;

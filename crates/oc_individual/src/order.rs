@@ -1,3 +1,4 @@
+use enum_type_derive::EnumType;
 use oc_utils::d2::Position;
 use rkyv::Archive;
 
@@ -10,6 +11,7 @@ use rkyv::Archive;
     serde::Serialize,
     serde::Deserialize,
     PartialEq,
+    EnumType,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Order {

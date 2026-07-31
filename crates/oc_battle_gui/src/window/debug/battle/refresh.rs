@@ -7,6 +7,7 @@ use oc_root::y::Y;
 use oc_root::{Wcfg, WcfgInto};
 use oc_utils::let_some;
 
+use crate::ingame;
 use crate::world::World;
 use crate::{
     entity::{individual::IndividualIndex, projectile::ProjectileId},
@@ -43,6 +44,7 @@ pub fn on_refresh(
     window_: Single<&bevy::window::Window>,
     camera_: Single<(&Camera, &GlobalTransform)>,
     world: Res<World>,
+    ingame: Res<ingame::state::State>,
 ) {
     let_some!(w = &w.0, return);
 
@@ -93,6 +95,8 @@ pub fn on_refresh(
                 window.context.region = Some(region);
             };
         };
+
+        window.context.ingame = ingame.clone();
 
         window.last = Instant::now();
     }

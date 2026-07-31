@@ -12,16 +12,22 @@ use oc_mod::{
 };
 use oc_projectile::ProjectileId;
 use oc_root::{WorldConfig, physics::Meters};
-use strum_macros::{Display, EnumIter};
+use strum_macros::EnumIter;
 
 pub mod component;
 pub mod cursor;
 pub mod left_click;
 pub mod refresh;
+pub mod states;
 pub mod window;
 
 use crate::{
-    ingame::{camera::region::Region, input::left_click::LeftClickModeType},
+    ingame::{
+        self,
+        camera::region::Region,
+        input::left_click::LeftClickModeType,
+        lov::{LovClickMode, SpawnProjectileClickMode},
+    },
     window::{MountedWindow, UnmountedWindow, debug::subject::Subject},
 };
 
@@ -43,10 +49,12 @@ pub struct Context {
     tile: Option<(TileXy, String)>,
     region: Option<RegionXy>,
     // Components
-    view: View,
+    component_view: component::View,
+    states_view: states::View,
     regions: Vec<Region>,
     individuals: Vec<Subject<IndividualIndex>>,
     projectiles: Vec<Subject<ProjectileId>>,
+    ingame: ingame::state::State,
     // Left click
     left_click_mode: LeftClickModeType,
     spawn_weapon_type: WeaponType,
@@ -71,11 +79,13 @@ impl Default for Context {
             point: Default::default(),
             tile: Default::default(),
             region: Default::default(),
-            view: Default::default(),
+            component_view: Default::default(),
+            states_view: Default::default(),
             regions: Default::default(),
             individuals: Default::default(),
             projectiles: Default::default(),
-            left_click_mode: Default::default(),
+            ingame: Default::default(),
+            left_click_mode: LeftClickModeType::Select,
             spawn_weapon_type: Default::default(),
             spawn_weapon: Default::default(),
             spawn_ammunition: Default::default(),
@@ -98,23 +108,10 @@ pub struct InContext<'a, 'b, 'w, 's, 'c> {
     pub w: &'c WorldConfig,
 }
 
-#[derive(Debug, Clone, Copy, Default, Display, EnumIter, PartialEq, Eq)]
-pub enum SpawnProjectileClickMode {
-    TwoClicks,
-    #[default]
-    DraggedClick,
-}
-
-#[derive(Debug, Clone, Copy, Default, Display, EnumIter, PartialEq, Eq)]
-pub enum LovClickMode {
-    TwoClicks,
-    #[default]
-    DraggedClick,
-}
-
 #[derive(Debug, Clone, EnumIter, Default)]
 pub enum Tab {
     #[default]
+    States,
     Cursor,
     Components,
     Leftclick,
@@ -123,20 +120,12 @@ pub enum Tab {
 impl Display for Tab {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Tab::States => f.write_str("States"),
             Tab::Cursor => f.write_str("Cursor"),
             Tab::Components => f.write_str("Components"),
             Tab::Leftclick => f.write_str("Left click"),
         }
     }
-}
-
-#[derive(Debug, Clone, EnumIter, Default)]
-pub enum View {
-    #[default]
-    None,
-    Regions,
-    Individuals,
-    Projectiles,
 }
 
 impl<'a, 'b, 'w, 's, 'c> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's, 'c> {
@@ -153,6 +142,7 @@ impl<'a, 'b, 'w, 's, 'c> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's, 'c> 
         let w = self.w;
 
         match tab {
+            Tab::States => context.ui_states(w, ui, commands, mod_),
             Tab::Cursor => context.ui_cursor(w, ui, commands, mod_),
             Tab::Components => context.ui_components(w, ui, commands, mod_),
             Tab::Leftclick => context.ui_left_click(w, ui, commands, mod_),

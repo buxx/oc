@@ -1,21 +1,27 @@
 use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
+use enum_type_derive::EnumType;
+use oc_individual::order::OrderType;
 use oc_network::ToServer;
 use oc_root::Wcfg;
 use oc_root::physics::Meters;
 use oc_utils::{let_ok, let_some};
+#[cfg(feature = "debug")]
 use strum_macros::EnumIter;
 
+#[cfg(feature = "debug")]
 use crate::ingame::debug::projectile::SpawnProjectileProfile;
-use crate::ingame::lov::{DespawnLov, SpawnLov, SpawnLovConfig, SpawnLovProfile};
+#[cfg(feature = "debug")]
+use crate::ingame::lov::SpawnProjectileClickMode;
+use crate::ingame::lov::{DespawnLov, LovClickMode, SpawnLov, SpawnLovConfig, SpawnLovProfile};
 use crate::window::PointerInWindow;
-use crate::window::debug::battle::{LovClickMode, SpawnProjectileClickMode};
 use crate::world::World;
 use crate::{ingame::draw, network::output::ToServerEvent};
 
 #[derive(Debug, Deref, DerefMut, Event)]
 pub struct SetLeftClick(pub LeftClickMode);
 
+#[cfg(feature = "debug")]
 #[derive(Debug, Deref, DerefMut, Event)]
 pub struct SetSpawnProjectileLeftClickMode(pub SpawnProjectileClickMode);
 
@@ -28,34 +34,37 @@ pub struct DespawnClicksLine;
 #[derive(Debug, Component)]
 pub struct ClicksLine;
 
-#[derive(Debug, Deref, DerefMut, Resource, Default)]
+#[derive(Debug, Deref, DerefMut, Resource)]
 pub struct LeftClick(pub LeftClickMode);
 
+impl Default for LeftClick {
+    fn default() -> Self {
+        Self(LeftClickMode::Select)
+    }
+}
+
+#[cfg(feature = "debug")]
 #[derive(Debug, Deref, DerefMut, Resource, Default)]
 pub struct SpawnProjectileLeftClick(pub SpawnProjectileClickMode);
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, EnumType)]
+#[enum_type(derive(EnumIter))]
 pub enum LeftClickMode {
-    #[default]
     Select,
+    #[cfg(feature = "debug")]
     SpawnProjectile(SpawnProjectileProfile),
     LineOfView(SpawnLovConfig),
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, EnumIter)]
-pub enum LeftClickModeType {
-    #[default]
-    Select,
-    SpawnProjectile,
-    LineOfView,
+    Order(OrderType),
 }
 
 impl LeftClickModeType {
     pub fn name(&self) -> &str {
         match self {
             LeftClickModeType::Select => "Select",
+            #[cfg(feature = "debug")]
             LeftClickModeType::SpawnProjectile => "Spawn projectile",
             LeftClickModeType::LineOfView => "Line of view",
+            LeftClickModeType::Order => "Order",
         }
     }
 }
@@ -68,10 +77,10 @@ pub fn click_debug(
     camera: Single<(&Camera, &GlobalTransform)>,
     buttons: Res<ButtonInput<MouseButton>>,
     mode: Res<LeftClick>,
-    spawn_mode: Res<SpawnProjectileLeftClick>,
+    #[cfg(feature = "debug")] spawn_projectile_mode: Res<SpawnProjectileLeftClick>,
     _keys: Res<ButtonInput<KeyCode>>,
     mut state: ResMut<super::State>,
-    world: Res<World>,
+    #[cfg(feature = "debug")] world: Res<World>,
 ) {
     if ignore.0 {
         return;
@@ -84,6 +93,9 @@ pub fn click_debug(
 
     match &mode.0 {
         LeftClickMode::Select => {
+            // TODO
+        }
+        LeftClickMode::Order(_) => {
             // TODO
         }
 
@@ -110,7 +122,8 @@ pub fn click_debug(
             }
         },
 
-        LeftClickMode::SpawnProjectile(profile) => match spawn_mode.0 {
+        #[cfg(feature = "debug")]
+        LeftClickMode::SpawnProjectile(profile) => match spawn_projectile_mode.0 {
             SpawnProjectileClickMode::TwoClicks => {
                 if buttons.just_released(MouseButton::Left) {
                     state.clicks.push(point);
@@ -170,6 +183,7 @@ pub fn on_set_left_click(set: On<SetLeftClick>, mut left_click: ResMut<LeftClick
     left_click.0 = set.0.clone();
 }
 
+#[cfg(feature = "debug")]
 pub fn on_set_spawn_projectile_left_click(
     set: On<SetSpawnProjectileLeftClickMode>,
     mut left_click: ResMut<SpawnProjectileLeftClick>,
@@ -209,7 +223,8 @@ pub fn update_spawn_projectile_clicks_line(
     state: Res<super::State>,
 ) {
     match &mode.0 {
-        LeftClickMode::Select | LeftClickMode::LineOfView(_) => {}
+        LeftClickMode::Select | LeftClickMode::LineOfView(_) | LeftClickMode::Order(_) => {}
+        #[cfg(feature = "debug")]
         LeftClickMode::SpawnProjectile(_) => {
             if !state.clicks.is_empty() {
                 commands.trigger(DespawnClicksLine);
