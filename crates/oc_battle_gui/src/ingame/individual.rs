@@ -11,7 +11,6 @@ use oc_utils::let_ok;
 use oc_utils::let_some;
 
 use crate::entity::individual::{Behavior, IndividualIndex, Intent, Orders};
-use crate::ingame;
 use crate::ingame::behavior::{
     DespawnIndividualOrder, DespawnIndividualOrders, RefreshIndividualOrdersEvent,
 };
@@ -20,6 +19,7 @@ use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
 };
 use crate::ingame::region::ForgottenRegion;
+use crate::ingame::{self, squad};
 use crate::sprites::IntoAnimation;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
 use crate::states::{AppState, GameConfig};
@@ -110,6 +110,7 @@ pub fn on_insert_individual(
     g: Res<GameConfig>,
     mut state: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
     animations: Res<SoldierAnimations>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     let_some!(g = &g.0, return);
     tracing::trace!(name="spawn-individual", i=?individual.0, position=?individual.1.position);
@@ -120,30 +121,40 @@ pub fn on_insert_individual(
     let rotation = gesture.rotation(V::Gui);
     let animation = SoldierAnimationInfos::new(Side::A, status, gesture).animation(&animations);
     let position = individual.1.position;
+    let mesh = meshes.add(Rectangle::new(5.0, 5.0));
 
     let entity = commands
         .spawn((
-            IndividualIndex(individual.0),
-            Position(position),
-            Tile(individual.1.tile),
-            Region(individual.1.region),
-            Behavior(individual.1.behavior.clone()),
-            Intent(individual.1.intent.clone()),
-            Forces(individual.1.forces.clone()),
-            Status(individual.1.status),
-            Orders(individual.1.orders.clone()),
-            Gesture(individual.1.gesture.clone()),
-            Volumes(individual.1.volumes(position, &g.w, &g.mod_).clone()),
-            Material_(individual.1.kind()),
-            sprite,
-            SpritesheetAnimation::new(animation),
-            Transform::from_xyz(
-                individual.1.position[0],
-                individual.1.position[1].to_gui_y(&g.w),
-                Z_INDIVIDUAL,
-            )
-            .with_rotation(rotation),
+            // Individual properties
+            (
+                IndividualIndex(individual.0),
+                Position(position),
+                Tile(individual.1.tile),
+                Region(individual.1.region),
+                Behavior(individual.1.behavior.clone()),
+                Intent(individual.1.intent.clone()),
+                Forces(individual.1.forces.clone()),
+                Status(individual.1.status),
+                Orders(individual.1.orders.clone()),
+                Gesture(individual.1.gesture.clone()),
+                Volumes(individual.1.volumes(position, &g.w, &g.mod_).clone()),
+                Material_(individual.1.kind()),
+            ),
+            // Visual (sprites, animation, etc)
+            (
+                sprite,
+                SpritesheetAnimation::new(animation),
+                Transform::from_xyz(
+                    individual.1.position[0],
+                    individual.1.position[1].to_gui_y(&g.w),
+                    Z_INDIVIDUAL,
+                )
+                .with_rotation(rotation),
+            ),
+            // Surface (clicking, etc)
+            (Mesh2d(mesh), Pickable::default()),
         ))
+        .observe(squad::menu::contextual::on_click)
         .id();
 
     state.insert(individual.0, entity);

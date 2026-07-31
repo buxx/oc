@@ -15,6 +15,7 @@ mod fx;
 mod home;
 mod individual;
 mod ingame;
+mod menu;
 mod network;
 #[cfg(feature = "debug")]
 mod projectile;

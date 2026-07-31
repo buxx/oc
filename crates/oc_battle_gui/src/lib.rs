@@ -9,6 +9,7 @@ pub mod home;
 pub mod identity;
 pub mod individual;
 pub mod ingame;
+pub mod menu;
 pub mod network;
 #[cfg(feature = "debug")]
 pub mod projectile;
