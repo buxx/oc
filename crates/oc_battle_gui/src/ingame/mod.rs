@@ -14,6 +14,7 @@ use crate::{
         individual::IndividualPlugin,
         input::{client::on_to_client, keyboard::on_key_press},
         lov::LovPlugin,
+        path::{DisplayPaths, PathGizmos, draw_paths, on_compute_display_paths},
         projectile::ProjectilePlugin,
         region::on_listening_region,
         squad::SquadPlugin,
@@ -38,6 +39,7 @@ pub mod individual;
 pub mod init;
 pub mod input;
 pub mod lov;
+pub mod path;
 pub mod physics;
 pub mod projectile;
 pub mod region;
@@ -73,7 +75,9 @@ pub struct RestoreBattleCenter;
 
 impl Plugin for IngamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(WorldPlugin)
+        app.init_gizmo_group::<PathGizmos>()
+            .init_resource::<DisplayPaths>()
+            .add_plugins(WorldPlugin)
             .add_plugins(HeightPlugin)
             .add_plugins(IndividualPlugin)
             .add_plugins(SquadPlugin)
@@ -97,15 +101,27 @@ impl Plugin for IngamePlugin {
             .add_observer(on_switch_to_height_map)
             .add_observer(on_quit_height_map)
             .add_observer(on_restore_battle_center)
+            .add_observer(on_compute_display_paths)
             // .add_observer(on_forgotten_region)
             // TODO: InputPlugin
             .add_observer(physics::on_physics_event)
             // TODO: despawn entities on OnExit(AppState::InGame)
+            .add_systems(Startup, path::setup)
             .add_systems(
                 OnEnter(AppState::InGame),
                 (init::init, init::refresh, init::spawn_world_map),
             )
-            .add_systems(Update, on_key_press.run_if(in_state(AppState::InGame)));
+            .add_systems(Update, (on_key_press,).run_if(in_state(AppState::InGame)))
+            .add_systems(
+                Update,
+                (input::left_click::show).run_if(in_state(AppState::InGame)),
+            )
+            .add_systems(
+                Update,
+                (draw_paths)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle)),
+            );
 
         #[cfg(feature = "debug")]
         app.init_resource::<SpawnProjectileLeftClick>()
@@ -118,10 +134,6 @@ impl Plugin for IngamePlugin {
             .add_observer(input::left_click::on_spawn_clicks_line)
             .add_observer(input::left_click::on_despawn_clicks_line)
             .add_observer(region::debug::on_despawn_region_wire_frame_debug)
-            .add_systems(
-                Update,
-                (input::left_click::show).run_if(in_state(AppState::InGame)),
-            )
             .add_systems(
                 Update,
                 (input::left_click::update_spawn_projectile_clicks_line,)

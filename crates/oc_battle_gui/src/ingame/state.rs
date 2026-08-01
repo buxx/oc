@@ -8,6 +8,7 @@ pub struct State {
 }
 
 impl State {
+    #[allow(unused)]
     pub fn selected_squads(&self) -> &[SquadIndex] {
         &self.selected_squads
     }

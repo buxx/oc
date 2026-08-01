@@ -5990,6 +5990,7 @@ dependencies = [
  "oc_root",
  "oc_utils",
  "oc_world",
+ "polyanya",
  "reqwest",
  "rkyv",
  "rustc-hash 2.1.3",

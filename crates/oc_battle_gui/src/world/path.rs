@@ -1,17 +1,16 @@
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_mod::Mod;
-use oc_root::{WcfgFrom, WorldConfig};
-use oc_utils::d2::Xy;
+use oc_root::{WcfgFrom, WorldConfig, material::MaterialKind};
+use oc_world::tile::Tile;
 use polyanya::*;
 
-// function built by AI (claude), then modified by myself
-pub fn navmesh(w: &WorldConfig, grid: &[bool]) -> Mesh {
+// FIXME: maybe merge these two functions ?
+// function inspired from crates/oc_world/src/navmesh.rs which is built by AI
+pub fn navmesh(w: &WorldConfig, mod_: &Mod, tiles: Vec<(&WorldTileIndex, &Tile)>) -> Mesh {
     // 1. Define the outer boundary (the full walkable world)
     //    Points go counter-clockwise around the perimeter.
     let width = w.world_width_pixels as f32;
-    let cols = w.world_width;
     let height = w.world_height_pixels as f32;
-    let rows = w.world_width;
     let tile_size = w.geo_pixels_per_tile as f32;
 
     let mut triangulation = Triangulation::from_outer_edges(&[
@@ -21,7 +20,7 @@ pub fn navmesh(w: &WorldConfig, grid: &[bool]) -> Mesh {
         [0.0, height].into(),
     ]);
 
-    // TODO: values in config ?
+    // FIXME BS NOW: values in config (copied from crates/oc_world/src/navmesh.rs)
     // Keeps the path center at least 2.5px away from any wall edge
     triangulation.set_agent_radius(2.5);
     // For tile walls, rounded corners aren't needed — fewer segments = faster
@@ -31,23 +30,27 @@ pub fn navmesh(w: &WorldConfig, grid: &[bool]) -> Mesh {
 
     // 2. Add each blocked tile as a rectangular obstacle.
     //    Points must be in clockwise order for obstacles.
-    for row in 0..rows {
-        for col in 0..cols {
-            let tile_xy = TileXy(Xy(col, row));
-            let tile_i = WorldTileIndex::from_(tile_xy, w);
-            /* is wall/blocked */
-            if grid[tile_i.0 as usize] {
-                let x = col as f32 * tile_size;
-                let y = row as f32 * tile_size;
+    for (i, tile) in tiles {
+        // FIXME: wrote for individual only for now
+        let wall = mod_
+            .nature(tile.nature)
+            .traversability
+            .deny(MaterialKind::Individual);
 
-                triangulation.add_obstacle([
-                    [x, y].into(),
-                    [x, y + tile_size].into(),
-                    [x + tile_size, y + tile_size].into(),
-                    [x + tile_size, y].into(),
-                ]);
-            }
+        if !wall {
+            continue;
         }
+
+        let xy = TileXy::from_(*i, w);
+        let x = xy.0.0 as f32 * tile_size;
+        let y = xy.0.1 as f32 * tile_size;
+
+        triangulation.add_obstacle([
+            [x, y].into(),
+            [x, y + tile_size].into(),
+            [x + tile_size, y + tile_size].into(),
+            [x + tile_size, y].into(),
+        ]);
     }
 
     // 3. Convert triangulation → Mesh, merge + bake for efficiency
@@ -56,8 +59,4 @@ pub fn navmesh(w: &WorldConfig, grid: &[bool]) -> Mesh {
     mesh.bake(); // builds internal spatial index for fast queries
 
     mesh
-}
-
-pub trait Walls {
-    fn as_walls(&self, mod_: &Mod) -> Vec<bool>;
 }

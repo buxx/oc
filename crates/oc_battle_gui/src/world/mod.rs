@@ -7,6 +7,7 @@ use oc_individual::{
     Individual, IndividualIndex,
     squad::{Squad, SquadIndex},
 };
+use oc_mod::Mod;
 use oc_physics::Physic;
 use oc_root::{WcfgFrom, WcfgInto, WorldConfig};
 #[cfg(feature = "debug")]
@@ -19,9 +20,11 @@ use rustc_hash::FxHashMap;
 use crate::{
     ingame::{WorldResumeEvent, behavior::SpawnSquadOrders, physics::ObjectId},
     states::GameConfig,
+    world::path::navmesh,
 };
 
 pub mod individual;
+pub mod path;
 pub mod tile;
 
 #[derive(Debug, Event)]
@@ -68,6 +71,9 @@ pub struct World {
     pub squads: Index<SquadIndex, Squad>,
     pub squads_refs: FxHashMap<SquadIndex, WorldRegionIndex>, // TODO: remove pub and ensure x_ref
     pub individual_squad: FxHashMap<IndividualIndex, SquadIndex>,
+    // FIXME BS NOW: is that too much blocking to recompute it when world change ?
+    // do it asynchronously ? Or compute paths server side ?
+    navmesh: polyanya::Mesh,
 }
 
 impl World {
@@ -92,6 +98,12 @@ impl World {
                 }
             })
             .or_insert(heights.into_iter().collect());
+    }
+
+    pub fn update_navmesh(&mut self, w: &WorldConfig, mod_: &Mod) {
+        let tiles: Vec<(&WorldTileIndex, &Tile)> =
+            self.tiles.values().flat_map(|inner| inner.iter()).collect();
+        self.navmesh = navmesh(w, mod_, tiles);
     }
 
     pub fn remove_tiles(&mut self, region: WorldRegionIndex) {
@@ -236,6 +248,10 @@ impl World {
         let squads = self.squads.get(region)?;
         let squad = squads.get(i)?;
         Some((*i, squad))
+    }
+
+    pub fn path(&self, from: Vec2, to: Vec2) -> Option<polyanya::Path> {
+        self.navmesh.path([from.x, from.y], [to.x, to.y])
     }
 }
 

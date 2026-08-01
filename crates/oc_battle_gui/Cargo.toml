@@ -43,6 +43,7 @@ glam.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
+polyanya.workspace = true
 
 [dev-dependencies]
 tests = { path = "../tests" }

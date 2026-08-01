@@ -1,31 +1,19 @@
 use bevy::prelude::*;
 use oc_individual::order::Order;
-use oc_physics::update::bevy::Position;
 use oc_root::y::Y;
 use oc_utils::{d2, let_some};
 use rustc_hash::FxHashMap;
 
-#[cfg(feature = "debug")]
-use crate::ingame::camera::squad::ShowFormationPositions;
-
 use crate::{
-    entity::individual::{IndividualIndex, Intent},
     ingame::{
         draw,
         region::{ForgottenRegion, ListeningRegion},
     },
-    states::{AppState, GameConfig, InGameState},
+    states::GameConfig,
     world::World,
 };
 
-const PATH_COLOR: Color = Color::srgba(1.0, 1.0, 1.0, 0.15);
-#[cfg(feature = "debug")]
-const PATH_COLOR_DEBUG: Color = Color::srgba(1.0, 1.0, 1.0, 1.0);
-
 pub struct BehaviorPlugin;
-
-#[derive(Default, Reflect, GizmoConfigGroup)]
-struct PathGizmos;
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
 pub struct IndividualOrders(FxHashMap<oc_individual::IndividualIndex, Vec<(Order, Entity)>>);
@@ -120,8 +108,7 @@ impl SquadOrderSprite {
 
 impl Plugin for BehaviorPlugin {
     fn build(&self, app: &mut App) {
-        app.init_gizmo_group::<PathGizmos>()
-            .init_resource::<IndividualOrders>()
+        app.init_resource::<IndividualOrders>()
             .init_resource::<SquadOrders>()
             // .add_observer(on_set_individual_orders)
             .add_observer(on_refresh_individual_orders)
@@ -134,55 +121,7 @@ impl Plugin for BehaviorPlugin {
             .add_observer(on_despawn_squad_order)
             .add_observer(on_despawn_squad_orders)
             .add_observer(on_listening_region)
-            .add_observer(on_forgotten_region)
-            .add_systems(Startup, setup)
-            .add_systems(
-                Update,
-                draw_paths
-                    .run_if(in_state(AppState::InGame))
-                    .run_if(in_state(InGameState::Battle)),
-            );
-    }
-}
-
-fn setup(mut config: ResMut<GizmoConfigStore>) {
-    tracing::trace!(name = "ingame-behavior-setup-gizmos");
-    let (gizmos, _) = config.config_mut::<PathGizmos>();
-    gizmos.line.width = 1.0;
-    gizmos.line.style = GizmoLineStyle::Dotted;
-}
-
-fn draw_paths(
-    g: Res<GameConfig>,
-    intents: Query<(&Intent, &Position), With<IndividualIndex>>,
-    mut gizmos: Gizmos<PathGizmos>,
-    #[cfg(feature = "debug")] debug: Res<ShowFormationPositions>,
-) {
-    let_some!(g = &g.0, return);
-    #[cfg(not(feature = "debug"))]
-    let color = PATH_COLOR;
-    #[cfg(feature = "debug")]
-    let color = {
-        match debug.0 {
-            true => PATH_COLOR_DEBUG,
-            false => PATH_COLOR,
-        }
-    };
-
-    for (intent, position) in intents {
-        match &intent.0 {
-            oc_individual::behavior::Intent::Idle(_) => {}
-            oc_individual::behavior::Intent::MoveTo(_, path) => {
-                let mut previous: [f32; 2] = [position.0[0], position.0[1]];
-                for point in path.iter() {
-                    let start = Vec3::new(previous[0], previous[1].to_gui_y(&g.w), draw::Z_PATH);
-                    let stop = Vec3::new(point[0], point[1].to_gui_y(&g.w), draw::Z_PATH);
-                    gizmos.line(start, stop, color);
-
-                    previous = [point[0], point[1]];
-                }
-            }
-        }
+            .add_observer(on_forgotten_region);
     }
 }
 
