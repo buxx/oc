@@ -2,7 +2,6 @@ use bevy::prelude::*;
 
 use derive_more::Deref;
 use oc_geo::tile::TileXy;
-#[cfg(feature = "debug")]
 use oc_mod::DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS;
 use oc_root::{Wcfg, WorldConfig, physics::Meters, y::Y};
 use oc_utils::{d2::Xy, let_ok, let_some};
@@ -30,7 +29,6 @@ pub struct SpawnLovConfig {
     pub stop_pluz_z: Meters,
 }
 
-#[cfg(feature = "debug")]
 impl Default for SpawnLovConfig {
     fn default() -> Self {
         Self {
@@ -116,10 +114,9 @@ fn update_lov(
     lovs: Query<Entity, With<Lov>>,
     camera: Single<(&Camera, &GlobalTransform)>,
     window: Single<&Window>,
-    #[cfg(feature = "debug")] mode: Res<LeftClick>,
+    mode: Res<LeftClick>,
 ) {
-    #[cfg(feature = "debug")]
-    if !matches!(mode.0, LeftClickMode::LineOfView(_)) {
+    if !mode.0.display_lov() {
         return;
     }
     let (camera, transform) = *camera;

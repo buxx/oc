@@ -3,6 +3,8 @@ use bevy::prelude::*;
 use enum_type_derive::EnumType;
 use oc_individual::order::OrderType;
 use oc_root::Wcfg;
+use oc_root::physics::Meters;
+use oc_root::y::Y;
 use oc_utils::{let_ok, let_some};
 use strum_macros::EnumIter;
 
@@ -12,10 +14,12 @@ use crate::ingame::debug::projectile::SpawnProjectileProfile;
 use crate::ingame::draw;
 #[cfg(feature = "debug")]
 use crate::ingame::lov::SpawnProjectileClickMode;
-use crate::ingame::lov::{DespawnLov, LovClickMode, SpawnLov, SpawnLovConfig, SpawnLovProfile};
+use crate::ingame::lov::{SpawnLov, SpawnLovConfig, SpawnLovProfile};
 use crate::window::PointerInWindow;
 use crate::world::World;
 
+pub mod lov;
+pub mod order;
 #[cfg(feature = "debug")]
 pub mod spawn_projectile;
 
@@ -51,11 +55,28 @@ pub struct SpawnProjectileLeftClick(pub SpawnProjectileClickMode);
 #[derive(Debug, Clone, EnumType)]
 #[enum_type(derive(EnumIter))]
 pub enum LeftClickMode {
+    ///The default mode which is selector
     Select,
+    /// For debug, ability to spawn projectile from mouse
     #[cfg(feature = "debug")]
     SpawnProjectile(SpawnProjectileProfile),
+    /// User can see a line of view from arbitrary place
     LineOfView(SpawnLovConfig),
+    /// User is going to give a squad order
     Order(OrderType),
+}
+impl LeftClickMode {
+    pub fn display_lov(&self) -> bool {
+        match self {
+            LeftClickMode::Select | LeftClickMode::SpawnProjectile(_) => false,
+            LeftClickMode::LineOfView(_) => true,
+            LeftClickMode::Order(order) => match order {
+                OrderType::Idle => false,
+                // FIXME BS NOW
+                OrderType::MoveTo => true,
+            },
+        }
+    }
 }
 
 impl LeftClickModeType {
@@ -82,7 +103,7 @@ pub fn show(
     _keys: Res<ButtonInput<KeyCode>>,
     mut ingame: ResMut<ingame::state::State>,
     mut state: ResMut<ingame::input::State>,
-    #[cfg(feature = "debug")] world: Res<World>,
+    world: Res<World>,
 ) {
     if ignore.0 {
         return;
@@ -97,45 +118,50 @@ pub fn show(
         LeftClickMode::Select => {
             // TODO
         }
-        LeftClickMode::Order(_) => {
-            // TODO
+        // FIXME BS NOW: move code into order.rs
+        LeftClickMode::Order(order) => {
+            tracing::trace!(name="ingame-input-left_click-show-order", mode=?mode.0, point=?point);
+
+            for squad in ingame.selected_squads() {
+                tracing::trace!(name="ingame-input-left_click-show-order-squad", mode=?mode.0, point=?point, squad=?squad);
+                let_some!(squad = world.squad(squad), return);
+                let_some!(leader = world.get_individual(squad.leader()), return);
+
+                let start = Vec2::new(leader.position[0], leader.position[1]);
+                let start = start.to_gui_y(w);
+
+                // FIXME BS NOW: je suis con, pas de lov pour move (c'est pour fire)
+                tracing::trace!(name="ingame-input-left_click-show-order-squad-trigger", mode=?mode.0, point=?point, squad=?squad, start=?start);
+                commands.trigger(SpawnLov(SpawnLovProfile {
+                    start,
+                    // FIXME BS NOW: individual (squad leader) weapons z (according to gesture)
+                    start_pluz_z: Meters(1.),
+                    // Ground z if no body, body z (according to gesture) if target under cursor
+                    stop_pluz_z: Meters(1.),
+                }));
+            }
         }
 
-        LeftClickMode::LineOfView(profile) => match profile.click {
-            LovClickMode::DraggedClick => {
-                if buttons.just_pressed(MouseButton::Left) {
-                    tracing::trace!(name = "ingame-input-left-click-lov-dragged-pressed");
-                    state.clicks.push(point);
-                    commands.trigger(SpawnLov(SpawnLovProfile {
-                        start: point,
-                        start_pluz_z: profile.start_pluz_z,
-                        stop_pluz_z: profile.stop_pluz_z,
-                    }));
-                }
-
-                if buttons.just_released(MouseButton::Left) {
-                    tracing::trace!(name = "ingame-input-left-click-lov-dragged-release");
-                    state.clicks.clear();
-                    commands.trigger(DespawnLov);
-                }
-            }
-            LovClickMode::TwoClicks => {
-                todo!()
-            }
-        },
+        LeftClickMode::LineOfView(profile) => {
+            tracing::trace!(name="ingame-input-left_click-show-lov", mode=?mode.0, point=?point);
+            lov::show(point, &mut commands, &buttons, &mut state, profile);
+        }
 
         #[cfg(feature = "debug")]
-        LeftClickMode::SpawnProjectile(profile) => spawn_projectile::on_click(
-            w,
-            point,
-            &mut commands,
-            &buttons,
-            &spawn_projectile_mode,
-            &mut ingame,
-            &mut state,
-            &world,
-            profile,
-        ),
+        LeftClickMode::SpawnProjectile(profile) => {
+            tracing::trace!(name="ingame-input-left_click-show-spawn-projectile", mode=?mode.0, point=?point);
+            spawn_projectile::show(
+                w,
+                point,
+                &mut commands,
+                &buttons,
+                &spawn_projectile_mode,
+                &mut ingame,
+                &mut state,
+                &world,
+                profile,
+            )
+        }
     }
 
     //

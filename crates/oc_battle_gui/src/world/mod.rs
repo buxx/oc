@@ -224,6 +224,12 @@ impl World {
         Some(p)
     }
 
+    pub fn squad(&self, i: &SquadIndex) -> Option<&Squad> {
+        let region = self.squads_refs.get(i)?;
+        let squads = self.squads.get(region)?;
+        squads.get(i)
+    }
+
     pub fn individual_squad(&self, i: IndividualIndex) -> Option<(SquadIndex, &Squad)> {
         let i = self.individual_squad.get(&i)?;
         let region = self.squads_refs.get(i)?;

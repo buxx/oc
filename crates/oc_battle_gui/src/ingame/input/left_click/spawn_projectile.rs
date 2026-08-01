@@ -12,7 +12,7 @@ use crate::ingame::lov::SpawnProjectileClickMode;
 use crate::network::output::ToServerEvent;
 use crate::world::World;
 
-pub fn on_click(
+pub fn show(
     w: &WorldConfig,
     point: Vec2,
     commands: &mut Commands,
