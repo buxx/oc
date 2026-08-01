@@ -176,7 +176,6 @@ fn on_click(
         let_ok!(individual = query.get(individual), return);
         let_some!((squad, _) = world.individual_squad(individual.0), return);
 
-        // FIXME BS NOW: add selected squads to debug window
         state.set_selected_squads(vec![squad]);
         commands.trigger(PrepareOpenSquadContextualMenu(individual.0))
     }

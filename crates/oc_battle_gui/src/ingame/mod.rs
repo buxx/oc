@@ -120,7 +120,7 @@ impl Plugin for IngamePlugin {
             .add_observer(region::debug::on_despawn_region_wire_frame_debug)
             .add_systems(
                 Update,
-                (input::left_click::click_debug).run_if(in_state(AppState::InGame)),
+                (input::left_click::show).run_if(in_state(AppState::InGame)),
             )
             .add_systems(
                 Update,
