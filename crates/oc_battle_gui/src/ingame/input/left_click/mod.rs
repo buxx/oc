@@ -134,14 +134,19 @@ pub fn show(
     let point = camera.viewport_to_world_2d(transform, cursor);
     let_ok!(point = point, return);
 
+    // Cancel: go back to select mode when Echap or right click
     if !mode.0.is_select()
         && (keys.just_pressed(KeyCode::Escape) || buttons.just_pressed(MouseButton::Right))
     {
-        commands.trigger(ComputeDisplayPaths(vec![]));
+        order::cancel(&mut commands);
         commands.trigger(SetLeftClick(LeftClickMode::Select));
         return;
     }
 
+    // Action
+    // FIXME BS NOW
+
+    // Display
     match &mode.0 {
         LeftClickMode::Select => {
             // TODO
@@ -153,20 +158,7 @@ pub fn show(
             match order {
                 OrderType::Idle => {}
                 OrderType::MoveTo => {
-                    let spawns = ingame.selected_squads().iter().filter_map(|i| {
-                        tracing::trace!(name="ingame-input-left_click-show-order-squad", mode=?mode.0, point=?point, squad=?i);
-                        let squad = world.squad(i)?;
-                        let leader = world.get_individual(squad.leader())?;
-                        let start = Vec2::new(leader.position[0], leader.position[1]);
-                        let start = start.to_gui_y(w);
-                        let end = point;
-                        let start_tile = TileXy::from_([start.x, start.y], w);
-                        let start_tile = WorldTileIndex::from_(start_tile, w);
-                        let key = SpawnPathProfileKey::Squad{ i: *i, start: start_tile, end };
-                        Some(SpawnPathProfile { key, start, end })
-                    }).collect::<Vec<SpawnPathProfile>>();
-                    // FIXME BS NOW: do not recalculate when same ? Currently 100% CPU
-                    commands.trigger(ComputeDisplayPaths(spawns));
+                    order::show(w, point, &mut commands, &mode, &mut ingame, &world);
                 } // OrderType::Fire => {
                   //     commands.trigger(SpawnLov(SpawnLovProfile {
                   //         start,
