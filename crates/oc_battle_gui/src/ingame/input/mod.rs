@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
-use crate::{ingame::input::left_click::LeftClickModeType, states::AppState};
+use crate::{
+    ingame::{InGameState, input::left_click::LeftClickModeType},
+    states::AppState,
+};
 
 pub mod client;
 pub mod individual;
@@ -27,7 +30,10 @@ impl Plugin for InputPlugin {
             )
             .add_systems(
                 Update,
-                (left_click::show).run_if(in_state(AppState::InGame)),
+                (left_click::order::system)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(LeftClickModeType::Order)),
             );
 
         #[cfg(feature = "debug")]
@@ -41,6 +47,21 @@ impl Plugin for InputPlugin {
             .add_observer(left_click::on_set_left_click)
             .add_observer(left_click::on_set_spawn_projectile_left_click)
             .add_observer(left_click::on_spawn_clicks_line)
-            .add_observer(left_click::on_despawn_clicks_line);
+            .add_observer(left_click::on_despawn_clicks_line)
+            // FIXME BS NOW: move this system outside debug when accessible by shortcut
+            .add_systems(
+                Update,
+                (left_click::lov::system)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(LeftClickModeType::LineOfView)),
+            )
+            .add_systems(
+                Update,
+                (left_click::spawn_projectile::system)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(LeftClickModeType::SpawnProjectile)),
+            );
     }
 }

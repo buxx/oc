@@ -56,7 +56,15 @@ pub fn on_compute_display_paths(
     mut paths: ResMut<DisplayPaths>,
 ) {
     let_some!(g = &g.0, return);
-    // Do no compute them if they are all still valid
+
+    // Empty means remove all
+    if profiles.is_empty() {
+        tracing::trace!(name = "ingame-input-path-empty");
+        paths.0 = vec![];
+        return;
+    }
+
+    // Avoid computing if not necessary
     let existing: Vec<&SpawnPathProfileKey> = paths.0.iter().map(|p| &p.0).collect();
     let new_ones = profiles.iter().any(|p| !existing.contains(&&p.key));
     let need_compute = !profiles.iter().any(|p| !p.still_valid(&g.w, &world));

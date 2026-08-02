@@ -23,3 +23,17 @@ macro_rules! let_ok {
         let Ok($pat) = $expr else { $or };
     };
 }
+
+#[macro_export]
+macro_rules! return_if {
+    ($expr:expr) => {
+        if $expr {
+            return;
+        }
+    };
+    ($expr:expr, $return: expr) => {
+        if $expr {
+            $return;
+        }
+    };
+}

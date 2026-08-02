@@ -1,17 +1,13 @@
 #[cfg(feature = "debug")]
-use std::any::Any;
-
-#[cfg(feature = "debug")]
 use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
 use derive_is_enum_variant::is_enum_variant;
 use enum_type_derive::EnumType;
 use oc_individual::order::OrderType;
-use oc_root::Wcfg;
+#[cfg(feature = "debug")]
 use oc_utils::{let_ok, let_some};
 use strum_macros::EnumIter;
 
-use crate::ingame;
 #[cfg(feature = "debug")]
 use crate::ingame::debug::projectile::SpawnProjectileProfile;
 #[cfg(feature = "debug")]
@@ -20,8 +16,6 @@ use crate::ingame::draw;
 use crate::ingame::lov::SpawnLovConfig;
 #[cfg(feature = "debug")]
 use crate::ingame::lov::SpawnProjectileClickMode;
-use crate::window::PointerInWindow;
-use crate::world::World;
 
 #[cfg(feature = "debug")]
 pub mod lov;
@@ -110,93 +104,6 @@ impl LeftClickModeType {
             LeftClickModeType::Order => "Order",
         }
     }
-}
-
-pub fn show(
-    mut commands: Commands,
-    w: Res<Wcfg>,
-    ignore: Res<PointerInWindow>,
-    window: Single<&Window>,
-    camera: Single<(&Camera, &GlobalTransform)>,
-    buttons: Res<ButtonInput<MouseButton>>,
-    mode: Res<LeftClick>,
-    #[cfg(feature = "debug")] spawn_projectile_mode: Res<SpawnProjectileLeftClick>,
-    keys: Res<ButtonInput<KeyCode>>,
-    #[cfg(feature = "debug")] mut ingame: ResMut<ingame::state::State>,
-    #[cfg(not(feature = "debug"))] ingame: ResMut<ingame::state::State>,
-    #[cfg(feature = "debug")] mut state: ResMut<ingame::input::State>,
-    world: Res<World>,
-) {
-    if ignore.0 {
-        return;
-    }
-    let_some!(w = &w.0, return);
-    let_some!(cursor = window.cursor_position(), return);
-    let (camera, transform) = *camera;
-    let point = camera.viewport_to_world_2d(transform, cursor);
-    let_ok!(point = point, return);
-
-    // Cancel: go back to select mode when Echap or right click
-    if !mode.0.is_select()
-        && (keys.just_pressed(KeyCode::Escape) || buttons.just_pressed(MouseButton::Right))
-    {
-        order::cancel(&mut commands);
-        commands.trigger(SetLeftClick(LeftClickMode::Select));
-        return;
-    }
-
-    // Action
-    // FIXME BS NOW
-
-    // Display
-    match &mode.0 {
-        LeftClickMode::Select => {
-            // TODO
-        }
-        // FIXME BS NOW: move code into order.rs
-        LeftClickMode::Order(order) => {
-            tracing::trace!(name="ingame-input-left_click-show-order", mode=?mode.0, point=?point);
-
-            match order {
-                OrderType::Idle => {}
-                OrderType::MoveTo => {
-                    order::show(w, point, &mut commands, &mode, &ingame, &world);
-                } // OrderType::Fire => {
-                  //     commands.trigger(SpawnLov(SpawnLovProfile {
-                  //         start,
-                  //         // FIXME BS NOW: individual (squad leader) weapons z (according to gesture)
-                  //         start_pluz_z: Meters(1.),
-                  //         // Ground z if no body, body z (according to gesture) if target under cursor
-                  //         stop_pluz_z: Meters(1.),
-                  //     }));
-                  // },
-            }
-        }
-
-        #[cfg(feature = "debug")]
-        LeftClickMode::LineOfView(profile) => {
-            tracing::trace!(name="ingame-input-left_click-show-lov", mode=?mode.0, point=?point);
-            lov::show(point, &mut commands, &buttons, &mut state, profile);
-        }
-
-        #[cfg(feature = "debug")]
-        LeftClickMode::SpawnProjectile(profile) => {
-            tracing::trace!(name="ingame-input-left_click-show-spawn-projectile", mode=?mode.0, point=?point);
-            spawn_projectile::show(
-                w,
-                point,
-                &mut commands,
-                &buttons,
-                &spawn_projectile_mode,
-                &mut ingame,
-                &mut state,
-                &world,
-                profile,
-            )
-        }
-    }
-
-    //
 }
 
 #[cfg(feature = "debug")]
