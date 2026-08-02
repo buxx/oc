@@ -23,7 +23,7 @@ use crate::{
     },
     network::{self, output::ToServerEvent},
     setup::spawn_camera2d,
-    states::{AppState, InGameState},
+    states::AppState,
     world::WorldPlugin,
 };
 
@@ -70,6 +70,14 @@ pub struct SwitchToHeightMap;
 
 #[derive(Debug, Event)]
 pub struct RestoreBattleCenter;
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
+pub enum InGameState {
+    #[default]
+    Battle,
+    Height,
+    World,
+}
 
 impl Plugin for IngamePlugin {
     fn build(&self, app: &mut App) {

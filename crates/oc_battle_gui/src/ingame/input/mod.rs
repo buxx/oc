@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::states::AppState;
+use crate::{ingame::input::left_click::LeftClickModeType, states::AppState};
 
 pub mod client;
 pub mod individual;
@@ -18,7 +18,8 @@ pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<State>()
+        app.init_state::<LeftClickModeType>()
+            .init_resource::<State>()
             .add_observer(client::on_to_client)
             .add_systems(
                 Update,

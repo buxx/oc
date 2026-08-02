@@ -13,7 +13,7 @@ use crate::ingame::input::left_click::LeftClick;
 
 use crate::states::GameConfig;
 
-use crate::{ingame::draw, states::InGameState, world::World};
+use crate::{ingame::InGameState, ingame::draw, world::World};
 
 #[derive(Debug, Event, Deref)]
 pub struct SpawnLov(pub SpawnLovProfile);

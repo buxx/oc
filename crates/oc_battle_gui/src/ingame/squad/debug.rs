@@ -6,10 +6,11 @@ use oc_utils::{bevy::EntityMapping, let_some};
 use crate::{
     entity::individual::IndividualIndex,
     ingame::{
+        InGameState,
         camera::{self, squad::ShowFormationPositions},
         individual::Gesture,
     },
-    states::{AppState, GameConfig, InGameState},
+    states::{AppState, GameConfig},
     world,
 };
 

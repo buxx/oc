@@ -14,7 +14,8 @@ use oc_root::{Wcfg, WcfgFrom, WcfgInto, WorldConfig};
 use oc_utils::d2::Xy;
 use oc_utils::{let_ok, let_some};
 
-use crate::states::{AppState, GameConfig, InGameState};
+use crate::ingame::InGameState;
+use crate::states::{AppState, GameConfig};
 use crate::world::World;
 
 pub struct HeightPlugin;

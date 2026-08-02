@@ -1,4 +1,7 @@
 #[cfg(feature = "debug")]
+use std::any::Any;
+
+#[cfg(feature = "debug")]
 use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
 use derive_is_enum_variant::is_enum_variant;
@@ -59,7 +62,7 @@ impl Default for LeftClick {
 pub struct SpawnProjectileLeftClick(pub SpawnProjectileClickMode);
 
 #[derive(Debug, Clone, EnumType, is_enum_variant)]
-#[enum_type(derive(EnumIter))]
+#[enum_type(derive(EnumIter, States))]
 pub enum LeftClickMode {
     ///The default mode which is selector
     Select,
@@ -88,6 +91,12 @@ impl LeftClickMode {
                 OrderType::MoveTo => true,
             },
         }
+    }
+}
+
+impl Default for LeftClickModeType {
+    fn default() -> Self {
+        Self::Select
     }
 }
 
@@ -191,8 +200,13 @@ pub fn show(
 }
 
 #[cfg(feature = "debug")]
-pub fn on_set_left_click(set: On<SetLeftClick>, mut left_click: ResMut<LeftClick>) {
+pub fn on_set_left_click(
+    set: On<SetLeftClick>,
+    mut left_click: ResMut<LeftClick>,
+    mut state: ResMut<NextState<LeftClickModeType>>,
+) {
     left_click.0 = set.0.clone();
+    *state = NextState::Pending((&set.0).into());
 }
 
 #[cfg(feature = "debug")]

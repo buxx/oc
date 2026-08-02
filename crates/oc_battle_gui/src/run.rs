@@ -10,16 +10,12 @@ use oc_root::Wcfg;
 use crate::config::{Config, Config_};
 #[cfg(feature = "debug")]
 use crate::debug;
+use crate::ingame::InGameState;
 use crate::sprites::Animations;
 use crate::states::{Game, GameConfig};
 use crate::{
-    downloading::DownloadingPlugin,
-    error::ErrorPlugin,
-    fx::FxPlugin,
-    home::HomePlugin,
-    ingame::IngamePlugin,
-    network::NetworkPlugin,
-    states::{AppState, InGameState},
+    downloading::DownloadingPlugin, error::ErrorPlugin, fx::FxPlugin, home::HomePlugin,
+    ingame::IngamePlugin, network::NetworkPlugin, states::AppState,
 };
 use crate::{ingame, setup, states, window};
 

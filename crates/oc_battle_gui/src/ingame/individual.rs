@@ -284,7 +284,7 @@ impl Plugin for IndividualPlugin {
 
         #[cfg(feature = "debug")]
         {
-            use crate::states::InGameState;
+            use crate::ingame::InGameState;
 
             app.init_gizmo_group::<PositionsGizmos>();
             app.add_systems(Startup, setup);

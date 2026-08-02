@@ -8,14 +8,14 @@ use oc_world::{terrain::Terrain, tile::Tile};
 
 use crate::{
     ingame::{
-        SwitchToWorldMap,
+        InGameState, SwitchToWorldMap,
         camera::{
             move_::{MovedBattleCamera, UpdateVisibleBattleSquare},
             region::Region,
         },
         world::{AdjustMinimap, DespawnWorldMapBackground, SpawnWorldMapBackground},
     },
-    states::{AppState, InGameState},
+    states::AppState,
 };
 
 #[cfg(feature = "debug")]
