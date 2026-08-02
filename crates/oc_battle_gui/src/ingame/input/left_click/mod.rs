@@ -1,6 +1,7 @@
 #[cfg(feature = "debug")]
 use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
+use derive_is_enum_variant::is_enum_variant;
 use enum_type_derive::EnumType;
 use oc_geo::tile::TileXy;
 use oc_geo::tile::WorldTileIndex;
@@ -64,7 +65,7 @@ impl Default for LeftClick {
 #[derive(Debug, Deref, DerefMut, Resource, Default)]
 pub struct SpawnProjectileLeftClick(pub SpawnProjectileClickMode);
 
-#[derive(Debug, Clone, EnumType)]
+#[derive(Debug, Clone, EnumType, is_enum_variant)]
 #[enum_type(derive(EnumIter))]
 pub enum LeftClickMode {
     ///The default mode which is selector
@@ -79,6 +80,7 @@ pub enum LeftClickMode {
     /// User is going to give a squad order
     Order(OrderType),
 }
+
 impl LeftClickMode {
     pub fn display_lov(&self) -> bool {
         match self {
@@ -114,10 +116,10 @@ pub fn show(
     ignore: Res<PointerInWindow>,
     window: Single<&Window>,
     camera: Single<(&Camera, &GlobalTransform)>,
-    #[cfg(feature = "debug")] buttons: Res<ButtonInput<MouseButton>>,
+    buttons: Res<ButtonInput<MouseButton>>,
     mode: Res<LeftClick>,
     #[cfg(feature = "debug")] spawn_projectile_mode: Res<SpawnProjectileLeftClick>,
-    _keys: Res<ButtonInput<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     #[cfg(feature = "debug")] mut ingame: ResMut<ingame::state::State>,
     #[cfg(not(feature = "debug"))] ingame: ResMut<ingame::state::State>,
     #[cfg(feature = "debug")] mut state: ResMut<ingame::input::State>,
@@ -131,6 +133,14 @@ pub fn show(
     let (camera, transform) = *camera;
     let point = camera.viewport_to_world_2d(transform, cursor);
     let_ok!(point = point, return);
+
+    if !mode.0.is_select()
+        && (keys.just_pressed(KeyCode::Escape) || buttons.just_pressed(MouseButton::Right))
+    {
+        commands.trigger(ComputeDisplayPaths(vec![]));
+        commands.trigger(SetLeftClick(LeftClickMode::Select));
+        return;
+    }
 
     match &mode.0 {
         LeftClickMode::Select => {
