@@ -1,6 +1,10 @@
 use derive_more::Constructor;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
-use oc_individual::network::{Individual, Squad};
+use oc_individual::{
+    network::{Individual, Squad},
+    order::Order,
+    squad::SquadIndex,
+};
 use oc_mod::Mod;
 use oc_physics::fx::Fx;
 use oc_projectile::network::Projectile;
@@ -41,6 +45,7 @@ pub enum ToServer {
     ForgotRegion(WorldRegionIndex),
     Refresh,
     SpawnProjectile(SpawnProjectile),
+    Squad(SquadIndex, SquadMessage),
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq, Constructor)]
@@ -50,4 +55,10 @@ pub struct GameConfig {
     pub mod_: Mod,
     pub meta: Meta,
     pub static_: StaticSource,
+}
+
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum SquadMessage {
+    SetOrders(Vec<Order>),
 }

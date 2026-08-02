@@ -2,8 +2,9 @@ use std::sync::{Arc, mpsc::Sender};
 
 use derive_more::Constructor;
 use oc_geo::region::WorldRegionIndex;
+use oc_individual::squad::SquadIndex;
 use oc_mod::Mod;
-use oc_network::{ToClient, ToServer};
+use oc_network::{SquadMessage, ToClient, ToServer};
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::Client;
 use oc_root::identity::Identity;
@@ -25,12 +26,15 @@ pub struct Dealer<'a, E: Client> {
 
 impl<'a, E: Client> Dealer<'a, E> {
     pub fn deal(&self, message: ToServer) -> Vec<Update> {
+        tracing::trace!(name="runner-input", message=?message);
+
         match message {
             ToServer::RequestInit(indentity) => self.init(indentity),
             ToServer::ListenRegion(region) => self.listen_region(region),
             ToServer::ForgotRegion(region) => self.forgot_region(region),
             ToServer::Refresh => self.refresh(),
             ToServer::SpawnProjectile(spawn) => self.spawn_projectile(spawn),
+            ToServer::Squad(squad, message) => self.squad_message(squad, message),
         }
     }
 
@@ -115,5 +119,14 @@ impl<'a, E: Client> Dealer<'a, E> {
                 )
             })
             .collect()
+    }
+
+    fn squad_message(&self, squad: SquadIndex, message: SquadMessage) -> Vec<Update> {
+        match message {
+            SquadMessage::SetOrders(orders) => vec![Update::UpdateSquad(
+                squad,
+                oc_individual::squad::Update::SetOrders(orders),
+            )],
+        }
     }
 }

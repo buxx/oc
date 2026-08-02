@@ -23,6 +23,7 @@ impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<LeftClickModeType>()
             .init_resource::<State>()
+            .init_resource::<left_click::order::OnGoing>()
             .add_observer(client::on_to_client)
             .add_systems(
                 Update,
