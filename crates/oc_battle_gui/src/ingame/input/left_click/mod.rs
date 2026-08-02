@@ -3,12 +3,8 @@ use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
 use derive_is_enum_variant::is_enum_variant;
 use enum_type_derive::EnumType;
-use oc_geo::tile::TileXy;
-use oc_geo::tile::WorldTileIndex;
 use oc_individual::order::OrderType;
 use oc_root::Wcfg;
-use oc_root::WcfgFrom;
-use oc_root::y::Y;
 use oc_utils::{let_ok, let_some};
 use strum_macros::EnumIter;
 
@@ -21,9 +17,6 @@ use crate::ingame::draw;
 use crate::ingame::lov::SpawnLovConfig;
 #[cfg(feature = "debug")]
 use crate::ingame::lov::SpawnProjectileClickMode;
-use crate::ingame::path::ComputeDisplayPaths;
-use crate::ingame::path::SpawnPathProfile;
-use crate::ingame::path::SpawnPathProfileKey;
 use crate::window::PointerInWindow;
 use crate::world::World;
 
@@ -158,7 +151,7 @@ pub fn show(
             match order {
                 OrderType::Idle => {}
                 OrderType::MoveTo => {
-                    order::show(w, point, &mut commands, &mode, &mut ingame, &world);
+                    order::show(w, point, &mut commands, &mode, &ingame, &world);
                 } // OrderType::Fire => {
                   //     commands.trigger(SpawnLov(SpawnLovProfile {
                   //         start,

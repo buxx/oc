@@ -15,7 +15,7 @@ pub fn show(
     point: Vec2,
     commands: &mut Commands,
     mode: &LeftClick,
-    ingame: &mut crate::ingame::state::State,
+    ingame: &crate::ingame::state::State,
     world: &crate::world::World,
 ) {
     let spawns = ingame.selected_squads().iter().filter_map(|i| {

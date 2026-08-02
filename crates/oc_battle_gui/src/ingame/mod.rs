@@ -4,15 +4,13 @@ use oc_root::Wcfg;
 use oc_utils::{let_ok, let_some};
 use oc_world::resume::WorldResume;
 
-#[cfg(feature = "debug")]
-use crate::ingame::input::left_click::SpawnProjectileLeftClick;
 use crate::{
     ingame::{
         behavior::BehaviorPlugin,
         draw::world::WorldMapDisplay,
         height::HeightPlugin,
         individual::IndividualPlugin,
-        input::{client::on_to_client, keyboard::on_key_press},
+        input::InputPlugin,
         lov::LovPlugin,
         path::{DisplayPaths, PathGizmos, draw_paths, on_compute_display_paths},
         projectile::ProjectilePlugin,
@@ -76,7 +74,7 @@ pub struct RestoreBattleCenter;
 impl Plugin for IngamePlugin {
     fn build(&self, app: &mut App) {
         app.init_gizmo_group::<PathGizmos>()
-            .init_resource::<DisplayPaths>()
+            .add_plugins(InputPlugin)
             .add_plugins(WorldPlugin)
             .add_plugins(HeightPlugin)
             .add_plugins(IndividualPlugin)
@@ -84,10 +82,8 @@ impl Plugin for IngamePlugin {
             .add_plugins(ProjectilePlugin)
             .add_plugins(BehaviorPlugin)
             .add_plugins(LovPlugin)
-            // TODO: InputPlugin
-            .init_resource::<input::State>()
+            .init_resource::<DisplayPaths>()
             .add_observer(on_game_config_received)
-            .add_observer(on_to_client)
             .add_observer(on_update_battle_square)
             .add_observer(on_spawn_minimap)
             .add_observer(on_adjust_minimap)
@@ -111,11 +107,6 @@ impl Plugin for IngamePlugin {
                 OnEnter(AppState::InGame),
                 (init::init, init::refresh, init::spawn_world_map),
             )
-            .add_systems(Update, (on_key_press,).run_if(in_state(AppState::InGame)))
-            .add_systems(
-                Update,
-                (input::left_click::show).run_if(in_state(AppState::InGame)),
-            )
             .add_systems(
                 Update,
                 (draw_paths)
@@ -124,21 +115,10 @@ impl Plugin for IngamePlugin {
             );
 
         #[cfg(feature = "debug")]
-        app.init_resource::<SpawnProjectileLeftClick>()
-            .init_resource::<input::left_click::LeftClick>()
-            .add_observer(input::left_click::on_set_left_click)
-            .add_observer(region::debug::on_listening_region)
+        app.add_observer(region::debug::on_listening_region)
             .add_observer(region::debug::on_spawn_region_wire_frame_debug)
             .add_observer(region::debug::on_forgotten_region)
-            .add_observer(input::left_click::on_set_spawn_projectile_left_click)
-            .add_observer(input::left_click::on_spawn_clicks_line)
-            .add_observer(input::left_click::on_despawn_clicks_line)
-            .add_observer(region::debug::on_despawn_region_wire_frame_debug)
-            .add_systems(
-                Update,
-                (input::left_click::update_spawn_projectile_clicks_line,)
-                    .run_if(in_state(AppState::InGame)),
-            );
+            .add_observer(region::debug::on_despawn_region_wire_frame_debug);
         // .add_observer(init::on_first_ingame_enter)
     }
 }
