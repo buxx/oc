@@ -35,7 +35,7 @@ pub fn system(
     mode: Res<LeftClick>,
     keys: Res<ButtonInput<KeyCode>>,
     world: Res<crate::world::World>,
-    ingame: ResMut<crate::ingame::state::State>,
+    mut ingame: ResMut<crate::ingame::state::State>,
     mut ongoing: ResMut<OnGoing>,
 ) {
     if ignore.0 {
@@ -52,9 +52,22 @@ pub fn system(
         return;
     };
 
-    return_if!(maybe_cancel(&mut commands, &buttons, &keys, &mut ongoing));
+    return_if!(maybe_cancel(
+        &mut commands,
+        &buttons,
+        &keys,
+        &mut ongoing,
+        &mut ingame
+    ));
     show(w, point, order, &mut commands, &mode, &ingame, &world);
-    action(&mut ongoing, point, &buttons, &mut commands, &ingame);
+    action(
+        &mut ongoing,
+        point,
+        &buttons,
+        &keys,
+        &mut commands,
+        &mut ingame,
+    );
     ongoing.0 = true;
 }
 
@@ -93,38 +106,58 @@ fn maybe_cancel(
     buttons: &ButtonInput<MouseButton>,
     keys: &ButtonInput<KeyCode>,
     ongoing: &mut OnGoing,
+    ingame: &mut crate::ingame::state::State,
 ) -> bool {
     if keys.just_pressed(KeyCode::Escape) || buttons.just_pressed(MouseButton::Middle) {
         tracing::trace!(name = "ingame-input-left-click-order-cancel");
-        cancel(commands, ongoing);
+        cancel(commands, ongoing, ingame);
         return true;
     }
     false
 }
 
-fn cancel(commands: &mut Commands, ongoing: &mut OnGoing) {
+fn cancel(
+    commands: &mut Commands,
+    ongoing: &mut OnGoing,
+    ingame: &mut crate::ingame::state::State,
+) {
     commands.trigger(ComputeDisplayPaths(vec![]));
     commands.trigger(SetLeftClick(LeftClickMode::Select));
     ongoing.0 = false;
+    ingame.pending_orders_mut().clear();
 }
 
 fn action(
     ongoing: &mut OnGoing,
     point: WorldVec2,
     buttons: &ButtonInput<MouseButton>,
+    keys: &ButtonInput<KeyCode>,
     commands: &mut Commands,
-    ingame: &crate::ingame::state::State,
+    ingame: &mut crate::ingame::state::State,
 ) {
     // FIXME BS NOW: multi step
-    if ongoing.0 && buttons.just_pressed(MouseButton::Left) {
+    if ongoing.0
+        && (buttons.just_pressed(MouseButton::Left) || buttons.just_pressed(MouseButton::Middle))
+    {
+        let adding = keys.pressed(KeyCode::ControlLeft)
+            || keys.pressed(KeyCode::ControlRight)
+            || buttons.just_pressed(MouseButton::Middle);
+        let mut orders = ingame.pending_orders().to_vec();
+        // TODO: When multiple squad, need move a little (distance from each others ?)
+        let order = Order::MoveTo(Position::new(point.x, point.y));
+
         tracing::trace!(name = "ingame-input-left-click-order-action");
 
-        cancel(commands, ongoing);
+        if !adding {
+            cancel(commands, ongoing, ingame);
 
-        for squad in ingame.selected_squads() {
-            let orders = vec![Order::MoveTo(Position::new(point.x, point.y))];
-            let set_orders = oc_network::SquadMessage::SetOrders(orders);
-            commands.trigger(ToServerEvent(ToServer::Squad(*squad, set_orders)));
+            for squad in ingame.selected_squads() {
+                orders.push(order.clone());
+                let set_orders = oc_network::SquadMessage::SetOrders(orders.clone());
+                commands.trigger(ToServerEvent(ToServer::Squad(*squad, set_orders)));
+            }
+        } else {
+            ingame.pending_orders_mut().push(order);
         }
     }
 }
