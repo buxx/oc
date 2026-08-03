@@ -1,31 +1,22 @@
-#[cfg(feature = "debug")]
 use bevy::color::palettes::css::YELLOW;
 use bevy::prelude::*;
 use derive_is_enum_variant::is_enum_variant;
 use enum_type_derive::EnumType;
 use oc_individual::order::OrderType;
-#[cfg(feature = "debug")]
 use oc_root::WcfgFrom;
-#[cfg(feature = "debug")]
 use oc_root::geo::ScreenVec2;
-#[cfg(feature = "debug")]
 use oc_root::geo::WorldVec2;
-#[cfg(feature = "debug")]
 use oc_utils::{let_ok, let_some};
 use strum_macros::EnumIter;
 
 #[cfg(feature = "debug")]
 use crate::ingame::debug::projectile::SpawnProjectileProfile;
-#[cfg(feature = "debug")]
 use crate::ingame::draw;
-#[cfg(feature = "debug")]
 use crate::ingame::lov::SpawnLovConfig;
 #[cfg(feature = "debug")]
 use crate::ingame::lov::SpawnProjectileClickMode;
-#[cfg(feature = "debug")]
 use crate::states::GameConfig;
 
-#[cfg(feature = "debug")]
 pub mod lov;
 pub mod order;
 #[cfg(feature = "debug")]
@@ -38,15 +29,12 @@ pub struct SetLeftClick(pub LeftClickMode);
 #[derive(Debug, Deref, DerefMut, Event)]
 pub struct SetSpawnProjectileLeftClickMode(pub SpawnProjectileClickMode);
 
-#[cfg(feature = "debug")]
 #[derive(Debug, Event)]
 pub struct SpawnClicksLine;
 
-#[cfg(feature = "debug")]
 #[derive(Debug, Event)]
 pub struct DespawnClicksLine;
 
-#[cfg(feature = "debug")]
 #[derive(Debug, Component)]
 pub struct ClicksLine;
 
@@ -71,9 +59,7 @@ pub enum LeftClickMode {
     /// For debug, ability to spawn projectile from mouse
     #[cfg(feature = "debug")]
     SpawnProjectile(SpawnProjectileProfile),
-    // FIXME BS NOW For now only in debug window, but need possibility to player to use it
     /// User can see a line of view from arbitrary place
-    #[cfg(feature = "debug")]
     LineOfView(SpawnLovConfig),
     /// User is going to give a squad order
     Order(OrderType),
@@ -85,7 +71,6 @@ impl LeftClickMode {
             LeftClickMode::Select => false,
             #[cfg(feature = "debug")]
             LeftClickMode::SpawnProjectile(_) => false,
-            #[cfg(feature = "debug")]
             LeftClickMode::LineOfView(_) => true,
             LeftClickMode::Order(order) => match order {
                 OrderType::Idle => false,
@@ -114,7 +99,6 @@ impl LeftClickModeType {
     }
 }
 
-#[cfg(feature = "debug")]
 pub fn on_set_left_click(
     set: On<SetLeftClick>,
     mut left_click: ResMut<LeftClick>,
@@ -132,7 +116,6 @@ pub fn on_set_spawn_projectile_left_click(
     left_click.0 = set.0.clone();
 }
 
-#[cfg(feature = "debug")]
 pub fn on_spawn_clicks_line(
     _: On<SpawnClicksLine>,
     g: Res<GameConfig>,
@@ -185,7 +168,6 @@ pub fn update_spawn_projectile_clicks_line(
     }
 }
 
-#[cfg(feature = "debug")]
 pub fn on_despawn_clicks_line(
     _: On<DespawnClicksLine>,
     mut commands: Commands,

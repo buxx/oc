@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-#[cfg(feature = "debug")]
 use oc_root::geo::WorldVec2;
 
 use crate::{
@@ -15,7 +14,6 @@ pub mod projectile;
 
 #[derive(Debug, Resource, Default)]
 pub struct State {
-    #[cfg(feature = "debug")]
     pub clicks: Vec<WorldVec2>,
 }
 
@@ -26,7 +24,11 @@ impl Plugin for InputPlugin {
         app.init_state::<LeftClickModeType>()
             .init_resource::<State>()
             .init_resource::<left_click::order::OnGoing>()
+            .init_resource::<left_click::LeftClick>()
             .add_observer(client::on_to_client)
+            .add_observer(left_click::on_set_left_click)
+            .add_observer(left_click::on_spawn_clicks_line)
+            .add_observer(left_click::on_despawn_clicks_line)
             .add_systems(
                 Update,
                 (keyboard::on_key_press,).run_if(in_state(AppState::InGame)),
@@ -37,28 +39,23 @@ impl Plugin for InputPlugin {
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
                     .run_if(in_state(LeftClickModeType::Order)),
-            );
-
-        #[cfg(feature = "debug")]
-        app.init_resource::<left_click::SpawnProjectileLeftClick>()
-            .init_resource::<left_click::LeftClick>()
-            .add_systems(
-                Update,
-                (left_click::update_spawn_projectile_clicks_line,)
-                    .run_if(in_state(AppState::InGame)),
             )
-            .add_observer(left_click::on_set_left_click)
-            .add_observer(left_click::on_set_spawn_projectile_left_click)
-            .add_observer(left_click::on_spawn_clicks_line)
-            .add_observer(left_click::on_despawn_clicks_line)
-            // FIXME BS NOW: move this system outside debug when accessible by shortcut
             .add_systems(
                 Update,
                 (left_click::lov::system)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
                     .run_if(in_state(LeftClickModeType::LineOfView)),
+            );
+
+        #[cfg(feature = "debug")]
+        app.init_resource::<left_click::SpawnProjectileLeftClick>()
+            .add_systems(
+                Update,
+                (left_click::update_spawn_projectile_clicks_line,)
+                    .run_if(in_state(AppState::InGame)),
             )
+            .add_observer(left_click::on_set_spawn_projectile_left_click)
             .add_systems(
                 Update,
                 (left_click::spawn_projectile::system)

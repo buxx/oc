@@ -6,6 +6,8 @@ use crate::ingame::camera::WindowResizeWhenWorldMap;
 #[cfg(feature = "debug")]
 use crate::ingame::camera::debug::tile::ToggleShowTiles;
 use crate::ingame::camera::map::SaveCurrentWindowCenterAsBattleCenter;
+use crate::ingame::input::left_click::{LeftClickMode, SetLeftClick};
+use crate::ingame::lov::SpawnLovConfig;
 use crate::ingame::{QuitHeightMap, RestoreBattleCenter, SwitchToBattleMap, SwitchToWorldMap};
 use crate::ingame::{SwitchToHeightMap, camera};
 use crate::window::ToggleWindow;
@@ -25,6 +27,14 @@ pub fn on_key_press(
 ) {
     for event in keyboard.read() {
         match (event.state, event.key_code) {
+            (ButtonState::Released, KeyCode::KeyV) => match camera.focus {
+                camera::Focus::Battle => {
+                    // TODO: display something to show to player start_z_plus (standup, crouched, ...)
+                    let config = SpawnLovConfig::default();
+                    commands.trigger(SetLeftClick(LeftClickMode::LineOfView(config)));
+                }
+                camera::Focus::Height | camera::Focus::World => {}
+            },
             (ButtonState::Released, KeyCode::F1) => match camera.focus {
                 camera::Focus::Battle => {
                     tracing::debug!("Trigger switch to world map (from battle map)");

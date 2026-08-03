@@ -105,7 +105,6 @@ pub fn show(
                         world.d2_to_d3(w, *start, profile.plus_z),
                         world.d2_to_d3(w, point, Meters(0.)),
                     ) {
-                        use crate::projectile::IntoSpawnProjectile;
                         let spawn = profile.spawn(start, end);
                         tracing::debug!("Spawn projectile {spawn:?}");
                         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));

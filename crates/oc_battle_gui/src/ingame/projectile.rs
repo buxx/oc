@@ -77,12 +77,10 @@ pub fn on_insert_projectile(
 
 fn on_update_position(
     position: On<SetPositionEvent<oc_projectile::ProjectileId>>,
-    g: Res<GameConfig>,
     projectiles: Res<EntityMapping<oc_projectile::ProjectileId>>,
     mut meshes: ResMut<Assets<Mesh>>,
     query: Query<&Mesh2d>,
 ) {
-    let_some!(g = &g.0, return);
     let (i, position, previous) = (position.0, position.1, position.2);
     let_some!(entity = projectiles.get(&i), return);
     let_ok!(mesh = query.get(*entity), return);

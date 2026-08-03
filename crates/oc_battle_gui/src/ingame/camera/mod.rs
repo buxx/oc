@@ -128,7 +128,7 @@ impl Plugin for CameraPlugin {
 pub struct State {
     pub cursor: Option<Vec2>,
     pub regions: Option<Vec<Region>>,
-    pub focus: Focus,
+    pub focus: Focus, // FIXME: use InGameState instead
     /// Previous camera translation before focus change
     pub previously: Option<Vec3>,
     /// Tile currently under cursor
