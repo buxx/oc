@@ -144,8 +144,8 @@ fn individuals(
                 p[1] as u64 / w.geo_pixels_per_tile,
             ));
             let tile = WorldTileIndex::from_(tile_xy, &w);
-
-            oc_individual::Individual::fresh(Side::A, p.clone(), tile, WorldRegionIndex(0))
+            let position = (*p).into();
+            oc_individual::Individual::fresh(Side::A, position, tile, WorldRegionIndex(0))
         })
         .collect();
 
@@ -156,7 +156,7 @@ fn individuals(
             let individual = IndividualIndex(i as u64);
             oc_individual::squad::Squad {
                 side: Side::A,
-                position: [position[0], position[1]],
+                position: [position[0], position[1]].into(),
                 members: vec![individual],
                 actives: 2,
                 formation: SquadFormation::Line,
@@ -231,8 +231,8 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 ammunition.index(),
                 shot.index(),
                 1,
-                start,
-                end,
+                start.into(),
+                end.into(),
             ),
         )));
     }

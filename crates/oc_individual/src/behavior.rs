@@ -1,4 +1,5 @@
 use derive_more::{Deref, DerefMut};
+use oc_root::geo::WorldVec2;
 use oc_utils::d2::{Direction, Position};
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -18,12 +19,12 @@ pub enum Behavior {
 
 #[derive(Debug, Clone, Deref, DerefMut, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub struct MovePath(pub Vec<[f32; 2]>);
+pub struct MovePath(pub Vec<WorldVec2>);
 
 #[cfg(feature = "polyanya")]
 impl From<polyanya::Path> for MovePath {
     fn from(value: polyanya::Path) -> Self {
-        let path = value.path.iter().map(|p| [p.x, p.y]).collect();
+        let path = value.path.iter().map(|p| [p.x, p.y].into()).collect();
         Self(path)
     }
 }

@@ -3,11 +3,14 @@ use std::hash::Hash;
 use bevy::prelude::*;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_mod::nature::Traversability;
-use oc_root::{Wcfg, y::Y as _};
+use oc_root::{
+    Wcfg, WcfgFrom,
+    geo::{ScreenVec2, WorldVec3},
+};
 use oc_utils::{bevy::EntityMapping, let_ok, let_some};
 
 #[derive(Debug, Event)]
-pub struct SetPositionEvent<I>(pub I, pub [f32; 3], pub [f32; 3]); // new, before
+pub struct SetPositionEvent<I>(pub I, pub WorldVec3, pub WorldVec3); // new, before
 
 #[derive(Debug, Event)]
 pub struct SetTileEvent<I>(pub I, pub WorldTileIndex, pub WorldTileIndex); // new, before
@@ -29,7 +32,7 @@ pub struct SetVolumesEvent<I>(
 ); // new, before
 
 #[derive(Debug, Component)]
-pub struct Position(pub [f32; 3]);
+pub struct Position(pub WorldVec3);
 
 #[derive(Debug, Component)]
 pub struct Tile(pub WorldTileIndex);
@@ -90,12 +93,10 @@ fn on_set_position_event<I: Hash + Eq + Send + Sync + std::fmt::Debug + 'static>
     let Ok((mut position_, mut transform)) = query.get_mut(*entity) else {
         return;
     };
-    // tracing::trace!(name = "update-individual-position", i=?position.0.0, position=?position.1);
-
     position_.0 = event.1;
-    let translation = event.1.to_gui_y(w);
-    transform.translation.x = translation[0];
-    transform.translation.y = translation[1];
+    let translation = ScreenVec2::from_(event.1, w);
+    transform.translation.x = translation.x;
+    transform.translation.y = translation.y;
 }
 
 fn on_set_tile_event<I: Hash + Eq + Send + Sync + 'static>(

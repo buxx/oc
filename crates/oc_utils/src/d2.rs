@@ -3,7 +3,11 @@ use std::f32::consts::FRAC_PI_2;
 use derive_more::Constructor;
 use geo::{Contains, Triangle, coord};
 use glam::{Vec2, Vec3};
-use oc_root::{WcfgFrom, y::V};
+use oc_root::{
+    WcfgFrom,
+    geo::{WorldVec2, WorldVec3},
+    y::V,
+};
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, Eq)]
@@ -327,8 +331,20 @@ impl From<Vec2> for Direction {
     }
 }
 
+impl From<WorldVec2> for Direction {
+    fn from(value: WorldVec2) -> Self {
+        Direction::new(value.x, value.y)
+    }
+}
+
 impl From<Vec3> for Direction {
     fn from(value: Vec3) -> Self {
+        Direction::new(value.x, value.y)
+    }
+}
+
+impl From<WorldVec3> for Direction {
+    fn from(value: WorldVec3) -> Self {
         Direction::new(value.x, value.y)
     }
 }

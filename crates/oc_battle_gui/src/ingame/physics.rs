@@ -7,7 +7,7 @@ use oc_physics::{
     update::bevy::{Forces, Position, Volumes},
 };
 use oc_projectile::ProjectileId;
-use oc_root::y::Y;
+use oc_root::{WcfgFrom, geo::ScreenVec2};
 use oc_utils::{d2::Xy, let_some};
 
 use crate::{ingame::projectile::ForgotProjectile, states::GameConfig, world::World};
@@ -61,8 +61,9 @@ pub fn physics_step<I, C>(
 
         position.0 = position_;
         forces.0 = forces_;
-        transform.translation.x = position.0[0];
-        transform.translation.y = position.0[1].to_gui_y(&g.w);
+        let position__ = ScreenVec2::from_(position_, &g.w);
+        transform.translation.x = position__.x;
+        transform.translation.y = position__.y;
 
         for event in events {
             commands.trigger(PhysicEvent(event))

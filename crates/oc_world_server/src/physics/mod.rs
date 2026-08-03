@@ -7,7 +7,7 @@ use oc_geo::{
 use oc_individual::IndividualIndex;
 use oc_physics::{Event, Force, Physic, UpdatePhysic, update::Update};
 use oc_projectile::ProjectileId;
-use oc_root::{Client, WcfgInto, WorldConfig};
+use oc_root::{Client, WcfgInto, WorldConfig, geo::WorldVec3};
 use oc_utils::collections::WithIds;
 use oc_world::World;
 
@@ -97,7 +97,6 @@ impl<'x, E: Client> Processor<'x, E> {
         let updates = chunk
             .iter()
             .map(|(i, subject)| {
-                // dbg!(self.ctx.state.w.physics_coeff_per_tick);
                 let (position, forces, events_) = oc_physics::step(
                     &self.ctx.state.w,
                     &self.ctx.state._mod,
@@ -107,7 +106,7 @@ impl<'x, E: Client> Processor<'x, E> {
                     "server"
                 );
                 tracing::trace!(name="physics-subject", i=?i, position=?position, forces=?forces);
-                let updates = changes(&self.ctx.state.w, i, *subject, &position, &forces);
+                let updates = changes(&self.ctx.state.w, i, *subject, position, &forces);
 
                 tracing::trace!(name = "physics-step-for", i = ?i, updates=?updates, events=events_.len());
 
@@ -225,7 +224,7 @@ pub fn changes<I, T>(
     w: &WorldConfig,
     i: I,
     subject: &T,
-    position: &[f32; 3],
+    position: WorldVec3,
     forces: &Vec<Force>,
 ) -> Vec<Update>
 where
@@ -236,10 +235,10 @@ where
     let mut updates = vec![];
 
     // TODO: to improve perfs, maybe these updates sould be known at physics::step ?
-    if subject.position(w) != *position {
-        updates.push(Update::SetPosition(*position, subject.position(w)));
+    if subject.position(w) != position {
+        updates.push(Update::SetPosition(position, subject.position(w)));
 
-        let tile: TileXy = (*position).into_(w);
+        let tile: TileXy = position.into_(w);
         let region: RegionXy = tile.into_(w);
         let tile: WorldTileIndex = tile.into_(w);
         let region: WorldRegionIndex = region.into_(w);
@@ -319,8 +318,8 @@ where
 #[derive(Debug, Clone)]
 pub enum Effect {
     Position {
-        before: [f32; 3],
-        after: [f32; 3],
+        before: WorldVec3,
+        after: WorldVec3,
     },
     Tile {
         _before: WorldTileIndex,

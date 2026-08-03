@@ -3,6 +3,7 @@ use line_drawing::Bresenham3d;
 use oc_geo::tile::TileXy;
 use oc_root::{
     WcfgFrom, WorldConfig,
+    geo::WorldVec3,
     opacity::{CumulatedOpacity, Opacity},
 };
 use oc_utils::d2::Xy;
@@ -20,35 +21,23 @@ impl<'a, F> PathBuilder<'a, F>
 where
     F: Fn(Xy, f32) -> Vec<Step>,
 {
-    pub fn build_(&self, start: [f32; 3], end: [f32; 3]) -> Path {
+    pub fn build_(&self, start: WorldVec3, end: WorldVec3) -> Path {
         tracing::trace!(name="lov-path-build", start=?start, end=?end);
         let mut opacity = CumulatedOpacity(0.);
-        let mut tile = TileXy::from_([start[0], start[1]], self.w);
+        let mut tile = TileXy::from_([start.x, start.y], self.w);
         let mut sections = vec![];
         let mut last = start;
 
-        let start_ = (start[0] as isize, start[1] as isize, start[2] as isize);
-        let end_ = (end[0] as isize, end[1] as isize, end[2] as isize);
+        let start_ = (start.x as isize, start.y as isize, start.z as isize);
+        let end_ = (end.x as isize, end.y as isize, end.z as isize);
 
         for (pixel_x, pixel_y, pixel_z) in Bresenham3d::new(start_, end_) {
-            let pixel = [pixel_x as f32, pixel_y as f32, pixel_z as f32];
+            let pixel: WorldVec3 = [pixel_x as f32, pixel_y as f32, pixel_z as f32].into();
             let xy = Xy::from_((pixel_x, pixel_y), self.w);
 
             if xy != tile.0 {
                 let mut new_opacity = opacity.0;
-                for obj in (self.at)(xy, pixel[2]) {
-                    // if obj.solid {
-                    //     sections.push(Section {
-                    //         start: section_start,
-                    //         stop: last,
-                    //         opacity,
-                    //         nature: Nature::Obstacle,
-                    //     });
-                    //     section_start = pos;
-                    //     blocked = true;
-                    //     break 'steps;
-                    // }
-
+                for obj in (self.at)(xy, pixel.z) {
                     new_opacity += obj.opacity.0;
                 }
 
@@ -90,8 +79,8 @@ pub struct Path {
 
 #[derive(Debug, PartialEq)]
 pub struct Section {
-    pub start: [f32; 3],
-    pub stop: [f32; 3],
+    pub start: WorldVec3,
+    pub stop: WorldVec3,
     pub opacity: CumulatedOpacity,
     pub nature: Nature,
 }
@@ -131,7 +120,7 @@ mod test {
         };
 
         // When
-        let path = PathBuilder::new(&w, at).build_(start, end);
+        let path = PathBuilder::new(&w, at).build_(start.into(), end.into());
 
         // Then
         assert_eq!(
@@ -139,20 +128,20 @@ mod test {
             Path {
                 sections: vec![
                     Section {
-                        start: [0., 0., 0.],
-                        stop: [5., 0., 0.],
+                        start: [0., 0., 0.].into(),
+                        stop: [5., 0., 0.].into(),
                         opacity: CumulatedOpacity(0.),
                         nature: Nature::Visibility
                     },
                     Section {
-                        start: [5., 0., 0.],
-                        stop: [10., 0., 0.],
+                        start: [5., 0., 0.].into(),
+                        stop: [10., 0., 0.].into(),
                         opacity: CumulatedOpacity(0.1),
                         nature: Nature::Visibility
                     },
                     Section {
-                        start: [10., 0., 0.],
-                        stop: [14., 0., 0.],
+                        start: [10., 0., 0.].into(),
+                        stop: [14., 0., 0.].into(),
                         opacity: CumulatedOpacity(0.2),
                         nature: Nature::Visibility
                     }
@@ -179,7 +168,7 @@ mod test {
         };
 
         // When
-        let path = PathBuilder::new(&w, at).build_(start, end);
+        let path = PathBuilder::new(&w, at).build_(start.into(), end.into());
 
         // Then
         assert_eq!(
@@ -187,20 +176,20 @@ mod test {
             Path {
                 sections: vec![
                     Section {
-                        start: [0., 0., 0.],
-                        stop: [5., 0., 0.],
+                        start: [0., 0., 0.].into(),
+                        stop: [5., 0., 0.].into(),
                         opacity: CumulatedOpacity(0.),
                         nature: Nature::Visibility
                     },
                     Section {
-                        start: [5., 0., 0.],
-                        stop: [20., 0., 0.],
+                        start: [5., 0., 0.].into(),
+                        stop: [20., 0., 0.].into(),
                         opacity: CumulatedOpacity(0.1),
                         nature: Nature::Visibility
                     },
                     Section {
-                        start: [20., 0., 0.],
-                        stop: [29., 0., 0.],
+                        start: [20., 0., 0.].into(),
+                        stop: [29., 0., 0.].into(),
                         opacity: CumulatedOpacity(0.2),
                         nature: Nature::Visibility
                     },
@@ -223,7 +212,7 @@ mod test {
         };
 
         // When
-        let path = PathBuilder::new(&w, at).build_(start, end);
+        let path = PathBuilder::new(&w, at).build_(start.into(), end.into());
 
         // Then
         assert_eq!(
@@ -231,20 +220,20 @@ mod test {
             Path {
                 sections: vec![
                     Section {
-                        start: [0., 0., 0.],
-                        stop: [5., 0., 0.],
+                        start: [0., 0., 0.].into(),
+                        stop: [5., 0., 0.].into(),
                         opacity: CumulatedOpacity(0.),
                         nature: Nature::Visibility
                     },
                     Section {
-                        start: [5., 0., 0.],
-                        stop: [10., 0., 0.],
+                        start: [5., 0., 0.].into(),
+                        stop: [10., 0., 0.].into(),
                         opacity: CumulatedOpacity(0.6),
                         nature: Nature::Visibility
                     },
                     Section {
-                        start: [10., 0., 0.],
-                        stop: [14., 0., 0.],
+                        start: [10., 0., 0.].into(),
+                        stop: [14., 0., 0.].into(),
                         opacity: CumulatedOpacity(1.0),
                         nature: Nature::Visibility
                     }
@@ -252,46 +241,4 @@ mod test {
             }
         )
     }
-
-    // #[test]
-    // fn test_blocked_path() {
-    //     // Given
-    //     let w = WorldConfig::new(3, 1, Meters(0.1)).geo_pixels_per_tile(5);
-    //     let start = [0., 0., 0.];
-    //     let end = [14., 0., 0.];
-    //     let at = |xy, _| match xy {
-    //         Xy(1, 0) => vec![Step {
-    //             opacity: Opacity(0.1),
-    //             solid: true,
-    //         }],
-    //         _ => vec![Step {
-    //             opacity: Opacity(0.1),
-    //             solid: false,
-    //         }],
-    //     };
-
-    //     // When
-    //     let path = PathBuilder::new(&w, at, 0).build_(start, end);
-
-    //     // Then
-    //     assert_eq!(
-    //         path,
-    //         Path {
-    //             sections: vec![
-    //                 Section {
-    //                     start: [0., 0., 0.],
-    //                     stop: [4., 0., 0.],
-    //                     opacity: CumulatedOpacity(0.),
-    //                     nature: Nature::Obstacle
-    //                 },
-    //                 Section {
-    //                     start: [5., 0., 0.],
-    //                     stop: [14., 0., 0.],
-    //                     opacity: CumulatedOpacity(0.),
-    //                     nature: Nature::Unknown
-    //                 }
-    //             ]
-    //         }
-    //     )
-    // }
 }

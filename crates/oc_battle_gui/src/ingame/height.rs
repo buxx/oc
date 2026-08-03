@@ -151,7 +151,6 @@ fn move_camera_by_keyboard(
     }
 
     transform.translation += direction * CAMERA_SPEED * time.delta_secs();
-    // dbg!(transform.translation);
 }
 
 // FIXME: if all tiles are z0, nothing display
@@ -306,7 +305,7 @@ fn on_spawn(
                         let y = tile_xy.0.1 as f32 * g.w.geo_pixels_per_tile as f32;
                         let y = y.to_gui_y(&g.w);
                         let z = tile.z_pixels(&g.w);
-                        let ref_ = [x, y, z];
+                        let ref_ = [x, y, z].into();
                         for (volume, _) in individual.volumes(ref_, &g.w, &g.mod_) {
                             let alpha = 1.0;
                             if let Volume::Cube {

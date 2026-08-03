@@ -7,6 +7,7 @@ use oc_battle_gui::ingame::lov::{Lov, UpdateLovFor};
 use oc_battle_gui::world::InsertedTiles;
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_root::Wcfg;
+use oc_root::geo::{WorldVec2, WorldVec3};
 use oc_root::{WorldConfig, physics::Meters};
 use oc_world::meta::Meta;
 
@@ -95,13 +96,13 @@ fn on_setup_lovs(_: On<SetupLovs>, _: Res<Wcfg>, mut commands: Commands) {
 
     for (start, end) in lovs {
         let lov = Lov {
-            start,
-            stop: start,
+            start: WorldVec3::new(start.x, start.y, start.z),
+            stop: WorldVec3::new(start.x, start.y, start.z),
             stop_plus_z: Meters(0.),
             sections: vec![],
         };
         let entity = commands.spawn(lov);
-        let update = UpdateLovFor(entity.id(), end);
+        let update = UpdateLovFor(entity.id(), WorldVec2::new(end.x, end.y));
         commands.trigger(update);
     }
 }

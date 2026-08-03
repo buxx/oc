@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use oc_individual::order::OrderType;
 use oc_physics::update::bevy::Position;
-use oc_root::y::Y;
+use oc_root::{
+    WcfgFrom,
+    geo::{ScreenVec2, ScreenVec3},
+};
 use oc_utils::{bevy::EntityMapping, let_ok, let_some};
 
 use crate::{
@@ -15,7 +18,7 @@ use crate::{
 pub struct PrepareOpenSquadContextualMenu(pub oc_individual::IndividualIndex);
 
 #[derive(Debug, Event)]
-pub struct Open(pub Vec2, pub Content<Choice>);
+pub struct Open(pub ScreenVec2, pub Content<Choice>);
 
 pub struct Menu;
 
@@ -30,7 +33,7 @@ impl ContextualMenu for Menu {
 }
 
 impl OpenContextualMenuEvent<Choice> for Open {
-    fn position(&self) -> Vec2 {
+    fn position(&self) -> ScreenVec2 {
         self.0
     }
 
@@ -41,7 +44,7 @@ impl OpenContextualMenuEvent<Choice> for Open {
 
 pub fn on_prepare_open_squad_contextual_menu(
     event: On<PrepareOpenSquadContextualMenu>,
-    entities: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    individuals: Res<EntityMapping<oc_individual::IndividualIndex>>,
     g: Res<GameConfig>,
     mut commands: Commands,
     camera_query: Single<(&Camera, &GlobalTransform)>,
@@ -49,12 +52,13 @@ pub fn on_prepare_open_squad_contextual_menu(
 ) {
     let_some!(g = &g.0, return);
     let (camera, camera_transform) = *camera_query;
-    let_some!(individual = entities.get(&event.0), return);
+    let_some!(individual = individuals.get(&event.0), return);
     let_ok!((_i, position) = query.get(*individual), return);
-    let position = Vec3::new(position.0[0], position.0[1], 0.0);
-    let position = position.to_gui_y(&g.w);
-    let position = camera.world_to_viewport(camera_transform, position);
+    let position = position.0;
+    let position = ScreenVec3::from_(position, &g.w);
+    let position = camera.world_to_viewport(camera_transform, position.into());
     let_ok!(position = position, return);
+    let position = ScreenVec2::new(position.x, position.y);
 
     let items = vec![ContextMenuItem::new("move".to_string(), Choice::Move)];
     let content = crate::menu::contextual::Content::new(items);

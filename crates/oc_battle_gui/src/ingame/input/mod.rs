@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+#[cfg(feature = "debug")]
+use oc_root::geo::WorldVec2;
 
 use crate::{
     ingame::{InGameState, input::left_click::LeftClickModeType},
@@ -14,7 +16,7 @@ pub mod projectile;
 #[derive(Debug, Resource, Default)]
 pub struct State {
     #[cfg(feature = "debug")]
-    pub clicks: Vec<Vec2>,
+    pub clicks: Vec<WorldVec2>,
 }
 
 pub struct InputPlugin;

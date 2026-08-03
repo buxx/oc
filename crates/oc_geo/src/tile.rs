@@ -1,4 +1,7 @@
-use oc_root::{WcfgFrom, WorldConfig};
+use oc_root::{
+    WcfgFrom, WorldConfig,
+    geo::{WorldVec2, WorldVec3},
+};
 use oc_utils::d2::Xy;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -8,6 +11,7 @@ use crate::region::RegionXy;
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct TileXy(pub Xy);
 
+// FIXME BS NOW: remove avv conversion which are not WorldVec3 / WorldVec2 ?
 impl TileXy {
     pub fn clamped(&self, w: &WorldConfig) -> Self {
         Self(Xy(
@@ -27,6 +31,37 @@ impl TileXy {
 impl From<TileXy> for (u64, u64) {
     fn from(value: TileXy) -> Self {
         (value.0.0, value.0.1)
+    }
+}
+
+impl WcfgFrom<TileXy> for WorldVec2 {
+    fn from_(value: TileXy, w: &WorldConfig) -> Self {
+        WorldVec2::new(
+            value.0.0 as f32 * w.geo_pixels_per_tile as f32,
+            value.0.1 as f32 * w.geo_pixels_per_tile as f32,
+        )
+    }
+}
+
+impl WcfgFrom<WorldVec2> for TileXy {
+    fn from_(value: WorldVec2, w: &WorldConfig) -> Self {
+        TileXy::from_([value.x, value.y], w)
+    }
+}
+
+impl WcfgFrom<TileXy> for WorldVec3 {
+    fn from_(value: TileXy, w: &WorldConfig) -> Self {
+        WorldVec3::new(
+            value.0.0 as f32 * w.geo_pixels_per_tile as f32,
+            value.0.1 as f32 * w.geo_pixels_per_tile as f32,
+            0.,
+        )
+    }
+}
+
+impl WcfgFrom<WorldVec3> for TileXy {
+    fn from_(value: WorldVec3, w: &WorldConfig) -> Self {
+        TileXy::from_([value.x, value.y], w)
     }
 }
 

@@ -1,6 +1,6 @@
 use derive_more::Constructor;
 use glam::Vec2;
-use oc_root::{WorldConfig, side::Side, y::V};
+use oc_root::{WorldConfig, geo::WorldVec2, side::Side, y::V};
 use oc_utils::d2::Angle;
 use rkyv::Archive;
 
@@ -46,7 +46,7 @@ pub struct Squad {
     /// Order given to this squad.
     pub orders: Vec<Order>,
     /// Computed position of the squad (leader position)
-    pub position: [f32; 2],
+    pub position: WorldVec2,
 }
 
 impl Squad {
@@ -62,7 +62,7 @@ impl Squad {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Update {
     SetOrders(Vec<Order>),
-    SetPosition([f32; 2]),
+    SetPosition(WorldVec2),
     SetActives(u8),
     Accomplished,
 }
@@ -85,6 +85,7 @@ pub enum SquadFormation {
 }
 
 impl SquadFormation {
+    // FIXME BS NOW: I think we can remove `v: V` by replacing Vec2 by WorldVec2 and delegate client to transform
     /// Return squad members positions (include reference) according to formation and squad
     /// leader position (reference point)
     pub fn positions(

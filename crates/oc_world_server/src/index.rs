@@ -55,7 +55,7 @@ impl Indexes {
             let region: WorldRegionIndex = tile.into_(&world.w);
 
             for tile_ in shape_cover_tiles(
-                [position[0], position[1]],
+                [position.x, position.y],
                 INDIVIDUAL_VOLUME_WIDTH.pixels(w),
                 INDIVIDUAL_VOLUME_HEIGHT.pixels(w),
                 w.geo_pixels_per_tile as f32,
@@ -189,8 +189,8 @@ impl Indexes {
             Effect::Individual(i, effect) => match effect {
                 IndividualEffect::Physic(effect) => match effect {
                     physics::Effect::Position { before, after } => {
-                        let now = [after[0], after[1]];
-                        let before = [before[0], before[1]];
+                        let now = [after.x, after.y];
+                        let before = [before.x, before.y];
                         self.update_individual_position(i, now, before, w)
                     }
                     physics::Effect::Tile {
@@ -242,7 +242,7 @@ pub trait IntoIndexEffect<T> {
 mod tests {
     use ::tests::{individual::TestIndividual, world::TestWorld};
     use glam::Vec3;
-    use oc_root::{WorldConfig, physics::Meters};
+    use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters};
 
     use super::*;
 
@@ -251,7 +251,7 @@ mod tests {
         // Given
         let w = WorldConfig::new(2, 2, Meters(0.1));
         let individual = TestIndividual::builder()
-            .position(Vec3::new(4., 4., 0.))
+            .position(WorldVec3::new(4., 4., 0.))
             .build()
             .make(&w);
         let world = TestWorld::builder()
@@ -279,7 +279,7 @@ mod tests {
         // Given
         let w = WorldConfig::new(2, 2, Meters(0.1));
         let individual = TestIndividual::builder()
-            .position(Vec3::new(4., 4., 0.))
+            .position(WorldVec3::new(4., 4., 0.))
             .build()
             .make(&w);
         let world = TestWorld::builder()

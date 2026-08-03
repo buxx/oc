@@ -4,8 +4,7 @@ use oc_individual::squad::SquadIndex;
 use oc_physics::update::bevy::Position;
 use oc_root::{
     WcfgFrom, WorldConfig,
-    geo::{ScreenPoint2d, WorldPoint2d},
-    y::Y,
+    geo::{ScreenVec2, WorldVec2},
 };
 use oc_utils::let_some;
 
@@ -34,8 +33,8 @@ pub struct ComputeDisplayPaths(pub Vec<SpawnPathProfile>);
 #[derive(Debug, Clone)]
 pub struct SpawnPathProfile {
     pub key: SpawnPathProfileKey,
-    pub start: WorldPoint2d,
-    pub end: WorldPoint2d,
+    pub start: WorldVec2,
+    pub end: WorldVec2,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -43,14 +42,14 @@ pub enum SpawnPathProfileKey {
     Squad {
         i: SquadIndex,
         start: WorldTileIndex,
-        end: WorldPoint2d,
+        end: WorldVec2,
     },
 }
 
 #[derive(Debug, Clone)]
 pub struct Path {
-    start: WorldPoint2d,
-    segments: Vec<WorldPoint2d>,
+    start: WorldVec2,
+    segments: Vec<WorldVec2>,
 }
 
 pub fn on_compute_display_paths(
@@ -124,10 +123,10 @@ pub fn draw_paths(
 
     // User giving order paths
     for (_, path) in display.0.iter() {
-        let mut previous = ScreenPoint2d::from_(path.start, &g.w);
+        let mut previous = ScreenVec2::from_(path.start, &g.w);
         // let mut previous: [f32; 2] = [position.0[0], position.0[1]];
         for point in &path.segments {
-            let point = ScreenPoint2d::from_(*point, &g.w);
+            let point = ScreenVec2::from_(*point, &g.w);
             let start = Vec3::new(previous.x, previous.y, draw::Z_PATH);
             let stop = Vec3::new(point.x, point.y, draw::Z_PATH);
             gizmos.line(start, stop, color);
@@ -141,13 +140,14 @@ pub fn draw_paths(
         match &intent.0 {
             oc_individual::behavior::Intent::Idle(_) => {}
             oc_individual::behavior::Intent::MoveTo(_, path) => {
-                let mut previous: [f32; 2] = [position.0[0], position.0[1]];
+                let mut previous = ScreenVec2::from_(position.0, &g.w);
                 for point in path.iter() {
-                    let start = Vec3::new(previous[0], previous[1].to_gui_y(&g.w), draw::Z_PATH);
-                    let stop = Vec3::new(point[0], point[1].to_gui_y(&g.w), draw::Z_PATH);
-                    gizmos.line(start, stop, color);
+                    let point = ScreenVec2::from_(*point, &g.w);
+                    let start = Vec3::new(previous.x, previous.y, draw::Z_PATH);
+                    let stop = Vec3::new(point.x, point.y, draw::Z_PATH);
 
-                    previous = [point[0], point[1]];
+                    gizmos.line(start, stop, color);
+                    previous = point;
                 }
             }
         }

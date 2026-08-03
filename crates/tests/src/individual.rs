@@ -1,5 +1,4 @@
 use bon::Builder;
-use glam::Vec3;
 use oc_geo::{
     region::WorldRegionIndex,
     tile::{TileXy, WorldTileIndex},
@@ -8,15 +7,15 @@ use oc_individual::{
     Gesture, Individual,
     behavior::{Behavior, Intent},
 };
-use oc_root::{WcfgFrom, WorldConfig, side::Side};
+use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec3, side::Side};
 use oc_utils::d2::Direction;
 
 #[derive(Debug, Builder)]
 pub struct TestIndividual {
     #[builder(default = Side::A)]
     side: Side,
-    #[builder(default = Vec3::new(0., 0., 0.))]
-    position: Vec3,
+    #[builder(default = WorldVec3::new(0., 0., 0.))]
+    position: WorldVec3,
     #[builder(default = Behavior::Idle(Direction::NORTH))]
     behavior: Behavior,
     #[builder(default = Gesture::Idle(Direction::NORTH))]

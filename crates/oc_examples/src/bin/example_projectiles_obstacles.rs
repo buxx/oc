@@ -168,24 +168,24 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                     ammunition.index(),
                     shot.index(),
                     10,
-                    [70., 60., 8.5],
-                    [100., 60., 8.5],
+                    [70., 60., 8.5].into(),
+                    [100., 60., 8.5].into(),
                 ),
                 SpawnProjectile::new(
                     weapon2.index(),
                     ammunition.index(),
                     shot.index(),
                     10,
-                    [70., 65., 8.5],
-                    [100., 65., 8.5],
+                    [70., 65., 8.5].into(),
+                    [100., 65., 8.5].into(),
                 ),
                 SpawnProjectile::new(
                     weapon3.index(),
                     ammunition.index(),
                     shot3.index(),
                     10,
-                    [70., 70., 8.5],
-                    [100., 70., 8.5],
+                    [70., 70., 8.5].into(),
+                    [100., 70., 8.5].into(),
                 ),
             ] {
                 commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
@@ -197,8 +197,8 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 ammunition.index(),
                 shot.index(),
                 1,
-                [70., 60., 8.5],
-                [100., 60., 8.5],
+                [70., 60., 8.5].into(),
+                [100., 60., 8.5].into(),
             )] {
                 commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
             }
@@ -210,24 +210,24 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                     ammunition.index(),
                     shot.index(),
                     10,
-                    [70., 125., 8.5],
-                    [100., 125., 8.5],
+                    [70., 125., 8.5].into(),
+                    [100., 125., 8.5].into(),
                 ),
                 SpawnProjectile::new(
                     weapon2.index(),
                     ammunition.index(),
                     shot.index(),
                     10,
-                    [70., 130., 8.5],
-                    [100., 130., 8.5],
+                    [70., 130., 8.5].into(),
+                    [100., 130., 8.5].into(),
                 ),
                 SpawnProjectile::new(
                     weapon3.index(),
                     ammunition.index(),
                     shot3.index(),
                     10,
-                    [70., 135., 8.5],
-                    [100., 135., 8.5],
+                    [70., 135., 8.5].into(),
+                    [100., 135., 8.5].into(),
                 ),
             ] {
                 commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
@@ -239,8 +239,8 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 ammunition.index(),
                 shot.index(),
                 1,
-                [70., 125., 8.5],
-                [100., 125., 8.5],
+                [70., 125., 8.5].into(),
+                [100., 125., 8.5].into(),
             )] {
                 commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
             }

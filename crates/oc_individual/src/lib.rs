@@ -15,6 +15,7 @@ use oc_physics::UpdatePhysic;
 use oc_physics::collision::Material;
 use oc_physics::volume::Volume;
 use oc_root::WorldConfig;
+use oc_root::geo::WorldVec3;
 use oc_root::material::MaterialKind;
 use oc_root::physics::Meters;
 use oc_root::side::Side;
@@ -64,7 +65,7 @@ impl Display for IndividualIndex {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Individual {
     pub side: Side,
-    pub position: [f32; 3],
+    pub position: WorldVec3,
     pub tile: WorldTileIndex,
     pub region: WorldRegionIndex,
     pub orders: Vec<Order>,
@@ -130,15 +131,15 @@ impl From<i32> for IndividualIndex {
 }
 
 impl Individual {
-    pub fn fresh<P: Into<[f32; 3]>>(
+    pub fn fresh(
         side: Side,
-        position: P,
+        position: WorldVec3,
         tile: WorldTileIndex,
         region: WorldRegionIndex,
     ) -> Self {
         Self::new(
             side,
-            position.into(),
+            position,
             tile,
             region,
             vec![],
@@ -179,7 +180,7 @@ impl Individual {
 }
 
 impl Physic for Individual {
-    fn position(&self, _: &WorldConfig) -> [f32; 3] {
+    fn position(&self, _: &WorldConfig) -> WorldVec3 {
         self.position
     }
 
@@ -189,15 +190,15 @@ impl Physic for Individual {
 
     fn volumes(
         &self,
-        ref_: [f32; 3],
+        ref_: WorldVec3,
         w: &WorldConfig,
         _mod_: &Mod,
     ) -> Vec<(Volume, Traversability)> {
         vec![(
             Volume::Cube {
-                x: ref_[0],
-                y: ref_[1],
-                z: ref_[2],
+                x: ref_.x,
+                y: ref_.y,
+                z: ref_.z,
                 width: INDIVIDUAL_VOLUME_WIDTH.pixels(w),
                 height: INDIVIDUAL_VOLUME_HEIGHT.pixels(w),
                 depth: INDIVIDUAL_VOLUME_DEPTH.pixels(w),
@@ -211,7 +212,7 @@ impl Physic for Individual {
 }
 
 impl UpdatePhysic for Individual {
-    fn set_position(&mut self, value: [f32; 3]) {
+    fn set_position(&mut self, value: WorldVec3) {
         self.position = value;
     }
 

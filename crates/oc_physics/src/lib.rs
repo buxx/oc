@@ -1,7 +1,7 @@
 use crate::{collision::Material, volume::Volume};
 use line_drawing::Bresenham3d;
 use oc_mod::{Mod, nature::Traversability};
-use oc_root::{WcfgFrom, WorldConfig, physics::MetersSeconds};
+use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec3, physics::MetersSeconds};
 use oc_utils::d2::Xy;
 use rkyv::Archive;
 
@@ -15,14 +15,18 @@ pub mod volume;
 
 pub trait Physic: Material {
     // TODO: maby position should be `Geo` instead `Physics`...
-    fn position(&self, w: &WorldConfig) -> [f32; 3];
+    fn position(&self, w: &WorldConfig) -> WorldVec3;
     fn forces(&self, w: &WorldConfig) -> &Vec<Force>;
-    fn volumes(&self, ref_: [f32; 3], w: &WorldConfig, mod_: &Mod)
-    -> Vec<(Volume, Traversability)>;
+    fn volumes(
+        &self,
+        ref_: WorldVec3,
+        w: &WorldConfig,
+        mod_: &Mod,
+    ) -> Vec<(Volume, Traversability)>;
 }
 
 pub trait UpdatePhysic: Physic + Material {
-    fn set_position(&mut self, value: [f32; 3]);
+    fn set_position(&mut self, value: WorldVec3);
     fn push_force(&mut self, value: Force);
     fn remove_force(&mut self, value: &Force);
     fn set_volumes(&self, value: Vec<(Volume, Traversability)>);
@@ -32,7 +36,7 @@ pub trait UpdatePhysic: Physic + Material {
 #[derive(Archive, rkyv::Deserialize, rkyv::Serialize, Debug, PartialEq, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Force {
-    Translation([f32; 3], MetersSeconds),
+    Translation(WorldVec3, MetersSeconds),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -55,7 +59,7 @@ pub fn step<'a, I, O, F, Z>(
     object: (I, &'a O),
     at: F,
     origin: &str,
-) -> ([f32; 3], Vec<Force>, Vec<Event<Z>>)
+) -> (WorldVec3, Vec<Force>, Vec<Event<Z>>)
 where
     I: Clone + Into<Z> + std::fmt::Debug,
     O: Physic,
@@ -74,11 +78,11 @@ where
             Force::Translation(direction, speed) => {
                 let speed = speed.0 * delta;
                 let pixels = speed * w.geo_pixels_per_meters;
-                let [x, y, z] = position;
+                let [x, y, z] = position.into();
                 let (x_, y_, z_) = (
-                    x + direction[0] * pixels,
-                    y + direction[1] * pixels,
-                    z + direction[2] * pixels,
+                    x + direction.x * pixels,
+                    y + direction.y * pixels,
+                    z + direction.z * pixels,
                 );
 
                 tracing::trace!(
@@ -113,9 +117,9 @@ where
                         break 'pixels;
                     }
 
-                    let pixel = [pixel_x as f32, pixel_y as f32, pixel_z as f32];
+                    let pixel: WorldVec3 = [pixel_x as f32, pixel_y as f32, pixel_z as f32].into();
                     let xy = Xy::from_((pixel_x, pixel_y), w);
-                    position = [pixel_x as f32, pixel_y as f32, pixel_z as f32];
+                    position = [pixel_x as f32, pixel_y as f32, pixel_z as f32].into();
 
                     tracing::trace!(name="physics-step-translation-line-pixel", origin=origin, i=?i, pixel=?pixel, xy=?xy);
                     let volumes = object.volumes(pixel, w, mod_);
@@ -129,11 +133,12 @@ where
 
                         tracing::trace!(name="physics-step-translation-other", origin=origin, i=?i, o=?o);
 
-                        let [other_x, other_y, other_z] = other.position(w);
-                        let position2 = [other_x, other_y, other_z];
+                        let other_position = other.position(w);
+                        // let [other_x, other_y, other_z] = other.position(w).into();
+                        // let position2 = [other_x, other_y, other_z].into();
 
                         for (volume1, traversability1) in &volumes {
-                            let volumes2 = other.volumes(position2, w, mod_);
+                            let volumes2 = other.volumes(other_position, w, mod_);
                             'other_volumes: for (volume2, traversability2) in volumes2 {
                                 // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
                                 tracing::trace!(name="physics-step-translation-prohibe-test", origin=origin, i=?i, traversability1=?traversability1, traversability2=?traversability2);
@@ -142,7 +147,7 @@ where
                                     continue 'other_volumes;
                                 }
 
-                                tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?xy, o=?o, op=?[other_x, other_y, other_z], volume1=?volume1, volume2=?volume2);
+                                tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?xy, o=?o, op=?other_position, volume1=?volume1, volume2=?volume2);
                                 if volume1.collide(&volume2) {
                                     tracing::trace!(name="physics-step-translation-collide", origin=origin, i=?i, p=?position, xy=?xy);
 
@@ -162,7 +167,7 @@ where
                 }
                 if !interupted {
                     // If not interupted, position is now end of translation (bresenham3d accept only usize)
-                    position = [x_, y_, z_];
+                    position = [x_, y_, z_].into();
                 }
             }
         }
@@ -192,12 +197,12 @@ mod tests {
             .to_path_buf()
     }
 
-    struct MyObject([f32; 3], Vec<Force>);
+    struct MyObject(WorldVec3, Vec<Force>);
     #[derive(Debug, Clone, serde::Serialize, PartialEq)]
     struct MyObjectId(usize);
 
     impl Physic for MyObject {
-        fn position(&self, _: &WorldConfig) -> [f32; 3] {
+        fn position(&self, _: &WorldConfig) -> WorldVec3 {
             self.0
         }
         fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
@@ -206,15 +211,15 @@ mod tests {
 
         fn volumes(
             &self,
-            ref_: [f32; 3],
+            ref_: WorldVec3,
             _: &WorldConfig,
             _: &Mod,
         ) -> Vec<(Volume, Traversability)> {
             vec![(
                 Volume::Point {
-                    x: ref_[0],
-                    y: ref_[1],
-                    z: ref_[2],
+                    x: ref_.x,
+                    y: ref_.y,
+                    z: ref_.z,
                 },
                 Traversability::all(),
             )]
@@ -230,7 +235,7 @@ mod tests {
     struct MyTile(TileXy, Traversability);
 
     impl Physic for MyTile {
-        fn position(&self, w: &WorldConfig) -> [f32; 3] {
+        fn position(&self, w: &WorldConfig) -> WorldVec3 {
             self.0.into_(w)
         }
 
@@ -241,15 +246,15 @@ mod tests {
 
         fn volumes(
             &self,
-            ref_: [f32; 3],
+            ref_: WorldVec3,
             w: &WorldConfig,
             _: &Mod,
         ) -> Vec<(Volume, Traversability)> {
             vec![(
                 Volume::Cube {
-                    x: ref_[0],
-                    y: ref_[1],
-                    z: ref_[2],
+                    x: ref_.x,
+                    y: ref_.y,
+                    z: ref_.z,
                     width: w.geo_pixels_per_tile as f32,
                     height: w.geo_pixels_per_tile as f32,
                     depth: f32::MAX,
@@ -265,10 +270,10 @@ mod tests {
         }
     }
 
-    struct MyIndividual([f32; 3]);
+    struct MyIndividual(WorldVec3);
 
     impl Physic for MyIndividual {
-        fn position(&self, _w: &WorldConfig) -> [f32; 3] {
+        fn position(&self, _w: &WorldConfig) -> WorldVec3 {
             self.0
         }
 
@@ -279,15 +284,15 @@ mod tests {
 
         fn volumes(
             &self,
-            ref_: [f32; 3],
+            ref_: WorldVec3,
             _w: &WorldConfig,
             _: &Mod,
         ) -> Vec<(Volume, Traversability)> {
             vec![(
                 Volume::Cube {
-                    x: ref_[0],
-                    y: ref_[1],
-                    z: ref_[2],
+                    x: ref_.x,
+                    y: ref_.y,
+                    z: ref_.z,
                     width: 2.0,
                     height: 2.0,
                     depth: 10.,
@@ -311,13 +316,13 @@ mod tests {
             .physics_coeff_per_tick(0.5)
             .geo_pixels_per_meters(10.);
         let delta = w.physics_coeff_per_tick;
-        let direction = [1.0, 0.0, 0.0];
+        let direction = [1.0, 0.0, 0.0].into();
         let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
+        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
 
         // When
-        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) = step(
+        let (new_position, _, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
             &mod_,
             delta,
@@ -327,7 +332,7 @@ mod tests {
         );
 
         // Then
-        let expected_new_position = [5.0, 0.0, 0.0];
+        let expected_new_position: WorldVec3 = [5.0, 0.0, 0.0].into();
         assert_eq!(new_position, expected_new_position);
     }
 
@@ -341,11 +346,11 @@ mod tests {
         let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 0.0, 0.0];
         let speed = MetersSeconds(100.0);
-        let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
+        let force = Force::Translation(direction.into(), speed);
+        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
 
         // When
-        let (new_position, _, events): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) = step(
+        let (new_position, _, events): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
             &mod_,
             delta,
@@ -355,7 +360,7 @@ mod tests {
         );
 
         // Then
-        let expected_new_position = [49.0, 0.0, 0.0];
+        let expected_new_position: WorldVec3 = [49.0, 0.0, 0.0].into();
         assert_eq!(new_position, expected_new_position);
         assert_eq!(events, vec![Event::NoTile(MyObjectId(0))]);
     }
@@ -370,11 +375,11 @@ mod tests {
         let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(0.01); // 1% of 10 pixels = 0.1 pixel
-        let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
+        let force = Force::Translation(direction.into(), speed);
+        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
 
         // When
-        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) = step(
+        let (new_position, _, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
             &mod_,
             delta,
@@ -385,7 +390,7 @@ mod tests {
 
         // Then
         let expected_new_x = "0.1"; // step must complete bresenham pixel (which are isize) with end (force) position
-        assert_eq!(&format!("{:.01}", new_position[0]), expected_new_x);
+        assert_eq!(&format!("{:.01}", new_position.x), expected_new_x);
     }
 
     #[test]
@@ -398,8 +403,8 @@ mod tests {
         let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(100.0);
-        let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
+        let force = Force::Translation(direction.into(), speed);
+        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
         let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Traversability::all());
         let my_traversable_tile: Box<&dyn Physic> = Box::new(&my_traversable_tile);
         let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
@@ -413,11 +418,11 @@ mod tests {
         };
 
         // When
-        let (new_position, new_forces, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
+        let (new_position, new_forces, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) =
             step(&w, &mod_, delta, (MyObjectId(0), &object), objects, "test");
 
         // Then
-        let expected_new_position = [5.0, 0.0, 0.0];
+        let expected_new_position: WorldVec3 = [5.0, 0.0, 0.0].into();
         let expected_new_forces: Vec<Force> = vec![];
         assert_eq!(new_position, expected_new_position);
         assert_eq!(new_forces, expected_new_forces);
@@ -433,11 +438,11 @@ mod tests {
         let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(10.0);
-        let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
+        let force = Force::Translation(direction.into(), speed);
+        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
 
         // When
-        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) = step(
+        let (new_position, _, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
             &mod_,
             delta,
@@ -447,7 +452,7 @@ mod tests {
         );
 
         // Then
-        let expected_new_position = [50.0, 0.0, 0.0];
+        let expected_new_position: WorldVec3 = [50.0, 0.0, 0.0].into();
         assert_eq!(new_position, expected_new_position);
     }
 
@@ -461,8 +466,8 @@ mod tests {
         let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(100.0);
-        let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
+        let force = Force::Translation(direction.into(), speed);
+        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
         let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Traversability::all());
         let my_traversable_tile: Box<&dyn Physic> = Box::new(&my_traversable_tile);
         let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
@@ -476,11 +481,11 @@ mod tests {
         };
 
         // When
-        let (new_position, new_forces, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
+        let (new_position, new_forces, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) =
             step(&w, &mod_, delta, (MyObjectId(0), &object), objects, "test");
 
         // Then
-        let expected_new_position = [5., 0.0, 0.0];
+        let expected_new_position: WorldVec3 = [5., 0.0, 0.0].into();
         let expected_new_forces: Vec<Force> = vec![];
         assert_eq!(new_position, expected_new_position);
         assert_eq!(new_forces, expected_new_forces);
@@ -496,11 +501,11 @@ mod tests {
         let delta = w.physics_coeff_per_tick;
         let direction = [1.0, 1.0, 0.0]; // South
         let speed = MetersSeconds(1.0);
-        let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0, 0.0], vec![force]);
+        let force = Force::Translation(direction.into(), speed);
+        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
 
         // When
-        let (new_position, _, _): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) = step(
+        let (new_position, _, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
             &mod_,
             delta,
@@ -510,7 +515,7 @@ mod tests {
         );
 
         // Then
-        let expected_new_position = [5.0, 5.0, 0.0];
+        let expected_new_position: WorldVec3 = [5.0, 5.0, 0.0].into();
         assert_eq!(new_position, expected_new_position);
     }
 
@@ -525,9 +530,9 @@ mod tests {
         let delta = w.physics_coeff_per_tick;
         let direction = [-1.0, 0.0, 0.0]; // West
         let speed = MetersSeconds(1.0);
-        let force = Force::Translation(direction, speed);
-        let object = MyObject([7.0, 2.0, 5.0], vec![force]);
-        let individual = MyIndividual([2.0, 2.0, 0.0]); // MyIndividual volume is 2 px !
+        let force = Force::Translation(direction.into(), speed);
+        let object = MyObject([7.0, 2.0, 5.0].into(), vec![force]);
+        let individual = MyIndividual([2.0, 2.0, 0.0].into()); // MyIndividual volume is 2 px !
         let individual: Box<&dyn Physic> = Box::new(&individual);
 
         let objects = |xy| {
@@ -540,11 +545,12 @@ mod tests {
         };
 
         // When
-        let (position, forces, events): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
+        let (position, forces, events): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) =
             step(&w, &mod_, delta, (MyObjectId(0), &object), objects, "test");
 
         // Then
-        assert_eq!(position, [4.0, 2.0, 5.0]); // x axis hit first, at MySubject (x) 2.0 (position) + 2.0 (width)
+        let expected_position: WorldVec3 = [4.0, 2.0, 5.0].into();
+        assert_eq!(position, expected_position); // x axis hit first, at MySubject (x) 2.0 (position) + 2.0 (width)
         assert_eq!(forces, Vec::<Force>::new());
         assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
     }
@@ -560,9 +566,9 @@ mod tests {
         let delta = w.physics_coeff_per_tick;
         let direction = [-1.0, 0.0, 0.0]; // West
         let speed = MetersSeconds(1.0);
-        let force = Force::Translation(direction, speed);
-        let object = MyObject([7.5, 2.5, 5.0], vec![force]); // Tile 1 (.5) on x; tile 0 (0.5) on y
-        let individual = MyIndividual([1.0, 1.0, 0.0]); // MyIndividual volume size (see MyIndividual Physics impl) should be impacted
+        let force = Force::Translation(direction.into(), speed);
+        let object = MyObject([7.5, 2.5, 5.0].into(), vec![force]); // Tile 1 (.5) on x; tile 0 (0.5) on y
+        let individual = MyIndividual([1.0, 1.0, 0.0].into()); // MyIndividual volume size (see MyIndividual Physics impl) should be impacted
         let individual: Box<&dyn Physic> = Box::new(&individual);
 
         let objects = |xy| {
@@ -575,11 +581,12 @@ mod tests {
         };
 
         // When
-        let (position, forces, events): ([f32; 3], Vec<Force>, Vec<Event<MyObjectId>>) =
+        let (position, forces, events): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) =
             step(&w, &mod_, delta, (MyObjectId(0), &object), objects, "test");
 
         // Then
-        assert_eq!(position, [3.0, 2.0, 5.0]);
+        let expected_position: WorldVec3 = [3.0, 2.0, 5.0].into();
+        assert_eq!(position, expected_position);
         assert_eq!(forces, Vec::<Force>::new());
         assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
     }

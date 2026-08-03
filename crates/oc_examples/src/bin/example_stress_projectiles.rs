@@ -132,8 +132,8 @@ fn orbit(
                 ammunition.index(),
                 shot.index(),
                 1,
-                [orbiter.center.x, orbiter.center.y, 500.],
-                [orbiter.center.x + x, orbiter.center.y + y, 500.],
+                [orbiter.center.x, orbiter.center.y, 500.].into(),
+                [orbiter.center.x + x, orbiter.center.y + y, 500.].into(),
             ),
         )));
     }

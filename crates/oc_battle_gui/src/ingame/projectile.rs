@@ -6,7 +6,8 @@ use oc_physics::collision::Material_;
 use oc_physics::update::bevy::{
     Forces, PhysicsPlugin, Position, Region, SetPositionEvent, Tile, Volumes,
 };
-use oc_root::y::Y;
+use oc_root::WcfgFrom;
+use oc_root::geo::ScreenVec2;
 use oc_utils::bevy::EntityMapping;
 use oc_utils::{let_ok, let_some};
 
@@ -54,24 +55,21 @@ pub fn on_insert_projectile(
     tracing::trace!(name="spawn-projectile", i=?projectile.0, position=?projectile.1.position(), forces=?projectile.1.forces(&g.w));
 
     let position = projectile.1.position();
-    let line = Polyline2d::new(vec![Vec2::new(position[0], position[1].to_gui_y(&g.w))]);
+    let position_ = ScreenVec2::from_(position, &g.w);
+    let line = Polyline2d::new(vec![position_.into()]);
 
     let entity = commands
         .spawn((
             ProjectileId(projectile.0),
-            Position(*position),
+            Position(position),
             Tile(projectile.1.tile()),
             Region(projectile.1.region()),
             Forces(projectile.1.forces(&g.w).clone()),
             Material_(Some(oc_root::material::MaterialKind::Projectile)),
-            Volumes(projectile.1.volumes(*position, &g.w, &g.mod_).clone()),
+            Volumes(projectile.1.volumes(position, &g.w, &g.mod_).clone()),
             Mesh2d(meshes.add(line)),
             MeshMaterial2d(materials.add(Color::from(RED))),
-            Transform::from_xyz(
-                projectile.1.position()[0],
-                projectile.1.position()[1].to_gui_y(&g.w),
-                Z_PROJECTILE,
-            ),
+            Transform::from_xyz(position_.x, position_.y, Z_PROJECTILE),
         ))
         .id();
     state.insert(projectile.0, entity);
@@ -79,20 +77,19 @@ pub fn on_insert_projectile(
 
 fn on_update_position(
     position: On<SetPositionEvent<oc_projectile::ProjectileId>>,
+    g: Res<GameConfig>,
     projectiles: Res<EntityMapping<oc_projectile::ProjectileId>>,
     mut meshes: ResMut<Assets<Mesh>>,
     query: Query<&Mesh2d>,
 ) {
-    let (i, position, previous) = (position.0, &position.1, &position.2);
+    let_some!(g = &g.0, return);
+    let (i, position, previous) = (position.0, position.1, position.2);
     let_some!(entity = projectiles.get(&i), return);
     let_ok!(mesh = query.get(*entity), return);
     let_some!(mut mesh = meshes.get_mut(mesh), return);
 
-    let position = Vec2::new(position[0], position[1]);
-    let previous = Vec2::new(previous[0], previous[1]);
     let relative = previous - position;
-    let relative = Vec2::new(relative.x, -relative.y);
-    *mesh = Polyline2d::new(vec![Vec2::new(0.0, 0.0), relative]).into();
+    *mesh = Polyline2d::new(vec![Vec2::new(0.0, 0.0), Vec2::new(relative.x, relative.y)]).into();
 }
 
 // TODO: should be automatized (macro? derive ?)

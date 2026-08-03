@@ -8,7 +8,7 @@ bevy = ["dep:bevy"]
 
 [dependencies]
 rkyv = { workspace = true, features = ["uuid-1"] }
-derive_more = { workspace = true, features = ["constructor", "deref"] }
+derive_more = { workspace = true, features = ["constructor", "deref", "from", "into"] }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_derive = { workspace = true }
 glam.workspace = true

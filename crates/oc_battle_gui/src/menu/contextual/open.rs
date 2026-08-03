@@ -1,9 +1,10 @@
 use bevy::prelude::*;
+use oc_root::geo::ScreenVec2;
 
 use crate::menu::contextual::{Content, ContextMenu, choice::choose, item::context_item};
 
 pub trait OpenContextualMenuEvent<I: Event + Clone + std::fmt::Debug> {
-    fn position(&self) -> Vec2;
+    fn position(&self) -> ScreenVec2;
     fn content(&self) -> &Content<I>;
 }
 

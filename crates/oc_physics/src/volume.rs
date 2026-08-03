@@ -29,7 +29,8 @@ impl Volume {
         }
     }
 
-    pub fn with_ref(mut self, value: [f32; 3]) -> Self {
+    pub fn with_ref(mut self, value: impl Into<[f32; 3]>) -> Self {
+        let value: [f32; 3] = value.into();
         match &mut self {
             Volume::Point { x, y, z } => {
                 *x = value[0];

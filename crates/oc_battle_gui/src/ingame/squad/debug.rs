@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use oc_physics::update::bevy::Position;
-use oc_root::y::{V, Y};
-use oc_utils::{bevy::EntityMapping, let_some};
+use oc_root::{WcfgFrom, geo::ScreenVec3, y::V};
+use oc_utils::{bevy::EntityMapping, let_ok, let_some};
 
 use crate::{
     entity::individual::IndividualIndex,
@@ -69,14 +69,17 @@ pub fn draw_formations(
             let leader = squad.leader();
             let count = squad.members.len(); // TODO: active members (compute must be cached in Squad)
             let_some!(leader = individuals.get(&leader), continue);
-            let Ok((position, gesture)) = individual.get(*leader) else {
-                continue;
-            };
-            let position = glam::Vec2::new(position.0[0], position.0[1].to_gui_y(&g.w));
+            let_ok!((position, gesture) = individual.get(*leader), continue);
+            let position = ScreenVec3::from_(position.0, &g.w);
             let angle = gesture.0.direction().angle(V::Gui);
-            let positions = squad
-                .formation
-                .positions(&g.w, V::Gui, position, angle, count);
+            let positions = squad.formation.positions(
+                &g.w,
+                V::Gui,
+                glam::Vec2::new(position.x, position.y),
+                angle,
+                count,
+            );
+
             for position in positions {
                 tracing::trace!(name = "ingame-squad-debug-formations-draw-point", i=?i, position=?position);
                 gizmos.circle_2d(bevy::math::Vec2::new(position.x, position.y), 1., color);

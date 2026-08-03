@@ -87,7 +87,6 @@ fn individuals(
                 DIRECTION.angle(V::Server),
                 count,
             );
-            // dbg!(&positions);
             (position, orders, positions)
         })
         .map(|(_, _, positions)| {
@@ -99,7 +98,7 @@ fn individuals(
                 let tile_i = WorldTileIndex::from_(tile_xy, &w);
                 let tile = &tiles[tile_i.0 as usize];
                 let z = tile.z_pixels(w);
-                let position = [position[0], position[1], z];
+                let position = [position[0], position[1], z].into();
 
                 oc_individual::Individual::fresh(Side::A, position, tile_i, WorldRegionIndex(0))
                     .with_gesture(Gesture::Idle(DIRECTION))

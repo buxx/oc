@@ -7,8 +7,7 @@ use oc_network::ToServer;
 use oc_root::Wcfg;
 use oc_root::WcfgFrom;
 use oc_root::WorldConfig;
-use oc_root::geo::WorldPoint2d;
-use oc_root::y::Y;
+use oc_root::geo::WorldVec2;
 use oc_utils::d2::Position;
 use oc_utils::let_ok;
 use oc_utils::let_some;
@@ -47,7 +46,7 @@ pub fn system(
     let (camera, transform) = *camera;
     let point = camera.viewport_to_world_2d(transform, cursor);
     let_ok!(point = point, return);
-    let point = WorldPoint2d::from_(point, w);
+    let point = WorldVec2::from_(point, w);
 
     let LeftClickMode::Order(order) = &mode.0 else {
         return;
@@ -61,7 +60,7 @@ pub fn system(
 
 fn show(
     w: &WorldConfig,
-    point: WorldPoint2d,
+    point: WorldVec2,
     order: &OrderType,
     commands: &mut Commands,
     mode: &LeftClick,
@@ -77,9 +76,8 @@ fn show(
                 tracing::trace!(name="ingame-input-left_click-show-order-squad", mode=?mode.0, point=?point, squad=?i);
                 let squad = world.squad(i)?;
                 let leader = world.get_individual(squad.leader())?;
-                // FIXME BS NOW: WorldPoint2d inside individual
-                let start = WorldPoint2d::new(leader.position[0], leader.position[1]);
-                let end = point;
+                let start: WorldVec2 = leader.position.into();
+                let end: WorldVec2 = point;
                 let start_tile = TileXy::from_([start.x, start.y], w);
                 let start_tile = WorldTileIndex::from_(start_tile, w);
                 let key = SpawnPathProfileKey::Squad{ i: *i, start: start_tile, end };
@@ -112,7 +110,7 @@ fn cancel(commands: &mut Commands, ongoing: &mut OnGoing) {
 
 fn action(
     ongoing: &mut OnGoing,
-    point: WorldPoint2d,
+    point: WorldVec2,
     buttons: &ButtonInput<MouseButton>,
     commands: &mut Commands,
     ingame: &crate::ingame::state::State,

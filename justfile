@@ -52,59 +52,59 @@ example-stress-server-projectiles:
 
 [working-directory: 'crates/oc_battle_gui']
 test-battle_gui:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/oc_geo']
 test-geo:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/oc_individual']
 test-individual:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/oc_lov']
 test-lov:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/oc_mod']
 test-mod:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/oc_network']
 test-network:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/oc_physics']
 test-physics:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/oc_projectile']
 test-projectile:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/oc_root']
 test-root:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/oc_utils']
 test-utils:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/oc_world']
 test-world:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/oc_world_generator']
 test-world_generator:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/oc_world_server']
 test-world_server:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 [working-directory: 'crates/tests']
 test-tests:
-    cargo nextest run --no-tests=pass
+    if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
 
 # When run tests from workspace root, it trigger a massive parallelized compile works which need
 # a lot of disk simultaneous read/write. One of my computer can't follow ... So, a simple solution

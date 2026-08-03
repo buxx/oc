@@ -7,7 +7,7 @@ use oc_geo::{
 use oc_mod::nature::Traversability;
 use oc_mod::{Mod, nature::NatureIndex};
 use oc_physics::{Force, Physic, collision::Material, volume::Volume};
-use oc_root::{WcfgInto, WorldConfig, material::MaterialKind};
+use oc_root::{WcfgInto, WorldConfig, geo::WorldVec3, material::MaterialKind};
 
 use crate::{World, navmesh::Walls};
 use derive_more::Constructor;
@@ -60,15 +60,15 @@ impl Material for Tile {
 }
 
 impl Physic for Tile {
-    fn position(&self, w: &WorldConfig) -> [f32; 3] {
+    fn position(&self, w: &WorldConfig) -> WorldVec3 {
         let xy: TileXy = self.i.into_(w);
         let point = xy.point(w);
         tracing::trace!(name="DEBUG", i=?self.i, xy=?xy, point=?point);
-        [
+        WorldVec3::new(
             point[0],
             point[1],
             self.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters,
-        ]
+        )
     }
 
     fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
@@ -78,7 +78,7 @@ impl Physic for Tile {
 
     fn volumes(
         &self,
-        ref_: [f32; 3],
+        ref_: WorldVec3,
         w: &WorldConfig,
         mod_: &Mod,
     ) -> Vec<(Volume, Traversability)> {
@@ -89,20 +89,20 @@ impl Physic for Tile {
         vec![
             (
                 Volume::Cube {
-                    x: ref_[0],
-                    y: ref_[1],
+                    x: ref_.x,
+                    y: ref_.y,
                     z: -DEPTH,
                     width: w.geo_pixels_per_tile as f32,
                     height: w.geo_pixels_per_tile as f32,
-                    depth: DEPTH + ref_[2] + exceedance,
+                    depth: DEPTH + ref_.z + exceedance,
                 },
                 Traversability::none(),
             ),
             (
                 Volume::Cube {
-                    x: ref_[0],
-                    y: ref_[1],
-                    z: ref_[2],
+                    x: ref_.x,
+                    y: ref_.y,
+                    z: ref_.z,
                     width: w.geo_pixels_per_tile as f32,
                     height: w.geo_pixels_per_tile as f32,
                     depth: exceedance,

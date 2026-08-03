@@ -6,7 +6,11 @@ use oc_individual::{
     order::Order,
 };
 use oc_physics::Force;
-use oc_root::{physics::MetersSeconds, y::V};
+use oc_root::{
+    geo::{WorldVec2, WorldVec3},
+    physics::MetersSeconds,
+    y::V,
+};
 use oc_utils::{d2::Direction, number::almost_equal};
 use oc_world::World;
 
@@ -147,8 +151,8 @@ impl<'a> Processor<'a> {
                 updates = Some(accomplished_updates(self.i, direction));
             }
             Order::MoveTo(position) => {
-                if almost_equal(position.x, individual.position[0], POSITION_TOLERANCE)
-                    && almost_equal(position.y, individual.position[1], POSITION_TOLERANCE)
+                if almost_equal(position.x, individual.position.x, POSITION_TOLERANCE)
+                    && almost_equal(position.y, individual.position.y, POSITION_TOLERANCE)
                 {
                     tracing::trace!(
                         name = "individual-step-accomplished-squad-leader-move-to-finished",
@@ -172,8 +176,8 @@ impl<'a> Processor<'a> {
                     return updates;
                 };
 
-                if almost_equal(next[0], individual.position[0], POSITION_TOLERANCE)
-                    && almost_equal(next[1], individual.position[1], POSITION_TOLERANCE)
+                if almost_equal(next.x, individual.position.x, POSITION_TOLERANCE)
+                    && almost_equal(next.y, individual.position.y, POSITION_TOLERANCE)
                 {
                     let update = Update::MoveStepAccomplished;
                     let update = runner::update::Update::UpdateIndividual(self.i, update);
@@ -206,7 +210,7 @@ impl<'a> Processor<'a> {
 
         let leader = self.world.individual(squad.leader());
         let gesture = &leader.gesture;
-        let reference = Vec2::new(leader.position[0], leader.position[1]);
+        let reference = Vec2::new(leader.position.x, leader.position.y);
         let count = squad.actives as usize;
         let direction = gesture.direction();
         let angle = direction.angle(V::Server);
@@ -254,7 +258,7 @@ impl<'a> Processor<'a> {
                     None | Some(Order::Idle) => Intent::Idle(direction),
                     Some(Order::MoveTo(position)) => {
                         // TODO: think about a way to cache that ? Or not if don't take too much CPU
-                        let from = (individual.position[0], individual.position[1]);
+                        let from = (individual.position.x, individual.position.y);
                         let to = (position.x, position.y);
                         let path = self.world.navmesh.path(from, to);
                         match path {
@@ -282,9 +286,8 @@ impl<'a> Processor<'a> {
                     return Behavior::Idle(Direction::NORTH); // should not happen
                 };
 
-                let from = Vec2::new(individual.position[0], individual.position[1]);
-                let to = Vec2::new(next[0], next[1]);
-                let direction = (to - from).normalize_or_zero();
+                let from = WorldVec2::from(individual.position);
+                let direction = (*next - from).normalize_or_zero();
                 Behavior::Walk(Direction::from(direction))
             }
         }
@@ -301,10 +304,7 @@ impl<'a> Processor<'a> {
         match behavior {
             Behavior::Idle(_) => vec![],
             Behavior::Walk(direction) => {
-                // FIXME BSN NOW: z (tile z)
-                let direction = Vec2::from(direction.clone()).extend(0.);
-                // dbg!(&direction);
-                // FIXME BSN NOW: speed (according to behavior, tile)
+                let direction = WorldVec3::new(direction.x, direction.y, 0.);
                 vec![Force::Translation(direction.into(), MetersSeconds(1.0))]
             }
         }
@@ -320,7 +320,11 @@ mod tests {
         order::Order,
         squad::SquadIndex,
     };
-    use oc_root::{WorldConfig, physics::Meters};
+    use oc_root::{
+        WorldConfig,
+        geo::{WorldVec2, WorldVec3},
+        physics::Meters,
+    };
     use oc_utils::d2::{Direction, Position};
     use oc_world::World;
 
@@ -335,9 +339,9 @@ mod tests {
             .formation_tiles_between_positions(2)
             .geo_pixels_per_tile(5);
         // test parameters (assume individual are all Idle in EST direction)
-        let individual_1_position = Vec3::new(100., 100., 0.);
-        let individual_2_position = Vec3::new(90., 110., 0.);
-        let squad_position = Vec2::new(individual_1_position.x, individual_1_position.y);
+        let individual_1_position = WorldVec3::new(100., 100., 0.);
+        let individual_2_position = WorldVec3::new(90., 110., 0.);
+        let squad_position = WorldVec2::new(individual_1_position.x, individual_1_position.y);
         let move_to_position = Position::new(150., 100.);
         let move_to_order = Order::MoveTo(move_to_position);
         // expected
@@ -385,9 +389,9 @@ mod tests {
             .formation_tiles_between_positions(2)
             .geo_pixels_per_tile(5);
         // test parameters (assume individual are all Idle in EST direction)
-        let individual_1_position = Vec3::new(100., 100., 0.);
-        let individual_2_position = Vec3::new(90., 110., 0.);
-        let squad_position = Vec2::new(individual_1_position.x, individual_1_position.y);
+        let individual_1_position = WorldVec3::new(100., 100., 0.);
+        let individual_2_position = WorldVec3::new(90., 110., 0.);
+        let squad_position = WorldVec2::new(individual_1_position.x, individual_1_position.y);
         // expected
         let expected_individual_2_move_to_position = Position::new(100., 110.);
 
@@ -424,7 +428,7 @@ mod tests {
             .formation_tiles_between_positions(2)
             .geo_pixels_per_tile(5);
         // test parameters (assume individual are all Idle in EST direction)
-        let position = Vec3::new(100., 100., 0.);
+        let position = WorldVec3::new(100., 100., 0.);
 
         let world = one_individual_world(&w, position, vec![]);
         let index = Indexes::new(&world, &w);
@@ -445,7 +449,7 @@ mod tests {
             .formation_tiles_between_positions(2)
             .geo_pixels_per_tile(5);
         // test parameters (assume individual are all Idle in EST direction)
-        let position = Vec3::new(100., 100., 0.);
+        let position = WorldVec3::new(100., 100., 0.);
 
         let mut world = one_individual_world(&w, position, vec![Order::Idle]);
         let index = Indexes::new(&world, &w);
@@ -488,9 +492,9 @@ mod tests {
     // Both individuals Idle in EST direction.
     fn two_individuals_world(
         w: &WorldConfig,
-        individual_1_position: Vec3,
-        individual_2_position: Vec3,
-        squad_position: Vec2,
+        individual_1_position: WorldVec3,
+        individual_2_position: WorldVec3,
+        squad_position: WorldVec2,
         squad_orders: Vec<Order>,
     ) -> World {
         let individual1 = TestIndividual::builder();
@@ -524,7 +528,7 @@ mod tests {
 
     // Refactored function which generate a world with one squad composed of one member.
     // Individuals Idle in EST direction.
-    fn one_individual_world(w: &WorldConfig, position: Vec3, orders: Vec<Order>) -> World {
+    fn one_individual_world(w: &WorldConfig, position: WorldVec3, orders: Vec<Order>) -> World {
         let individual = TestIndividual::builder();
         let individual = individual.position(position);
         let individual = individual
@@ -534,7 +538,7 @@ mod tests {
         let individual = individual.build().make(w);
 
         let squad = TestSquad::builder();
-        let squad = squad.position(Vec2::new(position.x, position.y));
+        let squad = squad.position(WorldVec2::new(position.x, position.y));
         let squad = squad.members(vec![0.into()]);
         let squad = squad.orders(orders);
         let squad = squad.build().make();

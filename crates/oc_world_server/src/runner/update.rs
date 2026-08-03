@@ -115,7 +115,7 @@ impl<E: Client> super::State<E> {
         let region: WorldRegionIndex = projectile.region();
         let sound = fx.then(|| self._mod().pick_sound((spawn.weapon, spawn.shot)));
         let sound = sound.flatten();
-        let position = *projectile.position();
+        let position = projectile.position();
 
         let mut messages = vec![];
 

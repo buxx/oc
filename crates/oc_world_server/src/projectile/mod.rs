@@ -1,7 +1,6 @@
 use std::time::{Duration, Instant};
 
 use derive_more::Constructor;
-use glam::Vec3;
 use oc_mod::Mod;
 use oc_physics::Force;
 use oc_projectile::{Projectile, bullet::Bullet, spawn::SpawnProjectile};
@@ -20,8 +19,8 @@ impl<'a, 'b> Builder<'a, 'b> {
     pub fn build(&self) -> Projectile {
         let weapon = self.mod_.weapon(self.spawn.weapon);
         let ammunition = self.mod_.ammunition(self.spawn.ammunition);
-        let from = Vec3::from(self.spawn.from);
-        let to = Vec3::from(self.spawn.to);
+        let from = self.spawn.from;
+        let to = self.spawn.to;
         let position = self.spawn.from;
         let direction = (to - from).normalize_or_zero();
         let speed = weapon.velocity();

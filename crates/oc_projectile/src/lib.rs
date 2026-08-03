@@ -7,7 +7,7 @@ use oc_geo::{
 };
 use oc_mod::{Mod, nature::Traversability};
 use oc_physics::{Force, Physic, UpdatePhysic, collision::Material, volume::Volume};
-use oc_root::{WorldConfig, ids::Ids, material::MaterialKind};
+use oc_root::{WorldConfig, geo::WorldVec3, ids::Ids, material::MaterialKind};
 use oc_utils::collections::WithIds;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -56,9 +56,9 @@ pub enum Projectile {
 }
 
 impl Projectile {
-    pub fn position(&self) -> &[f32; 3] {
+    pub fn position(&self) -> WorldVec3 {
         match self {
-            Projectile::Bullet(bullet) => &bullet.position,
+            Projectile::Bullet(bullet) => bullet.position,
         }
     }
 
@@ -84,7 +84,7 @@ impl Region for Projectile {
 }
 
 impl Physic for Projectile {
-    fn position(&self, _: &WorldConfig) -> [f32; 3] {
+    fn position(&self, _: &WorldConfig) -> WorldVec3 {
         match self {
             Projectile::Bullet(bullet) => bullet.position,
         }
@@ -98,15 +98,15 @@ impl Physic for Projectile {
 
     fn volumes(
         &self,
-        ref_: [f32; 3],
+        ref_: WorldVec3,
         _: &WorldConfig,
         _mod_: &Mod,
     ) -> Vec<(Volume, Traversability)> {
         vec![(
             Volume::Point {
-                x: ref_[0],
-                y: ref_[1],
-                z: ref_[2],
+                x: ref_.x,
+                y: ref_.y,
+                z: ref_.z,
             },
             Traversability::all(),
         )]
@@ -114,7 +114,7 @@ impl Physic for Projectile {
 }
 
 impl UpdatePhysic for Projectile {
-    fn set_position(&mut self, value: [f32; 3]) {
+    fn set_position(&mut self, value: WorldVec3) {
         match self {
             Projectile::Bullet(bullet) => bullet.position = value,
         }

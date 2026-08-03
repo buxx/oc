@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use oc_network::ToServer;
+use oc_root::geo::{ScreenVec2, WorldVec2};
 use oc_root::physics::Meters;
-use oc_root::{Wcfg, WorldConfig};
+use oc_root::{Wcfg, WcfgFrom, WorldConfig};
 use oc_utils::{let_ok, let_some, return_if};
 
 use crate::ingame;
@@ -12,6 +13,7 @@ use crate::ingame::input::left_click::{
 };
 use crate::ingame::lov::SpawnProjectileClickMode;
 use crate::network::output::ToServerEvent;
+use crate::projectile::IntoSpawnProjectile;
 use crate::window::PointerInWindow;
 use crate::world::World;
 
@@ -36,7 +38,8 @@ pub fn system(
     let (camera, transform) = *camera;
     let point = camera.viewport_to_world_2d(transform, cursor);
     let_ok!(point = point, return);
-
+    let point = ScreenVec2::new(point.x, point.y);
+    let point = WorldVec2::from_(point, &w);
     let LeftClickMode::SpawnProjectile(profile) = &mode.0 else {
         return;
     };
@@ -56,7 +59,7 @@ pub fn system(
 
 pub fn show(
     w: &WorldConfig,
-    point: Vec2,
+    point: WorldVec2,
     commands: &mut Commands,
     buttons: &ButtonInput<MouseButton>,
     spawn_projectile_mode: &SpawnProjectileLeftClick,
@@ -78,10 +81,9 @@ pub fn show(
                     let end = state.clicks.last().expect("len checked line before");
 
                     if let (Some(start), Some(end)) = (
-                        world.point2d_to_point3d(w, start, profile.plus_z),
-                        world.point2d_to_point3d(w, &end, Meters(0.)),
+                        world.d2_to_d3(w, *start, profile.plus_z),
+                        world.d2_to_d3(w, *end, Meters(0.)),
                     ) {
-                        use crate::projectile::IntoSpawnProjectile;
                         let spawn = profile.spawn(start, end);
                         tracing::debug!("Spawn projectile {spawn:?}");
                         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
@@ -100,8 +102,8 @@ pub fn show(
             if buttons.just_released(MouseButton::Left) {
                 if let Some(start) = state.clicks.first() {
                     if let (Some(start), Some(end)) = (
-                        world.point2d_to_point3d(w, start, profile.plus_z),
-                        world.point2d_to_point3d(w, &point, Meters(0.)),
+                        world.d2_to_d3(w, *start, profile.plus_z),
+                        world.d2_to_d3(w, point, Meters(0.)),
                     ) {
                         use crate::projectile::IntoSpawnProjectile;
                         let spawn = profile.spawn(start, end);

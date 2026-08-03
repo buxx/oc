@@ -52,7 +52,7 @@ fn on_fx(
                 let path = path.join(&sound.name);
                 commands.spawn((
                     Emitter,
-                    Transform::from_translation(Vec3::new(position[0], position[1], 0.0)),
+                    Transform::from_translation(Vec3::new(position.x, position.y, 0.0)),
                     AudioPlayer::new(asset_server.load(path)),
                     PlaybackSettings::ONCE.with_spatial(true),
                 ));

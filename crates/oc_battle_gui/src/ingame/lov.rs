@@ -4,7 +4,9 @@ use derive_more::Deref;
 use oc_geo::tile::TileXy;
 #[cfg(feature = "debug")]
 use oc_mod::DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS;
-use oc_root::{Wcfg, WorldConfig, physics::Meters, y::Y};
+use oc_root::WcfgFrom;
+use oc_root::geo::{ScreenVec2, WorldVec2, WorldVec3};
+use oc_root::{Wcfg, WorldConfig, physics::Meters};
 use oc_utils::{d2::Xy, let_ok, let_some};
 #[cfg(feature = "debug")]
 use strum_macros::{Display, EnumIter};
@@ -19,7 +21,7 @@ use crate::{ingame::InGameState, ingame::draw, world::World};
 pub struct SpawnLov(pub SpawnLovProfile);
 
 #[derive(Debug, Event)]
-pub struct UpdateLovFor(pub Entity, pub Vec2);
+pub struct UpdateLovFor(pub Entity, pub WorldVec2);
 
 #[derive(Debug, Event)]
 pub struct DespawnLov;
@@ -28,8 +30,8 @@ pub struct DespawnLov;
 #[derive(Debug, Clone)]
 pub struct SpawnLovConfig {
     pub click: LovClickMode,
-    pub start_pluz_z: Meters,
-    pub stop_pluz_z: Meters,
+    pub start_plus_z: Meters,
+    pub stop_plus_z: Meters,
 }
 
 #[cfg(feature = "debug")]
@@ -37,26 +39,25 @@ impl Default for SpawnLovConfig {
     fn default() -> Self {
         Self {
             click: LovClickMode::DraggedClick,
-            start_pluz_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS,
-            stop_pluz_z: Meters(0.),
+            start_plus_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS,
+            stop_plus_z: Meters(0.),
         }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct SpawnLovProfile {
-    pub start: Vec2,
-    pub start_pluz_z: Meters,
-    pub stop_pluz_z: Meters,
+    pub start: WorldVec2,
+    pub start_plus_z: Meters,
+    pub stop_plus_z: Meters,
 }
 
 #[derive(Debug, Component)]
 pub struct Lov {
-    // pub steps: Vec<(Vec3, CumulatedOpacity)>,
-    pub start: Vec3,
-    pub stop: Vec3,
+    pub start: WorldVec3,
+    pub stop: WorldVec3,
     pub stop_plus_z: Meters,
-    pub sections: Vec<(Vec2, Vec2, Color)>,
+    pub sections: Vec<(WorldVec2, WorldVec2, Color)>,
 }
 
 #[cfg(feature = "debug")]
@@ -102,26 +103,28 @@ fn setup(mut config: ResMut<GizmoConfigStore>) {
 fn on_spawn_lov(spawn: On<SpawnLov>, w: Res<Wcfg>, mut commands: Commands, world: Res<World>) {
     tracing::trace!(name = "lov-spawn", spawn=?spawn);
     let_some!(w = &w.0, return);
-    let_some!(tile = world.tile_at(w, &spawn.start.to_gui_y(w)), return);
-    let z = tile.z_pixels(w) + spawn.start_pluz_z.0 * w.geo_pixels_per_meters;
+    let_some!(tile = world.tile_at(w, spawn.start), return);
+    let z = tile.z_pixels(w) + spawn.start_plus_z.0 * w.geo_pixels_per_meters;
     let start = spawn.start.extend(z);
 
     tracing::trace!(name = "lov-spawn", start=?start);
     commands.spawn(Lov {
         start,
         stop: start,
-        stop_plus_z: spawn.stop_pluz_z,
+        stop_plus_z: spawn.stop_plus_z,
         sections: vec![],
     });
 }
 
 fn update_lov(
+    g: Res<GameConfig>,
     mut commands: Commands,
     lovs: Query<Entity, With<Lov>>,
     camera: Single<(&Camera, &GlobalTransform)>,
     window: Single<&Window>,
     mode: Res<LeftClick>,
 ) {
+    let_some!(g = &g.0, return);
     if !mode.0.display_lov() {
         return;
     }
@@ -129,6 +132,8 @@ fn update_lov(
     let_some!(cursor = window.cursor_position(), return);
     let point = camera.viewport_to_world_2d(transform, cursor);
     let_ok!(position = point, return);
+    let position = ScreenVec2::new(position.x, position.y);
+    let position = WorldVec2::from_(position, &g.w);
 
     for lov in lovs {
         tracing::trace!(name="update-lov-trigger-for", lov=?lov, position=?position);
@@ -136,10 +141,18 @@ fn update_lov(
     }
 }
 
-fn draw_lovs(lovs: Query<&Lov>, mut gizmos: Gizmos) {
+fn draw_lovs(g: Res<GameConfig>, lovs: Query<&Lov>, mut gizmos: Gizmos) {
+    let_some!(g = &g.0, return);
+
     for lov in lovs {
-        for (start, stop, color) in &lov.sections {
-            gizmos.line(start.extend(draw::Z_LOV), stop.extend(draw::Z_LOV), *color);
+        for (start, end, color) in &lov.sections {
+            let start = ScreenVec2::from_(*start, &g.w);
+            let end = ScreenVec2::from_(*end, &g.w);
+            gizmos.line(
+                start.extend(draw::Z_LOV).into(),
+                end.extend(draw::Z_LOV).into(),
+                *color,
+            );
         }
     }
 }
@@ -156,20 +169,18 @@ fn on_update_lov_for(
     let_ok!(mut lov = lovs.get_mut(lov), return);
 
     let start = lov.start;
-    let start_ = [start.x, start.y.to_gui_y(&g.w), start.z];
-    let stop_tile = world.tile_at(&g.w, &position.to_gui_y(&g.w));
+    let stop_tile = world.tile_at(&g.w, position.into());
     let_some!(stop_tile = stop_tile, return);
     tracing::trace!(name = "on-update-lov-for");
 
     let stop = position.extend(stop_tile.z_pixels(&g.w) + lov.stop_plus_z.pixels(&g.w));
-    let end_ = [stop.x, stop.y.to_gui_y(&g.w), stop.z];
     let at = |xy, z| path_objects_at(&g.w, &g.mod_, &world, xy, z);
-    let path = oc_lov::PathBuilder::new(&g.w, at).build_(start_, end_);
+    let path = oc_lov::PathBuilder::new(&g.w, at).build_(start, stop);
 
     let sections = path.sections.iter().map(|section| {
         let color = Color::srgb(0.0 + section.opacity.0, 1.0 - section.opacity.0, 0.0);
-        let start = Vec2::new(section.start[0], section.start[1].to_gui_y(&g.w));
-        let stop = Vec2::new(section.stop[0], section.stop[1].to_gui_y(&g.w));
+        let start = section.start.into();
+        let stop = section.stop.into();
         tracing::trace!(name = "on-update-lov-for-section", start=?start, stop=?stop, color=?color);
         (start, stop, color)
     }).collect();

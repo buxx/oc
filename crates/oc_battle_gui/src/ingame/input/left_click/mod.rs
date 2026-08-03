@@ -5,6 +5,12 @@ use derive_is_enum_variant::is_enum_variant;
 use enum_type_derive::EnumType;
 use oc_individual::order::OrderType;
 #[cfg(feature = "debug")]
+use oc_root::WcfgFrom;
+#[cfg(feature = "debug")]
+use oc_root::geo::ScreenVec2;
+#[cfg(feature = "debug")]
+use oc_root::geo::WorldVec2;
+#[cfg(feature = "debug")]
 use oc_utils::{let_ok, let_some};
 use strum_macros::EnumIter;
 
@@ -16,6 +22,8 @@ use crate::ingame::draw;
 use crate::ingame::lov::SpawnLovConfig;
 #[cfg(feature = "debug")]
 use crate::ingame::lov::SpawnProjectileClickMode;
+#[cfg(feature = "debug")]
+use crate::states::GameConfig;
 
 #[cfg(feature = "debug")]
 pub mod lov;
@@ -127,6 +135,7 @@ pub fn on_set_spawn_projectile_left_click(
 #[cfg(feature = "debug")]
 pub fn on_spawn_clicks_line(
     _: On<SpawnClicksLine>,
+    g: Res<GameConfig>,
     window: Single<&Window>,
     camera: Single<(&Camera, &GlobalTransform)>,
     mut commands: Commands,
@@ -134,14 +143,22 @@ pub fn on_spawn_clicks_line(
     mut materials: ResMut<Assets<ColorMaterial>>,
     state: Res<super::State>,
 ) {
+    let_some!(g = &g.0, return);
     let_some!(cursor = window.cursor_position(), return);
     let (camera, transform) = *camera;
     let point = camera.viewport_to_world_2d(transform, cursor);
     let_ok!(point = point, return);
+    let point = ScreenVec2::new(point.x, point.y);
+    let point = WorldVec2::from_(point, &g.w);
 
     let mut points = state.clicks.clone();
     points.push(point);
-    let line = Polyline2d::new(points);
+    let vertices: Vec<Vec2> = points
+        .into_iter()
+        .map(|p| ScreenVec2::from_(p, &g.w))
+        .map(|p| Vec2::new(p.x, p.y))
+        .collect();
+    let line = Polyline2d::new(vertices);
 
     commands.spawn((
         ClicksLine,

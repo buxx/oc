@@ -1,5 +1,4 @@
 use bon::Builder;
-use glam::Vec2;
 use oc_geo::tile::WorldTileIndex;
 use oc_individual::{Individual, IndividualIndex, squad::Squad};
 use oc_mod::{Mod, nature::NatureIndex};
@@ -48,7 +47,7 @@ impl TestWorld {
                 .enumerate()
                 .map(|(i, individual)| {
                     TestSquad::builder()
-                        .position(Vec2::new(individual.position[0], individual.position[1]))
+                        .position(individual.position.into())
                         .members(vec![IndividualIndex(i as u64)])
                         .build()
                         .make()

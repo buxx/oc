@@ -97,12 +97,12 @@ impl super::Context {
                     let region = subject.physics.region;
 
                     if ui.button("⏵").clicked() {
-                        let point = [subject.physics.position[0], subject.physics.position[1]];
+                        let point = [subject.physics.position.x, subject.physics.position.y];
                         action = Some(Action::GoToPoint(point));
                     }
                     ui.label(format!(
                         "{} {}.{} ({}.{})",
-                        subject.i, position[0], position[1], region.0.0, region.0.1
+                        subject.i, position.x, position.y, region.0.0, region.0.1
                     ));
                 });
             }

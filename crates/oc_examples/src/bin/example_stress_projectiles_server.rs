@@ -97,8 +97,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             ammunition.index(),
                             shot.index(),
                             1,
-                            [0., 0., 500.],
-                            [right, bottom, 500.],
+                            [0., 0., 500.].into(),
+                            [right, bottom, 500.].into(),
                         )),
                     ))
                     .unwrap();

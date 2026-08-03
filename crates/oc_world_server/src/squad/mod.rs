@@ -28,13 +28,10 @@ impl<'a> Processor<'a> {
             .map(|i| self.world.individual(*i))
             .collect();
 
-        let position = leader.position;
+        let position = leader.position.into();
         let actives = members.into_iter().filter(|m| m.can_follow_order()).count();
         let updates = vec![
-            runner::update::Update::UpdateSquad(
-                self.i,
-                Update::SetPosition([position[0], position[1]]),
-            ),
+            runner::update::Update::UpdateSquad(self.i, Update::SetPosition(position)),
             runner::update::Update::UpdateSquad(self.i, Update::SetActives(actives as u8)),
         ];
 

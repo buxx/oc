@@ -168,13 +168,13 @@ fn end_when_success_or_timeout(
             TestCase::Idle => None,
             // TODO: Test squad members positions
             TestCase::MoveStraightAhead => individuals.iter().next().and_then(|position| {
-                (almost_equal(position.0[0], MSA_POS2[0], POSITION_TOLERANCE)
-                    && almost_equal(position.0[1], MSA_POS2[1], POSITION_TOLERANCE))
+                (almost_equal(position.0.x, MSA_POS2[0], POSITION_TOLERANCE)
+                    && almost_equal(position.0.y, MSA_POS2[1], POSITION_TOLERANCE))
                 .then(|| Instant::now())
             }),
             TestCase::MoveStraightAheadObstacle => individuals.iter().next().and_then(|position| {
-                (almost_equal(position.0[0], MSAO_POS2[0], POSITION_TOLERANCE)
-                    && almost_equal(position.0[1], MSAO_POS2[1], POSITION_TOLERANCE))
+                (almost_equal(position.0.x, MSAO_POS2[0], POSITION_TOLERANCE)
+                    && almost_equal(position.0.y, MSAO_POS2[1], POSITION_TOLERANCE))
                 .then(|| Instant::now())
             }),
         },

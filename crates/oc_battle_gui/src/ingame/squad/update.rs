@@ -110,7 +110,7 @@ mod tests {
     use super::*;
     use ::tests::squad::TestSquad;
     use oc_individual::squad::SquadIndex;
-    use oc_root::{WorldConfig, physics::Meters};
+    use oc_root::{WorldConfig, geo::WorldVec2, physics::Meters};
 
     #[test]
     fn test_update_squad_change_region() {
@@ -120,7 +120,7 @@ mod tests {
             .region_width(10)
             .region_height(10);
         let squad = TestSquad::builder()
-            .position(glam::Vec2::new(0., 0.))
+            .position(WorldVec2::new(0., 0.))
             .members(vec![oc_individual::IndividualIndex(0)])
             .build()
             .make();
@@ -130,7 +130,7 @@ mod tests {
             .make(&w);
         let i = SquadIndex(0);
         let region = WorldRegionIndex(0);
-        let update = Update::SetPosition([50., 0.]); // According to pixels per tile and region size, new region will be region 1
+        let update = Update::SetPosition([50., 0.].into()); // According to pixels per tile and region size, new region will be region 1
 
         // When
         let _ = update_squad(&w, &mut world, i, region, &update);

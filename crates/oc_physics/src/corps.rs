@@ -1,5 +1,5 @@
 use oc_mod::{Mod, nature::Traversability};
-use oc_root::{WorldConfig, material::MaterialKind};
+use oc_root::{WorldConfig, geo::WorldVec3, material::MaterialKind};
 
 use super::Force;
 use crate::{Physic, collision::Material, volume::Volume};
@@ -7,7 +7,7 @@ use crate::{Physic, collision::Material, volume::Volume};
 #[derive(Debug)]
 pub struct Corps<I: Clone + std::fmt::Debug> {
     pub i: I,
-    pub position: [f32; 3],
+    pub position: WorldVec3,
     pub forces: Vec<Force>,
     pub material: Option<MaterialKind>,
     pub volumes: Vec<(Volume, Traversability)>,
@@ -16,7 +16,7 @@ pub struct Corps<I: Clone + std::fmt::Debug> {
 impl<I: Clone + std::fmt::Debug> Corps<I> {
     pub fn new(
         i: I,
-        position: [f32; 3],
+        position: WorldVec3,
         forces: Vec<Force>,
         material: Option<MaterialKind>,
         volumes: Vec<(Volume, Traversability)>,
@@ -32,7 +32,7 @@ impl<I: Clone + std::fmt::Debug> Corps<I> {
 }
 
 impl<I: Clone + std::fmt::Debug> Physic for Corps<I> {
-    fn position(&self, _: &WorldConfig) -> [f32; 3] {
+    fn position(&self, _: &WorldConfig) -> WorldVec3 {
         self.position
     }
 
@@ -42,7 +42,7 @@ impl<I: Clone + std::fmt::Debug> Physic for Corps<I> {
 
     fn volumes(
         &self,
-        ref_: [f32; 3],
+        ref_: WorldVec3,
         _: &WorldConfig,
         _mod_: &Mod,
     ) -> Vec<(Volume, Traversability)> {

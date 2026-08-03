@@ -4,8 +4,10 @@ use oc_geo::region::WorldRegionIndex;
 use oc_physics::Physic;
 use oc_physics::collision::{Material, Material_};
 use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volumes};
+use oc_root::WcfgFrom;
+use oc_root::geo::ScreenVec2;
 use oc_root::side::Side;
-use oc_root::y::{V, Y};
+use oc_root::y::V;
 use oc_utils::bevy::EntityMapping;
 use oc_utils::let_ok;
 use oc_utils::let_some;
@@ -100,7 +102,8 @@ fn positions(
             true => Color::srgba(0.0, 1.0, 1.0, 0.5),
             false => Color::srgba(1.0, 0., 0., 0.5),
         };
-        let position = Vec2::new(position.0[0], position.0[1].to_gui_y(&g.w));
+        let position = ScreenVec2::from_(position.0, &g.w);
+        let position = Vec2::new(position.x, position.y);
         // tracing::trace!(name="spawn-individual-circle", i=?i, position=?position);
         gizmos.circle_2d(position, 3., color);
     }
@@ -122,6 +125,7 @@ pub fn on_insert_individual(
     let rotation = gesture.rotation(V::Gui);
     let animation = SoldierAnimationInfos::new(Side::A, status, gesture).animation(&animations);
     let position = individual.1.position;
+    let position_ = ScreenVec2::from_(position, &g.w);
 
     let entity = commands
         .spawn((
@@ -144,12 +148,7 @@ pub fn on_insert_individual(
             (
                 sprite,
                 SpritesheetAnimation::new(animation),
-                Transform::from_xyz(
-                    individual.1.position[0],
-                    individual.1.position[1].to_gui_y(&g.w),
-                    Z_INDIVIDUAL,
-                )
-                .with_rotation(rotation),
+                Transform::from_xyz(position_.x, position_.y, Z_INDIVIDUAL).with_rotation(rotation),
             ),
             // Surface (clicking, etc)
             (Pickable::default(),),

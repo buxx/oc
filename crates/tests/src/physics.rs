@@ -5,6 +5,8 @@ mod test {
     use oc_mod::nature::Traversability;
     use oc_mod::{Mod, nature::NatureIndex};
     use oc_physics::{Event, Force, Physic, collision::Material, volume::Volume};
+    #[cfg(test)]
+    use oc_root::geo::WorldVec3;
     use oc_root::{
         WorldConfig,
         physics::{Meters, MetersSeconds},
@@ -32,11 +34,11 @@ mod test {
 
     #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
     struct ObjectId(usize);
-    struct Object(Vec3, Vec<Force>);
+    struct Object(WorldVec3, Vec<Force>);
 
     impl Physic for Object {
-        fn position(&self, _: &WorldConfig) -> [f32; 3] {
-            self.0.into()
+        fn position(&self, _: &WorldConfig) -> WorldVec3 {
+            self.0
         }
 
         fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
@@ -45,15 +47,15 @@ mod test {
 
         fn volumes(
             &self,
-            ref_: [f32; 3],
+            ref_: WorldVec3,
             _: &WorldConfig,
             _: &Mod,
         ) -> Vec<(Volume, Traversability)> {
             vec![(
                 Volume::Point {
-                    x: ref_[0],
-                    y: ref_[1],
-                    z: ref_[2],
+                    x: ref_.x,
+                    y: ref_.y,
+                    z: ref_.z,
                 },
                 Traversability::all(),
             )]
@@ -73,29 +75,29 @@ mod test {
         (0., 0., Meters(0.)), vec![],
         // produce nothing
         Meters(0.),
-        ([0., 0., 0.], vec![], vec![])
+        ([0., 0., 0.].into(), vec![], vec![])
     )]
     // Case 2
     #[case(
         // Object at other pos than tile, with movement to the ground, in the tile
-        (5.1, 5.1, Meters(0.)), vec![Force::Translation([-1., -1., -1.], MetersSeconds(1.))],
+        (5.1, 5.1, Meters(0.)), vec![Force::Translation([-1., -1., -1.].into(), MetersSeconds(1.))],
         // produce collision
         Meters(0.),
-        ([4.0, 4.0, -1.0], vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
+        ([4.0, 4.0, -1.0].into(), vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
     )]
     // Case 3
     #[case(
         // Incoming object at 10 meters
-        (5.1, 5.1, Meters(10.)), vec![Force::Translation([-1., -1., 0.], MetersSeconds(1.))],
+        (5.1, 5.1, Meters(10.)), vec![Force::Translation([-1., -1., 0.].into(), MetersSeconds(1.))],
         // produce collision with a tile at 12 meters
         Meters(12.),
-        ([4.0, 4.0, 50.0], vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
+        ([4.0, 4.0, 50.0].into(), vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
     )]
     fn test_tile_collision_in_meters_zero(
         #[case] object_pos: (f32, f32, Meters),
         #[case] object_forces: Vec<Force>,
         #[case] tile_meters: Meters,
-        #[case] expected: ([f32; 3], Vec<Force>, Vec<Event<ObjectsId>>),
+        #[case] expected: (WorldVec3, Vec<Force>, Vec<Event<ObjectsId>>),
     ) {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
@@ -117,7 +119,7 @@ mod test {
         let object_x = object_pos.0;
         let object_y = object_pos.1;
         let object_z = object_pos.2.0 * w.geo_pixels_per_meters;
-        let object = Object(Vec3::new(object_x, object_y, object_z), object_forces);
+        let object = Object(WorldVec3::new(object_x, object_y, object_z), object_forces);
         let tile: Box<&dyn Physic> = Box::new(&tile);
 
         let objects = |xy| {

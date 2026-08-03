@@ -78,8 +78,8 @@ impl super::Context {
                 {
                     commands.trigger(SetLeftClick(LeftClickMode::LineOfView(SpawnLovConfig {
                         click: *click_mode,
-                        start_pluz_z: *start_plus_z,
-                        stop_pluz_z: *end_plus_z,
+                        start_plus_z: *start_plus_z,
+                        stop_plus_z: *end_plus_z,
                     })));
                 }
             }

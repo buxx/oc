@@ -9,10 +9,12 @@ use oc_individual::{
 };
 use oc_mod::Mod;
 use oc_physics::Physic;
-use oc_root::{WcfgFrom, WcfgInto, WorldConfig, geo::WorldPoint2d};
 #[cfg(feature = "debug")]
-use oc_root::{physics::Meters, y::Y};
-use oc_utils::d2::Xy;
+use oc_root::physics::Meters;
+use oc_root::{
+    WcfgFrom, WcfgInto, WorldConfig,
+    geo::{WorldVec2, WorldVec3},
+};
 use oc_utils::let_some;
 use oc_world::tile::Tile;
 use rustc_hash::FxHashMap;
@@ -117,10 +119,7 @@ impl World {
         individual: Individual,
     ) {
         let position = individual.position(w);
-        let tile_xy = TileXy(Xy(
-            position[0] as u64 / w.geo_pixels_per_tile,
-            position[1] as u64 / w.geo_pixels_per_tile,
-        ));
+        let tile_xy: TileXy = position.into_(w);
         let tile: WorldTileIndex = tile_xy.into_(w);
         let region: WorldRegionIndex = tile.into_(w);
 
@@ -139,8 +138,8 @@ impl World {
         self.individuals_refs.insert(i, (region, tile));
     }
 
-    pub fn remove_individual(&mut self, w: &WorldConfig, i: IndividualIndex, position: [f32; 3]) {
-        let position = TileXy(Xy(position[0] as u64, position[1] as u64));
+    pub fn remove_individual(&mut self, w: &WorldConfig, i: IndividualIndex, position: WorldVec3) {
+        let position = TileXy::from_(position, w);
         let tile: WorldTileIndex = position.into_(w);
         let region: WorldRegionIndex = tile.into_(w);
 
@@ -206,7 +205,7 @@ impl World {
         self.tiles.get(&region).and_then(|tiles| tiles.get(&i))
     }
 
-    pub fn tile_at(&self, w: &WorldConfig, point: &Vec2) -> Option<&Tile> {
+    pub fn tile_at(&self, w: &WorldConfig, point: WorldVec2) -> Option<&Tile> {
         let xy = TileXy::from_([point.x, point.y], w);
         self.tile(w, xy)
     }
@@ -222,18 +221,12 @@ impl World {
     }
 
     #[cfg(feature = "debug")]
-    pub fn point2d_to_point3d(
-        &self,
-        w: &WorldConfig,
-        p: &Vec2,
-        plus_z: Meters,
-    ) -> Option<[f32; 3]> {
-        let p = (p.x, p.y.to_world_y(w));
+    pub fn d2_to_d3(&self, w: &WorldConfig, p: WorldVec2, plus_z: Meters) -> Option<WorldVec3> {
         let tile = TileXy::from_(p, w);
         let_some!(tile = self.tile(w, tile), return None);
         let z = (tile.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters) + plus_z.pixels(w);
-        let p = [p.0, p.1, z];
-        Some(p)
+        let p = [p.x, p.y, z];
+        Some(p.into())
     }
 
     pub fn squad(&self, i: &SquadIndex) -> Option<&Squad> {
@@ -250,7 +243,7 @@ impl World {
         Some((*i, squad))
     }
 
-    pub fn path(&self, from: WorldPoint2d, to: WorldPoint2d) -> Option<polyanya::Path> {
+    pub fn path(&self, from: WorldVec2, to: WorldVec2) -> Option<polyanya::Path> {
         self.navmesh.path([from.x, from.y], [to.x, to.y])
     }
 }

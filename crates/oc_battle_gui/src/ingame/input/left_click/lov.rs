@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use oc_root::{Wcfg, WorldConfig};
+use oc_root::geo::{ScreenVec2, WorldVec2};
+use oc_root::{Wcfg, WcfgFrom, WorldConfig};
 use oc_utils::{let_ok, let_some, return_if};
 
 use crate::ingame;
@@ -26,6 +27,8 @@ pub fn system(
     let (camera, transform) = *camera;
     let point = camera.viewport_to_world_2d(transform, cursor);
     let_ok!(point = point, return);
+    let point = ScreenVec2::new(point.x, point.y);
+    let point = WorldVec2::from_(point, &w);
 
     let LeftClickMode::LineOfView(profile) = &mode.0 else {
         return;
@@ -37,7 +40,7 @@ pub fn system(
 
 pub fn show(
     _w: &WorldConfig,
-    point: Vec2,
+    point: WorldVec2,
     commands: &mut Commands,
     buttons: &ButtonInput<MouseButton>,
     state: &mut ingame::input::State,
@@ -50,8 +53,8 @@ pub fn show(
                 state.clicks.push(point);
                 commands.trigger(SpawnLov(SpawnLovProfile {
                     start: point,
-                    start_pluz_z: profile.start_pluz_z,
-                    stop_pluz_z: profile.stop_pluz_z,
+                    start_plus_z: profile.start_plus_z,
+                    stop_plus_z: profile.stop_plus_z,
                 }));
             }
 
