@@ -9,7 +9,7 @@ use oc_individual::{
 };
 use oc_mod::Mod;
 use oc_physics::Physic;
-use oc_root::{WcfgFrom, WcfgInto, WorldConfig};
+use oc_root::{WcfgFrom, WcfgInto, WorldConfig, geo::WorldPoint2d};
 #[cfg(feature = "debug")]
 use oc_root::{physics::Meters, y::Y};
 use oc_utils::d2::Xy;
@@ -250,7 +250,7 @@ impl World {
         Some((*i, squad))
     }
 
-    pub fn path(&self, from: Vec2, to: Vec2) -> Option<polyanya::Path> {
+    pub fn path(&self, from: WorldPoint2d, to: WorldPoint2d) -> Option<polyanya::Path> {
         self.navmesh.path([from.x, from.y], [to.x, to.y])
     }
 }

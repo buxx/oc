@@ -7,6 +7,7 @@ use crate::physics::Meters;
 
 pub mod end;
 pub mod files;
+pub mod geo;
 pub mod identity;
 pub mod ids;
 pub mod material;

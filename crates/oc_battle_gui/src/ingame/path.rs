@@ -2,7 +2,11 @@ use bevy::prelude::*;
 use oc_geo::tile::WorldTileIndex;
 use oc_individual::squad::SquadIndex;
 use oc_physics::update::bevy::Position;
-use oc_root::{WorldConfig, y::Y};
+use oc_root::{
+    WcfgFrom, WorldConfig,
+    geo::{ScreenPoint2d, WorldPoint2d},
+    y::Y,
+};
 use oc_utils::let_some;
 
 #[cfg(feature = "debug")]
@@ -30,8 +34,8 @@ pub struct ComputeDisplayPaths(pub Vec<SpawnPathProfile>);
 #[derive(Debug, Clone)]
 pub struct SpawnPathProfile {
     pub key: SpawnPathProfileKey,
-    pub start: Vec2,
-    pub end: Vec2,
+    pub start: WorldPoint2d,
+    pub end: WorldPoint2d,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -39,14 +43,14 @@ pub enum SpawnPathProfileKey {
     Squad {
         i: SquadIndex,
         start: WorldTileIndex,
-        end: Vec2,
+        end: WorldPoint2d,
     },
 }
 
 #[derive(Debug, Clone)]
 pub struct Path {
-    start: [f32; 2],
-    segments: Vec<[f32; 2]>,
+    start: WorldPoint2d,
+    segments: Vec<WorldPoint2d>,
 }
 
 pub fn on_compute_display_paths(
@@ -76,14 +80,13 @@ pub fn on_compute_display_paths(
     let paths_: Vec<(SpawnPathProfileKey, Path)> = profiles
         .iter()
         .filter_map(|profile| {
-            let from = profile.start.to_gui_y(&g.w);
-            let to = profile.end.to_gui_y(&g.w);
-            let_some!(path = world.path(from, to), return None);
-            let segments = path.path.iter().map(|p| [p.x, p.y]).collect();
+            let path = world.path(profile.start.into(), profile.end.into());
+            let_some!(path = path, return None);
+            let segments = path.path.iter().map(|p| [p.x, p.y].into()).collect();
             Some((
                 profile.key.clone(),
                 Path {
-                    start: [from[0], from[1]],
+                    start: profile.start,
                     segments,
                 },
             ))
@@ -121,14 +124,15 @@ pub fn draw_paths(
 
     // User giving order paths
     for (_, path) in display.0.iter() {
-        let mut previous: [f32; 2] = path.start;
+        let mut previous = ScreenPoint2d::from_(path.start, &g.w);
         // let mut previous: [f32; 2] = [position.0[0], position.0[1]];
         for point in &path.segments {
-            let start = Vec3::new(previous[0], previous[1].to_gui_y(&g.w), draw::Z_PATH);
-            let stop = Vec3::new(point[0], point[1].to_gui_y(&g.w), draw::Z_PATH);
+            let point = ScreenPoint2d::from_(*point, &g.w);
+            let start = Vec3::new(previous.x, previous.y, draw::Z_PATH);
+            let stop = Vec3::new(point.x, point.y, draw::Z_PATH);
             gizmos.line(start, stop, color);
 
-            previous = [point[0], point[1]];
+            previous = point;
         }
     }
 

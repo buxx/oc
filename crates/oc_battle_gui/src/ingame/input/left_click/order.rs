@@ -7,6 +7,7 @@ use oc_network::ToServer;
 use oc_root::Wcfg;
 use oc_root::WcfgFrom;
 use oc_root::WorldConfig;
+use oc_root::geo::WorldPoint2d;
 use oc_root::y::Y;
 use oc_utils::d2::Position;
 use oc_utils::let_ok;
@@ -46,6 +47,7 @@ pub fn system(
     let (camera, transform) = *camera;
     let point = camera.viewport_to_world_2d(transform, cursor);
     let_ok!(point = point, return);
+    let point = WorldPoint2d::from_(point, w);
 
     let LeftClickMode::Order(order) = &mode.0 else {
         return;
@@ -53,13 +55,13 @@ pub fn system(
 
     return_if!(maybe_cancel(&mut commands, &buttons, &keys, &mut ongoing));
     show(w, point, order, &mut commands, &mode, &ingame, &world);
-    action(w, &mut ongoing, point, &buttons, &mut commands, &ingame);
+    action(&mut ongoing, point, &buttons, &mut commands, &ingame);
     ongoing.0 = true;
 }
 
 fn show(
     w: &WorldConfig,
-    point: Vec2,
+    point: WorldPoint2d,
     order: &OrderType,
     commands: &mut Commands,
     mode: &LeftClick,
@@ -75,8 +77,8 @@ fn show(
                 tracing::trace!(name="ingame-input-left_click-show-order-squad", mode=?mode.0, point=?point, squad=?i);
                 let squad = world.squad(i)?;
                 let leader = world.get_individual(squad.leader())?;
-                let start = Vec2::new(leader.position[0], leader.position[1]);
-                let start = start.to_gui_y(w);
+                // FIXME BS NOW: WorldPoint2d inside individual
+                let start = WorldPoint2d::new(leader.position[0], leader.position[1]);
                 let end = point;
                 let start_tile = TileXy::from_([start.x, start.y], w);
                 let start_tile = WorldTileIndex::from_(start_tile, w);
@@ -109,9 +111,8 @@ fn cancel(commands: &mut Commands, ongoing: &mut OnGoing) {
 }
 
 fn action(
-    w: &WorldConfig,
     ongoing: &mut OnGoing,
-    point: Vec2,
+    point: WorldPoint2d,
     buttons: &ButtonInput<MouseButton>,
     commands: &mut Commands,
     ingame: &crate::ingame::state::State,
@@ -123,7 +124,7 @@ fn action(
         cancel(commands, ongoing);
 
         for squad in ingame.selected_squads() {
-            let orders = vec![Order::MoveTo(Position::new(point.x, point.y.to_gui_y(w)))];
+            let orders = vec![Order::MoveTo(Position::new(point.x, point.y))];
             let set_orders = oc_network::SquadMessage::SetOrders(orders);
             commands.trigger(ToServerEvent(ToServer::Squad(*squad, set_orders)));
         }
