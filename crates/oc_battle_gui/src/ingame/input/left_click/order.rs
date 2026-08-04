@@ -85,17 +85,26 @@ fn show(
     match order {
         OrderType::Idle => {}
         OrderType::MoveTo => {
+            // FIXME BS NOW: consider stacked ingamestate.pending_orders to generate these profiles
             let spawns = ingame.selected_squads().iter().filter_map(|i| {
                 tracing::trace!(name="ingame-input-left_click-show-order-squad", mode=?mode.0, point=?point, squad=?i);
+                let pending: Vec<WorldVec2> = ingame.pending_orders().iter().filter_map(|o| p.point()).collect();
+                let points = [pending, vec![point]].concat();
+
                 let squad = world.squad(i)?;
                 let leader = world.get_individual(squad.leader())?;
-                let start: WorldVec2 = leader.position.into();
-                let end: WorldVec2 = point;
-                let start_tile = TileXy::from_([start.x, start.y], w);
-                let start_tile = WorldTileIndex::from_(start_tile, w);
-                let key = SpawnPathProfileKey::Squad{ i: *i, start: start_tile, end };
-                Some(SpawnPathProfile { key, start, end })
-            }).collect::<Vec<SpawnPathProfile>>();
+                let mut start: WorldVec2 = leader.position.into();
+
+                Some(points.iter().map(|point| {
+                    let end: WorldVec2 = *point;
+                    let start_tile = TileXy::from_([start.x, start.y], w);
+                    let start_tile = WorldTileIndex::from_(start_tile, w);
+                    start = end;
+                    let key = SpawnPathProfileKey::Squad{ i: *i, start: start_tile, end };
+                    vec![SpawnPathProfile { key, start, end }]
+                }).collect())
+
+            }).flatten().collect::<Vec<SpawnPathProfile>>();
             commands.trigger(ComputeDisplayPaths(spawns));
         }
     }
