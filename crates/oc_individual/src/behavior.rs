@@ -1,13 +1,13 @@
 use derive_more::{Deref, DerefMut};
 use oc_root::geo::WorldVec2;
-use oc_utils::d2::{Direction, Position};
+use oc_utils::d2::Direction;
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Intent {
     Idle(Direction),
-    MoveTo(Position, MovePath),
+    MoveTo(WorldVec2, MovePath),
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]

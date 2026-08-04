@@ -8,7 +8,6 @@ use oc_root::Wcfg;
 use oc_root::WcfgFrom;
 use oc_root::WorldConfig;
 use oc_root::geo::WorldVec2;
-use oc_utils::d2::Position;
 use oc_utils::let_ok;
 use oc_utils::let_some;
 use oc_utils::return_if;
@@ -85,17 +84,26 @@ fn show(
     match order {
         OrderType::Idle => {}
         OrderType::MoveTo => {
+            // FIXME BS NOW: consider stacked ingamestate.pending_orders to generate these profiles
             let spawns = ingame.selected_squads().iter().filter_map(|i| {
                 tracing::trace!(name="ingame-input-left_click-show-order-squad", mode=?mode.0, point=?point, squad=?i);
+                let pending: Vec<WorldVec2> = ingame.pending_orders().iter().filter_map(|o| o.point()).collect();
+                let points = [pending, vec![point]].concat();
+
                 let squad = world.squad(i)?;
                 let leader = world.get_individual(squad.leader())?;
-                let start: WorldVec2 = leader.position.into();
-                let end: WorldVec2 = point;
-                let start_tile = TileXy::from_([start.x, start.y], w);
-                let start_tile = WorldTileIndex::from_(start_tile, w);
-                let key = SpawnPathProfileKey::Squad{ i: *i, start: start_tile, end };
-                Some(SpawnPathProfile { key, start, end })
-            }).collect::<Vec<SpawnPathProfile>>();
+                let mut start: WorldVec2 = leader.position.into();
+
+                Some(points.into_iter().map(|point| {
+                    let end: WorldVec2 = point;
+                    let start_tile = TileXy::from_([start.x, start.y], w);
+                    let start_tile = WorldTileIndex::from_(start_tile, w);
+                    let key = SpawnPathProfileKey::Squad{ i: *i, start: start_tile, end };
+                    let profile = SpawnPathProfile { key, start, end };
+                    start = end;
+                    profile
+                }).collect::<Vec<_>>())
+            }).flatten().collect::<Vec<_>>();
             commands.trigger(ComputeDisplayPaths(spawns));
         }
     }
@@ -143,8 +151,8 @@ fn action(
             || keys.pressed(KeyCode::ControlRight)
             || buttons.just_pressed(MouseButton::Middle);
         let mut orders = ingame.pending_orders().to_vec();
-        // TODO: When multiple squad, need move a little (distance from each others ?)
-        let order = Order::MoveTo(Position::new(point.x, point.y));
+        // TODO: When multiple squad, need decal a little (distance from each others ?)
+        let order = Order::MoveTo(point);
 
         tracing::trace!(name = "ingame-input-left-click-order-action");
 

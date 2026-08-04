@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use oc_individual::order::Order;
-use oc_root::y::Y;
-use oc_utils::{d2, let_some};
+use oc_root::{geo::WorldVec2, y::Y};
+use oc_utils::let_some;
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -197,7 +197,7 @@ fn on_spawn_individual_order(
     let_some!(g = &g.0, return);
     let image = asset_server.load("ui/ui.png");
     let (rect, position) = match &event.1 {
-        Order::Idle => (Some(Rect::new(0., 0., 0., 0.)), d2::Position::new(0., 0.)), // Should not happen
+        Order::Idle => (Some(Rect::new(0., 0., 0., 0.)), WorldVec2::new(0., 0.)), // Should not happen
         Order::MoveTo(position) => (Some(IndividualOrderSprite::Move.rect()), position.clone()),
     };
     let x = position.x;
@@ -275,7 +275,7 @@ fn on_spawn_squad_order(
     let_some!(g = &g.0, return);
     let image = asset_server.load("ui/ui.png");
     let (rect, position) = match &event.1 {
-        Order::Idle => (Some(Rect::new(0., 0., 0., 0.)), d2::Position::new(0., 0.)), // Should not happen
+        Order::Idle => (Some(Rect::new(0., 0., 0., 0.)), WorldVec2::new(0., 0.)), // Should not happen
         Order::MoveTo(position) => (Some(SquadOrderSprite::Move.rect()), position.clone()),
     };
     let x = position.x;

@@ -250,41 +250,6 @@ pub fn apply_angle_on_point(point_to_rotate: &Vec2, reference_point: &Vec2, angl
     Constructor,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub struct Position {
-    pub x: f32,
-    pub y: f32,
-}
-
-impl From<[f32; 2]> for Position {
-    fn from(value: [f32; 2]) -> Self {
-        Self::new(value[0], value[1])
-    }
-}
-
-impl From<Vec2> for Position {
-    fn from(value: Vec2) -> Self {
-        Self::new(value.x, value.y)
-    }
-}
-
-impl From<Position> for Vec2 {
-    fn from(value: Position) -> Self {
-        Self::new(value.x, value.y)
-    }
-}
-
-#[derive(
-    Debug,
-    Clone,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    serde::Serialize,
-    serde::Deserialize,
-    PartialEq,
-    Constructor,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Direction {
     pub x: f32,
     pub y: f32,

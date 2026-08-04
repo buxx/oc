@@ -215,10 +215,11 @@ impl<'a> Processor<'a> {
         let direction = gesture.direction();
         let angle = direction.angle(V::Server);
 
-        let positions =
-            squad
-                .formation
-                .positions(&self.world.w, V::Server, reference, angle, count);
+        let positions = squad
+            .formation
+            .positions(&self.world.w, V::Server, reference, angle, count)
+            .into_iter()
+            .map(|p| WorldVec2::new(p.x, p.y));
         tracing::trace!(name="individual-step-distribute-formation", i=?self.i, squad_i=?squad_i, reference=?reference, direction=?direction, angle=?angle, positions=?positions);
 
         for (member, position) in squad
@@ -313,7 +314,6 @@ impl<'a> Processor<'a> {
 
 #[cfg(test)]
 mod tests {
-    use glam::{Vec2, Vec3};
     use oc_individual::{
         Gesture, IndividualIndex,
         behavior::{Behavior, Intent},
@@ -325,7 +325,7 @@ mod tests {
         geo::{WorldVec2, WorldVec3},
         physics::Meters,
     };
-    use oc_utils::d2::{Direction, Position};
+    use oc_utils::d2::Direction;
     use oc_world::World;
 
     use crate::{index::Indexes, individual::Processor, runner::update::Update};
@@ -342,11 +342,11 @@ mod tests {
         let individual_1_position = WorldVec3::new(100., 100., 0.);
         let individual_2_position = WorldVec3::new(90., 110., 0.);
         let squad_position = WorldVec2::new(individual_1_position.x, individual_1_position.y);
-        let move_to_position = Position::new(150., 100.);
+        let move_to_position = WorldVec2::new(150., 100.);
         let move_to_order = Order::MoveTo(move_to_position);
         // expected
-        let expected_individual_1_move_to_position = Position::new(150., 100.);
-        let expected_individual_2_move_to_position = Position::new(100., 110.);
+        let expected_individual_1_move_to_position = WorldVec2::new(150., 100.);
+        let expected_individual_2_move_to_position = WorldVec2::new(100., 110.);
 
         let world = two_individuals_world(
             &w,
@@ -393,7 +393,7 @@ mod tests {
         let individual_2_position = WorldVec3::new(90., 110., 0.);
         let squad_position = WorldVec2::new(individual_1_position.x, individual_1_position.y);
         // expected
-        let expected_individual_2_move_to_position = Position::new(100., 110.);
+        let expected_individual_2_move_to_position = WorldVec2::new(100., 110.);
 
         let world = two_individuals_world(
             &w,

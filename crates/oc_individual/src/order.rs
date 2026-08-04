@@ -1,5 +1,5 @@
 use enum_type_derive::EnumType;
-use oc_utils::d2::Position;
+use oc_root::geo::WorldVec2;
 use rkyv::Archive;
 
 #[derive(
@@ -16,7 +16,7 @@ use rkyv::Archive;
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Order {
     Idle,
-    MoveTo(Position),
+    MoveTo(WorldVec2),
 }
 
 impl Order {
@@ -28,6 +28,13 @@ impl Order {
             Order::MoveTo(position) => {
                 matches!(other, Self::MoveTo(other_position) if other_position == position)
             }
+        }
+    }
+
+    pub fn point(&self) -> Option<WorldVec2> {
+        match self {
+            Order::Idle => None,
+            Order::MoveTo(position) => Some(*position),
         }
     }
 }
