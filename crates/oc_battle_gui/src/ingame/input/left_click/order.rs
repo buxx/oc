@@ -84,29 +84,56 @@ fn show(
     match order {
         OrderType::Idle => {}
         OrderType::MoveTo => {
-            // FIXME BS NOW: consider stacked ingamestate.pending_orders to generate these profiles
-            let spawns = ingame.selected_squads().iter().filter_map(|i| {
-                tracing::trace!(name="ingame-input-left_click-show-order-squad", mode=?mode.0, point=?point, squad=?i);
-                let pending: Vec<WorldVec2> = ingame.pending_orders().iter().filter_map(|o| o.point()).collect();
-                let points = [pending, vec![point]].concat();
-
-                let squad = world.squad(i)?;
-                let leader = world.get_individual(squad.leader())?;
-                let mut start: WorldVec2 = leader.position.into();
-
-                Some(points.into_iter().map(|point| {
-                    let end: WorldVec2 = point;
-                    let start_tile = TileXy::from_([start.x, start.y], w);
-                    let start_tile = WorldTileIndex::from_(start_tile, w);
-                    let key = SpawnPathProfileKey::Squad{ i: *i, start: start_tile, end };
-                    let profile = SpawnPathProfile { key, start, end };
-                    start = end;
-                    profile
-                }).collect::<Vec<_>>())
-            }).flatten().collect::<Vec<_>>();
+            let spawns = path_profiles(w, point, mode, ingame, world);
             commands.trigger(ComputeDisplayPaths(spawns));
         }
     }
+}
+
+fn path_profiles(
+    w: &WorldConfig,
+    point: WorldVec2,
+    mode: &LeftClick,
+    ingame: &crate::ingame::state::State,
+    world: &crate::world::World,
+) -> Vec<SpawnPathProfile> {
+    let spawns = ingame.selected_squads().iter().filter_map(|i| {
+        tracing::trace!(name="ingame-input-left_click-show-order-squad", mode=?mode.0, point=?point, squad=?i);
+        let pending: Vec<WorldVec2> = ingame.pending_orders().iter().filter_map(|o| o.point()).collect();
+        let points = [pending, vec![point]].concat();
+
+        let squad = world.squad(i)?;
+        let leader = world.get_individual(squad.leader())?;
+        paths_from(w, i, points, leader.position.into())
+    }).flatten().collect::<Vec<_>>();
+    spawns
+}
+
+fn paths_from(
+    w: &WorldConfig,
+    i: &oc_individual::squad::SquadIndex,
+    points: Vec<WorldVec2>,
+    start: WorldVec2,
+) -> Option<Vec<SpawnPathProfile>> {
+    let mut start = start;
+    Some(
+        points
+            .into_iter()
+            .map(|point| {
+                let end: WorldVec2 = point;
+                let start_tile = TileXy::from_([start.x, start.y], w);
+                let start_tile = WorldTileIndex::from_(start_tile, w);
+                let key = SpawnPathProfileKey::Squad {
+                    i: *i,
+                    start: start_tile,
+                    end,
+                };
+                let profile = SpawnPathProfile { key, start, end };
+                start = end;
+                profile
+            })
+            .collect::<Vec<_>>(),
+    )
 }
 
 fn maybe_cancel(
