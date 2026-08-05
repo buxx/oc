@@ -85,9 +85,6 @@ pub enum SquadFormation {
 }
 
 impl SquadFormation {
-    // FIXME BS NOW: I think we can remove `v: V` by replacing Vec2 by WorldVec2 and delegate client to transform
-    /// Return squad members positions (include reference) according to formation and squad
-    /// leader position (reference point)
     pub fn positions(
         &self,
         w: &WorldConfig,
