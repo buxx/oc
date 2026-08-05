@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+pub mod hover;
+
 #[macro_export]
 macro_rules! http_to_file {
     ($url:expr, $path:expr) => {

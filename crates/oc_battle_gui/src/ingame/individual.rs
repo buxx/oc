@@ -28,6 +28,7 @@ use crate::ingame::{self};
 use crate::sprites::IntoAnimation;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
 use crate::states::{AppState, GameConfig};
+use crate::utils::hover::{self, Hovered, HoveredPlugin};
 use crate::world::World;
 
 #[cfg(feature = "debug")]
@@ -151,9 +152,11 @@ pub fn on_insert_individual(
                 Transform::from_xyz(position_.x, position_.y, Z_INDIVIDUAL).with_rotation(rotation),
             ),
             // Surface (clicking, etc)
-            (Pickable::default(),),
+            (Pickable::default(), Hovered::default()),
         ))
         .observe(on_click)
+        .observe(hover::over)
+        .observe(hover::out)
         .id();
 
     state.insert(individual.0, entity);
@@ -260,6 +263,7 @@ impl Plugin for IndividualPlugin {
             oc_individual::IndividualIndex,
             UpdateIndividualPhysicsEvent,
         >::default())
+            .add_plugins(HoveredPlugin::<Hover>::default())
             .init_resource::<EntityMapping<oc_individual::IndividualIndex>>()
             .add_observer(on_insert_individual)
             .add_observer(on_update_individual)
@@ -294,6 +298,19 @@ impl Plugin for IndividualPlugin {
                     .run_if(in_state(InGameState::Battle)),
             );
         }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Hover;
+
+impl hover::Hover for Hover {
+    fn color() -> Srgba {
+        bevy::color::palettes::css::DARK_BLUE
+    }
+
+    fn size() -> Vec2 {
+        Vec2::splat(10.)
     }
 }
 

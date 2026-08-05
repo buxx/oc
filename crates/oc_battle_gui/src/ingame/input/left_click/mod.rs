@@ -19,6 +19,7 @@ use crate::states::GameConfig;
 
 pub mod lov;
 pub mod order;
+pub mod select;
 #[cfg(feature = "debug")]
 pub mod spawn_projectile;
 
