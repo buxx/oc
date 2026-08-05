@@ -17,7 +17,7 @@ pub fn on_insert_tiles(
     commands.trigger(InsertedTiles(insert.0));
 
     let_some!(g = &g.0, return);
-    // FIXME BS NOW: maybe its too much cpu blocking. Delay it ? Async it ?
+    // FIXME: maybe its too much cpu blocking. Delay it ? Async it ?
     world.update_navmesh(&g.w, &g.mod_);
 }
 
