@@ -29,7 +29,7 @@ pub fn out(e: On<Pointer<Out>>, mut q: Query<&mut Hovered>) {
 
 pub fn draw<T: Hover + Send + Sync + 'static>(
     mut gizmos: Gizmos<HoveredGizmos>,
-    q: Query<(&Transform, &Hovered)>, // FIXME BS NOW: need I (identifier to not select other types like vehicle)
+    q: Query<(&Transform, &Hovered)>, // FIXME: need I (identifier to not select other types like vehicle)
 ) {
     for (transform, hovered) in &q {
         if hovered.0 {

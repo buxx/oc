@@ -32,7 +32,7 @@ pub fn setup<T: Selection + Send + Sync + 'static>(mut config: ResMut<GizmoConfi
 
 pub fn draw<T: Selection + Send + Sync + 'static>(
     mut gizmos: Gizmos<SelectedGizmos>,
-    q: Query<(&Transform, &Selected)>,
+    q: Query<(&Transform, &Selected)>, // FIXME: need I (identifier to not select other types like vehicle)
 ) {
     for (transform, selected) in &q {
         if selected.0 {
