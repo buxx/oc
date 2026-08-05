@@ -11,6 +11,13 @@ pub enum AppState {
     InGame,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
+pub enum PointerIn {
+    Battle,
+    #[default]
+    Window,
+}
+
 #[derive(Debug, Resource)]
 pub struct Game {
     #[allow(unused)]

@@ -15,7 +15,7 @@ use crate::{
         },
         world::{AdjustMinimap, DespawnWorldMapBackground, SpawnWorldMapBackground},
     },
-    states::AppState,
+    states::{AppState, PointerIn},
 };
 
 #[cfg(feature = "debug")]
@@ -67,13 +67,15 @@ impl Plugin for CameraPlugin {
                 Update,
                 (move_::move_battle,)
                     .run_if(in_state(AppState::InGame))
-                    .run_if(in_state(InGameState::Battle)),
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(PointerIn::Battle)),
             )
             .add_systems(
                 Update,
                 (move_::move_in_world_map,)
                     .run_if(in_state(AppState::InGame))
-                    .run_if(in_state(InGameState::World)),
+                    .run_if(in_state(InGameState::World))
+                    .run_if(in_state(PointerIn::Battle)),
             )
             .add_systems(
                 Update,

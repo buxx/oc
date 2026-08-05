@@ -19,7 +19,6 @@ use crate::ingame::path::ComputeDisplayPaths;
 use crate::ingame::path::SpawnPathProfile;
 use crate::ingame::path::SpawnPathProfileKey;
 use crate::network::output::ToServerEvent;
-use crate::window::PointerInWindow;
 
 #[derive(Debug, Clone, Copy, Resource, Deref, DerefMut, Default)]
 pub struct OnGoing(pub bool);
@@ -27,7 +26,6 @@ pub struct OnGoing(pub bool);
 pub fn system(
     mut commands: Commands,
     w: Res<Wcfg>,
-    ignore: Res<PointerInWindow>, // TODO: use state ?
     window: Single<&Window>,
     camera: Single<(&Camera, &GlobalTransform)>,
     buttons: Res<ButtonInput<MouseButton>>,
@@ -37,9 +35,6 @@ pub fn system(
     mut ingame: ResMut<crate::ingame::state::State>,
     mut ongoing: ResMut<OnGoing>,
 ) {
-    if ignore.0 {
-        return;
-    }
     let_some!(w = &w.0, return);
     let_some!(cursor = window.cursor_position(), return);
     let (camera, transform) = *camera;

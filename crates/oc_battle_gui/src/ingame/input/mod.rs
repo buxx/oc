@@ -3,7 +3,7 @@ use oc_root::geo::WorldVec2;
 
 use crate::{
     ingame::{InGameState, input::left_click::LeftClickModeType},
-    states::AppState,
+    states::{AppState, PointerIn},
 };
 
 pub mod client;
@@ -45,14 +45,16 @@ impl Plugin for InputPlugin {
                 (left_click::order::system)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
-                    .run_if(in_state(LeftClickModeType::Order)),
+                    .run_if(in_state(LeftClickModeType::Order))
+                    .run_if(in_state(PointerIn::Battle)),
             )
             .add_systems(
                 Update,
                 (left_click::lov::system)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
-                    .run_if(in_state(LeftClickModeType::LineOfView)),
+                    .run_if(in_state(LeftClickModeType::LineOfView))
+                    .run_if(in_state(PointerIn::Battle)),
             );
 
         #[cfg(feature = "debug")]

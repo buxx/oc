@@ -4,7 +4,7 @@ use oc_utils::let_some;
 
 use crate::{
     http_to_file, network,
-    states::{AppState, GameConfig},
+    states::{AppState, GameConfig, PointerIn},
     utils::untar,
     world::World,
 };
@@ -89,8 +89,13 @@ fn ensure_file(
     Ok(())
 }
 
-fn on_downloaded(_: On<Downloaded>, mut app_state: ResMut<NextState<AppState>>) {
+fn on_downloaded(
+    _: On<Downloaded>,
+    mut app_state: ResMut<NextState<AppState>>,
+    mut pointer: ResMut<NextState<PointerIn>>,
+) {
     tracing::info!("Download finished");
     tracing::debug!("Entering 'Ingame' state");
     *app_state = NextState::Pending(AppState::InGame);
+    *pointer = NextState::Pending(PointerIn::Battle)
 }

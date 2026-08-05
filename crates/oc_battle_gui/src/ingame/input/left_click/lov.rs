@@ -6,12 +6,10 @@ use oc_utils::{let_ok, let_some, return_if};
 use crate::ingame;
 use crate::ingame::input::left_click::{LeftClick, LeftClickMode, SetLeftClick};
 use crate::ingame::lov::{DespawnLov, LovClickMode, SpawnLov, SpawnLovConfig, SpawnLovProfile};
-use crate::window::PointerInWindow;
 
 pub fn system(
     mut commands: Commands,
     w: Res<Wcfg>,
-    ignore: Res<PointerInWindow>, // TODO: use state ?
     window: Single<&Window>,
     camera: Single<(&Camera, &GlobalTransform)>,
     buttons: Res<ButtonInput<MouseButton>>,
@@ -19,9 +17,6 @@ pub fn system(
     keys: Res<ButtonInput<KeyCode>>,
     mut state: ResMut<crate::ingame::input::State>,
 ) {
-    if ignore.0 {
-        return;
-    }
     let_some!(w = &w.0, return);
     let_some!(cursor = window.cursor_position(), return);
     let (camera, transform) = *camera;

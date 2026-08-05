@@ -4,14 +4,14 @@ use oc_mod::Mod;
 use oc_root::WorldConfig;
 use oc_utils::let_some;
 
-use crate::{states, window::menu::battle::BattleMenuWindowPlugin};
+use crate::{
+    states::{self, PointerIn},
+    window::menu::battle::BattleMenuWindowPlugin,
+};
 
 #[cfg(feature = "debug")]
 pub mod debug;
 pub mod menu;
-
-#[derive(Deref, DerefMut, Resource, Default)]
-pub struct PointerInWindow(pub bool);
 
 // TODO: There is a lot of common code for windows, use generic
 #[derive(Clone)]
@@ -52,6 +52,7 @@ pub fn on_toggle_debug_window(
     toggle: On<ToggleWindow>,
     mut commands: Commands,
     mut window: ResMut<crate::states::Window>,
+    mut pointer: ResMut<NextState<PointerIn>>,
 ) {
     if let Some(window_) = &window.0 {
         if std::mem::discriminant(window_) == std::mem::discriminant(&toggle.0) {
@@ -62,14 +63,15 @@ pub fn on_toggle_debug_window(
         window.0 = Some(toggle.0.clone());
         commands.trigger(MountedWindow(toggle.0.clone()));
     }
+
+    *pointer = NextState::Pending(PointerIn::Battle)
 }
 
 pub struct WindowPlugin;
 
 impl Plugin for WindowPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<PointerInWindow>()
-            .add_plugins(BattleMenuWindowPlugin)
+        app.add_plugins(BattleMenuWindowPlugin)
             .add_systems(EguiPrimaryContextPass, show)
             .add_observer(on_toggle_debug_window);
 
@@ -85,13 +87,19 @@ fn show(
     mut window: ResMut<states::Window>,
     mut commands: Commands,
     g: Res<states::GameConfig>,
-    mut pointer: ResMut<PointerInWindow>,
+    mut pointer: ResMut<NextState<PointerIn>>,
 ) -> Result {
     let_some!(window = &mut window.0, return Ok(()));
     let_some!(g = &g.0, return Ok(()));
 
     window.show(&mut contexts, &mut commands, &g.mod_, &g.w)?;
-    pointer.0 = contexts.ctx_mut()?.is_pointer_over_egui();
+
+    match contexts.ctx_mut()?.is_pointer_over_egui() {
+        true => *pointer = NextState::Pending(PointerIn::Window),
+        false => *pointer = NextState::Pending(PointerIn::Battle),
+    }
+
+    println!("{pointer:?}");
 
     Ok(())
 }
