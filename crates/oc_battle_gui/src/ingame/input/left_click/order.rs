@@ -102,7 +102,7 @@ fn path_profiles(
         let pending: Vec<WorldVec2> = ingame.pending_orders().iter().filter_map(|o| o.point()).collect();
         let points = [pending, vec![point]].concat();
 
-        let squad = world.squad(i)?;
+        let squad = world.squad(*i)?;
         let leader = world.get_individual(squad.leader())?;
         paths_from(w, i, points, leader.position.into())
     }).flatten().collect::<Vec<_>>();
@@ -159,7 +159,7 @@ fn cancel(
     commands.trigger(ComputeDisplayPaths(vec![]));
     commands.trigger(SetLeftClick(LeftClickMode::Select));
     ongoing.0 = false;
-    ingame.pending_orders_mut().clear();
+    ingame.clear_pending_orders();
 }
 
 fn action(
@@ -192,7 +192,7 @@ fn action(
                 commands.trigger(ToServerEvent(ToServer::Squad(*squad, set_orders)));
             }
         } else {
-            ingame.pending_orders_mut().push(order);
+            ingame.push_pending_orders(order);
         }
     }
 }

@@ -21,6 +21,7 @@ use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
 };
 use crate::ingame::region::ForgottenRegion;
+use crate::ingame::selected::{Select, Selected};
 use crate::ingame::squad::menu::contextual::{
     PrepareOpenSquadContextualMenu, on_prepare_open_squad_contextual_menu,
 };
@@ -152,7 +153,11 @@ pub fn on_insert_individual(
                 Transform::from_xyz(position_.x, position_.y, Z_INDIVIDUAL).with_rotation(rotation),
             ),
             // Surface (clicking, etc)
-            (Pickable::default(), Hovered::default()),
+            (
+                Pickable::default(),
+                Hovered::default(),
+                Selected::Individual(individual.0),
+            ),
         ))
         .observe(on_click)
         .observe(hover::over)
@@ -167,20 +172,29 @@ pub fn on_insert_individual(
 }
 
 fn on_click(
-    event: On<Pointer<Click>>,
+    mut event: On<Pointer<Click>>,
     mut commands: Commands,
     mut state: ResMut<super::state::State>,
     world: Res<World>,
     query: Query<&IndividualIndex>,
 ) {
-    if event.button == PointerButton::Secondary {
-        let individual = event.original_event_target();
-        let_ok!(individual = query.get(individual), return);
-        let_some!((squad, _) = world.individual_squad(individual.0), return);
+    let individual = event.original_event_target();
+    let_ok!(individual = query.get(individual), return);
 
-        state.set_selected_squads(vec![squad]);
+    if event.button == PointerButton::Secondary {
+        let_some!((squad, _) = world.individual_squad(individual.0), return);
+        let squads = vec![squad];
+        let_some!(squad = world.squad(squad), return);
+        state.update_selected(squads, squad.members.clone(), vec![individual.0]);
         commands.trigger(PrepareOpenSquadContextualMenu(individual.0))
     }
+
+    if event.button == PointerButton::Primary {
+        commands.trigger(Select(Selected::Individual(individual.0)))
+    }
+
+    // FIXME BS NOW
+    event.propagate(false);
 }
 
 fn on_refresh_render(

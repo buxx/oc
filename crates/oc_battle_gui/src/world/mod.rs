@@ -229,10 +229,10 @@ impl World {
         Some(p.into())
     }
 
-    pub fn squad(&self, i: &SquadIndex) -> Option<&Squad> {
-        let region = self.squads_refs.get(i)?;
+    pub fn squad(&self, i: SquadIndex) -> Option<&Squad> {
+        let region = self.squads_refs.get(&i)?;
         let squads = self.squads.get(region)?;
-        squads.get(i)
+        squads.get(&i)
     }
 
     pub fn individual_squad(&self, i: IndividualIndex) -> Option<(SquadIndex, &Squad)> {

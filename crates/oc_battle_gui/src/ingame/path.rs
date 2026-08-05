@@ -12,7 +12,7 @@ use oc_utils::let_some;
 use crate::ingame::camera::squad::ShowFormationPositions;
 use crate::{
     entity::individual::{IndividualIndex, Intent},
-    ingame::draw,
+    ingame,
     states::GameConfig,
     world::World,
 };
@@ -103,7 +103,7 @@ pub fn setup(mut config: ResMut<GizmoConfigStore>) {
     gizmos.line.style = GizmoLineStyle::Dotted;
 }
 
-pub fn draw_paths(
+pub fn draw(
     g: Res<GameConfig>,
     intents: Query<(&Intent, &Position), With<IndividualIndex>>,
     display: Res<DisplayPaths>,
@@ -127,8 +127,8 @@ pub fn draw_paths(
         // let mut previous: [f32; 2] = [position.0[0], position.0[1]];
         for point in &path.segments {
             let point = ScreenVec2::from_(*point, &g.w);
-            let start = Vec3::new(previous.x, previous.y, draw::Z_PATH);
-            let stop = Vec3::new(point.x, point.y, draw::Z_PATH);
+            let start = Vec3::new(previous.x, previous.y, ingame::draw::Z_PATH);
+            let stop = Vec3::new(point.x, point.y, ingame::draw::Z_PATH);
             gizmos.line(start, stop, color);
 
             previous = point;
@@ -143,8 +143,8 @@ pub fn draw_paths(
                 let mut previous = ScreenVec2::from_(position.0, &g.w);
                 for point in path.iter() {
                     let point = ScreenVec2::from_(*point, &g.w);
-                    let start = Vec3::new(previous.x, previous.y, draw::Z_PATH);
-                    let stop = Vec3::new(point.x, point.y, draw::Z_PATH);
+                    let start = Vec3::new(previous.x, previous.y, ingame::draw::Z_PATH);
+                    let stop = Vec3::new(point.x, point.y, ingame::draw::Z_PATH);
 
                     gizmos.line(start, stop, color);
                     previous = point;
@@ -159,7 +159,7 @@ impl SpawnPathProfile {
         match self.key {
             // Consider valid if squad leader still at same position
             SpawnPathProfileKey::Squad { i, start, end: _ } => {
-                let_some!(squad = world.squad(&i), return false);
+                let_some!(squad = world.squad(i), return false);
                 let_some!(leader = world.get_individual(squad.leader()), return false);
                 start == leader.tile()
             }

@@ -10,7 +10,7 @@ pub struct HoveredGizmos;
 pub struct Hovered(bool);
 
 fn setup<T: Hover + Send + Sync + 'static>(mut config: ResMut<GizmoConfigStore>) {
-    tracing::trace!(name = "utils-hovered-setup");
+    tracing::trace!(name = "utils-hover-setup");
     let (gizmos, _) = config.config_mut::<HoveredGizmos>();
     gizmos.line.width = 1.0;
 }

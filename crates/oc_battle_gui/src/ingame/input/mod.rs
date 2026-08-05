@@ -26,9 +26,11 @@ impl Plugin for InputPlugin {
             .init_resource::<left_click::order::OnGoing>()
             .init_resource::<left_click::LeftClick>()
             .add_observer(client::on_to_client)
+            .add_observer(left_click::select::unselect)
             .add_observer(left_click::on_set_left_click)
             .add_observer(left_click::on_spawn_clicks_line)
             .add_observer(left_click::on_despawn_clicks_line)
+            .add_observer(left_click::select::on_select)
             .add_systems(
                 Update,
                 (keyboard::on_key_press,).run_if(in_state(AppState::InGame)),
