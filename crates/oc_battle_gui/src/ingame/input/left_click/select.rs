@@ -26,8 +26,6 @@ pub fn on_select(
     individuals: Res<EntityMapping<oc_individual::IndividualIndex>>,
     mut query: Query<(&IndividualIndex, &mut Selected)>,
 ) {
-    // FIXME BS NOW: (https://github.com/bevyengine/bevy/pull/22602)
-    // observer can now run_if ! Use LeftClick state
     // FIXME BS NOW: additionally, use state (and set run_if everywhere needed) to know if cursor is
     // in bevy window (must disable lot of things in that case)
     if !mode.0.is_select() {

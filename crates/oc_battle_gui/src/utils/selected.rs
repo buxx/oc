@@ -2,6 +2,11 @@ use std::marker::PhantomData;
 
 use bevy::prelude::*;
 
+use crate::{
+    ingame::{InGameState, input::left_click::LeftClickModeType},
+    states::AppState,
+};
+
 #[derive(Default, Reflect, GizmoConfigGroup)]
 pub struct SelectedGizmos;
 
@@ -59,7 +64,12 @@ impl<T: Selection + Send + Sync + 'static> Plugin for SelectedPlugin<T> {
         app.init_gizmo_group::<SelectedGizmos>()
             .add_systems(Startup, setup::<T>)
             .add_systems(Update, draw::<T>)
-            .add_observer(unselect::<T>);
+            .add_observer(
+                unselect::<T>
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(LeftClickModeType::Select)),
+            );
     }
 }
 

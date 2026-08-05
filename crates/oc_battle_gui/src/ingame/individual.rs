@@ -20,12 +20,13 @@ use crate::ingame::draw::Z_INDIVIDUAL;
 use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
 };
+use crate::ingame::input::left_click::LeftClickModeType;
 use crate::ingame::input::left_click::select::Select;
 use crate::ingame::region::ForgottenRegion;
 use crate::ingame::squad::menu::contextual::{
     PrepareOpenSquadContextualMenu, on_prepare_open_squad_contextual_menu,
 };
-use crate::ingame::{self};
+use crate::ingame::{self, InGameState};
 use crate::sprites::IntoAnimation;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
 use crate::states::{AppState, GameConfig};
@@ -156,9 +157,24 @@ pub fn on_insert_individual(
             // Surface (clicking, etc)
             (Pickable::default(), Hovered::default(), Selected::default()),
         ))
-        .observe(on_click)
-        .observe(hover::over)
-        .observe(hover::out)
+        .observe(
+            on_click
+                .run_if(in_state(AppState::InGame))
+                .run_if(in_state(InGameState::Battle))
+                .run_if(in_state(LeftClickModeType::Select)),
+        )
+        .observe(
+            hover::over
+                .run_if(in_state(AppState::InGame))
+                .run_if(in_state(InGameState::Battle))
+                .run_if(in_state(LeftClickModeType::Select)),
+        )
+        .observe(
+            hover::out
+                .run_if(in_state(AppState::InGame))
+                .run_if(in_state(InGameState::Battle))
+                .run_if(in_state(LeftClickModeType::Select)),
+        )
         .id();
 
     state.insert(individual.0, entity);

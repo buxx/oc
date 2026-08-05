@@ -3,6 +3,11 @@ use std::marker::PhantomData;
 use bevy::prelude::*;
 use oc_utils::let_ok;
 
+use crate::{
+    ingame::{InGameState, input::left_click::LeftClickModeType},
+    states::AppState,
+};
+
 #[derive(Default, Reflect, GizmoConfigGroup)]
 pub struct HoveredGizmos;
 
@@ -47,7 +52,13 @@ impl<T: Hover + Send + Sync + 'static> Plugin for HoveredPlugin<T> {
     fn build(&self, app: &mut App) {
         app.init_gizmo_group::<HoveredGizmos>()
             .add_systems(Startup, setup::<T>)
-            .add_systems(Update, draw::<T>);
+            .add_systems(
+                Update,
+                draw::<T>
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(LeftClickModeType::Select)),
+            );
     }
 }
 
