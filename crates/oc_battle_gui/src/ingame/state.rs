@@ -52,4 +52,19 @@ impl State {
     pub fn push_pending_orders(&mut self, value: Order) {
         self.pending_orders.push(value)
     }
+
+    pub fn selection(&self) -> Selection {
+        Selection {
+            selected_squads: self.selected_squads.clone(),
+            selected_squads_individuals: self.selected_squads_individuals.clone(),
+            selected_individuals: self.selected_individuals.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Selection {
+    pub selected_squads: Vec<SquadIndex>,
+    pub selected_squads_individuals: Vec<IndividualIndex>,
+    pub selected_individuals: Vec<IndividualIndex>,
 }

@@ -199,13 +199,16 @@ fn on_click(
         let squads = vec![squad];
         let_some!(squad = world.squad(squad), return);
         state.update_selected(squads, squad.members.clone(), vec![individual.0]);
-        commands.trigger(PrepareOpenSquadContextualMenu(individual.0))
+        commands.trigger(PrepareOpenSquadContextualMenu(individual.0));
+        // As its a click, all selected units will be deleted, so we restore them
+        commands.trigger(Select::Restore(state.selection()));
     }
 
     if event.button == PointerButton::Primary {
         commands.trigger(Select::Individual(individual.0));
     }
 
+    println!("indiv click");
     event.propagate(false);
 }
 
