@@ -20,7 +20,7 @@ pub fn navmesh(w: &WorldConfig, mod_: &Mod, tiles: Vec<(&WorldTileIndex, &Tile)>
         [0.0, height].into(),
     ]);
 
-    // FIXME BS NOW: values in config (copied from crates/oc_world/src/navmesh.rs)
+    // FIXME: values in config (copied from crates/oc_world/src/navmesh.rs)
     // Keeps the path center at least 2.5px away from any wall edge
     triangulation.set_agent_radius(2.5);
     // For tile walls, rounded corners aren't needed — fewer segments = faster
