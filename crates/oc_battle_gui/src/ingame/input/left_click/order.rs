@@ -157,6 +157,7 @@ fn cancel(
     ingame.clear_pending_orders();
 }
 
+// FIXME BS NOW: when click to set orders, do not clear selection (jouer avec les state LeftClick::Order ?)
 fn action(
     ongoing: &mut OnGoing,
     point: WorldVec2,
