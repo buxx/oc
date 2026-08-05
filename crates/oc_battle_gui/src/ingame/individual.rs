@@ -20,8 +20,8 @@ use crate::ingame::draw::Z_INDIVIDUAL;
 use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
 };
+use crate::ingame::input::left_click::select::Select;
 use crate::ingame::region::ForgottenRegion;
-use crate::ingame::selected::{Select, Selected};
 use crate::ingame::squad::menu::contextual::{
     PrepareOpenSquadContextualMenu, on_prepare_open_squad_contextual_menu,
 };
@@ -30,6 +30,7 @@ use crate::sprites::IntoAnimation;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
 use crate::states::{AppState, GameConfig};
 use crate::utils::hover::{self, Hovered, HoveredPlugin};
+use crate::utils::selected::{self, Selected, SelectedPlugin};
 use crate::world::World;
 
 #[cfg(feature = "debug")]
@@ -153,11 +154,7 @@ pub fn on_insert_individual(
                 Transform::from_xyz(position_.x, position_.y, Z_INDIVIDUAL).with_rotation(rotation),
             ),
             // Surface (clicking, etc)
-            (
-                Pickable::default(),
-                Hovered::default(),
-                Selected::Individual(individual.0),
-            ),
+            (Pickable::default(), Hovered::default(), Selected::default()),
         ))
         .observe(on_click)
         .observe(hover::over)
@@ -190,10 +187,9 @@ fn on_click(
     }
 
     if event.button == PointerButton::Primary {
-        commands.trigger(Select(Selected::Individual(individual.0)))
+        commands.trigger(Select::Individual(individual.0));
     }
 
-    // FIXME BS NOW
     event.propagate(false);
 }
 
@@ -278,6 +274,7 @@ impl Plugin for IndividualPlugin {
             UpdateIndividualPhysicsEvent,
         >::default())
             .add_plugins(HoveredPlugin::<Hover>::default())
+            .add_plugins(SelectedPlugin::<Selection>::default())
             .init_resource::<EntityMapping<oc_individual::IndividualIndex>>()
             .add_observer(on_insert_individual)
             .add_observer(on_update_individual)
@@ -321,6 +318,19 @@ pub struct Hover;
 impl hover::Hover for Hover {
     fn color() -> Srgba {
         bevy::color::palettes::css::DARK_BLUE
+    }
+
+    fn size() -> Vec2 {
+        Vec2::splat(10.)
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Selection;
+
+impl selected::Selection for Selection {
+    fn color() -> Srgba {
+        bevy::color::palettes::css::BLUE
     }
 
     fn size() -> Vec2 {

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 pub mod hover;
+pub mod selected;
 
 #[macro_export]
 macro_rules! http_to_file {

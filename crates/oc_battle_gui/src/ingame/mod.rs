@@ -15,7 +15,6 @@ use crate::{
         path::{DisplayPaths, PathGizmos, draw, on_compute_display_paths},
         projectile::ProjectilePlugin,
         region::on_listening_region,
-        selected::SelectedGizmos,
         squad::SquadPlugin,
         world::{
             on_adjust_minimap, on_despawn_world_map_background, on_spawn_minimap,
@@ -42,7 +41,6 @@ pub mod path;
 pub mod physics;
 pub mod projectile;
 pub mod region;
-pub mod selected;
 pub mod squad;
 pub mod state;
 pub mod world;
@@ -83,8 +81,7 @@ pub enum InGameState {
 
 impl Plugin for IngamePlugin {
     fn build(&self, app: &mut App) {
-        app.init_gizmo_group::<SelectedGizmos>()
-            .init_gizmo_group::<PathGizmos>()
+        app.init_gizmo_group::<PathGizmos>()
             .add_plugins(InputPlugin)
             .add_plugins(WorldPlugin)
             .add_plugins(HeightPlugin)
@@ -112,14 +109,14 @@ impl Plugin for IngamePlugin {
             // .add_observer(on_forgotten_region)
             .add_observer(physics::on_physics_event)
             // TODO: despawn entities on OnExit(AppState::InGame)
-            .add_systems(Startup, (selected::setup, path::setup))
+            .add_systems(Startup, (path::setup,))
             .add_systems(
                 OnEnter(AppState::InGame),
                 (init::init, init::refresh, init::spawn_world_map),
             )
             .add_systems(
                 Update,
-                (selected::draw, path::draw)
+                (path::draw,)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle)),
             );

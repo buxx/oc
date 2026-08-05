@@ -19,10 +19,12 @@ impl State {
         &self.selected_squads
     }
 
+    #[allow(unused)]
     pub fn selected_squads_individuals(&self) -> &[IndividualIndex] {
         &self.selected_squads_individuals
     }
 
+    #[allow(unused)]
     pub fn selected_individuals(&self) -> &[IndividualIndex] {
         &self.selected_individuals
     }
