@@ -11,7 +11,6 @@ use crate::region::RegionXy;
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct TileXy(pub Xy);
 
-// FIXME BS NOW: remove avv conversion which are not WorldVec3 / WorldVec2 ?
 impl TileXy {
     pub fn clamped(&self, w: &WorldConfig) -> Self {
         Self(Xy(
