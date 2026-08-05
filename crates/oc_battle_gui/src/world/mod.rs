@@ -73,7 +73,7 @@ pub struct World {
     pub squads: Index<SquadIndex, Squad>,
     pub squads_refs: FxHashMap<SquadIndex, WorldRegionIndex>, // TODO: remove pub and ensure x_ref
     pub individual_squad: FxHashMap<IndividualIndex, SquadIndex>,
-    // FIXME BS NOW: is that too much blocking to recompute it when world change ?
+    // TODO: is that too much blocking to recompute it when world change ?
     // do it asynchronously ? Or compute paths server side ?
     navmesh: polyanya::Mesh,
 }
