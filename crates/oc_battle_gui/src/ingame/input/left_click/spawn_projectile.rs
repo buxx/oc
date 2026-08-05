@@ -14,13 +14,11 @@ use crate::ingame::input::left_click::{
 use crate::ingame::lov::SpawnProjectileClickMode;
 use crate::network::output::ToServerEvent;
 use crate::projectile::IntoSpawnProjectile;
-use crate::window::PointerInWindow;
 use crate::world::World;
 
 pub fn system(
     mut commands: Commands,
     w: Res<Wcfg>,
-    ignore: Res<PointerInWindow>, // TODO: use state ?
     window: Single<&Window>,
     camera: Single<(&Camera, &GlobalTransform)>,
     buttons: Res<ButtonInput<MouseButton>>,
@@ -30,9 +28,6 @@ pub fn system(
     spawn: Res<SpawnProjectileLeftClick>,
     world: Res<crate::world::World>,
 ) {
-    if ignore.0 {
-        return;
-    }
     let_some!(w = &w.0, return);
     let_some!(cursor = window.cursor_position(), return);
     let (camera, transform) = *camera;

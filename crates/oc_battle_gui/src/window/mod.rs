@@ -99,7 +99,5 @@ fn show(
         false => *pointer = NextState::Pending(PointerIn::Battle),
     }
 
-    println!("{pointer:?}");
-
     Ok(())
 }

@@ -3,7 +3,6 @@ use oc_utils::bevy::EntityMapping;
 use oc_utils::{let_ok, let_some};
 
 use crate::entity::individual::IndividualIndex;
-use crate::ingame::input::left_click::LeftClick;
 use crate::ingame::state::State;
 use crate::utils::selected::Selected;
 use crate::world::World;

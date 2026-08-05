@@ -70,7 +70,8 @@ impl Plugin for InputPlugin {
                 (left_click::spawn_projectile::system)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
-                    .run_if(in_state(LeftClickModeType::SpawnProjectile)),
+                    .run_if(in_state(LeftClickModeType::SpawnProjectile))
+                    .run_if(in_state(PointerIn::Battle)),
             );
     }
 }
