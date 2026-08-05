@@ -170,7 +170,6 @@ fn action(
     commands: &mut Commands,
     ingame: &mut crate::ingame::state::State,
 ) {
-    // FIXME BS NOW: multi step
     if ongoing.0
         && (buttons.just_pressed(MouseButton::Left) || buttons.just_pressed(MouseButton::Middle))
     {
