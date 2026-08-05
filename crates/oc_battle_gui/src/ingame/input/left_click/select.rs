@@ -20,18 +20,11 @@ pub fn unselect(_: On<Pointer<Click>>, mut state: ResMut<State>) {
 
 pub fn on_select(
     event: On<Select>,
-    mode: Res<LeftClick>,
     world: Res<World>,
     mut state: ResMut<State>,
     individuals: Res<EntityMapping<oc_individual::IndividualIndex>>,
     mut query: Query<(&IndividualIndex, &mut Selected)>,
 ) {
-    // FIXME BS NOW: additionally, use state (and set run_if everywhere needed) to know if cursor is
-    // in bevy window (must disable lot of things in that case)
-    if !mode.0.is_select() {
-        return;
-    }
-
     match *event {
         Select::Individual(i) => select_individual(i, &world, &mut state, &individuals, &mut query),
     }
