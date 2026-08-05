@@ -68,8 +68,6 @@ pub fn on_prepare_open_squad_contextual_menu(
 
 pub fn on_choose(item: On<Choice>, mut commands: Commands) {
     match *item {
-        // FIXME BS NOW: affichage du mode left click order ...
-        // en combinaison de individual  / squad selected
         Choice::Move => commands.trigger(SetLeftClick(LeftClickMode::Order(OrderType::MoveTo))),
     }
 }
