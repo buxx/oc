@@ -208,7 +208,6 @@ fn on_click(
         commands.trigger(Select::Individual(individual.0));
     }
 
-    println!("indiv click");
     event.propagate(false);
 }
 

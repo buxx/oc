@@ -7,6 +7,7 @@ use oc_network::ToServer;
 use oc_root::Wcfg;
 use oc_root::WcfgFrom;
 use oc_root::WorldConfig;
+use oc_root::geo::ScreenVec2;
 use oc_root::geo::WorldVec2;
 use oc_utils::let_ok;
 use oc_utils::let_some;
@@ -19,9 +20,7 @@ use crate::ingame::path::ComputeDisplayPaths;
 use crate::ingame::path::SpawnPathProfile;
 use crate::ingame::path::SpawnPathProfileKey;
 use crate::network::output::ToServerEvent;
-
-#[derive(Debug, Clone, Copy, Resource, Deref, DerefMut, Default)]
-pub struct OnGoing(pub bool);
+use crate::states::GameConfig;
 
 pub fn system(
     mut commands: Commands,
@@ -33,7 +32,6 @@ pub fn system(
     keys: Res<ButtonInput<KeyCode>>,
     world: Res<crate::world::World>,
     mut ingame: ResMut<crate::ingame::state::State>,
-    mut ongoing: ResMut<OnGoing>,
 ) {
     let_some!(w = &w.0, return);
     let_some!(cursor = window.cursor_position(), return);
@@ -46,23 +44,8 @@ pub fn system(
         return;
     };
 
-    return_if!(maybe_cancel(
-        &mut commands,
-        &buttons,
-        &keys,
-        &mut ongoing,
-        &mut ingame
-    ));
+    return_if!(maybe_cancel(&mut commands, &buttons, &keys, &mut ingame));
     show(w, point, order, &mut commands, &mode, &ingame, &world);
-    action(
-        &mut ongoing,
-        point,
-        &buttons,
-        &keys,
-        &mut commands,
-        &mut ingame,
-    );
-    ongoing.0 = true;
 }
 
 fn show(
@@ -133,61 +116,78 @@ fn paths_from(
 
 fn maybe_cancel(
     commands: &mut Commands,
-    buttons: &ButtonInput<MouseButton>,
+    _buttons: &ButtonInput<MouseButton>,
     keys: &ButtonInput<KeyCode>,
-    ongoing: &mut OnGoing,
     ingame: &mut crate::ingame::state::State,
 ) -> bool {
-    if keys.just_pressed(KeyCode::Escape) || buttons.just_pressed(MouseButton::Middle) {
+    if keys.just_pressed(KeyCode::Escape) {
         tracing::trace!(name = "ingame-input-left-click-order-cancel");
-        cancel(commands, ongoing, ingame);
+        cancel(commands, ingame);
         return true;
     }
     false
 }
 
-fn cancel(
-    commands: &mut Commands,
-    ongoing: &mut OnGoing,
-    ingame: &mut crate::ingame::state::State,
-) {
+fn cancel(commands: &mut Commands, ingame: &mut crate::ingame::state::State) {
     commands.trigger(ComputeDisplayPaths(vec![]));
     commands.trigger(SetLeftClick(LeftClickMode::Select));
-    ongoing.0 = false;
     ingame.clear_pending_orders();
 }
 
-// FIXME BS NOW: when click to set orders, do not clear selection (jouer avec les state LeftClick::Order ?)
-fn action(
-    ongoing: &mut OnGoing,
-    point: WorldVec2,
-    buttons: &ButtonInput<MouseButton>,
-    keys: &ButtonInput<KeyCode>,
-    commands: &mut Commands,
-    ingame: &mut crate::ingame::state::State,
+pub fn on_click(
+    mut click: On<Pointer<Click>>,
+    g: Res<GameConfig>,
+    mut commands: Commands,
+    camera: Single<(&Camera, &GlobalTransform)>,
+    _buttons: Res<ButtonInput<MouseButton>>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut ingame: ResMut<crate::ingame::state::State>,
 ) {
-    if ongoing.0
-        && (buttons.just_pressed(MouseButton::Left) || buttons.just_pressed(MouseButton::Middle))
-    {
-        let adding = keys.pressed(KeyCode::ControlLeft)
-            || keys.pressed(KeyCode::ControlRight)
-            || buttons.just_pressed(MouseButton::Middle);
-        let mut orders = ingame.pending_orders().to_vec();
-        // TODO: When multiple squad, need decal a little (distance from each others ?)
-        let order = Order::MoveTo(point);
+    let_some!(g = &g.0, return);
+    let_some!(point = click.hit.position, return);
+    let (camera, transform) = *camera;
+    let point = Vec2::new(point.x, point.y);
+    let point = camera.viewport_to_world_2d(transform, point);
+    let_ok!(point = point, return);
+    let point = ScreenVec2::new(point.x, point.y);
+    let point = WorldVec2::from_(point, &g.w);
 
-        tracing::trace!(name = "ingame-input-left-click-order-action");
+    match click.button {
+        PointerButton::Primary => {
+            let adding = keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight);
+            // TODO: When multiple squad, need decal a little (distance from each others ?)
+            let order = Order::MoveTo(point);
 
-        if !adding {
-            cancel(commands, ongoing, ingame);
+            tracing::trace!(name = "ingame-input-left-click-order-action");
 
-            for squad in ingame.selected_squads() {
-                orders.push(order.clone());
-                let set_orders = oc_network::SquadMessage::SetOrders(orders.clone());
-                commands.trigger(ToServerEvent(ToServer::Squad(*squad, set_orders)));
+            if !adding {
+                give_orders(&mut commands, &ingame, Some(order));
+                cancel(&mut commands, &mut ingame);
+            } else {
+                ingame.push_pending_orders(order);
             }
-        } else {
-            ingame.push_pending_orders(order);
         }
+        PointerButton::Secondary => {
+            give_orders(&mut commands, &ingame, None);
+            cancel(&mut commands, &mut ingame);
+        }
+        PointerButton::Middle => todo!(),
+    };
+
+    click.propagate(false);
+}
+
+fn give_orders(
+    commands: &mut Commands,
+    ingame: &crate::ingame::state::State,
+    order: Option<Order>,
+) {
+    for squad in ingame.selected_squads() {
+        let mut orders = ingame.pending_orders().to_vec();
+        if let Some(order) = &order {
+            orders.push(order.clone());
+        }
+        let set_orders = oc_network::SquadMessage::SetOrders(orders.clone());
+        commands.trigger(ToServerEvent(ToServer::Squad(*squad, set_orders)));
     }
 }

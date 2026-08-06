@@ -10,22 +10,6 @@ use crate::{
 #[derive(Default, Reflect, GizmoConfigGroup)]
 pub struct SelectedGizmos;
 
-// impl Selected {
-//     // fn is(&self, state: &State) -> bool {
-//     //     match self {
-//     //         Selected::Individual(i) => state.selected_squads_individuals().contains(i),
-//     //     }
-//     // }
-
-//     // pub fn color(&self) -> Srgba {
-//     //     bevy::color::palettes::css::BLUE
-//     // }
-
-//     // pub fn size(&self) -> Vec2 {
-//     //     Vec2::splat(10.)
-//     // }
-// }
-
 #[derive(Debug, Component, Default, Deref, DerefMut)]
 pub struct Selected(pub bool);
 

@@ -23,7 +23,6 @@ impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<LeftClickModeType>()
             .init_resource::<State>()
-            .init_resource::<left_click::order::OnGoing>()
             .init_resource::<left_click::LeftClick>()
             .add_observer(client::on_to_client)
             .add_observer(
@@ -36,6 +35,13 @@ impl Plugin for InputPlugin {
             .add_observer(left_click::on_spawn_clicks_line)
             .add_observer(left_click::on_despawn_clicks_line)
             .add_observer(left_click::select::on_select)
+            .add_observer(
+                left_click::order::on_click
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(LeftClickModeType::Order))
+                    .run_if(in_state(PointerIn::Battle)),
+            )
             .add_systems(
                 Update,
                 (keyboard::on_key_press,).run_if(in_state(AppState::InGame)),
