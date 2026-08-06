@@ -53,6 +53,10 @@ impl State {
         self.pending_orders.push(value)
     }
 
+    pub fn pop_pending_order(&mut self) -> Option<Order> {
+        self.pending_orders.pop()
+    }
+
     pub fn selection(&self) -> Selection {
         Selection {
             selected_squads: self.selected_squads.clone(),

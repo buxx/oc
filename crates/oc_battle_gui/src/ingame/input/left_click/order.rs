@@ -171,7 +171,9 @@ pub fn on_click(
             give_orders(&mut commands, &ingame, None);
             cancel(&mut commands, &mut ingame);
         }
-        PointerButton::Middle => todo!(),
+        PointerButton::Middle => {
+            ingame.pop_pending_order();
+        }
     };
 
     click.propagate(false);
