@@ -6,10 +6,15 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     ingame::{
-        draw,
+        InGameState, draw,
+        input::left_click::LeftClickModeType,
         region::{ForgottenRegion, ListeningRegion},
     },
-    states::GameConfig,
+    states::{AppState, GameConfig},
+    utils::{
+        drag::{self, DragPlugin, Dragged, Dragging, Phantom},
+        selected::Selected,
+    },
     world::World,
 };
 
@@ -86,8 +91,40 @@ impl IndividualOrderSprite {
     }
 }
 
+#[derive(Debug, Component)]
+pub struct SquadOrder;
+
+impl Dragging for SquadOrder {
+    type SpawnEvent = SpawnSquadOrderMarkerPhantom;
+
+    fn spawn_phantom(marker: Phantom) -> Self::SpawnEvent {
+        SpawnSquadOrderMarkerPhantom(marker)
+    }
+}
+
+#[derive(Debug, Event)]
+pub struct SpawnSquadOrderMarkerPhantom(Phantom);
+
 pub enum SquadOrderSprite {
     Move,
+}
+
+pub fn on_spawn_squad_order_marker_phantom(
+    event: On<SpawnSquadOrderMarkerPhantom>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    // FIXME BS NOW: spawn correct sprite according to order
+    let image = asset_server.load("ui/ui.png");
+    let rect = Some(SquadOrderSprite::Move.rect());
+    let marker = event.0;
+    let sprite = Sprite {
+        image,
+        rect,
+        ..default()
+    };
+    println!("spawn phantom");
+    commands.spawn((sprite, Transform::default(), marker));
 }
 
 impl SquadOrderSprite {
@@ -108,7 +145,8 @@ impl SquadOrderSprite {
 
 impl Plugin for BehaviorPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<IndividualOrders>()
+        app.add_plugins(DragPlugin::<SquadOrder>::default())
+            .init_resource::<IndividualOrders>()
             .init_resource::<SquadOrders>()
             // .add_observer(on_set_individual_orders)
             .add_observer(on_refresh_individual_orders)
@@ -121,7 +159,8 @@ impl Plugin for BehaviorPlugin {
             .add_observer(on_despawn_squad_order)
             .add_observer(on_despawn_squad_orders)
             .add_observer(on_listening_region)
-            .add_observer(on_forgotten_region);
+            .add_observer(on_forgotten_region)
+            .add_observer(on_spawn_squad_order_marker_phantom);
     }
 }
 
@@ -290,7 +329,22 @@ fn on_spawn_squad_order(
         ..default()
     };
     let transform = Transform::from_translation(translation);
-    let entity = commands.spawn((sprite, transform)).id();
+    let entity = commands
+        .spawn((
+            SquadOrder,
+            sprite,
+            transform,
+            Pickable::default(),
+            Selected::default(),
+            Dragged::<SquadOrder>::default(),
+        ))
+        .observe(
+            drag::on_drag_start::<SquadOrder>
+                .run_if(in_state(AppState::InGame))
+                .run_if(in_state(InGameState::Battle))
+                .run_if(in_state(LeftClickModeType::Select)),
+        )
+        .id();
 
     orders
         .entry(event.0)

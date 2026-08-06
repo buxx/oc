@@ -18,6 +18,7 @@ pub fn system(
     mut state: ResMut<crate::ingame::input::State>,
 ) {
     let_some!(w = &w.0, return);
+    // FIXME BS NOW: refactor key43
     let_some!(cursor = window.cursor_position(), return);
     let (camera, transform) = *camera;
     let point = camera.viewport_to_world_2d(transform, cursor);

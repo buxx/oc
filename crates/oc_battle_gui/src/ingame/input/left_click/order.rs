@@ -144,6 +144,7 @@ pub fn on_click(
     mut ingame: ResMut<crate::ingame::state::State>,
 ) {
     let_some!(g = &g.0, return);
+    // FIXME BS NOW: refacto key42
     let_some!(point = click.hit.position, return);
     let (camera, transform) = *camera;
     let point = Vec2::new(point.x, point.y);
