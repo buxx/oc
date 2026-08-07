@@ -95,15 +95,20 @@ impl IndividualOrderSprite {
 pub struct SquadOrder;
 
 impl Dragging for SquadOrder {
-    type SpawnEvent = SpawnSquadOrderMarkerPhantom;
+    fn spawn(commands: &mut Commands, marker: Phantom) {
+        commands.trigger(SpawnSquadOrderMarkerPhantom(marker));
+    }
 
-    fn spawn_phantom(marker: Phantom) -> Self::SpawnEvent {
-        SpawnSquadOrderMarkerPhantom(marker)
+    fn drop(commands: &mut Commands, subject: Entity, point: WorldVec2) {
+        commands.trigger(DropSquadOrderMarkerPhantom(subject, point));
     }
 }
 
 #[derive(Debug, Event)]
 pub struct SpawnSquadOrderMarkerPhantom(Phantom);
+
+#[derive(Debug, Event)]
+pub struct DropSquadOrderMarkerPhantom(Entity, WorldVec2);
 
 pub enum SquadOrderSprite {
     Move,
@@ -123,7 +128,6 @@ pub fn on_spawn_squad_order_marker_phantom(
         rect,
         ..default()
     };
-    println!("spawn phantom");
     commands.spawn((sprite, Transform::default(), marker));
 }
 
