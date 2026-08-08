@@ -1,7 +1,11 @@
 use bevy::prelude::*;
-use oc_individual::order::Order;
+use oc_individual::{
+    order::{Order, OrderIndex},
+    squad::SquadIndex,
+};
+use oc_network::{SquadMessage, ToServer};
 use oc_root::{geo::WorldVec2, y::Y};
-use oc_utils::let_some;
+use oc_utils::{let_ok, let_some};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -10,6 +14,7 @@ use crate::{
         input::left_click::LeftClickModeType,
         region::{ForgottenRegion, ListeningRegion},
     },
+    network::output::ToServerEvent,
     states::{AppState, GameConfig},
     utils::{
         drag::{self, DragPlugin, Dragged, Dragging, Phantom},
@@ -44,6 +49,7 @@ pub struct SpawnIndividualOrder(oc_individual::IndividualIndex, oc_individual::o
 #[derive(Debug, Event)]
 pub struct SpawnSquadOrder(
     oc_individual::squad::SquadIndex,
+    oc_individual::order::OrderIndex,
     oc_individual::order::Order,
 );
 
@@ -92,7 +98,7 @@ impl IndividualOrderSprite {
 }
 
 #[derive(Debug, Component)]
-pub struct SquadOrder;
+pub struct SquadOrder(SquadIndex, OrderIndex);
 
 impl Dragging for SquadOrder {
     fn spawn(commands: &mut Commands, marker: Phantom) {
@@ -131,6 +137,17 @@ pub fn on_spawn_squad_order_marker_phantom(
     commands.spawn((sprite, Transform::default(), marker));
 }
 
+pub fn on_drop_squad_order_marker_phantom(
+    event: On<DropSquadOrderMarkerPhantom>,
+    mut commands: Commands,
+    query: Query<&mut SquadOrder>,
+) {
+    let_ok!(order = query.get(event.0), return);
+    let (squad, index, position) = (order.0, order.1, event.1);
+    let message = SquadMessage::SetOrderPosition(index, position);
+    commands.trigger(ToServerEvent(ToServer::Squad(squad, message)))
+}
+
 impl SquadOrderSprite {
     pub fn rect(&self) -> Rect {
         const START_X: f32 = 0.;
@@ -164,7 +181,8 @@ impl Plugin for BehaviorPlugin {
             .add_observer(on_despawn_squad_orders)
             .add_observer(on_listening_region)
             .add_observer(on_forgotten_region)
-            .add_observer(on_spawn_squad_order_marker_phantom);
+            .add_observer(on_spawn_squad_order_marker_phantom)
+            .add_observer(on_drop_squad_order_marker_phantom);
     }
 }
 
@@ -208,14 +226,14 @@ fn on_refresh_squad_orders(
     tracing::trace!(name = "ingame-behavior-on-refresh-squad-orders", i=?i, order=?orders_);
 
     // Search for new ones
-    for order in orders_ {
+    for (o, order) in orders_.iter().rev().enumerate() {
         if orders
             .get(&i)
             .and_then(|orders| orders.iter().find(|(o, _)| o.equal(order)))
             .is_none()
         {
             tracing::trace!(name = "ingame-behavior-on-refresh-squad-orders-trigger-spawn-order", i=?i, order=?order);
-            commands.trigger(SpawnSquadOrder(i, order.clone()));
+            commands.trigger(SpawnSquadOrder(i, OrderIndex(o as u32), order.clone()));
         }
     }
 
@@ -317,7 +335,8 @@ fn on_spawn_squad_order(
 ) {
     let_some!(g = &g.0, return);
     let image = asset_server.load("ui/ui.png");
-    let (rect, position) = match &event.1 {
+    let SpawnSquadOrder(squad, index, order) = &*event;
+    let (rect, position) = match &order {
         Order::Idle => (Some(Rect::new(0., 0., 0., 0.)), WorldVec2::new(0., 0.)), // Should not happen
         Order::MoveTo(position) => (Some(SquadOrderSprite::Move.rect()), position.clone()),
     };
@@ -325,7 +344,7 @@ fn on_spawn_squad_order(
     let y = position.y;
     let translation = Vec3::new(x as f32, (y as f32).to_gui_y(&g.w), draw::Z_SQUAD_ORDER);
 
-    tracing::trace!(name = "ingame-behavior-on-spawn-squad-orders-spawn", i=?event.0, position=?position, rect=?rect, translation=?translation);
+    tracing::trace!(name = "ingame-behavior-on-spawn-squad-orders-spawn", i=?squad, position=?position, rect=?rect, translation=?translation);
 
     let sprite = Sprite {
         image,
@@ -335,7 +354,7 @@ fn on_spawn_squad_order(
     let transform = Transform::from_translation(translation);
     let entity = commands
         .spawn((
-            SquadOrder,
+            SquadOrder(*squad, *index),
             sprite,
             transform,
             Pickable::default(),
@@ -353,14 +372,14 @@ fn on_spawn_squad_order(
     orders
         .entry(event.0)
         .or_insert_with(|| vec![])
-        .push((event.1.clone(), entity));
+        .push((order.clone(), entity));
 }
 
 fn on_spawn_squad_orders(event: On<SpawnSquadOrders>, mut commands: Commands) {
     let (i, orders) = (event.0, &event.1);
 
-    for order in orders {
-        commands.trigger(SpawnSquadOrder(i, order.clone()));
+    for (o, order) in orders.iter().rev().enumerate() {
+        commands.trigger(SpawnSquadOrder(i, OrderIndex(o as u32), order.clone()));
     }
 }
 

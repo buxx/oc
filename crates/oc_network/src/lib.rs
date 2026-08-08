@@ -2,14 +2,14 @@ use derive_more::Constructor;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_individual::{
     network::{Individual, Squad},
-    order::Order,
+    order::{Order, OrderIndex},
     squad::SquadIndex,
 };
 use oc_mod::Mod;
 use oc_physics::fx::Fx;
 use oc_projectile::network::Projectile;
 use oc_projectile::spawn::SpawnProjectile;
-use oc_root::{WorldConfig, identity::Identity, static_::StaticSource};
+use oc_root::{WorldConfig, geo::WorldVec2, identity::Identity, static_::StaticSource};
 use oc_world::{meta::Meta, resume::WorldResume, tile::Tile};
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -61,4 +61,5 @@ pub struct GameConfig {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum SquadMessage {
     SetOrders(Vec<Order>),
+    SetOrderPosition(OrderIndex, WorldVec2),
 }

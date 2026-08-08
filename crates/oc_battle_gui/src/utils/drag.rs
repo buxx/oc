@@ -1,10 +1,7 @@
 use std::marker::PhantomData;
 
-use bevy::{ecs::event::GlobalTrigger, prelude::*};
-use oc_root::{
-    WcfgFrom,
-    geo::{ScreenVec2, ScreenVec3, WorldVec2},
-};
+use bevy::prelude::*;
+use oc_root::geo::WorldVec2;
 use oc_utils::{let_ok, let_some};
 
 use crate::utils::selected;

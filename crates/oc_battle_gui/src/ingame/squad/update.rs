@@ -63,6 +63,11 @@ fn update_squad(
                     )],
                 )
             }
+            Update::SetOrderPosition(_, _) => {
+                // Server will emit Update::SetOrders
+                (None, vec![])
+            }
+
             Update::SetPosition(position) => {
                 let now_tile = TileXy::from_(*position, w);
                 let now_region = RegionXy::from_(now_tile, w);

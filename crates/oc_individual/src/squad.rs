@@ -4,7 +4,10 @@ use oc_root::{WorldConfig, geo::WorldVec2, side::Side, y::V};
 use oc_utils::d2::Angle;
 use rkyv::Archive;
 
-use crate::{IndividualIndex, order::Order};
+use crate::{
+    IndividualIndex,
+    order::{Order, OrderIndex},
+};
 
 #[derive(
     Archive,
@@ -62,6 +65,7 @@ impl Squad {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Update {
     SetOrders(Vec<Order>),
+    SetOrderPosition(OrderIndex, WorldVec2),
     SetPosition(WorldVec2),
     SetActives(u8),
     Accomplished,
