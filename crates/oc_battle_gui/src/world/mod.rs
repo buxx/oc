@@ -65,7 +65,6 @@ impl<K: std::fmt::Debug, V: std::fmt::Debug> Default for Index<K, V> {
 // FIXME: improve perfs by using Partial and list index (like in previous projects)
 #[derive(Resource, Default)]
 pub struct World {
-    // FIXME BS NOW: Individual n'est pas mis à jour contrairement à ses components
     pub individuals: Index<WorldTileIndex, Vec<(IndividualIndex, Individual)>>,
     pub individuals_refs: FxHashMap<IndividualIndex, (WorldRegionIndex, WorldTileIndex)>, // TODO: remove pub and ensure x_ref
     pub tiles: Index<WorldTileIndex, Tile>,
@@ -167,6 +166,21 @@ impl World {
             .and_then(|individuals| {
                 individuals
                     .iter()
+                    .find_map(|(i_, individual)| (*i_ == i).then_some(individual))
+            })
+    }
+
+    pub fn get_individual_mut(&mut self, i: IndividualIndex) -> Option<&mut Individual> {
+        let Some((region, tile)) = self.individuals_refs.get(&i) else {
+            return None;
+        };
+
+        self.individuals
+            .get_mut(region)
+            .and_then(|region| region.get_mut(tile))
+            .and_then(|individuals| {
+                individuals
+                    .iter_mut()
                     .find_map(|(i_, individual)| (*i_ == i).then_some(individual))
             })
     }
