@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use oc_individual::{
-    order::{Order, OrderIndex},
+    order::{Order, OrderIndex, OrderType},
     squad::SquadIndex,
 };
 use oc_network::{SquadMessage, ToServer};
@@ -11,7 +11,7 @@ use rustc_hash::FxHashMap;
 use crate::{
     ingame::{
         InGameState, draw,
-        input::left_click::LeftClickModeType,
+        input::left_click::{LeftClickMode, LeftClickModeType, SetLeftClick},
         region::{ForgottenRegion, ListeningRegion},
     },
     network::output::ToServerEvent,
@@ -135,6 +135,7 @@ pub fn on_spawn_squad_order_marker_phantom(
         ..default()
     };
     commands.spawn((sprite, Transform::default(), marker));
+    commands.trigger(SetLeftClick(LeftClickMode::Order(OrderType::MoveTo))); // FIXME BS NOW: spawn correct sprite according to order
 }
 
 pub fn on_drop_squad_order_marker_phantom(
@@ -146,7 +147,8 @@ pub fn on_drop_squad_order_marker_phantom(
     let (squad, index, position) = (order.0, order.1, event.1);
     let message = SquadMessage::SetOrderPosition(index, position);
     tracing::trace!(name = "ingame-behavior-on-drop-squad-order-marker-phantom", squad=?squad, index=?index, position=?position);
-    commands.trigger(ToServerEvent(ToServer::Squad(squad, message)))
+    commands.trigger(ToServerEvent(ToServer::Squad(squad, message)));
+    commands.trigger(SetLeftClick(LeftClickMode::Select));
 }
 
 impl SquadOrderSprite {

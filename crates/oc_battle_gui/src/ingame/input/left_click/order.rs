@@ -75,6 +75,8 @@ fn path_profiles(
     ingame: &crate::ingame::state::State,
     world: &crate::world::World,
 ) -> Vec<SpawnPathProfile> {
+    // FIXME BS NOW: pas de spawn quand dragdrop order car on itere ici sur selected squads.
+    // on peut faire une deuxième partie pour ce cas de figure precis
     let spawns = ingame.selected_squads().iter().filter_map(|i| {
         tracing::trace!(name="ingame-input-left_click-show-order-squad", mode=?mode.0, point=?point, squad=?i);
         let pending: Vec<WorldVec2> = ingame.pending_orders().iter().filter_map(|o| o.point()).collect();
