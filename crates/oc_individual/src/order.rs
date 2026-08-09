@@ -37,7 +37,7 @@ impl Order {
         }
     }
 
-    pub fn point(&self) -> Option<WorldVec2> {
+    pub fn position(&self) -> Option<WorldVec2> {
         match self {
             Order::Idle => None,
             Order::MoveTo(position) => Some(*position),

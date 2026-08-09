@@ -12,6 +12,7 @@ use crate::{
     ingame::{
         InGameState, draw,
         input::left_click::{LeftClickMode, LeftClickModeType, SetLeftClick},
+        path::ComputeDisplayPaths,
         region::{ForgottenRegion, ListeningRegion},
     },
     network::output::ToServerEvent,
@@ -98,7 +99,7 @@ impl IndividualOrderSprite {
 }
 
 #[derive(Debug, Component)]
-pub struct SquadOrder(SquadIndex, OrderIndex);
+pub struct SquadOrder(pub SquadIndex, pub OrderIndex);
 
 impl Dragging for SquadOrder {
     fn spawn(commands: &mut Commands, marker: Phantom) {
@@ -149,6 +150,7 @@ pub fn on_drop_squad_order_marker_phantom(
     tracing::trace!(name = "ingame-behavior-on-drop-squad-order-marker-phantom", squad=?squad, index=?index, position=?position);
     commands.trigger(ToServerEvent(ToServer::Squad(squad, message)));
     commands.trigger(SetLeftClick(LeftClickMode::Select));
+    commands.trigger(ComputeDisplayPaths(vec![]));
 }
 
 impl SquadOrderSprite {

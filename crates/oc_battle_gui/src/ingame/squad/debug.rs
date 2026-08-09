@@ -74,7 +74,8 @@ pub fn draw_formations(
             let angle = gesture.0.direction().angle(V::Gui);
             let positions = squad.formation.positions(
                 &g.w,
-                V::Gui,
+                // TODO: abnormal, should be Gui. Understand why.
+                V::Server,
                 glam::Vec2::new(position.x, position.y),
                 angle,
                 count,

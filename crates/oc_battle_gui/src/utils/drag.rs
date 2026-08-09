@@ -16,7 +16,7 @@ pub struct Cursor(pub Option<(WorldVec2, bool)>); // Start dragging position of 
 pub struct Dragged<T: Dragging + std::fmt::Debug + Send + Sync + 'static>(PhantomData<T>, bool);
 
 #[derive(Debug, Component, Clone, Copy)]
-pub struct Phantom(Entity); // bool = was selected
+pub struct Phantom(pub Entity); // bool = was selected
 
 impl<T: Dragging + std::fmt::Debug + Send + Sync + 'static> Default for Dragged<T> {
     fn default() -> Self {
