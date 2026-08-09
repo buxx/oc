@@ -33,22 +33,32 @@ pub fn on_update_individual_physics(
 ) {
     let_some!(w = &w.0, return);
     let (i, update) = (update.0, &update.1);
-    let_some!(mut individual = index.get_individual(i).cloned(), return);
 
     // Here, must update index with all used values by oc_physics::step
-    match update {
-        oc_physics::update::Update::SetTile(tile, _) => {
-            let position = individual.position(w);
-            individual.set_tile(*tile);
-            index.remove_individual(w, i, position);
-            index.insert_individual(w, i, individual);
+    let refresh = {
+        let_some!(individual = index.get_individual_mut(i), return);
+        match update {
+            oc_physics::update::Update::SetTile(tile, _) => {
+                let position = individual.position(w);
+                individual.set_tile(*tile);
+                Some(position)
+            }
+            oc_physics::update::Update::SetVolumes(volumes, _) => {
+                individual.set_volumes(volumes.clone());
+                None
+            }
+            oc_physics::update::Update::SetPosition(position, _) => {
+                individual.set_position(*position);
+                None
+            }
+            oc_physics::update::Update::SetRegion(_, _)
+            | oc_physics::update::Update::PushForce(_)
+            | oc_physics::update::Update::RemoveForce(_) => None,
         }
-        oc_physics::update::Update::SetVolumes(volumes, _) => {
-            individual.set_volumes(volumes.clone());
-        }
-        oc_physics::update::Update::SetPosition(_, _)
-        | oc_physics::update::Update::SetRegion(_, _)
-        | oc_physics::update::Update::PushForce(_)
-        | oc_physics::update::Update::RemoveForce(_) => {}
+    };
+
+    // TODO: Its dirty
+    if let Some(position) = refresh {
+        index.refresh_individual_position(w, i, position);
     }
 }

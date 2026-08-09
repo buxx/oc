@@ -171,6 +171,33 @@ impl World {
             })
     }
 
+    pub fn get_individual_mut(&mut self, i: IndividualIndex) -> Option<&mut Individual> {
+        let Some((region, tile)) = self.individuals_refs.get(&i) else {
+            return None;
+        };
+
+        self.individuals
+            .get_mut(region)
+            .and_then(|region| region.get_mut(tile))
+            .and_then(|individuals| {
+                individuals
+                    .iter_mut()
+                    .find_map(|(i_, individual)| (*i_ == i).then_some(individual))
+            })
+    }
+
+    // TODO: This is not optimal way ... Goal is remove individual from old index (region index) and insert in new one
+    pub fn refresh_individual_position(
+        &mut self,
+        w: &WorldConfig,
+        i: IndividualIndex,
+        position: WorldVec3,
+    ) {
+        let_some!(individual = self.get_individual(i).cloned(), return);
+        self.remove_individual(w, i, position);
+        self.insert_individual(w, i, individual.clone());
+    }
+
     pub fn at(&self, w: &WorldConfig, tile: TileXy) -> Vec<(ObjectId, Box<&dyn Physic>)> {
         let region: WorldRegionIndex = tile.into_(w);
         let tile: WorldTileIndex = tile.into_(w);
