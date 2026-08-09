@@ -13,6 +13,7 @@ use oc_utils::let_ok;
 use oc_utils::let_some;
 use oc_utils::return_if;
 
+use crate::ingame::behavior::SquadOrder;
 use crate::ingame::input::left_click::LeftClick;
 use crate::ingame::input::left_click::LeftClickMode;
 use crate::ingame::input::left_click::SetLeftClick;
@@ -21,6 +22,7 @@ use crate::ingame::path::SpawnPathProfile;
 use crate::ingame::path::SpawnPathProfileKey;
 use crate::network::output::ToServerEvent;
 use crate::states::GameConfig;
+use crate::utils::drag::Phantom;
 
 pub fn system(
     mut commands: Commands,
@@ -32,6 +34,8 @@ pub fn system(
     keys: Res<ButtonInput<KeyCode>>,
     world: Res<crate::world::World>,
     mut ingame: ResMut<crate::ingame::state::State>,
+    drag: Query<&Phantom>,
+    markers: Query<&SquadOrder>,
 ) {
     let_some!(w = &w.0, return);
     let_some!(cursor = window.cursor_position(), return);
@@ -45,7 +49,18 @@ pub fn system(
     };
 
     return_if!(maybe_cancel(&mut commands, &buttons, &keys, &mut ingame));
-    show(w, point, order, &mut commands, &mode, &ingame, &world);
+    // TODO: maybe too CPU consumer (compute it not at each frames ?)
+    show(
+        w,
+        point,
+        order,
+        &mut commands,
+        &mode,
+        &ingame,
+        &world,
+        &drag,
+        &markers,
+    );
 }
 
 fn show(
@@ -56,13 +71,15 @@ fn show(
     mode: &LeftClick,
     ingame: &crate::ingame::state::State,
     world: &crate::world::World,
+    drag: &Query<&Phantom>,
+    markers: &Query<&SquadOrder>,
 ) {
     tracing::trace!(name="ingame-input-left_click-show-order", mode=?mode.0, point=?point);
 
     match order {
         OrderType::Idle => {}
         OrderType::MoveTo => {
-            let spawns = path_profiles(w, point, mode, ingame, world);
+            let spawns = path_profiles(w, point, mode, ingame, world, &drag, &markers);
             commands.trigger(ComputeDisplayPaths(spawns));
         }
     }
@@ -74,24 +91,79 @@ fn path_profiles(
     mode: &LeftClick,
     ingame: &crate::ingame::state::State,
     world: &crate::world::World,
+    drag: &Query<&Phantom>,
+    markers: &Query<&SquadOrder>,
 ) -> Vec<SpawnPathProfile> {
-    // FIXME BS NOW: pas de spawn quand dragdrop order car on itere ici sur selected squads.
-    // on peut faire une deuxième partie pour ce cas de figure precis
-    let spawns = ingame.selected_squads().iter().filter_map(|i| {
-        tracing::trace!(name="ingame-input-left_click-show-order-squad", mode=?mode.0, point=?point, squad=?i);
-        let pending: Vec<WorldVec2> = ingame.pending_orders().iter().filter_map(|o| o.point()).collect();
-        let points = [pending, vec![point]].concat();
+    let mut spawns = vec![];
+    // Spawns points from selected squads
+    if drag.is_empty() {
+        spawns.extend(ingame.selected_squads().iter().filter_map(|i| {
+            tracing::trace!(name="ingame-input-left_click-show-order-squad", mode=?mode.0, point=?point, squad=?i);
+            let pending: Vec<WorldVec2> = ingame.pending_orders().iter().filter_map(|o| o.position()).collect();
+            let points = [pending, vec![point]].concat();
 
-        let squad = world.squad(*i)?;
-        let leader = world.get_individual(squad.leader())?;
-        paths_from(w, i, points, leader.position.into())
-    }).flatten().collect::<Vec<_>>();
+            let squad = world.squad(*i)?;
+            let leader = world.get_individual(squad.leader())?;
+            paths_from(w, *i, points, leader.position.into())
+        }).flatten().collect::<Vec<_>>());
+    }
+
+    // Spawns points from dragged order markers
+    spawns.extend(
+        drag.iter()
+            .filter_map(|dragged| {
+                let mut profiles = vec![];
+
+                let marker = markers.get(dragged.0).ok()?;
+                let SquadOrder(squad, index) = marker;
+                let i = *squad;
+                let squad = world.squad(*squad)?;
+                let orders = &squad.orders;
+                if orders.is_empty() {
+                    return None;
+                }
+
+                // Dragged marker is the first marker of squad markers
+                if index.0 as usize == orders.len() - 1 {
+                    let leader = world.get_individual(squad.leader())?;
+                    let paths = paths_from(w, i, vec![point], leader.position.into());
+                    profiles.extend(paths.unwrap_or_default())
+                // If not, there is a marker before it
+                } else {
+                    let index = index.0 + 1;
+                    let mut orders = orders.iter().rev();
+                    if let Some(order) = orders.nth(index as usize) {
+                        if let Some(position) = order.position() {
+                            let paths = paths_from(w, i, vec![point], position);
+                            profiles.extend(paths.unwrap_or_default())
+                        }
+                    }
+                }
+
+                // There is another marker after it
+                if index.0 != 0 {
+                    let index = index.0 - 1;
+                    let mut orders = orders.iter().rev();
+                    if let Some(order) = orders.nth(index as usize) {
+                        if let Some(position) = order.position() {
+                            let paths = paths_from(w, i, vec![point], position);
+                            profiles.extend(paths.unwrap_or_default())
+                        }
+                    }
+                }
+
+                Some(profiles)
+            })
+            .flatten()
+            .collect::<Vec<_>>(),
+    );
+
     spawns
 }
 
 fn paths_from(
     w: &WorldConfig,
-    i: &oc_individual::squad::SquadIndex,
+    i: oc_individual::squad::SquadIndex,
     points: Vec<WorldVec2>,
     start: WorldVec2,
 ) -> Option<Vec<SpawnPathProfile>> {
@@ -104,7 +176,7 @@ fn paths_from(
                 let start_tile = TileXy::from_([start.x, start.y], w);
                 let start_tile = WorldTileIndex::from_(start_tile, w);
                 let key = SpawnPathProfileKey::Squad {
-                    i: *i,
+                    i,
                     start: start_tile,
                     end,
                 };
