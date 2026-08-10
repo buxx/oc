@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod test {
-    use glam::Vec3;
     use oc_geo::tile::WorldTileIndex;
     use oc_mod::nature::Traversability;
     use oc_mod::{Mod, nature::NatureIndex};

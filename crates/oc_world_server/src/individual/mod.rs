@@ -20,6 +20,16 @@ pub mod update;
 
 const POSITION_TOLERANCE: f32 = 3.0;
 
+// Below this distance to the current waypoint, the walking force is scaled
+// down proportionally instead of applied at full strength. This prevents the
+// individual from overshooting POSITION_TOLERANCE every tick and bouncing
+// back and forth ("circling") around its target.
+const ARRIVAL_RADIUS: f32 = 8.0;
+
+// Force is never scaled below this factor, so approach still makes progress
+// instead of asymptotically crawling forever.
+const MIN_FORCE_FACTOR: f32 = 0.15;
+
 #[derive(Constructor)]
 pub struct Processor<'a> {
     world: &'a World,
@@ -27,7 +37,6 @@ pub struct Processor<'a> {
     i: IndividualIndex,
 }
 
-// TODO: a lot of repetition (and locking) due to function split. Find another solution (perf problem ?)
 impl<'a> Processor<'a> {
     pub fn step(self) -> Vec<runner::update::Update> {
         tracing::trace!(name="individual-step", i=?self.i);
@@ -48,7 +57,7 @@ impl<'a> Processor<'a> {
         let intent = self.decide();
         let behavior = self.act(&intent);
         let gesture = self.gesture(&behavior);
-        let forces = self.forces(&behavior);
+        let forces = self.forces(&behavior, &intent);
 
         tracing::trace!(
             name = "individual-step-with",
@@ -71,30 +80,25 @@ impl<'a> Processor<'a> {
             }
         }
 
-        // TODO: macro for repetitives if bellow ?
-        if intent != individual.intent {
-            let update = Update::SetIntent(intent);
-            let update = runner::update::Update::UpdateIndividual(self.i, update);
-            updates.push(update);
+        macro_rules! push_update {
+            ($self:expr, $updates:expr, $individual:expr, $( $field:ident => $variant:ident ),+ $(,)?) => {
+                $(
+                    if $field != $individual.$field {
+                        $updates.push(runner::update::Update::UpdateIndividual(
+                            $self.i,
+                            Update::$variant($field),
+                        ));
+                    }
+                )+
+            };
         }
 
-        if behavior != individual.behavior {
-            let update = Update::SetBehavior(behavior);
-            let update = runner::update::Update::UpdateIndividual(self.i, update);
-            updates.push(update);
-        }
-
-        if gesture != individual.gesture {
-            let update = Update::SetGesture(gesture);
-            let update = runner::update::Update::UpdateIndividual(self.i, update);
-            updates.push(update);
-        }
-
-        if forces != individual.forces {
-            let update = Update::SetForces(forces);
-            let update = runner::update::Update::UpdateIndividual(self.i, update);
-            updates.push(update);
-        }
+        push_update!(self, updates, individual,
+            intent => SetIntent,
+            behavior => SetBehavior,
+            gesture => SetGesture,
+            forces => SetForces,
+        );
 
         tracing::trace!(name = "individual-step-updates", i=?self.i, updates=?updates);
         updates
@@ -142,23 +146,14 @@ impl<'a> Processor<'a> {
 
         match order {
             Order::Idle => {
-                // TODO: strange behavior than Idle disapear instantly ?
-                tracing::trace!(
-                    name = "individual-step-accomplished-squad-leader-idle-finished",
-                    i = ?self.i
-                );
-
+                tracing::trace!(name = "individual-step-accomplished-idle-finished", i = ?self.i);
                 updates = Some(accomplished_updates(self.i, direction));
             }
             Order::MoveTo(position) => {
                 if almost_equal(position.x, individual.position.x, POSITION_TOLERANCE)
                     && almost_equal(position.y, individual.position.y, POSITION_TOLERANCE)
                 {
-                    tracing::trace!(
-                        name = "individual-step-accomplished-squad-leader-move-to-finished",
-                        i = ?self.i
-                    );
-
+                    tracing::trace!(name = "individual-step-accomplished-move-to-finished", i = ?self.i);
                     updates = Some(accomplished_updates(self.i, direction));
                 }
             }
@@ -169,7 +164,7 @@ impl<'a> Processor<'a> {
         }
 
         match &individual.intent {
-            Intent::Idle(_) => {} // Never end
+            Intent::Idle(_) => {}
             Intent::MoveTo(_, move_path) => {
                 let Some(next) = move_path.iter().next() else {
                     tracing::trace!(name = "individual-step-accomplished-intent-move-to-no-next", i=?self.i);
@@ -197,7 +192,6 @@ impl<'a> Processor<'a> {
         let mut distribution = Vec::with_capacity(squad.members.len());
         let is_squad_leader = self.i == squad.leader();
 
-        // TODO: test if is the squad leader (if its too CPU consuming, manage boolean in individual ?)
         if !is_squad_leader {
             tracing::trace!(name="individual-step-distribute-not-leader", i=?self.i);
             return distribution;
@@ -222,13 +216,15 @@ impl<'a> Processor<'a> {
             .map(|p| WorldVec2::new(p.x, p.y));
         tracing::trace!(name="individual-step-distribute-formation", i=?self.i, squad_i=?squad_i, reference=?reference, direction=?direction, angle=?angle, positions=?positions);
 
-        for (member, position) in squad
-            .members
-            .iter()
-            .zip(positions)
-            // Skip leader as already disributed before
-            .skip(1)
-        {
+        for (member, position) in squad.members.iter().zip(positions).skip(1) {
+            let individual = self.world.individual(*member);
+            if almost_equal(position.x, individual.position.x, POSITION_TOLERANCE)
+                && almost_equal(position.y, individual.position.y, POSITION_TOLERANCE)
+            {
+                tracing::trace!(name="individual-step-distribute-already-on-position", i=?self.i, squad_i=?squad_i, member=?member, position=?position);
+                continue;
+            }
+
             // According to order, choose appropriate order to distribute (move if move, move fast if move fast, etc.)
             let orders = match order {
                 Some(order) => match order {
@@ -247,6 +243,7 @@ impl<'a> Processor<'a> {
         distribution
     }
 
+    /// Decide the individual's intent for this tick.
     fn decide(&self) -> Intent {
         let individual = self.world.individual(self.i);
         let order = individual.orders.first();
@@ -254,21 +251,26 @@ impl<'a> Processor<'a> {
 
         let intent = match individual.can_follow_order() {
             // TODO: things which can prohibe follow order
-            true => {
-                match order {
-                    None | Some(Order::Idle) => Intent::Idle(direction),
-                    Some(Order::MoveTo(position)) => {
-                        // TODO: think about a way to cache that ? Or not if don't take too much CPU
-                        let from = (individual.position.x, individual.position.y);
-                        let to = (position.x, position.y);
-                        let path = self.world.navmesh.path(from, to);
-                        match path {
-                            Some(path) => Intent::MoveTo(position.clone(), MovePath::from(path)),
-                            None => Intent::Idle(direction),
+            true => match order {
+                None | Some(Order::Idle) => Intent::Idle(direction),
+                Some(Order::MoveTo(position)) => {
+                    // Reuse the existing path if we're already moving toward
+                    // this exact target — don't recompute it every tick.
+                    if let Intent::MoveTo(current_target, current_path) = &individual.intent {
+                        if current_target == position && current_path.iter().next().is_some() {
+                            return individual.intent.clone();
                         }
                     }
+
+                    let from = (individual.position.x, individual.position.y);
+                    let to = (position.x, position.y);
+                    let path = self.world.navmesh.path(from, to);
+                    match path {
+                        Some(path) => Intent::MoveTo(position.clone(), MovePath::from(path)),
+                        None => Intent::Idle(direction),
+                    }
                 }
-            }
+            },
             false => individual.intent.clone(),
         };
 
@@ -284,7 +286,7 @@ impl<'a> Processor<'a> {
             Intent::MoveTo(_, path) => {
                 let Some(next) = path.iter().next() else {
                     tracing::trace!(name = "individual-step-act-move-no-next", i=?self.i);
-                    return Behavior::Idle(Direction::NORTH); // should not happen
+                    return Behavior::Idle(Direction::NORTH);
                 };
 
                 let from = WorldVec2::from(individual.position);
@@ -301,13 +303,41 @@ impl<'a> Processor<'a> {
         }
     }
 
-    fn forces(&self, behavior: &Behavior) -> Vec<Force> {
+    /// Compute forces for the current behavior.
+    fn forces(&self, behavior: &Behavior, intent: &Intent) -> Vec<Force> {
         match behavior {
             Behavior::Idle(_) => vec![],
             Behavior::Walk(direction) => {
+                let factor = self.arrival_factor(intent);
                 let direction = WorldVec3::new(direction.x, direction.y, 0.);
-                vec![Force::Translation(direction.into(), MetersSeconds(1.0))]
+                vec![Force::Translation(
+                    direction.into(),
+                    MetersSeconds(1.0 * factor),
+                )]
             }
+        }
+    }
+
+    /// Returns a value in [MIN_FORCE_FACTOR, 1.0] based on distance to the
+    /// current waypoint: 1.0 far away, tapering down to MIN_FORCE_FACTOR
+    /// within ARRIVAL_RADIUS.
+    fn arrival_factor(&self, intent: &Intent) -> f32 {
+        let Intent::MoveTo(_, path) = intent else {
+            return 1.0;
+        };
+        let Some(next) = path.iter().next() else {
+            return 1.0;
+        };
+
+        let individual = self.world.individual(self.i);
+        let from = WorldVec2::from(individual.position);
+        let distance = *next - from;
+        let distance = Vec2::new(distance.x, distance.y).length();
+
+        if distance >= ARRIVAL_RADIUS {
+            1.0
+        } else {
+            (distance / ARRIVAL_RADIUS).max(MIN_FORCE_FACTOR)
         }
     }
 }

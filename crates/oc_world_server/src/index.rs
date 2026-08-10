@@ -241,7 +241,6 @@ pub trait IntoIndexEffect<T> {
 #[cfg(test)]
 mod tests {
     use ::tests::{individual::TestIndividual, world::TestWorld};
-    use glam::Vec3;
     use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters};
 
     use super::*;
