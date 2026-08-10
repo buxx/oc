@@ -1,9 +1,15 @@
 use bevy::prelude::*;
+use oc_individual::squad::SquadIndex;
+use oc_physics::update::bevy::Position;
+use oc_root::WcfgFrom;
+use oc_root::geo::{ScreenVec2, WorldVec2};
 use oc_utils::bevy::EntityMapping;
 use oc_utils::{let_ok, let_some};
+use rustc_hash::FxHashSet;
 
 use crate::entity::individual::IndividualIndex;
 use crate::ingame::state::{Selection, State};
+use crate::states::GameConfig;
 use crate::utils::selected::Selected;
 use crate::world::World;
 
@@ -11,6 +17,114 @@ use crate::world::World;
 pub enum Select {
     Individual(oc_individual::IndividualIndex),
     Restore(Selection),
+}
+
+#[derive(Default, Reflect, GizmoConfigGroup)]
+pub struct AreaGizmos;
+
+pub fn setup(mut config: ResMut<GizmoConfigStore>) {
+    tracing::trace!(name = "ingame-input-left-click-select-setup");
+    let (gizmos, _) = config.config_mut::<AreaGizmos>();
+    gizmos.line.width = 1.0;
+}
+
+pub fn area(
+    g: Res<GameConfig>,
+    mut state: ResMut<crate::ingame::input::State>,
+    mut ingame: ResMut<crate::ingame::state::State>,
+    buttons: Res<ButtonInput<MouseButton>>,
+    camera: Single<(&Camera, &GlobalTransform)>,
+    window: Single<&Window>,
+    mut gizmos: Gizmos<AreaGizmos>,
+    mut query: Query<(&IndividualIndex, &Position, &mut Selected)>,
+    world: Res<crate::world::World>,
+    mapping: Res<EntityMapping<oc_individual::IndividualIndex>>,
+) {
+    let_some!(g = &g.0, return);
+    let (camera, transform) = *camera;
+
+    // Area start to exist from left click
+    if buttons.pressed(MouseButton::Left) {
+        // Save the original position only if it's first time we press left click
+        if state.first_left_press.is_none() {
+            // FIXME BS NOW: refact key42
+            let_some!(position = window.cursor_position(), return);
+            let position = Vec2::new(position.x, position.y);
+            let position = camera.viewport_to_world_2d(transform, position);
+            let_ok!(position = position, return);
+            let position = ScreenVec2::new(position.x, position.y);
+            let position = WorldVec2::from_(position, &g.w);
+
+            state.first_left_press = Some(position);
+        }
+    }
+
+    // Manage area during the left click press
+    if let Some(start) = state.first_left_press {
+        let start_ = ScreenVec2::from_(start, &g.w);
+        let start_ = Vec2::new(start_.x, start_.y);
+
+        let_some!(end = window.cursor_position(), return);
+        let end = Vec2::new(end.x, end.y);
+        let end = camera.viewport_to_world_2d(transform, end);
+        let_ok!(end = end, return);
+
+        let size = (end - start_).abs();
+        let center = (start_ + end) * 0.5;
+
+        gizmos.rect_2d(center, size, bevy::color::palettes::css::BLACK);
+
+        // Compute selection when left click is released
+        if buttons.just_released(MouseButton::Left) {
+            let end = WorldVec2::from_(end, &g.w);
+            let mut individuals = vec![];
+
+            for (i, position, _) in &query {
+                let position = position.0;
+
+                // Avoid rectangle direction by taking min and max
+                let min_x = start.x.min(end.x);
+                let max_x = start.x.max(end.x);
+                let min_y = start.y.min(end.y);
+                let max_y = start.y.max(end.y);
+
+                if position.x >= min_x
+                    && position.x <= max_x
+                    && position.y >= min_y
+                    && position.y <= max_y
+                {
+                    individuals.push(i.0);
+                }
+            }
+
+            // We want to know which squad are concerned by selected individuals
+            let squads = individuals
+                .iter()
+                .filter_map(|individual| world.individual_squad(*individual))
+                .map(|(squad, _)| squad)
+                .collect::<FxHashSet<SquadIndex>>();
+            let squad_members: Vec<oc_individual::IndividualIndex> = squads
+                .iter()
+                .filter_map(|squad| world.squad(*squad))
+                .map(|squad| squad.members.clone())
+                .flatten()
+                .collect();
+            let squads: Vec<SquadIndex> = squads.into_iter().collect();
+
+            // Set to "selected" the "Selected" component
+            for individual in &squad_members {
+                if let Some(entity) = mapping.get(individual) {
+                    if let Ok((_, _, mut selected)) = query.get_mut(*entity) {
+                        selected.0 = true;
+                    }
+                }
+            }
+
+            // Update the state too about who is selected
+            ingame.update_selected(squads, squad_members, vec![]);
+            state.first_left_press = None;
+        }
+    }
 }
 
 /// Un select all. Observer which select must stop propagation to avoid execute this observer.

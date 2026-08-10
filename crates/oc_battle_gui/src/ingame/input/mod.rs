@@ -15,6 +15,7 @@ pub mod projectile;
 #[derive(Debug, Resource, Default)]
 pub struct State {
     pub clicks: Vec<WorldVec2>,
+    pub first_left_press: Option<WorldVec2>,
 }
 
 pub struct InputPlugin;
@@ -22,6 +23,7 @@ pub struct InputPlugin;
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<LeftClickModeType>()
+            .init_gizmo_group::<left_click::select::AreaGizmos>()
             .init_resource::<State>()
             .init_resource::<left_click::LeftClick>()
             .add_observer(client::on_to_client)
@@ -40,6 +42,15 @@ impl Plugin for InputPlugin {
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
                     .run_if(in_state(LeftClickModeType::Order))
+                    .run_if(in_state(PointerIn::Battle)),
+            )
+            .add_systems(Startup, left_click::select::setup)
+            .add_systems(
+                Update,
+                (left_click::select::area,)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(LeftClickModeType::Select))
                     .run_if(in_state(PointerIn::Battle)),
             )
             .add_systems(
