@@ -27,16 +27,16 @@ impl Plugin for InputPlugin {
             .init_resource::<State>()
             .init_resource::<left_click::LeftClick>()
             .add_observer(client::on_to_client)
+            .add_observer(left_click::on_set_left_click)
+            .add_observer(left_click::on_spawn_clicks_line)
+            .add_observer(left_click::on_despawn_clicks_line)
+            .add_observer(left_click::select::on_select)
             .add_observer(
                 left_click::select::unselect
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
                     .run_if(in_state(LeftClickModeType::Select)),
             )
-            .add_observer(left_click::on_set_left_click)
-            .add_observer(left_click::on_spawn_clicks_line)
-            .add_observer(left_click::on_despawn_clicks_line)
-            .add_observer(left_click::select::on_select)
             .add_observer(
                 left_click::order::on_click
                     .run_if(in_state(AppState::InGame))
