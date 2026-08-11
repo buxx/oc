@@ -81,7 +81,6 @@ pub fn on_click(
     let point = ScreenVec2::new(point.x, point.y);
     let point = WorldVec2::from_(point, &g.w);
 
-    dbg!(&click.original_event_target());
     if !ingame.selected_squads().is_empty() {
         if click.button == PointerButton::Secondary {
             tracing::debug!("Trigger open squad contextual menu from outside on {point:?}");

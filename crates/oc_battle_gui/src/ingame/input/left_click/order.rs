@@ -222,13 +222,10 @@ pub fn on_click(
     // FIXME BS NOW: refacto key42
     let_some!(point = click.hit.position, return);
     let point = Vec2::new(point.x, point.y);
-    println!("click hit {point:?}");
     let point = camera.viewport_to_world_2d(transform, point);
     let_ok!(point = point, return);
-    println!("viewport {point:?}");
     let point = ScreenVec2::new(point.x, point.y);
     let point = WorldVec2::from_(point, &g.w);
-    println!("world {point:?}");
 
     match click.button {
         PointerButton::Primary => {
