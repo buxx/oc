@@ -32,6 +32,12 @@ impl Plugin for InputPlugin {
             .add_observer(left_click::on_despawn_clicks_line)
             .add_observer(left_click::select::on_select)
             .add_observer(
+                individual::on_click
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(LeftClickModeType::Select)),
+            )
+            .add_observer(
                 left_click::select::unselect
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))

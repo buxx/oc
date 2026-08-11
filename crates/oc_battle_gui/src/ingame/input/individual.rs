@@ -1,13 +1,26 @@
 use bevy::prelude::*;
-use oc_individual::{Individual, IndividualIndex, squad::SquadIndex};
+use oc_individual::{Individual, squad::SquadIndex};
 use oc_physics::update::bevy::UpdatePhysicsEvent;
 use oc_projectile::ProjectileId;
+use oc_root::{
+    WcfgFrom,
+    geo::{ScreenVec2, WorldVec2},
+};
+use oc_utils::{let_ok, let_some};
+
+use crate::{
+    entity::individual::IndividualIndex,
+    ingame::squad::menu::contextual::PrepareOpenSquadContextualMenu, states::GameConfig,
+};
 
 #[derive(Debug, Event)]
-pub struct InsertIndividualEvent(pub IndividualIndex, pub Individual);
+pub struct InsertIndividualEvent(pub oc_individual::IndividualIndex, pub Individual);
 
 #[derive(Debug, Event)]
-pub struct UpdateIndividualPhysicsEvent(pub IndividualIndex, pub oc_physics::update::Update);
+pub struct UpdateIndividualPhysicsEvent(
+    pub oc_individual::IndividualIndex,
+    pub oc_physics::update::Update,
+);
 
 // TODO: move in projectile.rs ?
 #[derive(Debug, Event)]
@@ -15,14 +28,17 @@ pub struct UpdateProjectilePhysicsEvent(pub ProjectileId, pub oc_physics::update
 
 // TODO: move in squad.rs
 #[derive(Debug, Event)]
-pub struct UpdateIndividualEvent(pub IndividualIndex, pub oc_individual::Update);
+pub struct UpdateIndividualEvent(
+    pub oc_individual::IndividualIndex,
+    pub oc_individual::Update,
+);
 
 #[derive(Debug, Event)]
 pub struct UpdateSquadEvent(pub SquadIndex, pub oc_individual::squad::Update);
 
 // TODO: derive ?
-impl UpdatePhysicsEvent<IndividualIndex> for UpdateIndividualPhysicsEvent {
-    fn i(&self) -> IndividualIndex {
+impl UpdatePhysicsEvent<oc_individual::IndividualIndex> for UpdateIndividualPhysicsEvent {
+    fn i(&self) -> oc_individual::IndividualIndex {
         self.0
     }
 
@@ -40,4 +56,38 @@ impl UpdatePhysicsEvent<ProjectileId> for UpdateProjectilePhysicsEvent {
     fn value(&self) -> &oc_physics::update::Update {
         &self.1
     }
+}
+
+pub fn on_click(
+    mut click: On<Pointer<Click>>,
+    g: Res<GameConfig>,
+    mut commands: Commands,
+    ingame: ResMut<crate::ingame::state::State>,
+    camera: Single<(&Camera, &GlobalTransform)>,
+    individuals: Query<&IndividualIndex>,
+) {
+    let_some!(g = &g.0, return);
+    let (camera, transform) = *camera;
+
+    // Click on individual already open a contextual menu (see crates/oc_battle_gui/src/ingame/individual.rs)
+    if individuals.get(click.original_event_target()).is_ok() {
+        return;
+    }
+
+    let_some!(point = click.hit.position, return);
+    let point = Vec2::new(point.x, point.y);
+    let point = camera.viewport_to_world_2d(transform, point);
+    let_ok!(point = point, return);
+    let point = ScreenVec2::new(point.x, point.y);
+    let point = WorldVec2::from_(point, &g.w);
+
+    dbg!(&click.original_event_target());
+    if !ingame.selected_squads().is_empty() {
+        if click.button == PointerButton::Secondary {
+            tracing::debug!("Trigger open squad contextual menu from outside on {point:?}");
+            commands.trigger(PrepareOpenSquadContextualMenu(point));
+        }
+    }
+
+    click.propagate(false);
 }
