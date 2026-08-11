@@ -7,6 +7,7 @@ use oc_utils::bevy::EntityMapping;
 use oc_utils::{let_ok, let_some};
 use rustc_hash::FxHashSet;
 
+use crate::cursor_to;
 use crate::entity::individual::IndividualIndex;
 use crate::ingame::state::{Selection, State};
 use crate::states::GameConfig;
@@ -41,19 +42,14 @@ pub fn area(
     mapping: Res<EntityMapping<oc_individual::IndividualIndex>>,
 ) {
     let_some!(g = &g.0, return);
-    let (camera, transform) = *camera;
 
     // Area start to exist from left click
     if buttons.pressed(MouseButton::Left) {
         // Save the original position only if it's first time we press left click
         if state.first_left_press.is_none() {
-            // FIXME BS NOW: refact key42
             let_some!(position = window.cursor_position(), return);
             let position = Vec2::new(position.x, position.y);
-            let position = camera.viewport_to_world_2d(transform, position);
-            let_ok!(position = position, return);
-            let position = ScreenVec2::new(position.x, position.y);
-            let position = WorldVec2::from_(position, &g.w);
+            let position = cursor_to!(position, camera, &g.w, WorldVec2);
 
             state.first_left_press = Some(position);
         }
@@ -66,6 +62,7 @@ pub fn area(
 
         let_some!(end = window.cursor_position(), return);
         let end = Vec2::new(end.x, end.y);
+        let (camera, transform) = *camera;
         let end = camera.viewport_to_world_2d(transform, end);
         let_ok!(end = end, return);
 

@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 pub mod drag;
 pub mod hover;
+pub mod point;
 pub mod selected;
 
 #[macro_export]

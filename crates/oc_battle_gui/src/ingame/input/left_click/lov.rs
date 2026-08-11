@@ -3,9 +3,9 @@ use oc_root::geo::{ScreenVec2, WorldVec2};
 use oc_root::{Wcfg, WcfgFrom, WorldConfig};
 use oc_utils::{let_ok, let_some, return_if};
 
-use crate::ingame;
 use crate::ingame::input::left_click::{LeftClick, LeftClickMode, SetLeftClick};
 use crate::ingame::lov::{DespawnLov, LovClickMode, SpawnLov, SpawnLovConfig, SpawnLovProfile};
+use crate::{cursor_to, ingame};
 
 pub fn system(
     mut commands: Commands,
@@ -18,13 +18,8 @@ pub fn system(
     mut state: ResMut<crate::ingame::input::State>,
 ) {
     let_some!(w = &w.0, return);
-    // FIXME BS NOW: refactor key43
     let_some!(cursor = window.cursor_position(), return);
-    let (camera, transform) = *camera;
-    let point = camera.viewport_to_world_2d(transform, cursor);
-    let_ok!(point = point, return);
-    let point = ScreenVec2::new(point.x, point.y);
-    let point = WorldVec2::from_(point, &w);
+    let point = cursor_to!(cursor, camera, w, WorldVec2);
 
     let LeftClickMode::LineOfView(profile) = &mode.0 else {
         return;

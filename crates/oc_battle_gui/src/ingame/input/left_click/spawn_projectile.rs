@@ -5,7 +5,6 @@ use oc_root::physics::Meters;
 use oc_root::{Wcfg, WcfgFrom, WorldConfig};
 use oc_utils::{let_ok, let_some, return_if};
 
-use crate::ingame;
 use crate::ingame::debug::projectile::SpawnProjectileProfile;
 use crate::ingame::input::left_click::{
     DespawnClicksLine, LeftClick, LeftClickMode, SetLeftClick, SpawnClicksLine,
@@ -15,6 +14,7 @@ use crate::ingame::lov::SpawnProjectileClickMode;
 use crate::network::output::ToServerEvent;
 use crate::projectile::IntoSpawnProjectile;
 use crate::world::World;
+use crate::{cursor_to, ingame};
 
 pub fn system(
     mut commands: Commands,
@@ -30,11 +30,7 @@ pub fn system(
 ) {
     let_some!(w = &w.0, return);
     let_some!(cursor = window.cursor_position(), return);
-    let (camera, transform) = *camera;
-    let point = camera.viewport_to_world_2d(transform, cursor);
-    let_ok!(point = point, return);
-    let point = ScreenVec2::new(point.x, point.y);
-    let point = WorldVec2::from_(point, &w);
+    let point = cursor_to!(cursor, camera, w, WorldVec2);
     let LeftClickMode::SpawnProjectile(profile) = &mode.0 else {
         return;
     };

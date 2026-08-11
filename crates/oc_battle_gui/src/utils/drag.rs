@@ -7,7 +7,7 @@ use oc_root::{
 };
 use oc_utils::{let_ok, let_some};
 
-use crate::{states::GameConfig, utils::selected};
+use crate::{cursor_to, states::GameConfig, utils::selected};
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
 pub struct Cursor(pub Option<(WorldVec2, bool)>); // Start dragging position of cursor; bool = entity under cursor was already selected
@@ -101,12 +101,9 @@ pub fn on_drag_stop<T>(
     T: Dragging + std::fmt::Debug + Send + Sync + 'static,
 {
     let_some!(g = &g.0, return);
-    let (camera, transform) = *camera;
     let_some!(point = event.hit.position, return);
-    let point = camera.viewport_to_world_2d(transform, Vec2::new(point.x, point.y));
-    let_ok!(point = point, return);
-    let point = ScreenVec2::new(point.x, point.y);
-    let point = WorldVec2::from_(point, &g.w);
+    let point = Vec2::new(point.x, point.y);
+    let point = cursor_to!(point, camera, &g.w, WorldVec2);
     let_some!(cursor_ = cursor.0, return);
     let_ok!(mut dragged = dragged.get_mut(event.dropped), return);
     let point = WorldVec2::new(point.x, point.y);
@@ -130,10 +127,8 @@ fn update_positions<T: Dragging + std::fmt::Debug + Send + Sync + 'static>(
 ) {
     let_some!(point = window.cursor_position(), return);
     let (camera, transform) = *camera;
-    let_ok!(
-        point = camera.viewport_to_world_2d(transform, point),
-        return
-    );
+    let point = camera.viewport_to_world_2d(transform, point);
+    let_ok!(point = point, return);
 
     let_some!((cursor, _) = cursor.0, return);
     let cursor: Vec2 = Vec2::new(cursor.x, cursor.y);

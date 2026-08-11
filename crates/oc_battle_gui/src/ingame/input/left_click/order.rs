@@ -13,6 +13,7 @@ use oc_utils::let_ok;
 use oc_utils::let_some;
 use oc_utils::return_if;
 
+use crate::cursor_to;
 use crate::ingame::behavior::SquadOrder;
 use crate::ingame::input::left_click::LeftClick;
 use crate::ingame::input::left_click::LeftClickMode;
@@ -39,10 +40,7 @@ pub fn system(
 ) {
     let_some!(w = &w.0, return);
     let_some!(cursor = window.cursor_position(), return);
-    let (camera, transform) = *camera;
-    let point = camera.viewport_to_world_2d(transform, cursor);
-    let_ok!(point = point, return);
-    let point = WorldVec2::from_(point, w);
+    let point = cursor_to!(cursor, camera, w, WorldVec2);
 
     let LeftClickMode::Order(order) = &mode.0 else {
         return;
@@ -218,14 +216,9 @@ pub fn on_click(
     camera: Single<(&Camera, &GlobalTransform)>,
 ) {
     let_some!(g = &g.0, return);
-    let (camera, transform) = *camera;
-    // FIXME BS NOW: refacto key42
     let_some!(point = click.hit.position, return);
     let point = Vec2::new(point.x, point.y);
-    let point = camera.viewport_to_world_2d(transform, point);
-    let_ok!(point = point, return);
-    let point = ScreenVec2::new(point.x, point.y);
-    let point = WorldVec2::from_(point, &g.w);
+    let point = cursor_to!(point, camera, &g.w, WorldVec2);
 
     match click.button {
         PointerButton::Primary => {

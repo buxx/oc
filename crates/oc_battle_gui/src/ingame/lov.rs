@@ -9,6 +9,7 @@ use oc_root::{Wcfg, WorldConfig, physics::Meters};
 use oc_utils::{d2::Xy, let_ok, let_some};
 use strum_macros::{Display, EnumIter};
 
+use crate::cursor_to;
 use crate::ingame::input::left_click::LeftClick;
 
 use crate::states::GameConfig;
@@ -123,12 +124,8 @@ fn update_lov(
     if !mode.0.display_lov() {
         return;
     }
-    let (camera, transform) = *camera;
     let_some!(cursor = window.cursor_position(), return);
-    let point = camera.viewport_to_world_2d(transform, cursor);
-    let_ok!(position = point, return);
-    let position = ScreenVec2::new(position.x, position.y);
-    let position = WorldVec2::from_(position, &g.w);
+    let position = cursor_to!(cursor, camera, &g.w, WorldVec2);
 
     for lov in lovs {
         tracing::trace!(name="update-lov-trigger-for", lov=?lov, position=?position);

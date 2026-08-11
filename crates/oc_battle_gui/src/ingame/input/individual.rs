@@ -9,7 +9,7 @@ use oc_root::{
 use oc_utils::{let_ok, let_some};
 
 use crate::{
-    entity::individual::IndividualIndex,
+    cursor_to, entity::individual::IndividualIndex,
     ingame::squad::menu::contextual::PrepareOpenSquadContextualMenu, states::GameConfig,
 };
 
@@ -67,7 +67,6 @@ pub fn on_click(
     individuals: Query<&IndividualIndex>,
 ) {
     let_some!(g = &g.0, return);
-    let (camera, transform) = *camera;
 
     // Click on individual already open a contextual menu (see crates/oc_battle_gui/src/ingame/individual.rs)
     if individuals.get(click.original_event_target()).is_ok() {
@@ -76,10 +75,7 @@ pub fn on_click(
 
     let_some!(point = click.hit.position, return);
     let point = Vec2::new(point.x, point.y);
-    let point = camera.viewport_to_world_2d(transform, point);
-    let_ok!(point = point, return);
-    let point = ScreenVec2::new(point.x, point.y);
-    let point = WorldVec2::from_(point, &g.w);
+    let point = cursor_to!(point, camera, &g.w, WorldVec2);
 
     if !ingame.selected_squads().is_empty() {
         if click.button == PointerButton::Secondary {

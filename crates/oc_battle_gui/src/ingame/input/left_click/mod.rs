@@ -9,6 +9,7 @@ use oc_root::geo::WorldVec2;
 use oc_utils::{let_ok, let_some};
 use strum_macros::EnumIter;
 
+use crate::cursor_to;
 #[cfg(feature = "debug")]
 use crate::ingame::debug::projectile::SpawnProjectileProfile;
 use crate::ingame::draw;
@@ -127,11 +128,7 @@ pub fn on_spawn_clicks_line(
 ) {
     let_some!(g = &g.0, return);
     let_some!(cursor = window.cursor_position(), return);
-    let (camera, transform) = *camera;
-    let point = camera.viewport_to_world_2d(transform, cursor);
-    let_ok!(point = point, return);
-    let point = ScreenVec2::new(point.x, point.y);
-    let point = WorldVec2::from_(point, &g.w);
+    let point = cursor_to!(cursor, camera, &g.w, WorldVec2);
 
     let mut points = state.clicks.clone();
     points.push(point);
