@@ -212,20 +212,23 @@ pub fn on_click(
     mut click: On<Pointer<Click>>,
     g: Res<GameConfig>,
     mut commands: Commands,
-    camera: Single<(&Camera, &GlobalTransform)>,
     _buttons: Res<ButtonInput<MouseButton>>,
     keys: Res<ButtonInput<KeyCode>>,
     mut ingame: ResMut<crate::ingame::state::State>,
+    camera: Single<(&Camera, &GlobalTransform)>,
 ) {
     let_some!(g = &g.0, return);
+    let (camera, transform) = *camera;
     // FIXME BS NOW: refacto key42
     let_some!(point = click.hit.position, return);
-    let (camera, transform) = *camera;
     let point = Vec2::new(point.x, point.y);
+    println!("click hit {point:?}");
     let point = camera.viewport_to_world_2d(transform, point);
     let_ok!(point = point, return);
+    println!("viewport {point:?}");
     let point = ScreenVec2::new(point.x, point.y);
     let point = WorldVec2::from_(point, &g.w);
+    println!("world {point:?}");
 
     match click.button {
         PointerButton::Primary => {

@@ -128,8 +128,10 @@ pub fn area(
 }
 
 /// Un select all. Observer which select must stop propagation to avoid execute this observer.
-pub fn unselect(_: On<Pointer<Click>>, mut state: ResMut<State>) {
-    state.update_selected(vec![], vec![], vec![]);
+pub fn unselect(click: On<Pointer<Click>>, mut state: ResMut<State>) {
+    if click.button == PointerButton::Primary {
+        state.update_selected(vec![], vec![], vec![]);
+    }
 }
 
 pub fn on_select(

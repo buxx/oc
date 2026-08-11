@@ -34,10 +34,12 @@ pub fn draw<T: Selection + Send + Sync + 'static>(
 
 /// Un select all. Observer which select must stop propagation to avoid execute this observer.
 fn unselect<T: Selection + Send + Sync + 'static>(
-    _: On<Pointer<Click>>,
+    click: On<Pointer<Click>>,
     mut query: Query<&mut Selected>,
 ) {
-    query.iter_mut().for_each(|mut selected| selected.0 = false);
+    if click.button == PointerButton::Primary {
+        query.iter_mut().for_each(|mut selected| selected.0 = false);
+    }
 }
 
 #[derive(Debug, Default)]
