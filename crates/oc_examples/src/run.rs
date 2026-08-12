@@ -28,6 +28,12 @@ pub struct Example {
     install: Option<Box<dyn Fn(&mut bevy::app::App)>>,
     #[builder(default)]
     test_app_exit_code: bool,
+    #[builder(default = 10)]
+    regions_width: u64,
+    #[builder(default = 10)]
+    regions_height: u64,
+    region_width: Option<u64>,
+    region_height: Option<u64>,
 }
 
 impl Example {
@@ -49,6 +55,11 @@ impl Example {
         let world = Meta::from_file(&self.world.meta())
             .context(format!("Read file {}", self.world.meta().display()))?;
 
+        let map = oc_world::reader::MapReader::new(&self.world)
+            .context(format!("Read map {}", self.world.display()))?;
+        let map_width = map.width().context(format!("Read map width"))?;
+        let map_height = map.height().context(format!("Read map height"))?;
+
         tracing::info!("Start server");
 
         let static_ = StaticSource::Local {
@@ -61,6 +72,8 @@ impl Example {
             .cache(cache)
             .static_(static_)
             .snapshot(self.snapshot.clone())
+            .region_width(self.region_width.unwrap_or(map_width as u64))
+            .region_height(self.region_height.unwrap_or(map_height as u64))
             .build();
         let state = oc_world_server::state::init::<()>(config.clone())?;
         let state = Arc::new(state);
@@ -88,7 +101,10 @@ impl Example {
         tracing::info!("Start gui");
         let server_rx2 = Arc::new(Mutex::new(server_rx2));
         let connect = oc_battle_gui::config::Connect::Embedded(client_tx2, server_rx2);
-        let config = oc_battle_gui::config::Config_::builder().autoconnect(connect);
+        let config = oc_battle_gui::config::Config_::builder()
+            .autoconnect(connect)
+            .regions_width(self.regions_width)
+            .regions_height(self.regions_height);
         let config = config.build();
 
         let app_exit = oc_battle_gui::run::run()

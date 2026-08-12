@@ -11,4 +11,6 @@ pub struct ServerConfig {
     pub snapshot: PathBuf,
     pub cache: PathBuf,
     pub static_: StaticSource,
+    pub region_width: u64,
+    pub region_height: u64,
 }

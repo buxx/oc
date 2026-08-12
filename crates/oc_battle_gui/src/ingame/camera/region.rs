@@ -8,12 +8,10 @@ use oc_root::{Wcfg, WcfgInto, WorldConfig, y::Y};
 use oc_utils::{d2::Xy, let_some};
 
 use crate::{
+    config::{Config, Config_},
     ingame::region::{ForgottenRegion, ListeningRegion},
     network::output::ToServerEvent,
 };
-
-pub const REGIONS_WIDTH: u64 = 11;
-pub const REGIONS_HEIGHT: u64 = 11;
 
 #[derive(Debug, Event)]
 pub struct UpdateRegions(pub Vec2);
@@ -24,6 +22,7 @@ pub struct Region(pub WorldRegionIndex);
 pub fn on_update_regions(
     point: On<UpdateRegions>,
     w: Res<Wcfg>,
+    c: Res<Config>,
     mut commands: Commands,
     mut state: ResMut<super::State>,
 ) {
@@ -31,7 +30,7 @@ pub fn on_update_regions(
     tracing::trace!(name="update-regions", point=?point.0);
     static EMPTY: Vec<Region> = vec![];
     let current = state.regions.as_ref().unwrap_or(&EMPTY);
-    let regions = regions(w, point.0);
+    let regions = regions(w, &c, point.0);
 
     let new: Vec<Region> = regions
         .iter()
@@ -72,20 +71,21 @@ pub fn on_update_regions(
 }
 
 /// List regions to consider around given point
-pub fn regions(w: &WorldConfig, center: Vec2) -> Vec<WorldRegionIndex> {
+pub fn regions(w: &WorldConfig, c: &Config_, center: Vec2) -> Vec<WorldRegionIndex> {
+    dbg!(&w);
     let center = center.to_gui_y(w);
     let center: TileXy = [center.x, center.y].into_(w);
     let center: RegionXy = center.into_(w);
 
-    let from_x_minus = REGIONS_WIDTH / 2;
+    let from_x_minus = c.regions_width / 2;
     let from_x = center.0.0 - from_x_minus.min(center.0.0);
-    let from_y_minus = REGIONS_HEIGHT / 2;
+    let from_y_minus = c.regions_height / 2;
     let from_y = center.0.1 - from_y_minus.min(center.0.1);
     let from = RegionXy(Xy(from_x, from_y));
 
-    let to_x_plus = REGIONS_WIDTH / 2;
+    let to_x_plus = c.regions_width / 2;
     let to_x = (center.0.0 + to_x_plus).min(w.regions_width - 1);
-    let to_y_plus = REGIONS_HEIGHT / 2;
+    let to_y_plus = c.regions_height / 2;
     let to_y = (center.0.1 + to_y_plus).min(w.regions_height - 1);
     let to = RegionXy(Xy(to_x, to_y));
 

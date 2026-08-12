@@ -20,6 +20,7 @@ oc_geo = { path = "../oc_geo" }
 oc_utils = { path = "../oc_utils" }
 oc_mod = { path = "../oc_mod" }
 oc_battle_gui = { path = "../oc_battle_gui" }
+tests = { path = "../tests" }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 bon.workspace = true

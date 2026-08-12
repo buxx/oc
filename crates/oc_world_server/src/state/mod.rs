@@ -104,7 +104,11 @@ pub fn init<E: Client>(config: ServerConfig) -> Result<State<E>, anyhow::Error> 
     let ids = Ids::default();
     let mod_ = Mod::load(&mod_, Some(&cache))?;
     let snapshot = Snapshot::load(&config.snapshot)?;
-    let w = snapshot.w.clone();
+    let w = snapshot
+        .w
+        .clone()
+        .region_width(config.region_width)
+        .region_height(config.region_height);
     let world = WorldLoader::new(w.clone(), mod_.clone(), world.clone(), cache.clone());
     let world = world.load(&ids, snapshot)?;
 

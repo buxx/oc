@@ -35,6 +35,8 @@ pub fn on_listening_region(
     let files = files::Files::new(mod_, world).into_gui(g.static_.clone(), connect.clone().into());
 
     let region: RegionXy = region_.into_(&g.w);
+    let region_width = g.w.region_width;
+    let region_height = g.w.region_height;
 
     let width = g.w.region_width_pixels as f32;
     let height = g.w.region_height_pixels as f32;
@@ -45,7 +47,7 @@ pub fn on_listening_region(
     let x = x;
     let y = y.to_gui_y(&g.w);
     let i: WorldRegionIndex = region.into_(&g.w);
-    let background = files.region(i.0);
+    let background = files.region(i.0, region_width, region_height);
 
     tracing::trace!(name="spawn-region-background", region=?region, x=x, y=y, path=?background);
     commands.spawn((
@@ -58,4 +60,16 @@ pub fn on_listening_region(
             ..default()
         },
     ));
+}
+
+pub fn on_forgotten_region(
+    region: On<ForgottenRegion>,
+    mut commands: Commands,
+    query: Query<(Entity, &RegionBackground, &Region)>,
+) {
+    for (entity, _, region_) in query {
+        if region_.0 == region.0 {
+            commands.entity(entity).despawn();
+        }
+    }
 }

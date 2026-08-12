@@ -101,9 +101,11 @@ impl FilesAsServer {
             .join(format!("worlds/{}/minimap.png", self.world))
     }
 
-    pub fn region(&self, region: u64) -> PathBuf {
-        self.cache
-            .join(format!("worlds/{}/region{}.png", self.world, region))
+    pub fn region(&self, region: u64, region_width: u64, region_height: u64) -> PathBuf {
+        self.cache.join(format!(
+            "worlds/{}/region_{region_width}_{region_height}_{region}.png",
+            self.world
+        ))
     }
 
     pub fn world_archive(&self) -> PathBuf {
@@ -208,13 +210,19 @@ impl FilesAsGui {
             .join(format!("worlds/{}/minimap.png", &self.world))
     }
 
-    pub fn region(&self, region: u64) -> PathBuf {
-        self.sources
-            .cache()
-            .join(format!("worlds/{}/region{}.png", &self.world, region))
+    pub fn region(&self, region: u64, region_width: u64, region_height: u64) -> PathBuf {
+        self.sources.cache().join(format!(
+            "worlds/{}/region_{region_width}_{region_height}_{region}.png",
+            &self.world
+        ))
     }
 
-    pub fn method(&self, file: File) -> Option<(Sync, PathBuf)> {
+    pub fn method(
+        &self,
+        file: File,
+        region_width: u64,
+        region_height: u64,
+    ) -> Option<(Sync, PathBuf)> {
         match (&self.connection, &self.sources) {
             (Connection::Network(server), StaticSource::Remote(port)) => {
                 let base_url = format!("http://{}:{}", server.ip(), port);
@@ -235,7 +243,7 @@ impl FilesAsGui {
                     ),
                     File::Region(i) => (
                         Sync::DirectDownload(format!("{base_url}/region/{i}")),
-                        base_target.join(self.region(i)),
+                        base_target.join(self.region(i, region_width, region_height)),
                     ),
                 })
             }

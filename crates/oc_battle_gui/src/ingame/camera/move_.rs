@@ -96,8 +96,15 @@ pub fn move_in_world_map(
     }
 }
 
-pub fn on_go_to_point(point: On<GoToPoint>, mut camera: Single<&mut Transform, With<Camera2d>>) {
-    camera.translation.x = point[0];
-    camera.translation.y = point[1];
+pub fn on_go_to_point(
+    point: On<GoToPoint>,
+    mut commands: Commands,
+    mut camera: Single<&mut Transform, With<Camera2d>>,
+) {
+    tracing::debug!("Moved on {point:?}");
+    camera.translation.x = point.x;
+    camera.translation.y = point.y;
     camera.translation.z = 0.;
+    commands.trigger(UpdateRegions(point.0.into()));
+    commands.trigger(UpdateVisibleBattleSquare(point.0.into()));
 }

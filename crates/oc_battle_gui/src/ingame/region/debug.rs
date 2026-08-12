@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use oc_geo::region::{RegionXy, WorldRegionIndex};
+use oc_root::y::Y;
 use oc_root::{Wcfg, WcfgInto};
 use oc_utils::let_some;
 
@@ -40,6 +41,7 @@ pub fn on_spawn_region_wire_frame_debug(
     let xy: RegionXy = region.0.into_(w);
     let x = xy.0.0 as f32 * width + width / 2.;
     let y = xy.0.1 as f32 * height + height / 2.;
+    let y = y.to_gui_y(w);
     commands.spawn((
         RegionWireFrame(region.0.into_(w)),
         RegionWireFrameDebug,

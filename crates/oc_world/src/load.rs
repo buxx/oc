@@ -38,7 +38,7 @@ impl WorldLoader {
         let meta = Meta::from_file(&self.world.meta()).map_err(MetaError::Load)?;
 
         // TODO: centralize caching at server startup
-        self.cache(&meta)?;
+        self.cache(&meta, self.w.region_width, self.w.region_height)?;
         tracing::debug!("Cache finished");
 
         let w = self.w.clone();
@@ -116,7 +116,7 @@ impl WorldLoader {
     }
 
     // TODO: centralize caching at server startup
-    fn cache(&self, meta: &Meta) -> Result<(), CacheError> {
+    fn cache(&self, meta: &Meta, region_width: u64, region_height: u64) -> Result<(), CacheError> {
         tracing::info!("Check cache for {}", self.world.display());
         let files = files::Files::new("".to_string(), meta.canonical());
         let files = files.into_server(self.cache.clone());
@@ -158,7 +158,7 @@ impl WorldLoader {
             .into_par_iter()
             .map(|i| {
                 let i = WorldRegionIndex(i);
-                let region = files.region(i.0);
+                let region = files.region(i.0, region_width, region_height);
 
                 match region.exists() {
                     true => {

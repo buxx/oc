@@ -41,6 +41,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .cache(cache)
         .static_(static_)
         .snapshot(snapshot.clone())
+        .region_width(100)
+        .region_height(100)
         .build();
     let state = oc_world_server::state::init::<()>(config.clone())?;
     let state = Arc::new(state);

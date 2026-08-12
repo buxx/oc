@@ -42,7 +42,7 @@ pub struct Args {
 impl From<Args> for Config_ {
     fn from(value: Args) -> Self {
         let autoconnect = value.autoconnect.map(Connect::Network);
-        Self { autoconnect }
+        Self::builder().maybe_autoconnect(autoconnect).build()
     }
 }
 

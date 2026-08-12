@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_egui::prelude::*;
 use oc_geo::region::RegionXy;
 use oc_mod::Mod;
-use oc_root::{WcfgInto, WorldConfig};
+use oc_root::{WcfgInto, WorldConfig, geo::WorldVec2};
 use strum_macros::EnumIter;
 
 use crate::{
@@ -97,7 +97,7 @@ impl super::Context {
                     let region = subject.physics.region;
 
                     if ui.button("⏵").clicked() {
-                        let point = [subject.physics.position.x, subject.physics.position.y];
+                        let point = subject.physics.position.into();
                         action = Some(Action::GoToPoint(point));
                     }
                     ui.label(format!(
@@ -113,5 +113,5 @@ impl super::Context {
 }
 
 pub enum Action {
-    GoToPoint([f32; 2]),
+    GoToPoint(WorldVec2),
 }

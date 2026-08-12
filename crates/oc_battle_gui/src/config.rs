@@ -15,6 +15,10 @@ use crate::network::input::NetworkMessage;
 
 #[derive(Debug, Clone, Default, Builder)]
 pub struct Config_ {
+    #[builder(default = 10)]
+    pub regions_width: u64,
+    #[builder(default = 10)]
+    pub regions_height: u64,
     pub autoconnect: Option<Connect>,
 }
 

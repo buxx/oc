@@ -18,7 +18,9 @@ pub async fn get_region(
     let mod_ = state.world().mod_().canonical();
     let world = state.world().meta().canonical();
     let files = files::Files::new(mod_, world).into_server(state.config.cache.clone());
-    let path = files.region(region.0);
+    let region_width = state.config.region_width;
+    let region_height = state.config.region_height;
+    let path = files.region(region.0, region_width, region_height);
     let region = tokio::fs::File::open(path).await.unwrap(); // TODO
     let region = tokio_util::io::ReaderStream::new(region);
 

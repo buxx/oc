@@ -37,12 +37,20 @@ fn download(
     let files = files::Files::new(mod__, world).into_gui(g.static_.clone(), connect.into());
 
     tracing::info!("Download");
+    let region_width = g.w.region_width;
+    let region_height = g.w.region_height;
 
-    ensure_file(&files, files::File::Mod).unwrap(); // TODO
-    ensure_file(&files, files::File::World).unwrap(); // TODO
-    ensure_file(&files, files::File::Minimap).unwrap(); // TODO
+    ensure_file(&files, files::File::Mod, region_width, region_height).unwrap(); // TODO
+    ensure_file(&files, files::File::World, region_width, region_height).unwrap(); // TODO
+    ensure_file(&files, files::File::Minimap, region_width, region_height).unwrap(); // TODO
     for region in 0..g.w.regions_count {
-        ensure_file(&files, files::File::Region(region)).unwrap(); // TODO
+        ensure_file(
+            &files,
+            files::File::Region(region),
+            region_width,
+            region_height,
+        )
+        .unwrap(); // TODO
     }
 
     // FIXME: check tile size
@@ -59,8 +67,10 @@ fn download(
 fn ensure_file(
     files: &files::FilesAsGui,
     file: files::File,
+    region_width: u64,
+    region_height: u64,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let Some((sync, target)) = files.method(file) else {
+    let Some((sync, target)) = files.method(file, region_width, region_height) else {
         tracing::info!("Use local {file}");
         return Ok(());
     };

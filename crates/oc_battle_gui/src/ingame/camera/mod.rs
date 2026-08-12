@@ -1,6 +1,7 @@
 use bevy::{prelude::*, window::WindowResized};
 #[cfg(feature = "debug")]
 use oc_geo::tile::{WorldHeightIndex, WorldTileIndex};
+use oc_root::geo::WorldVec2;
 #[cfg(feature = "debug")]
 use oc_utils::bevy::EntityMapping;
 #[cfg(feature = "debug")]
@@ -34,7 +35,7 @@ pub mod squad;
 pub struct CameraPlugin;
 
 #[derive(Debug, Deref, DerefMut, Clone, Event)]
-pub struct GoToPoint(pub [f32; 2]);
+pub struct GoToPoint(pub WorldVec2);
 
 #[derive(Debug, Default)]
 pub enum Focus {

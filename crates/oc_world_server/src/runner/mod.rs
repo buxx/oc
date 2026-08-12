@@ -98,6 +98,7 @@ impl<E: Client> Runner<E> {
                     last = Instant::now();
 
                     for update_ in physics::Processor::new(&ctx).step(i) {
+                        // FIXME BS NOW: où sont les envois aux listener quand changement de region ?! (test sur projectile)
                         update::update(&ctx, update_);
                     }
                 }

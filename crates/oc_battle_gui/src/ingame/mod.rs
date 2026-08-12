@@ -12,9 +12,8 @@ use crate::{
         individual::IndividualPlugin,
         input::InputPlugin,
         lov::LovPlugin,
-        path::{DisplayPaths, PathGizmos, draw, on_compute_display_paths},
+        path::{DisplayPaths, PathGizmos, draw},
         projectile::ProjectilePlugin,
-        region::on_listening_region,
         squad::SquadPlugin,
         world::{
             on_adjust_minimap, on_despawn_world_map_background, on_spawn_minimap,
@@ -98,14 +97,15 @@ impl Plugin for IngamePlugin {
             .add_observer(on_spawn_visible_battle_square)
             .add_observer(on_spawn_world_map_background)
             .add_observer(on_despawn_world_map_background)
-            .add_observer(on_listening_region)
+            .add_observer(region::on_listening_region)
+            .add_observer(region::on_forgotten_region)
             .add_observer(projectile::on_forgot_projectile)
             .add_observer(on_switch_to_world_map)
             .add_observer(on_switch_to_battle_map)
             .add_observer(on_switch_to_height_map)
             .add_observer(on_quit_height_map)
             .add_observer(on_restore_battle_center)
-            .add_observer(on_compute_display_paths)
+            .add_observer(path::on_compute_display_paths)
             // .add_observer(on_forgotten_region)
             .add_observer(physics::on_physics_event)
             // TODO: despawn entities on OnExit(AppState::InGame)

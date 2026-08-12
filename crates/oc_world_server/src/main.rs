@@ -51,6 +51,12 @@ pub struct Args {
     #[clap()]
     pub snapshot: PathBuf,
 
+    #[clap(long)]
+    pub region_width: u64,
+
+    #[clap(long)]
+    pub region_height: u64,
+
     #[clap(long, action)]
     pub print_ticks: bool,
 
@@ -128,6 +134,8 @@ impl From<Args> for ServerConfig {
             cache: value.cache.clone(),
             static_: StaticSource::Remote(value.static_.port()),
             snapshot: value.snapshot,
+            region_width: value.region_width,
+            region_height: value.region_height,
         }
     }
 }
