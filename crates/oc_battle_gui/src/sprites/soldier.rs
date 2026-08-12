@@ -89,7 +89,7 @@ impl SoldierAnimations {
         let side_a_dead_lying = animations.add(side_a_dead_lying);
         let side_a_hurt_lying = animations.add(side_a_hurt_lying);
 
-        // FIXME BS NOW: side b must be plus bas dans les rows
+        // FIXME: side b must be plus bas dans les rows
         let side_b_idle = spritesheet
             .create_animation()
             .add_horizontal_strip(0, 0, 2)

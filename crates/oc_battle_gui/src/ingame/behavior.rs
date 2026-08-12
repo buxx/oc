@@ -229,7 +229,7 @@ fn on_refresh_squad_orders(
         }
     }
 
-    // FIXME BS NOW: dans les logs vu deux fois le despawn, bizarre
+    // FIXME: dans les logs vu deux fois le despawn, bizarre
     // Search for missing ones
     if let Some(orders) = orders.get(&i) {
         for (order, _) in orders {
