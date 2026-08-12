@@ -7,6 +7,7 @@ use crate::{
     ingame::GameConfigReceived, network, sprites::soldier::SoldierAnimations, states::GameConfig,
 };
 
+pub mod order;
 pub mod soldier;
 
 #[derive(Debug, Default)]
@@ -42,4 +43,12 @@ fn on_game_config_received(
 
 pub trait IntoAnimation<A> {
     fn animation(&self, animations: &A) -> Handle<Animation>;
+}
+
+pub trait SpriteRect {
+    fn rect(&self) -> Rect;
+}
+
+pub trait IntoSprite<T> {
+    fn sprite(&self) -> T;
 }
