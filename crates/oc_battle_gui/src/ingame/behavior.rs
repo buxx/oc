@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use oc_individual::{
-    order::{Order, OrderIndex, OrderType},
+    order::{Order, OrderIndex},
     squad::SquadIndex,
 };
 use oc_network::{SquadMessage, ToServer};
@@ -139,7 +139,7 @@ pub fn on_spawn_squad_order_marker_phantom(
         ..default()
     };
     commands.spawn((sprite, Transform::default(), marker));
-    commands.trigger(SetLeftClick(LeftClickMode::Order(OrderType::MoveTo))); // FIXME BS NOW: spawn correct sprite according to order
+    commands.trigger(SetLeftClick(LeftClickMode::Order(order.order_type())));
 }
 
 pub fn on_drop_squad_order_marker_phantom(
