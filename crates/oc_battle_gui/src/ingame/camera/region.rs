@@ -72,7 +72,6 @@ pub fn on_update_regions(
 
 /// List regions to consider around given point
 pub fn regions(w: &WorldConfig, c: &Config_, center: Vec2) -> Vec<WorldRegionIndex> {
-    dbg!(&w);
     let center = center.to_gui_y(w);
     let center: TileXy = [center.x, center.y].into_(w);
     let center: RegionXy = center.into_(w);

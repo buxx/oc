@@ -6051,6 +6051,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "tests",
  "thiserror 2.0.19",
  "tracing",
  "tracing-subscriber",

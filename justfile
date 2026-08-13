@@ -41,6 +41,18 @@ example-projectiles-obstacles *args:
 example-individual-shots *args:
     cargo run --bin example_individual_shots --features debug {{ args }}
 
+example-regions-projectile-move-out *args:
+    cargo run --bin example_regions --features debug -- projectile-move-out {{ args }}
+
+example-regions-projectile-move-in *args:
+    cargo run --bin example_regions --features debug -- projectile-move-in {{ args }}
+
+example-regions-individual-move-out *args:
+    cargo run --bin example_regions --features debug -- individual-move-out {{ args }}
+
+example-regions-individual-move-in *args:
+    cargo run --bin example_regions --features debug -- individual-move-in {{ args }}
+
 example-individual-behaviors *args:
     cargo run --bin example_individual_behaviors --features debug {{ args }}
 
@@ -137,6 +149,10 @@ test-e2e:
     just test-individual-behaviors-move-straight-ahead-obstacle1
     just test-individual-behaviors-move-straight-ahead2
     just test-individual-behaviors-move-straight-ahead-obstacle2
+    just test-regions-projectile-move-out
+    just test-regions-projectile-move-in
+    just test-regions-individual-move-out
+    just test-regions-individual-move-in
 
 test-projectiles-obstacles-one-wall:
     RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-against-wall --test
@@ -170,6 +186,18 @@ test-individual-behaviors-move-straight-ahead2:
 
 test-individual-behaviors-move-straight-ahead-obstacle2:
     RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead-obstacle --test --count 2
+
+test-regions-projectile-move-out:
+    RUST_LOG=ERROR cargo run --bin example_regions -- projectile-move-out --test
+
+test-regions-projectile-move-in:
+    RUST_LOG=ERROR cargo run --bin example_regions -- projectile-move-in --test
+
+test-regions-individual-move-out:
+    RUST_LOG=ERROR cargo run --bin example_regions -- individual-move-out --test
+
+test-regions-individual-move-in:
+    RUST_LOG=ERROR cargo run --bin example_regions -- individual-move-in --test
 
 test-all:
     just test
