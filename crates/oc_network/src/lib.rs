@@ -1,6 +1,7 @@
 use derive_more::Constructor;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_individual::{
+    IndividualIndex,
     network::{Individual, Squad},
     order::{Order, OrderIndex},
     squad::SquadIndex,
@@ -10,7 +11,7 @@ use oc_physics::fx::Fx;
 use oc_projectile::network::Projectile;
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::{WorldConfig, geo::WorldVec2, identity::Identity, static_::StaticSource};
-use oc_world::{meta::Meta, resume::WorldResume, tile::Tile};
+use oc_world::{meta::Meta, resume::WorldResume, tile::Tile, visibility::Visibility};
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
@@ -23,6 +24,7 @@ pub enum ToClient {
     Projectile(Projectile),
     Tiles(WorldRegionIndex, Vec<(WorldTileIndex, Tile)>),
     Fx(Fx),
+    UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
 }
 
 impl From<Individual> for ToClient {

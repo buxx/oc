@@ -7,6 +7,7 @@ use oc_individual::squad::SquadIndex;
 use oc_individual::{INDIVIDUAL_VOLUME_HEIGHT, INDIVIDUAL_VOLUME_WIDTH, IndividualIndex};
 use oc_projectile::Projectile;
 use oc_projectile::ProjectileId;
+use oc_root::side::Side;
 use oc_root::{WcfgFrom, WcfgInto, WorldConfig};
 use oc_utils::d2::{Xy, shape_cover_tiles};
 use oc_world::World;
@@ -40,16 +41,24 @@ pub struct Indexes {
     regions_individuals: SizedIndex<IndividualIndex>,
     regions_projectiles: SizedIndex<ProjectileId>,
     individuals_squad: Vec<SquadIndex>,
+    side_a_individuals: Vec<IndividualIndex>,
+    side_b_individuals: Vec<IndividualIndex>,
 }
 
 impl Indexes {
     pub fn new(world: &World, w: &WorldConfig) -> Self {
+        let individuals = world.individuals();
+
         let mut tiles_individuals = SizedIndex::new(world.w.tiles_count as usize);
         let mut regions_individuals = SizedIndex::new(world.w.regions_count as usize);
         let mut regions_projectiles = SizedIndex::new(world.w.regions_count as usize);
         let mut individuals_squad = Vec::with_capacity(world.individuals.len());
+        let side_a_count = individuals.iter().filter(|i| i.side == Side::A).count();
+        let mut side_a_individuals = Vec::with_capacity(side_a_count);
+        let side_b_count = individuals.iter().filter(|i| i.side == Side::B).count();
+        let mut side_b_individuals = Vec::with_capacity(side_b_count);
 
-        for (i, individual) in world.individuals().iter().enumerate() {
+        for (i, individual) in individuals.iter().enumerate() {
             let position = individual.position;
             let tile: WorldTileIndex = individual.tile;
             let region: WorldRegionIndex = tile.into_(&world.w);
@@ -67,6 +76,11 @@ impl Indexes {
                 }
                 let tile_ = WorldTileIndex::from_(tile_, w);
                 tiles_individuals[tile_.0 as usize].push(i.into());
+
+                match individual.side {
+                    Side::A => side_a_individuals.push(IndividualIndex(i as u64)),
+                    Side::B => side_b_individuals.push(IndividualIndex(i as u64)),
+                }
             }
 
             regions_individuals[region.0 as usize].push(i.into());
@@ -97,6 +111,8 @@ impl Indexes {
             regions_individuals,
             regions_projectiles,
             individuals_squad,
+            side_a_individuals,
+            side_b_individuals,
         }
     }
 
@@ -218,6 +234,14 @@ impl Indexes {
                 },
             },
         }
+    }
+
+    pub fn side_a_individuals(&self) -> &[IndividualIndex] {
+        &self.side_a_individuals
+    }
+
+    pub fn side_b_individuals(&self) -> &[IndividualIndex] {
+        &self.side_b_individuals
     }
 }
 

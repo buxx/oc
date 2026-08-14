@@ -13,7 +13,7 @@ use oc_root::{WcfgInto, WorldConfig, identity::Identity};
 use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
 
-use crate::{meta::Meta, resume::WorldResume, tile::Tile};
+use crate::{meta::Meta, resume::WorldResume, tile::Tile, visibility::Visibilities};
 
 pub mod cache;
 pub mod control;
@@ -31,6 +31,7 @@ pub mod snapshot;
 pub mod spawn;
 pub mod terrain;
 pub mod tile;
+pub mod visibility;
 
 #[derive(Constructor)]
 pub struct World {
@@ -39,6 +40,7 @@ pub struct World {
     pub meta: Meta,
     pub tiles: Vec<Tile>,
     pub navmesh: polyanya::Mesh,
+    pub visibilities: Visibilities,
     pub individuals: Vec<Individual>,
     pub squads: Vec<Squad>,
     pub projectiles: FxHashMap<ProjectileId, Projectile>,
@@ -167,6 +169,7 @@ mod tests {
             meta,
             tiles,
             polyanya::Mesh::default(),
+            Visibilities::empty(0),
             vec![],
             vec![],
             HashMap::default(),

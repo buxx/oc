@@ -19,6 +19,7 @@ use crate::{
     meta::{self, Meta},
     navmesh::{Walls, navmesh},
     snapshot::Snapshot,
+    visibility::Visibilities,
 };
 
 #[derive(Debug, Constructor)]
@@ -45,6 +46,7 @@ impl WorldLoader {
         let mod_ = self.mod_.clone();
         let tiles = snapshot.tiles;
         let individuals = snapshot.individuals;
+        let visibilities = Visibilities::empty(individuals.len());
         let squads = snapshot.squads;
         tracing::debug!("Build projectile ids");
         let projectiles = snapshot
@@ -65,6 +67,7 @@ impl WorldLoader {
             meta,
             tiles,
             navmesh,
+            visibilities,
             individuals,
             squads,
             projectiles,

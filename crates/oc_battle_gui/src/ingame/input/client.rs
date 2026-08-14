@@ -20,7 +20,7 @@ use crate::{
     },
     network::input::ToClientEvent,
     states::GameConfig,
-    world::InsertTiles,
+    world::{InsertTiles, UpdateVisibilities},
 };
 
 pub fn on_to_client(
@@ -80,6 +80,10 @@ pub fn on_to_client(
         ToClient::Fx(fx) => {
             tracing::trace!(name="ingame-input-fx", fx=?fx);
             commands.trigger(FxEvent(fx.clone()));
+        }
+        ToClient::UpdateVisibilities(visibilities) => {
+            tracing::trace!(name = "ingame-input-visibilities");
+            commands.trigger(UpdateVisibilities(visibilities.clone()));
         }
     }
 }

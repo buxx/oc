@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 use rkyv::{Archive, Deserialize, Serialize};
 
-use crate::physics::Meters;
+use crate::{opacity::CumulatedOpacity, physics::Meters};
 
 pub mod end;
 pub mod files;
@@ -34,6 +34,7 @@ pub struct WorldConfig {
     pub region_width_pixels: u64,
     pub region_height_pixels: u64,
     pub individual_tick_interval_us: u64,
+    pub visibilities_tick_interval_us: u64,
     pub squad_tick_interval_us: u64,
     pub physics_tick_per_seconds: u64,
     pub physics_tick_interval_us: u64,
@@ -44,6 +45,7 @@ pub struct WorldConfig {
     pub minimap_width_pixels: u64,
     pub minimap_height_pixels: u64,
     pub formation_tiles_between_positions: u64,
+    pub individual_visibility_until: CumulatedOpacity,
 }
 
 impl WorldConfig {
@@ -51,6 +53,7 @@ impl WorldConfig {
         let region_width = 1000.min(world_width);
         let region_height = 1000.min(world_height);
         let individual_tick_interval_us: u64 = 1_000_000 / 1;
+        let visibilities_tick_interval_us: u64 = (1_000_000 as f32 / 0.2) as u64;
         let squad_tick_interval_us: u64 = (1_000_000 as f32 / 0.5) as u64;
         // FIXME: delta is computed statically here (physics_coeff_per_tick) but maybe should
         // be computed from real eslapsec time between physics iterations
@@ -72,6 +75,7 @@ impl WorldConfig {
         let minimap_height_pixels: u64 = 2048;
 
         let formation_tiles_between_positions = 2;
+        let individual_visibility_until = CumulatedOpacity(0.6);
 
         Self {
             world_width,
@@ -87,6 +91,7 @@ impl WorldConfig {
             region_width_pixels,
             region_height_pixels,
             individual_tick_interval_us,
+            visibilities_tick_interval_us,
             squad_tick_interval_us,
             physics_tick_per_seconds,
             physics_tick_interval_us,
@@ -97,6 +102,7 @@ impl WorldConfig {
             minimap_width_pixels,
             minimap_height_pixels,
             formation_tiles_between_positions,
+            individual_visibility_until,
         }
     }
 
@@ -133,6 +139,11 @@ impl WorldConfig {
 
     pub fn formation_tiles_between_positions(mut self, value: u64) -> Self {
         self.formation_tiles_between_positions = value;
+        self
+    }
+
+    pub fn visibilities_tick_each_seconds(mut self, value: f32) -> Self {
+        self.visibilities_tick_interval_us = (1_000_000 as f32 / value) as u64;
         self
     }
 }

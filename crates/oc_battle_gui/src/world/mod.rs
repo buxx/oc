@@ -22,15 +22,28 @@ use rustc_hash::FxHashMap;
 use crate::{
     ingame::{WorldResumeEvent, behavior::SpawnSquadOrders, physics::ObjectId},
     states::GameConfig,
-    world::path::navmesh,
+    world::{path::navmesh, visibilities::Visibilities},
 };
 
 pub mod individual;
 pub mod path;
 pub mod tile;
+pub mod visibilities;
 
 #[derive(Debug, Event)]
 pub struct InsertTiles(pub WorldRegionIndex, pub Vec<(WorldTileIndex, Tile)>);
+
+#[derive(Debug, Event)]
+pub struct UpdateVisibilities(
+    pub  Vec<(
+        IndividualIndex,
+        IndividualIndex,
+        oc_world::visibility::Visibility,
+    )>,
+);
+
+#[derive(Debug, Event)]
+pub struct VisibilitiesUpdated;
 
 #[allow(unused)]
 #[derive(Debug, Event)]
@@ -45,9 +58,10 @@ impl Plugin for WorldPlugin {
             .add_observer(tile::on_insert_tiles)
             .add_observer(tile::on_forgotten_region)
             .add_observer(individual::on_insert_individual)
-            // .add_observer(individual::on_update_individual_position)
             .add_observer(individual::on_update_individual_physics)
-            .add_observer(individual::on_forgotten_region);
+            .add_observer(individual::on_forgotten_region)
+            .add_observer(visibilities::on_update_visibilities)
+            .add_observer(visibilities::on_visibilities_updated);
     }
 }
 
@@ -76,6 +90,8 @@ pub struct World {
     // TODO: is that too much blocking to recompute it when world change ?
     // do it asynchronously ? Or compute paths server side ?
     navmesh: polyanya::Mesh,
+    // FIXME: something with index ? See usage
+    visibilities: Visibilities,
 }
 
 impl World {
@@ -272,6 +288,10 @@ impl World {
 
     pub fn path(&self, from: WorldVec2, to: WorldVec2) -> Option<polyanya::Path> {
         self.navmesh.path([from.x, from.y], [to.x, to.y])
+    }
+
+    pub fn visible(&self, i: IndividualIndex) -> bool {
+        self.visibilities.contains(&i)
     }
 }
 

@@ -47,6 +47,9 @@ example-regions *args:
 example-individual-behaviors *args:
     cargo run --bin example_individual_behaviors --features debug {{ args }}
 
+example-visibilities *args:
+    cargo run --bin example_visibilities --features debug {{ args }}
+
 example-stress-gui-projectiles:
     cargo run --bin example_stress_projectiles --features debug,perfs --release
 
@@ -148,6 +151,9 @@ test-e2e:
     just test-regions-projectile-move-in
     just test-regions-individual-move-out
     just test-regions-individual-move-in
+    just test-visibilities-direct
+    just test-visibilities-through
+    just test-visibilities-hidden
 
 test-projectiles-obstacles-one-wall:
     RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-against-wall --test
@@ -195,16 +201,25 @@ test-individual-behaviors-move-fast-straight-ahead-obstacle2:
     RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-fast-straight-ahead-obstacle --test --count 2
 
 test-regions-projectile-move-out:
-    RUST_LOG=ERROR cargo run --bin example_regions -- projectile-move-out --test
+    RUST_LOG=ERROR cargo run --bin example_regions --features test -- projectile-move-out --test
 
 test-regions-projectile-move-in:
-    RUST_LOG=ERROR cargo run --bin example_regions -- projectile-move-in --test
+    RUST_LOG=ERROR cargo run --bin example_regions --features test -- projectile-move-in --test
 
 test-regions-individual-move-out:
-    RUST_LOG=ERROR cargo run --bin example_regions -- individual-move-out --test
+    RUST_LOG=ERROR cargo run --bin example_regions --features test -- individual-move-out --test
 
 test-regions-individual-move-in:
-    RUST_LOG=ERROR cargo run --bin example_regions -- individual-move-in --test
+    RUST_LOG=ERROR cargo run --bin example_regions --features test -- individual-move-in --test
+
+test-visibilities-direct:
+    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- direct --test
+
+test-visibilities-through:
+    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- through --test
+
+test-visibilities-hidden:
+    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- hidden --test
 
 test-all:
     just test

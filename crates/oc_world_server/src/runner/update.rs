@@ -13,6 +13,9 @@ use oc_projectile::NextProjectileId;
 use oc_projectile::ProjectileId;
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::Client;
+use oc_root::side::Side;
+use oc_world::visibility::Visibilities;
+use oc_world::visibility::Visibility;
 
 #[derive(Debug, PartialEq)]
 pub enum Update {
@@ -20,6 +23,7 @@ pub enum Update {
     SpawnProjectile(SpawnProjectile, bool), // bool == fx
     RemoveProjectile(ProjectileId),
     UpdateIndividual(IndividualIndex, oc_individual::Update),
+    UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
     UpdateSquad(SquadIndex, oc_individual::squad::Update),
 }
 
@@ -39,6 +43,7 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
             }
             state.update_individual(i, update)
         }
+        Update::UpdateVisibilities(visibilities) => state.update_visibilities(visibilities),
         Update::UpdateSquad(i, update) => state.update_squad(i, update),
     } {
         tracing::trace!(name="runner-update-broadcast", filter=?filter, messages=?messages);
@@ -59,6 +64,55 @@ impl<E: Client> super::State<E> {
     ) -> Vec<(Listening, Vec<ToClient>)> {
         let mut world = self.world_mut();
         crate::individual::update::write(&mut world, update, i)
+    }
+
+    fn update_visibilities(
+        &self,
+        visibilities: Vec<(IndividualIndex, IndividualIndex, Visibility)>,
+    ) -> Vec<(Listening, Vec<ToClient>)> {
+        // Be sure to release world write lock
+        let visibilities = {
+            let mut world = self.world_mut();
+            let count = world.individuals().len();
+            world.visibilities = Visibilities::empty(count);
+
+            for (i1, i2, visibility) in visibilities.clone() {
+                world.visibilities[i1.0 as usize][i2.0 as usize] = visibility;
+            }
+            visibilities
+        };
+
+        self.emit_visibilities(visibilities)
+    }
+
+    /// Distribute visibilities according to side
+    fn emit_visibilities(
+        &self,
+        visibilities: Vec<(IndividualIndex, IndividualIndex, Visibility)>,
+    ) -> Vec<(Listening, Vec<ToClient>)> {
+        let world = self.world();
+        let count = world.individuals().len(); // Prepare memory for more than side individuals in favor of cpu performance
+        let mut side_a = Vec::with_capacity(count);
+        let mut side_b = Vec::with_capacity(count);
+
+        for (i1, i2, visibility) in visibilities {
+            let watcher = world.individual(i1);
+            match watcher.side {
+                oc_root::side::Side::A => side_a.push((i1, i2, visibility)),
+                oc_root::side::Side::B => side_b.push((i1, i2, visibility)),
+            }
+        }
+
+        vec![
+            (
+                Listening::Side(Side::A),
+                vec![ToClient::UpdateVisibilities(side_a)],
+            ),
+            (
+                Listening::Side(Side::B),
+                vec![ToClient::UpdateVisibilities(side_b)],
+            ),
+        ]
     }
 
     fn update_squad(

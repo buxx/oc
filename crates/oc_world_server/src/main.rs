@@ -32,6 +32,7 @@ mod static_;
 #[cfg(feature = "tracker")]
 pub mod tracker;
 mod utils;
+pub mod visibility;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]

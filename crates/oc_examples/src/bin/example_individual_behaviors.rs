@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
 #[cfg(feature = "debug")]
 use oc_battle_gui::ingame::camera::squad::ToggleShowFormationPositions;
+#[cfg(feature = "test")]
 use oc_battle_gui::ingame::individual::{AccomplishedEvent, MoveStepAccomplishedEvent};
 use oc_examples::{logging, tests::behavior};
 use oc_individual::order::Order;
@@ -171,6 +172,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[derive(Debug, Resource)]
 struct Args_(Args);
 
+#[cfg(feature = "test")]
 #[derive(Debug, Resource, Default)]
 struct Tracking {
     move_step_accomplished: Vec<MoveStepAccomplishedEvent>,
@@ -224,6 +226,7 @@ fn end_when_success_or_timeout(
     }
 }
 
+#[cfg(feature = "test")]
 fn on_move_step_accomplished_event(
     event: On<MoveStepAccomplishedEvent>,
     mut tracking: ResMut<Tracking>,
@@ -231,6 +234,7 @@ fn on_move_step_accomplished_event(
     tracking.move_step_accomplished.push(event.clone());
 }
 
+#[cfg(feature = "test")]
 fn on_accomplished_event(event: On<AccomplishedEvent>, mut tracking: ResMut<Tracking>) {
     tracking.accomplished.push(event.clone());
 }

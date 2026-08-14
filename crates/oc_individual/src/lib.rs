@@ -175,6 +175,18 @@ impl Individual {
     }
 
     pub fn can_follow_order(&self) -> bool {
+        // TODO ...
+        true
+    }
+
+    pub fn can_lov(&self) -> bool {
+        // TODO ...
+        true
+    }
+
+    /// True if compute lov on it (when dead or incapacitated, false)
+    pub fn is_lov(&self) -> bool {
+        // TODO ...
         true
     }
 }

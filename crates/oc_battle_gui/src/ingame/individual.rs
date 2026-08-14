@@ -4,15 +4,14 @@ use oc_geo::region::WorldRegionIndex;
 use oc_physics::Physic;
 use oc_physics::collision::{Material, Material_};
 use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volumes};
-use oc_root::WcfgFrom;
 use oc_root::geo::ScreenVec2;
-use oc_root::side::Side;
 use oc_root::y::V;
+use oc_root::{WcfgFrom, side};
 use oc_utils::bevy::EntityMapping;
 use oc_utils::let_ok;
 use oc_utils::let_some;
 
-use crate::entity::individual::{Behavior, IndividualIndex, Intent, Orders};
+use crate::entity::individual::{Behavior, IndividualIndex, Intent, Orders, Side};
 use crate::ingame::behavior::{
     DespawnIndividualOrder, DespawnIndividualOrders, RefreshIndividualOrdersEvent,
 };
@@ -119,23 +118,32 @@ pub fn on_insert_individual(
     g: Res<GameConfig>,
     mut state: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
     animations: Res<SoldierAnimations>,
+    world: Res<crate::world::World>,
+    network: Res<crate::network::state::State>,
 ) {
     let_some!(g = &g.0, return);
+    let_some!(identity = &network.identity, return);
     tracing::trace!(name="spawn-individual", i=?individual.0, position=?individual.1.position);
 
     let sprite = animations.sprite();
     let gesture = individual.1.gesture.clone();
     let status = individual.1.status;
     let rotation = gesture.rotation(V::Gui);
-    let animation = SoldierAnimationInfos::new(Side::A, status, gesture).animation(&animations);
+    let animation = SoldierAnimationInfos::new(individual.1.side, status, gesture);
+    let animation = animation.animation(&animations);
     let position = individual.1.position;
     let position_ = ScreenVec2::from_(position, &g.w);
+    let visibility = match identity.side == individual.1.side || world.visible(individual.0) {
+        true => Visibility::Visible,
+        false => Visibility::Hidden,
+    };
 
     let entity = commands
         .spawn((
             // Individual properties
             (
                 IndividualIndex(individual.0),
+                Side(individual.1.side),
                 Position(position),
                 Tile(individual.1.tile),
                 Region(individual.1.region),
@@ -150,6 +158,7 @@ pub fn on_insert_individual(
             ),
             // Visual (sprites, animation, etc)
             (
+                visibility,
                 sprite,
                 SpritesheetAnimation::new(animation),
                 Transform::from_xyz(position_.x, position_.y, Z_INDIVIDUAL).with_rotation(rotation),
@@ -229,7 +238,7 @@ fn on_refresh_render(
         return;
     };
 
-    let animation_ = SoldierAnimationInfos::new(Side::A, status.0, gesture.0.clone());
+    let animation_ = SoldierAnimationInfos::new(side::Side::A, status.0, gesture.0.clone());
     let animation_ = animation_.animation(&animations);
     let rotation = gesture.rotation(V::Gui);
 

@@ -6283,6 +6283,7 @@ dependencies = [
  "num_cpus",
  "oc_geo",
  "oc_individual",
+ "oc_lov",
  "oc_mod",
  "oc_network",
  "oc_physics",

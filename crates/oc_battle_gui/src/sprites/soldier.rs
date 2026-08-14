@@ -11,6 +11,7 @@ const COLUMNS: usize = 8;
 const ROWS: usize = 12;
 const IMAGE_WIDTH: u32 = 512;
 const IMAGE_HEIGHT: u32 = 768;
+const SIDE_B_START_ROW: usize = 6;
 
 // soldiers.png
 // TODO: use generative macro to write less code (animations creations and functions to get sprite + animation)
@@ -89,40 +90,39 @@ impl SoldierAnimations {
         let side_a_dead_lying = animations.add(side_a_dead_lying);
         let side_a_hurt_lying = animations.add(side_a_hurt_lying);
 
-        // FIXME: side b must be plus bas dans les rows
         let side_b_idle = spritesheet
             .create_animation()
-            .add_horizontal_strip(0, 0, 2)
+            .add_horizontal_strip(0, SIDE_B_START_ROW, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
         let side_b_walking = spritesheet
             .create_animation()
-            .add_row(1)
+            .add_row(SIDE_B_START_ROW + 1)
             .set_duration(AnimationDuration::PerFrame(500))
             .build();
         let side_b_running = spritesheet
             .create_animation()
-            .add_row(1)
+            .add_row(SIDE_B_START_ROW + 1)
             .set_duration(AnimationDuration::PerFrame(250))
             .build();
         let side_b_crawling = spritesheet
             .create_animation()
-            .add_row(2)
+            .add_row(SIDE_B_START_ROW + 2)
             .set_duration(AnimationDuration::PerFrame(500))
             .build();
         let side_b_lying = spritesheet
             .create_animation()
-            .add_row(3)
+            .add_row(SIDE_B_START_ROW + 3)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
         let side_b_dead_lying = spritesheet
             .create_animation()
-            .add_horizontal_strip(0, 4, 2)
+            .add_horizontal_strip(0, SIDE_B_START_ROW + 4, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
         let side_b_hurt_lying = spritesheet
             .create_animation()
-            .add_horizontal_strip(0, 4, 2)
+            .add_horizontal_strip(0, SIDE_B_START_ROW + 4, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
 

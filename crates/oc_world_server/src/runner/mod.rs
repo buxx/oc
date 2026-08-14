@@ -44,6 +44,7 @@ impl<E: Client> Runner<E> {
         self.listen_input(input);
         self.start_physics();
         self.start_individuals();
+        self.start_visibilities();
         self.start_squads();
         self.start_scheduler();
 
@@ -175,6 +176,65 @@ impl<E: Client> Runner<E> {
                     }
                 });
             });
+    }
+    fn start_visibilities(&self) {
+        tracing::debug!("Start visibilities");
+
+        let ctx = Context::new(
+            self.state.clone(),
+            self.output.clone(),
+            #[cfg(feature = "tracker")]
+            self.tracker.clone(),
+        );
+        let individuals_count = {
+            let world = self.state.world();
+            world.individuals().len()
+        };
+        let size = (individuals_count as f32 / ctx.cpus as f32).ceil() as usize;
+        if size == 0 {
+            return;
+        }
+
+        #[cfg(feature = "perfs")]
+        {
+            *ctx.state
+                .perf
+                .individual_percents
+                .lock()
+                .expect("Assume available") = vec![0.; ctx.cpus];
+        }
+        let interval = ctx.state.w.visibilities_tick_interval_us;
+        let ctx = ctx.clone();
+
+        std::thread::spawn(move || {
+            let mut last = Instant::now();
+
+            loop {
+                let elapsed = last.elapsed().as_micros() as u64;
+                let wait = interval - elapsed.min(interval);
+                #[cfg(feature = "perfs")]
+                {
+                    let percent = wait as f32 / interval as f32;
+                    ctx.state.perf.set_visibilities_percent(_i, 1. - percent);
+                }
+
+                tracing::trace!(name = "runner-visibilities-sleep", wait=?wait);
+                std::thread::sleep(Duration::from_micros(wait));
+                last = Instant::now();
+
+                let visibilities = {
+                    let world = &ctx.state.world();
+                    let indexes = &ctx.state.indexes();
+                    tracing::trace!(name = "runner-visibilities");
+                    crate::visibility::Processor::new(world, indexes).compute()
+                };
+
+                #[cfg(feature = "perfs")]
+                ctx.state.perf.increment_visibilities();
+
+                update::update(&ctx, update::Update::UpdateVisibilities(visibilities));
+            }
+        });
     }
 
     fn start_squads(&self) {

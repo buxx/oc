@@ -4,7 +4,13 @@ use oc_individual::{Individual, IndividualIndex, squad::Squad};
 use oc_mod::{Mod, nature::NatureIndex};
 use oc_projectile::{Projectile, ProjectileId};
 use oc_root::WorldConfig;
-use oc_world::{World, meta::Meta, navmesh::Walls, navmesh::navmesh, tile::Tile};
+use oc_world::{
+    World,
+    meta::Meta,
+    navmesh::{Walls, navmesh},
+    tile::Tile,
+    visibility::Visibilities,
+};
 use rustc_hash::FxHashMap;
 
 use crate::{squad::TestSquad, utils::workspace_path};
@@ -54,6 +60,7 @@ impl TestWorld {
                 })
                 .collect()
         });
+        let individuals_count = self.individuals.len();
 
         World {
             w: w.clone(),
@@ -62,6 +69,7 @@ impl TestWorld {
             tiles: tiles,
             navmesh,
             individuals: self.individuals,
+            visibilities: Visibilities::empty(individuals_count),
             squads,
             projectiles: self.projectiles,
         }
