@@ -406,7 +406,8 @@ fn on_move_step_accomplished_event(
 
     match &mut intent.0 {
         oc_individual::behavior::Intent::Idle(_) => {}
-        oc_individual::behavior::Intent::MoveTo(_, path) => {
+        oc_individual::behavior::Intent::MoveTo(_, path)
+        | oc_individual::behavior::Intent::MoveFastTo(_, path) => {
             if !path.is_empty() {
                 path.remove(0);
             }

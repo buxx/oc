@@ -76,7 +76,7 @@ fn show(
 
     match order {
         OrderType::Idle => {}
-        OrderType::MoveTo => {
+        OrderType::MoveTo | OrderType::MoveFastTo => {
             let spawns = path_profiles(w, point, mode, ingame, world, &drag, &markers);
             commands.trigger(ComputeDisplayPaths(spawns));
         }
@@ -214,6 +214,7 @@ pub fn on_click(
     keys: Res<ButtonInput<KeyCode>>,
     mut ingame: ResMut<crate::ingame::state::State>,
     camera: Single<(&Camera, &GlobalTransform)>,
+    left_click: Res<LeftClick>,
 ) {
     let_some!(g = &g.0, return);
     let_some!(point = click.hit.position, return);
@@ -223,8 +224,11 @@ pub fn on_click(
     match click.button {
         PointerButton::Primary => {
             let adding = keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight);
+            let LeftClickMode::Order(order_type) = left_click.0 else {
+                return;
+            };
             // TODO: When multiple squad, need decal a little (distance from each others ?)
-            let order = Order::MoveTo(point);
+            let order = order_type.into_order(point);
 
             tracing::trace!(name = "ingame-input-left-click-order-action");
 

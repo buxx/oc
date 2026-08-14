@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use derive_more::Deref;
+use derive_more::{Add, Deref, Div, Mul, Sub};
 use rkyv::Archive;
 
 use crate::WorldConfig;
@@ -51,6 +51,11 @@ impl Meters {
     PartialEq,
     Clone,
     Copy,
+    PartialOrd,
+    Add,
+    Sub,
+    Mul,
+    Div,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct MetersSeconds(pub f32);

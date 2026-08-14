@@ -17,7 +17,7 @@ use crate::{
         region::{ForgottenRegion, ListeningRegion},
     },
     network::output::ToServerEvent,
-    sprites::{IntoSprite, SpriteRect},
+    sprites::{IntoIndividualSprite, IntoSprite, SpriteRect},
     states::{AppState, GameConfig},
     utils::{
         drag::{self, DragPlugin, Dragged, Dragging, Phantom},
@@ -79,26 +79,6 @@ pub struct DespawnSquadOrder(
     pub oc_individual::squad::SquadIndex,
     oc_individual::order::Order,
 );
-
-pub enum IndividualOrderSprite {
-    Move,
-}
-
-impl IndividualOrderSprite {
-    pub fn rect(&self) -> Rect {
-        const START_X: f32 = 22.;
-        const START_Y: f32 = 100.;
-        const WIDTH: f32 = 11.;
-        const HEIGHT: f32 = 11.;
-
-        let i = match self {
-            Self::Move => 0,
-        } as f32;
-
-        let start_y = START_Y + (i * HEIGHT);
-        Rect::new(START_X, start_y, START_X + WIDTH, start_y + HEIGHT)
-    }
-}
 
 #[derive(Debug, Component)]
 pub struct SquadOrder(pub SquadIndex, pub OrderIndex);
@@ -250,10 +230,8 @@ fn on_spawn_individual_order(
 ) {
     let_some!(g = &g.0, return);
     let image = asset_server.load(UI_FILE);
-    let (rect, position) = match &event.1 {
-        Order::Idle => (Some(Rect::new(0., 0., 0., 0.)), WorldVec2::new(0., 0.)), // Should not happen
-        Order::MoveTo(position) => (Some(IndividualOrderSprite::Move.rect()), position.clone()),
-    };
+    let_some!(position = event.1.position(), return);
+    let rect = event.1.individual_sprite().rect();
     let x = position.x;
     let y = position.y;
     let translation = Vec3::new(x as f32, (y as f32).to_gui_y(&g.w), draw::Z_INDIV_ORDER);
@@ -262,7 +240,7 @@ fn on_spawn_individual_order(
 
     let sprite = Sprite {
         image,
-        rect,
+        rect: Some(rect),
         ..default()
     };
     let transform = Transform::from_translation(translation);

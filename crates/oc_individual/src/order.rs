@@ -23,6 +23,7 @@ pub struct OrderIndex(pub u32);
 pub enum Order {
     Idle,
     MoveTo(WorldVec2),
+    MoveFastTo(WorldVec2),
 }
 
 impl Order {
@@ -34,20 +35,33 @@ impl Order {
             Order::MoveTo(position) => {
                 matches!(other, Self::MoveTo(other_position) if other_position == position)
             }
+            Order::MoveFastTo(position) => {
+                matches!(other, Self::MoveFastTo(other_position) if other_position == position)
+            }
         }
     }
 
     pub fn position(&self) -> Option<WorldVec2> {
         match self {
             Order::Idle => None,
-            Order::MoveTo(position) => Some(*position),
+            Order::MoveTo(position) | Order::MoveFastTo(position) => Some(*position),
         }
     }
 
     pub fn set_position(&mut self, position: WorldVec2) {
         match self {
             Order::Idle => todo!(),
-            Order::MoveTo(position_) => *position_ = position,
+            Order::MoveTo(position_) | Order::MoveFastTo(position_) => *position_ = position,
+        }
+    }
+}
+
+impl OrderType {
+    pub fn into_order(&self, point: WorldVec2) -> Order {
+        match self {
+            OrderType::Idle => Order::Idle,
+            OrderType::MoveTo => Order::MoveTo(point),
+            OrderType::MoveFastTo => Order::MoveFastTo(point),
         }
     }
 }

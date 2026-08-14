@@ -10,6 +10,8 @@ use oc_root::{
 };
 use rkyv::{Archive, Deserialize, Serialize};
 
+use crate::number::almost_equal;
+
 #[derive(Debug, Clone, Copy, Archive, Deserialize, Serialize, PartialEq, Eq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Xy(pub u64, pub u64);
@@ -241,6 +243,7 @@ pub fn apply_angle_on_point(point_to_rotate: &Vec2, reference_point: &Vec2, angl
 #[derive(
     Debug,
     Clone,
+    Copy,
     Archive,
     rkyv::Deserialize,
     rkyv::Serialize,
@@ -340,6 +343,17 @@ pub fn shape_cover_tiles(
         }
     }
     result
+}
+
+pub trait AlmostEqual: Sized {
+    fn almost_equal(&self, other: impl Into<Self>, tolerance: f32) -> bool;
+}
+
+impl AlmostEqual for WorldVec2 {
+    fn almost_equal(&self, other: impl Into<WorldVec2>, tolerance: f32) -> bool {
+        let other = other.into();
+        almost_equal(self.x, other.x, tolerance) && almost_equal(self.y, other.y, tolerance)
+    }
 }
 
 #[cfg(test)]

@@ -52,3 +52,7 @@ pub trait SpriteRect {
 pub trait IntoSprite<T> {
     fn sprite(&self) -> T;
 }
+
+pub trait IntoIndividualSprite<T> {
+    fn individual_sprite(&self) -> T;
+}

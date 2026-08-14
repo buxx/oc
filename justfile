@@ -41,17 +41,8 @@ example-projectiles-obstacles *args:
 example-individual-shots *args:
     cargo run --bin example_individual_shots --features debug {{ args }}
 
-example-regions-projectile-move-out *args:
-    cargo run --bin example_regions --features debug -- projectile-move-out {{ args }}
-
-example-regions-projectile-move-in *args:
-    cargo run --bin example_regions --features debug -- projectile-move-in {{ args }}
-
-example-regions-individual-move-out *args:
-    cargo run --bin example_regions --features debug -- individual-move-out {{ args }}
-
-example-regions-individual-move-in *args:
-    cargo run --bin example_regions --features debug -- individual-move-in {{ args }}
+example-regions *args:
+    cargo run --bin example_regions --features debug -- {{ args }}
 
 example-individual-behaviors *args:
     cargo run --bin example_individual_behaviors --features debug {{ args }}
@@ -149,6 +140,10 @@ test-e2e:
     just test-individual-behaviors-move-straight-ahead-obstacle1
     just test-individual-behaviors-move-straight-ahead2
     just test-individual-behaviors-move-straight-ahead-obstacle2
+    just test-individual-behaviors-move-fast-straight-ahead1
+    just test-individual-behaviors-move-fast-straight-ahead-obstacle1
+    just test-individual-behaviors-move-fast-straight-ahead2
+    just test-individual-behaviors-move-fast-straight-ahead-obstacle2
     just test-regions-projectile-move-out
     just test-regions-projectile-move-in
     just test-regions-individual-move-out
@@ -186,6 +181,18 @@ test-individual-behaviors-move-straight-ahead2:
 
 test-individual-behaviors-move-straight-ahead-obstacle2:
     RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead-obstacle --test --count 2
+
+test-individual-behaviors-move-fast-straight-ahead1:
+    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-fast-straight-ahead --test --count 1
+
+test-individual-behaviors-move-fast-straight-ahead-obstacle1:
+    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-fast-straight-ahead-obstacle --test --count 1
+
+test-individual-behaviors-move-fast-straight-ahead2:
+    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-fast-straight-ahead --test --count 2
+
+test-individual-behaviors-move-fast-straight-ahead-obstacle2:
+    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-fast-straight-ahead-obstacle --test --count 2
 
 test-regions-projectile-move-out:
     RUST_LOG=ERROR cargo run --bin example_regions -- projectile-move-out --test

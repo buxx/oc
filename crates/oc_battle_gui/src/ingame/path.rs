@@ -139,7 +139,8 @@ pub fn draw(
     for (intent, position) in intents {
         match &intent.0 {
             oc_individual::behavior::Intent::Idle(_) => {}
-            oc_individual::behavior::Intent::MoveTo(_, path) => {
+            oc_individual::behavior::Intent::MoveTo(_, path)
+            | oc_individual::behavior::Intent::MoveFastTo(_, path) => {
                 let mut previous = ScreenVec2::from_(position.0, &g.w);
                 for point in path.iter() {
                     let point = ScreenVec2::from_(*point, &g.w);

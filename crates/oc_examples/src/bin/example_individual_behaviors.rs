@@ -27,6 +27,8 @@ enum TestCase {
     Idle,
     MoveStraightAhead,
     MoveStraightAheadObstacle,
+    MoveFastStraightAhead,
+    MoveFastStraightAheadObstacle,
 }
 
 const IDLE_LEADER_POS: [f32; 2] = [150., 150.];
@@ -72,6 +74,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ],
             )]
         }
+        TestCase::MoveFastStraightAhead => {
+            vec![(
+                MSA_LEADER_POS,
+                vec![
+                    Order::MoveFastTo(MSA_POS1.into()),
+                    Order::MoveFastTo(MSA_POS2.into()),
+                ],
+            )]
+        }
+        TestCase::MoveFastStraightAheadObstacle => {
+            vec![(
+                MSAO_LEADER_POS,
+                vec![
+                    Order::MoveFastTo(MSAO_POS1.into()),
+                    Order::MoveFastTo(MSAO_POS2.into()),
+                ],
+            )]
+        }
     };
 
     let run = behavior::run()
@@ -86,11 +106,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 use oc_world_server::tracker::Tracker;
 
                 Box::new(move |tracker: Tracker| match args.case {
-                    // TODO: test if squad member reach expected position
+                    // FIXME: test if squad member reach expected position
                     TestCase::Idle => {}
-                    // TODO: test if leader accomplished twice (two orders), reached expected position
+                    // FIXME: test if leader accomplished twice (two orders), reached expected position
                     //       + squad members
-                    TestCase::MoveStraightAhead | TestCase::MoveStraightAheadObstacle => {
+                    TestCase::MoveStraightAhead
+                    | TestCase::MoveStraightAheadObstacle
+                    | TestCase::MoveFastStraightAhead
+                    | TestCase::MoveFastStraightAheadObstacle => {
                         let tracker = tracker.take();
 
                         let accomplished = (
@@ -158,15 +181,18 @@ fn end_when_success_or_timeout(
         TestCase::Idle => Duration::from_secs(10),
         TestCase::MoveStraightAhead => Duration::from_secs(20),
         TestCase::MoveStraightAheadObstacle => Duration::from_secs(40),
+        TestCase::MoveFastStraightAhead => Duration::from_secs(10),
+        TestCase::MoveFastStraightAheadObstacle => Duration::from_secs(20),
     };
 
     let timeout = game.started.elapsed() > timeout;
     let mut move_done = MOVE_DONE.lock().unwrap();
     *move_done = match *move_done {
         None => match args.0.case {
-            // TODO: Test squad member position
+            // FIXME: Test squad member position
             TestCase::Idle => None,
-            // TODO: Test squad members positions
+            // FIXME BS NOW: pas bon repere, il faut surveiller les event
+            // FIXME: Test squad members positions
             TestCase::MoveStraightAhead => individuals.iter().next().and_then(|position| {
                 (almost_equal(position.0.x, MSA_POS2[0], POSITION_TOLERANCE)
                     && almost_equal(position.0.y, MSA_POS2[1], POSITION_TOLERANCE))
@@ -177,6 +203,18 @@ fn end_when_success_or_timeout(
                     && almost_equal(position.0.y, MSAO_POS2[1], POSITION_TOLERANCE))
                 .then(|| Instant::now())
             }),
+            TestCase::MoveFastStraightAhead => individuals.iter().next().and_then(|position| {
+                (almost_equal(position.0.x, MSA_POS2[0], POSITION_TOLERANCE)
+                    && almost_equal(position.0.y, MSA_POS2[1], POSITION_TOLERANCE))
+                .then(|| Instant::now())
+            }),
+            TestCase::MoveFastStraightAheadObstacle => {
+                individuals.iter().next().and_then(|position| {
+                    (almost_equal(position.0.x, MSAO_POS2[0], POSITION_TOLERANCE)
+                        && almost_equal(position.0.y, MSAO_POS2[1], POSITION_TOLERANCE))
+                    .then(|| Instant::now())
+                })
+            }
         },
         Some(value) => {
             if value.elapsed().as_secs() > 1 {

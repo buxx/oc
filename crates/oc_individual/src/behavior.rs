@@ -1,5 +1,6 @@
 use derive_more::{Deref, DerefMut};
-use oc_root::geo::WorldVec2;
+use glam::Vec2;
+use oc_root::{geo::WorldVec2, physics::MetersSeconds};
 use oc_utils::d2::Direction;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -8,6 +9,7 @@ use rkyv::{Archive, Deserialize, Serialize};
 pub enum Intent {
     Idle(Direction),
     MoveTo(WorldVec2, MovePath),
+    MoveFastTo(WorldVec2, MovePath),
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
@@ -15,6 +17,31 @@ pub enum Intent {
 pub enum Behavior {
     Idle(Direction),
     Walk(Direction),
+    Run(Direction),
+}
+
+impl Behavior {
+    pub fn nominal_speed(&self) -> MetersSeconds {
+        match self {
+            Behavior::Idle(_) => MetersSeconds(0.0),
+            Behavior::Walk(_) => MetersSeconds(1.0),
+            Behavior::Run(_) => MetersSeconds(2.0),
+        }
+    }
+
+    pub fn direction(&self) -> Direction {
+        match self {
+            Behavior::Idle(direction) => *direction,
+            Behavior::Walk(direction) => *direction,
+            Behavior::Run(direction) => *direction,
+        }
+    }
+
+    pub fn velocity(&self) -> f32 {
+        let direction = self.direction();
+        let direction = Vec2::new(direction.x, direction.y);
+        direction.length()
+    }
 }
 
 #[derive(Debug, Clone, Deref, DerefMut, Archive, Deserialize, Serialize, PartialEq)]
