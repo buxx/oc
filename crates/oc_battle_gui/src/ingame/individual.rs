@@ -71,10 +71,10 @@ pub struct SetIntentEvent(
     oc_individual::behavior::Intent,
 );
 
-#[derive(Debug, Event)]
+#[derive(Debug, Clone, Event, Deref)]
 pub struct AccomplishedEvent(oc_individual::IndividualIndex);
 
-#[derive(Debug, Event)]
+#[derive(Debug, Clone, Event, Deref)]
 pub struct MoveStepAccomplishedEvent(oc_individual::IndividualIndex);
 
 #[derive(Debug, Deref, Component)]

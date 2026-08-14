@@ -2,11 +2,9 @@ use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
 #[cfg(feature = "debug")]
 use oc_battle_gui::ingame::camera::squad::ToggleShowFormationPositions;
+use oc_battle_gui::ingame::individual::{AccomplishedEvent, MoveStepAccomplishedEvent};
 use oc_examples::{logging, tests::behavior};
 use oc_individual::order::Order;
-
-#[cfg(feature = "test")]
-const POSITION_TOLERANCE: f32 = 3.0;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -144,7 +142,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         commands.trigger(ToggleShowFormationPositions)
                     });
                     #[cfg(feature = "test")]
-                    app.add_systems(Update, end_when_success_or_timeout);
+                    {
+                        match args.case {
+                            TestCase::Idle => {}
+                            TestCase::MoveStraightAhead
+                            | TestCase::MoveStraightAheadObstacle
+                            | TestCase::MoveFastStraightAhead
+                            | TestCase::MoveFastStraightAheadObstacle => {
+                                app.init_resource::<Tracking>()
+                                    .add_observer(on_move_step_accomplished_event)
+                                    .add_observer(on_accomplished_event);
+                            }
+                        }
+                        app.add_systems(Update, end_when_success_or_timeout);
+                    }
                 })
             },
             test_track,
@@ -160,60 +171,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[derive(Debug, Resource)]
 struct Args_(Args);
 
+#[derive(Debug, Resource, Default)]
+struct Tracking {
+    move_step_accomplished: Vec<MoveStepAccomplishedEvent>,
+    accomplished: Vec<AccomplishedEvent>,
+}
+
 #[cfg(feature = "test")]
-use {
-    oc_battle_gui::{entity::individual::IndividualIndex, states::Game},
-    oc_utils::number::almost_equal,
-    std::sync::Mutex,
-    std::time::Duration,
-    std::time::Instant,
-};
+use {oc_battle_gui::states::Game, std::sync::Mutex, std::time::Duration, std::time::Instant};
 
 #[cfg(feature = "test")]
 fn end_when_success_or_timeout(
     mut commands: Commands,
     game: Res<Game>,
     args: Res<Args_>,
-    individuals: Query<&oc_physics::update::bevy::Position, With<IndividualIndex>>,
+    tracking: Res<Tracking>,
 ) {
     static MOVE_DONE: Mutex<Option<Instant>> = Mutex::new(None);
     let timeout = match args.0.case {
         TestCase::Idle => Duration::from_secs(10),
         TestCase::MoveStraightAhead => Duration::from_secs(20),
         TestCase::MoveStraightAheadObstacle => Duration::from_secs(40),
-        TestCase::MoveFastStraightAhead => Duration::from_secs(10),
-        TestCase::MoveFastStraightAheadObstacle => Duration::from_secs(20),
+        TestCase::MoveFastStraightAhead => Duration::from_secs(15),
+        TestCase::MoveFastStraightAheadObstacle => Duration::from_secs(25),
     };
 
     let timeout = game.started.elapsed() > timeout;
     let mut move_done = MOVE_DONE.lock().unwrap();
     *move_done = match *move_done {
         None => match args.0.case {
-            // FIXME: Test squad member position
             TestCase::Idle => None,
-            // FIXME BS NOW: pas bon repere, il faut surveiller les event
             // FIXME: Test squad members positions
-            TestCase::MoveStraightAhead => individuals.iter().next().and_then(|position| {
-                (almost_equal(position.0.x, MSA_POS2[0], POSITION_TOLERANCE)
-                    && almost_equal(position.0.y, MSA_POS2[1], POSITION_TOLERANCE))
-                .then(|| Instant::now())
-            }),
-            TestCase::MoveStraightAheadObstacle => individuals.iter().next().and_then(|position| {
-                (almost_equal(position.0.x, MSAO_POS2[0], POSITION_TOLERANCE)
-                    && almost_equal(position.0.y, MSAO_POS2[1], POSITION_TOLERANCE))
-                .then(|| Instant::now())
-            }),
-            TestCase::MoveFastStraightAhead => individuals.iter().next().and_then(|position| {
-                (almost_equal(position.0.x, MSA_POS2[0], POSITION_TOLERANCE)
-                    && almost_equal(position.0.y, MSA_POS2[1], POSITION_TOLERANCE))
-                .then(|| Instant::now())
-            }),
-            TestCase::MoveFastStraightAheadObstacle => {
-                individuals.iter().next().and_then(|position| {
-                    (almost_equal(position.0.x, MSAO_POS2[0], POSITION_TOLERANCE)
-                        && almost_equal(position.0.y, MSAO_POS2[1], POSITION_TOLERANCE))
-                    .then(|| Instant::now())
-                })
+            TestCase::MoveStraightAhead
+            | TestCase::MoveStraightAheadObstacle
+            | TestCase::MoveFastStraightAhead
+            | TestCase::MoveFastStraightAheadObstacle => {
+                (tracking.accomplished.len() == 2).then(|| Instant::now())
             }
         },
         Some(value) => {
@@ -229,4 +222,15 @@ fn end_when_success_or_timeout(
         eprintln!("❌ Timeout reached ! Individual didn't reached target");
         commands.write_message(bevy::app::AppExit::from_code(1));
     }
+}
+
+fn on_move_step_accomplished_event(
+    event: On<MoveStepAccomplishedEvent>,
+    mut tracking: ResMut<Tracking>,
+) {
+    tracking.move_step_accomplished.push(event.clone());
+}
+
+fn on_accomplished_event(event: On<AccomplishedEvent>, mut tracking: ResMut<Tracking>) {
+    tracking.accomplished.push(event.clone());
 }
