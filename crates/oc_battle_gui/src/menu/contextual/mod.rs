@@ -1,11 +1,11 @@
-use bevy::prelude::*;
-use derive_more::Constructor;
+use std::marker::PhantomData;
 
-use crate::menu::contextual::open::OpenContextualMenuEvent;
+use bevy::prelude::*;
+
+use crate::menu::contextual::{close::CloseContextMenu, open::OpenContextualMenu};
 
 pub mod choice;
 pub mod close;
-pub mod item;
 pub mod open;
 
 #[derive(Debug)]
@@ -27,35 +27,40 @@ where
     for<'a> <T::ChoiceEvent as Event>::Trigger<'a>: Default,
 {
     fn build(&self, app: &mut App) {
-        app.add_observer(open::on_open::<T::OpenEvent, T::ChoiceEvent>)
-            .add_observer(item::text_color_on_hover::<Out>(
-                bevy::color::palettes::css::WHITE.into(),
-            ))
-            .add_observer(item::text_color_on_hover::<Over>(
-                bevy::color::palettes::css::RED.into(),
-            ))
-            .add_observer(close::on_trigger_close_menus)
+        app
+            // On open menu event
+            .add_observer(open::on_open::<T>)
+            // On hover menu
+            .add_observer(choice::on_over::<T>)
+            // On over menu
+            .add_observer(choice::on_out::<T>)
+            // On close menu
+            .add_observer(close::on_close::<T>)
+            // On click menu
             .add_observer(|_: On<Pointer<Press>>, mut commands: Commands| {
-                commands.trigger(close::CloseContextMenus);
+                commands.trigger(CloseContextMenu::<T>::default());
             });
     }
 }
 
 #[derive(Component)]
-pub struct ContextMenu;
+pub struct ContextMenu<T: ContextualMenu>(PhantomData<T>);
 
-#[derive(Component, Clone, Debug, Constructor)]
-pub struct ContextMenuItem<E: Event + Clone + std::fmt::Debug> {
-    text: String,
-    event: E,
+impl<T: ContextualMenu> Default for ContextMenu<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
 }
 
-pub trait ContextualMenu {
-    type OpenEvent: Event + OpenContextualMenuEvent<Self::ChoiceEvent>;
+pub trait ContextualMenu: std::fmt::Debug + Send + Sync + 'static {
+    /// Event type would must be triggered to open the menu
+    type OpenEvent: Event + OpenContextualMenu<Self>
+    where
+        Self: Sized;
+    /// Event type which will be triggered on choice click
     type ChoiceEvent: Event + Clone + std::fmt::Debug;
-}
+    /// Type which represent menu choices
+    type Choices: choice::Choice<Self::ChoiceEvent>;
 
-#[derive(Debug, Clone, Constructor)]
-pub struct Content<E: Event + Clone + std::fmt::Debug> {
-    items: Vec<ContextMenuItem<E>>,
+    fn image() -> &'static str;
 }

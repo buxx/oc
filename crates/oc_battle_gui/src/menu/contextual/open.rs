@@ -4,26 +4,29 @@ use oc_root::{
     geo::{ScreenVec2, WorldVec2},
 };
 use oc_utils::{let_ok, let_some};
+use strum::IntoEnumIterator;
 
 use crate::{
-    menu::contextual::{Content, ContextMenu, choice::choose, item::context_item},
+    menu::contextual::{
+        ContextMenu, ContextualMenu,
+        choice::{Choice, choose, context_item},
+    },
     states::GameConfig,
 };
 
-pub trait OpenContextualMenuEvent<I: Event + Clone + std::fmt::Debug> {
+pub trait OpenContextualMenu<T: ContextualMenu + Send + Sync + 'static> {
     fn position(&self) -> WorldVec2;
-    fn content(&self) -> &Content<I>;
 }
 
-pub fn on_open<E, I>(
-    event: On<E>,
+pub fn on_open<T>(
+    event: On<T::OpenEvent>,
     g: Res<GameConfig>,
     mut commands: Commands,
     camera: Single<(&Camera, &GlobalTransform)>,
+    asset_server: Res<AssetServer>,
 ) where
-    E: Event + OpenContextualMenuEvent<I>,
-    I: Event + Clone + std::fmt::Debug,
-    for<'a> I::Trigger<'a>: Default,
+    T: ContextualMenu + Send + Sync + 'static,
+    for<'a> <<T as ContextualMenu>::ChoiceEvent as Event>::Trigger<'a>: std::default::Default,
 {
     let_some!(g = &g.0, return);
     let (camera, camera_transform) = *camera;
@@ -32,27 +35,25 @@ pub fn on_open<E, I>(
     let position = ScreenVec2::from_(position, &g.w);
     let position = camera.world_to_viewport(camera_transform, position.extend(0.).into());
     let_ok!(position = position, return);
-    let content = event.content().clone();
 
     commands
         .spawn((
             Name::new("context menu"),
-            ContextMenu,
+            ContextMenu::<T>::default(),
             Node {
                 position_type: PositionType::Absolute,
                 left: px(position.x),
                 top: px(position.y),
                 flex_direction: FlexDirection::Column,
-                border_radius: BorderRadius::all(px(4)),
+                // border_radius: BorderRadius::all(px(4)),
                 ..default()
             },
-            BorderColor::all(Color::BLACK),
-            BackgroundColor(Color::linear_rgb(0.1, 0.1, 0.1)),
         ))
         .with_children(|parent| {
-            content.items.into_iter().for_each(|item| {
-                parent.spawn(context_item(item));
+            T::Choices::iter().for_each(|item| {
+                let image = ImageNode::new(asset_server.load(T::image())).with_rect(item.idle());
+                parent.spawn(context_item(item, image));
             })
         })
-        .observe(choose::<I>);
+        .observe(choose::<T>);
 }

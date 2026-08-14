@@ -1,14 +1,22 @@
+use std::marker::PhantomData;
+
 use bevy::prelude::*;
 
-use crate::menu::contextual::ContextMenu;
+use crate::menu::contextual::{ContextMenu, ContextualMenu};
 
 #[derive(Event)]
-pub struct CloseContextMenus;
+pub struct CloseContextMenu<T: ContextualMenu + Send + Sync + 'static>(PhantomData<T>);
 
-pub fn on_trigger_close_menus(
-    _event: On<CloseContextMenus>,
+impl<T: ContextualMenu + Send + Sync + 'static> Default for CloseContextMenu<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
+
+pub fn on_close<T: ContextualMenu + Send + Sync + 'static>(
+    _event: On<CloseContextMenu<T>>,
     mut commands: Commands,
-    menus: Query<Entity, With<ContextMenu>>,
+    menus: Query<Entity, With<ContextMenu<T>>>,
 ) {
     for e in menus.iter() {
         commands.entity(e).despawn();
