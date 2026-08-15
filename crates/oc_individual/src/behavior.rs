@@ -20,6 +20,17 @@ pub enum Behavior {
     Run(Direction),
 }
 
+impl Intent {
+    pub fn path(&self) -> Option<(WorldVec2, &MovePath)> {
+        match self {
+            Intent::Idle(direction) => None,
+            Intent::MoveTo(target, path) | Intent::MoveFastTo(target, path) => {
+                Some((*target, path))
+            }
+        }
+    }
+}
+
 impl Behavior {
     pub fn nominal_speed(&self) -> MetersSeconds {
         match self {

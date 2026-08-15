@@ -106,6 +106,7 @@ impl<'a> Processor<'a> {
         updates
     }
 
+    /// Determine if current order (or order step) is accomplished
     fn accomplished(&self) -> Option<Vec<runner::update::Update>> {
         let individual = self.world.individual(self.i);
         let Some(order) = individual.orders.first() else {
@@ -244,38 +245,19 @@ impl<'a> Processor<'a> {
     fn decide(&self) -> Intent {
         let individual = self.world.individual(self.i);
         let order = individual.orders.first();
-        let direction = individual.gesture.direction();
 
         let intent = match individual.can_follow_order() {
             // TODO: things which can prohibe follow order
             true => match order {
-                None | Some(Order::Idle) => Intent::Idle(direction),
+                None | Some(Order::Idle) => self.resolve_idle_intent(individual),
                 Some(Order::MoveTo(position)) => {
-                    let current = match &individual.intent {
-                        Intent::MoveTo(target, path) => Some((target, path)),
-                        _ => None,
-                    };
-                    self.resolve_move_intent(
-                        individual,
-                        position,
-                        direction,
-                        current,
-                        Intent::MoveTo,
-                    )
+                    let current = individual.intent.path();
+                    self.resolve_move_intent(individual, *position, current, Intent::MoveTo)
                 }
 
                 Some(Order::MoveFastTo(position)) => {
-                    let current = match &individual.intent {
-                        Intent::MoveFastTo(target, path) => Some((target, path)),
-                        _ => None,
-                    };
-                    self.resolve_move_intent(
-                        individual,
-                        position,
-                        direction,
-                        current,
-                        Intent::MoveFastTo,
-                    )
+                    let current = individual.intent.path();
+                    self.resolve_move_intent(individual, *position, current, Intent::MoveFastTo)
                 }
             },
             false => individual.intent.clone(),
@@ -361,14 +343,20 @@ impl<'a> Processor<'a> {
         }
     }
 
+    fn resolve_idle_intent(&self, individual: &Individual) -> Intent {
+        let direction = individual.gesture.direction();
+        Intent::Idle(direction)
+    }
+
     fn resolve_move_intent(
         &self,
         individual: &Individual,
-        position: &WorldVec2,
-        direction: Direction,
-        current_path: Option<(&WorldVec2, &MovePath)>,
-        make_intent: impl FnOnce(WorldVec2, MovePath) -> Intent,
+        position: WorldVec2,
+        current_path: Option<(WorldVec2, &MovePath)>,
+        intent: impl FnOnce(WorldVec2, MovePath) -> Intent,
     ) -> Intent {
+        let direction = individual.gesture.direction();
+
         // Reuse the existing path if we're already moving toward this exact
         // target — don't recompute it every tick.
         if let Some((current_target, current_path)) = current_path {
@@ -381,7 +369,7 @@ impl<'a> Processor<'a> {
         let to = (position.x, position.y);
 
         match self.world.navmesh.path(from, to) {
-            Some(path) => make_intent(position.clone(), MovePath::from(path)),
+            Some(path) => intent(position.clone(), MovePath::from(path)),
             None => {
                 tracing::debug!("no path from {:?} to {:?}, falling back to Idle", from, to);
                 Intent::Idle(direction)
