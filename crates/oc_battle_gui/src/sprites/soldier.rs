@@ -22,18 +22,18 @@ pub struct SoldierAnimations {
     side_a_walking: Handle<Animation>,
     side_a_running: Handle<Animation>,
     side_a_crawling: Handle<Animation>,
-    side_a_lying: Handle<Animation>,
-    side_a_dead_lying: Handle<Animation>,
+    side_a_prone: Handle<Animation>,
+    side_a_dead_prone: Handle<Animation>,
     #[allow(unused)]
-    side_a_hurt_lying: Handle<Animation>,
+    side_a_hurt_prone: Handle<Animation>,
     side_b_idle: Handle<Animation>,
     side_b_walking: Handle<Animation>,
     side_b_running: Handle<Animation>,
     side_b_crawling: Handle<Animation>,
-    side_b_lying: Handle<Animation>,
-    side_b_dead_lying: Handle<Animation>,
+    side_b_prone: Handle<Animation>,
+    side_b_dead_prone: Handle<Animation>,
     #[allow(unused)]
-    side_b_hurt_lying: Handle<Animation>,
+    side_b_hurt_prone: Handle<Animation>,
 }
 
 impl SoldierAnimations {
@@ -66,19 +66,19 @@ impl SoldierAnimations {
             .add_row(2)
             .set_duration(AnimationDuration::PerFrame(500))
             .build();
-        let side_a_lying = spritesheet
+        let side_a_prone = spritesheet
             .create_animation()
-            .add_row(3)
+            .add_horizontal_strip(0, 3, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
-        let side_a_dead_lying = spritesheet
+        let side_a_dead_prone = spritesheet
             .create_animation()
             .add_horizontal_strip(0, 4, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
-        let side_a_hurt_lying = spritesheet
+        let side_a_hurt_prone = spritesheet
             .create_animation()
-            .add_horizontal_strip(0, 4, 2)
+            .add_horizontal_strip(0, 5, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
 
@@ -86,9 +86,9 @@ impl SoldierAnimations {
         let side_a_walking = animations.add(side_a_walking);
         let side_a_running = animations.add(side_a_running);
         let side_a_crawling = animations.add(side_a_crawling);
-        let side_a_lying = animations.add(side_a_lying);
-        let side_a_dead_lying = animations.add(side_a_dead_lying);
-        let side_a_hurt_lying = animations.add(side_a_hurt_lying);
+        let side_a_prone = animations.add(side_a_prone);
+        let side_a_dead_prone = animations.add(side_a_dead_prone);
+        let side_a_hurt_prone = animations.add(side_a_hurt_prone);
 
         let side_b_idle = spritesheet
             .create_animation()
@@ -110,19 +110,19 @@ impl SoldierAnimations {
             .add_row(SIDE_B_START_ROW + 2)
             .set_duration(AnimationDuration::PerFrame(500))
             .build();
-        let side_b_lying = spritesheet
+        let side_b_prone = spritesheet
             .create_animation()
-            .add_row(SIDE_B_START_ROW + 3)
+            .add_horizontal_strip(0, SIDE_B_START_ROW + 3, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
-        let side_b_dead_lying = spritesheet
+        let side_b_dead_prone = spritesheet
             .create_animation()
             .add_horizontal_strip(0, SIDE_B_START_ROW + 4, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
-        let side_b_hurt_lying = spritesheet
+        let side_b_hurt_prone = spritesheet
             .create_animation()
-            .add_horizontal_strip(0, SIDE_B_START_ROW + 4, 2)
+            .add_horizontal_strip(0, SIDE_B_START_ROW + 5, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
 
@@ -130,9 +130,9 @@ impl SoldierAnimations {
         let side_b_walking = animations.add(side_b_walking);
         let side_b_running = animations.add(side_b_running);
         let side_b_crawling = animations.add(side_b_crawling);
-        let side_b_lying = animations.add(side_b_lying);
-        let side_b_dead_lying = animations.add(side_b_dead_lying);
-        let side_b_hurt_lying = animations.add(side_b_hurt_lying);
+        let side_b_prone = animations.add(side_b_prone);
+        let side_b_dead_prone = animations.add(side_b_dead_prone);
+        let side_b_hurt_prone = animations.add(side_b_hurt_prone);
 
         let sprite = spritesheet
             .with_size_hint(IMAGE_WIDTH, IMAGE_HEIGHT)
@@ -144,16 +144,16 @@ impl SoldierAnimations {
             side_a_walking,
             side_a_running,
             side_a_crawling,
-            side_a_lying,
-            side_a_dead_lying,
-            side_a_hurt_lying,
+            side_a_prone,
+            side_a_dead_prone,
+            side_a_hurt_prone,
             side_b_idle,
             side_b_walking,
             side_b_running,
             side_b_crawling,
-            side_b_lying,
-            side_b_dead_lying,
-            side_b_hurt_lying,
+            side_b_prone,
+            side_b_dead_prone,
+            side_b_hurt_prone,
         }
     }
 
@@ -189,25 +189,25 @@ impl SoldierAnimations {
         }
     }
 
-    pub fn lying(&self, side: Side) -> Handle<Animation> {
+    pub fn prone(&self, side: Side) -> Handle<Animation> {
         match side {
-            Side::A => self.side_a_lying.clone(),
-            Side::B => self.side_b_lying.clone(),
+            Side::A => self.side_a_prone.clone(),
+            Side::B => self.side_b_prone.clone(),
         }
     }
 
-    pub fn dead_lying(&self, side: Side) -> Handle<Animation> {
+    pub fn dead_prone(&self, side: Side) -> Handle<Animation> {
         match side {
-            Side::A => self.side_a_dead_lying.clone(),
-            Side::B => self.side_b_dead_lying.clone(),
+            Side::A => self.side_a_dead_prone.clone(),
+            Side::B => self.side_b_dead_prone.clone(),
         }
     }
 
     #[allow(unused)]
-    pub fn hurt_lying(&self, side: Side) -> Handle<Animation> {
+    pub fn hurt_prone(&self, side: Side) -> Handle<Animation> {
         match side {
-            Side::A => self.side_a_hurt_lying.clone(),
-            Side::B => self.side_b_hurt_lying.clone(),
+            Side::A => self.side_a_hurt_prone.clone(),
+            Side::B => self.side_b_hurt_prone.clone(),
         }
     }
 }
@@ -233,9 +233,9 @@ impl IntoAnimation<SoldierAnimations> for SoldierAnimationInfos {
                 oc_individual::Gesture::Walking(_) => animations.walking(*side),
                 oc_individual::Gesture::Running(_) => animations.running(*side),
                 oc_individual::Gesture::Crawling(_) => animations.crawling(*side),
-                oc_individual::Gesture::Lying(_) => animations.lying(*side),
+                oc_individual::Gesture::Prone(_) => animations.prone(*side),
             },
-            oc_individual::Status::Dead => animations.dead_lying(*side),
+            oc_individual::Status::Dead => animations.dead_prone(*side),
         }
     }
 }

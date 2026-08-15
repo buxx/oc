@@ -1,4 +1,5 @@
 use derive_more::{Constructor, Deref, DerefMut};
+use oc_individual::IndividualIndex;
 use oc_root::opacity::CumulatedOpacity;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -28,5 +29,9 @@ impl Visibilities {
     pub fn empty(count: usize) -> Self {
         let values = vec![vec![Visibility::default(); count]; count];
         Self { values }
+    }
+
+    pub fn for_(&self, i: IndividualIndex) -> &Vec<Visibility> {
+        &self.values[i.0 as usize]
     }
 }

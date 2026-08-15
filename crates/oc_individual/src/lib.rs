@@ -290,7 +290,7 @@ pub enum Gesture {
     Walking(Direction),
     Running(Direction),
     Crawling(Direction),
-    Lying(Direction),
+    Prone(Direction),
 }
 
 impl Gesture {
@@ -306,7 +306,7 @@ impl Gesture {
             | Gesture::Walking(direction)
             | Gesture::Running(direction)
             | Gesture::Crawling(direction)
-            | Gesture::Lying(direction) => direction.clone(),
+            | Gesture::Prone(direction) => direction.clone(),
         }
     }
 }

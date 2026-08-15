@@ -16,8 +16,9 @@ use oc_utils::{
 };
 use oc_world::World;
 
-use crate::{index::Indexes, runner};
+use crate::{index::Indexes, individual::situation::Situation, runner};
 
+pub mod situation;
 pub mod update;
 
 const POSITION_TOLERANCE: f32 = 3.0;
@@ -55,10 +56,11 @@ impl<'a> Processor<'a> {
             return updates;
         }
 
+        let situation = &self.situation();
         let distribute = self.distribute();
-        let intent = self.decide();
-        let behavior = self.act(&intent);
-        let gesture = self.gesture(&behavior);
+        let intent = self.decide(situation);
+        let behavior = self.act(situation, &intent);
+        let gesture = self.gesture(situation, &behavior);
         let forces = self.forces(individual, &behavior, &intent);
 
         tracing::trace!(
@@ -241,8 +243,20 @@ impl<'a> Processor<'a> {
         distribution
     }
 
+    /// Build object which reflect individual situation against environment
+    fn situation(&self) -> Situation {
+        let enemy_visible = self
+            .world
+            .visibilities
+            .for_(self.i)
+            .iter()
+            .any(|v| v.visible);
+
+        Situation { enemy_visible }
+    }
+
     /// Decide the individual's intent for this tick.
-    fn decide(&self) -> Intent {
+    fn decide(&self, _situation: &Situation) -> Intent {
         let individual = self.world.individual(self.i);
         let order = individual.orders.first();
 
@@ -267,7 +281,8 @@ impl<'a> Processor<'a> {
         intent
     }
 
-    fn act(&self, intent: &Intent) -> Behavior {
+    // TODO: idle -> Behavior::TakingCover when under fire
+    fn act(&self, _situation: &Situation, intent: &Intent) -> Behavior {
         let individual = self.world.individual(self.i);
 
         match intent {
@@ -286,9 +301,13 @@ impl<'a> Processor<'a> {
         }
     }
 
-    fn gesture(&self, behavior: &Behavior) -> Gesture {
+    fn gesture(&self, situation: &Situation, behavior: &Behavior) -> Gesture {
+        // FIXME BS NOW: gesture Prone when enemy visible or underfire
         match behavior {
-            Behavior::Idle(direction) => Gesture::Idle(*direction),
+            Behavior::Idle(direction) => match situation.imply_hide() {
+                true => Gesture::Prone(*direction),
+                false => Gesture::Idle(*direction),
+            },
             Behavior::Walk(direction) => Gesture::Walking(*direction),
             Behavior::Run(direction) => Gesture::Running(*direction),
         }

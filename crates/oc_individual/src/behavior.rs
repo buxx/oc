@@ -23,7 +23,7 @@ pub enum Behavior {
 impl Intent {
     pub fn path(&self) -> Option<(WorldVec2, &MovePath)> {
         match self {
-            Intent::Idle(direction) => None,
+            Intent::Idle(_) => None,
             Intent::MoveTo(target, path) | Intent::MoveFastTo(target, path) => {
                 Some((*target, path))
             }
