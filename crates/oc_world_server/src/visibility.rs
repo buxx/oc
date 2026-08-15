@@ -21,67 +21,51 @@ impl<'a> Processor<'a> {
         let mut visibilities = Vec::with_capacity(count * 2);
         let at = |xy, z| path_objects_at(w, mod_, self.world, xy, z);
 
-        for i1 in self.index.side_a_individuals() {
-            tracing::trace!(name="visibility-processor-compute", i1=?i1);
+        let mut compute_pair = |i1: &IndividualIndex, i2: &IndividualIndex| {
+            tracing::trace!(name = "visibility-processor-compute", i1=?i1);
 
             let individual1 = self.world.individual(*i1);
             if !individual1.can_lov() {
                 tracing::trace!(name="visibility-processor-compute-cant-lov", i1=?i1);
-                continue;
-            };
+                return;
+            }
 
+            let individual2 = self.world.individual(*i2);
+            if !individual2.is_lov() {
+                tracing::trace!(name="visibility-processor-compute-cant-be-lov", i1=?i1, i2=?i2);
+                return;
+            }
+
+            let p1 = individual1.position;
+            let p2 = individual2.position;
+            let lov = oc_lov::PathBuilder::new(w, at).build_(p1, p2);
+
+            let opacity = lov
+                .sections
+                .last()
+                .map(|s| s.opacity)
+                .unwrap_or(CumulatedOpacity(1.0));
+            let visible = opacity <= w.individual_visibility_until;
+
+            tracing::trace!(
+                name="visibility-processor-compute-result",
+                i1=?i1,
+                i2=?i2,
+                visible=visible,
+                opacity=?opacity
+            );
+            visibilities.push((*i1, *i2, Visibility::new(visible, opacity)));
+        };
+
+        for i1 in self.index.side_a_individuals() {
             for i2 in self.index.side_b_individuals() {
-                let individual2 = self.world.individual(*i2);
-                if !individual2.is_lov() {
-                    tracing::trace!(name="visibility-processor-compute-cant-be-lov", i1=?i1, i2=?i2);
-                    continue;
-                };
-
-                let p1 = individual1.position;
-                let p2 = individual2.position;
-                let lov = oc_lov::PathBuilder::new(w, at).build_(p1, p2);
-
-                let opacity = lov
-                    .sections
-                    .last()
-                    .map(|s| s.opacity)
-                    .unwrap_or(CumulatedOpacity(1.0));
-                let visible = opacity <= w.individual_visibility_until;
-
-                tracing::trace!(name="visibility-processor-compute-result", i1=?i1, i2=?i2, visible=visible, opacity=?opacity);
-                visibilities.push((*i1, *i2, Visibility::new(visible, opacity)));
+                compute_pair(i1, i2);
             }
         }
 
         for i1 in self.index.side_b_individuals() {
-            tracing::trace!(name="visibility-processor-compute", i1=?i1);
-
-            let individual1 = self.world.individual(*i1);
-            if !individual1.can_lov() {
-                tracing::trace!(name="visibility-processor-compute-cant-lov", i1=?i1);
-                continue;
-            };
-
             for i2 in self.index.side_a_individuals() {
-                let individual2 = self.world.individual(*i2);
-                if !individual2.is_lov() {
-                    tracing::trace!(name="visibility-processor-compute-cant-be-lov", i1=?i1, i2=?i2);
-                    continue;
-                };
-
-                let p1 = individual1.position;
-                let p2 = individual2.position;
-                let lov = oc_lov::PathBuilder::new(w, at).build_(p1, p2);
-
-                let opacity = lov
-                    .sections
-                    .last()
-                    .map(|s| s.opacity)
-                    .unwrap_or(CumulatedOpacity(1.0));
-                let visible = opacity <= w.individual_visibility_until;
-
-                tracing::trace!(name="visibility-processor-compute-result", i1=?i1, i2=?i2, visible=visible, opacity=?opacity);
-                visibilities.push((*i1, *i2, Visibility::new(visible, opacity)));
+                compute_pair(i1, i2);
             }
         }
 

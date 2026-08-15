@@ -10,9 +10,11 @@ use bevy::prelude::*;
 use anyhow::Context;
 use clap::{Parser, ValueEnum};
 #[cfg(feature = "test")]
-use oc_battle_gui::{entity::individual::Side, states::Game};
+use oc_battle_gui::{
+    entity::individual::IndividualIndex, ingame::individual::Gesture, states::Game,
+};
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
-use oc_individual::{IndividualIndex, order::Order};
+use oc_individual::order::Order;
 use oc_root::{
     WorldConfig,
     geo::{WorldVec2, WorldVec3},
@@ -163,13 +165,13 @@ fn squads(
         TestCase::Direct | TestCase::Through | TestCase::Hidden => vec![
             TestSquad::builder()
                 .position(individuals.get(0).unwrap().position.into())
-                .members(vec![IndividualIndex(0)])
+                .members(vec![oc_individual::IndividualIndex(0)])
                 .orders(vec![])
                 .build()
                 .make(),
             TestSquad::builder()
                 .position(individuals.get(1).unwrap().position.into())
-                .members(vec![IndividualIndex(1)])
+                .members(vec![oc_individual::IndividualIndex(1)])
                 .orders(vec![])
                 .build()
                 .make(),
@@ -177,13 +179,13 @@ fn squads(
         TestCase::Discover => vec![
             TestSquad::builder()
                 .position(individuals.get(0).unwrap().position.into())
-                .members(vec![IndividualIndex(0)])
+                .members(vec![oc_individual::IndividualIndex(0)])
                 .orders(vec![Order::MoveFastTo(WorldVec2::new(250., 150.))])
                 .build()
                 .make(),
             TestSquad::builder()
                 .position(individuals.get(1).unwrap().position.into())
-                .members(vec![IndividualIndex(1)])
+                .members(vec![oc_individual::IndividualIndex(1)])
                 .orders(vec![])
                 .build()
                 .make(),
@@ -234,18 +236,49 @@ fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>) {
 }
 
 #[cfg(feature = "test")]
-fn tracking(mut state: ResMut<State>, query: Query<(&Visibility, &Side)>) {
+fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Visibility, &Gesture)>) {
     let args = Args::parse();
-    let visible = query
+
+    let i1_visible = query
         .iter()
-        .filter(|(v, s)| v == &Visibility::Visible && s.0 == side::Side::B)
-        .count();
+        .any(|(i, v, _)| i.0 == oc_individual::IndividualIndex(0) && v == &Visibility::Visible);
+    let i1_gesture = query
+        .iter()
+        .filter_map(|(i, _, g)| (i.0 == oc_individual::IndividualIndex(0)).then(|| &g.0))
+        .next();
+    let i2_visible = query
+        .iter()
+        .any(|(i, v, _)| i.0 == oc_individual::IndividualIndex(1) && v == &Visibility::Visible);
+    let i2_gesture = query
+        .iter()
+        .filter_map(|(i, _, g)| (i.0 == oc_individual::IndividualIndex(1)).then(|| &g.0))
+        .next();
 
     if match args.case {
-        TestCase::Direct => visible != 0,
-        TestCase::Through => visible != 0,
-        TestCase::Hidden => visible == 0,
-        TestCase::Discover => visible != 0,
+        TestCase::Direct => {
+            i1_visible
+                && i2_visible
+                && matches!(i1_gesture, Some(&oc_individual::Gesture::Prone(_)))
+                && matches!(i2_gesture, Some(&oc_individual::Gesture::Prone(_)))
+        }
+        TestCase::Through => {
+            i1_visible
+                && i2_visible
+                && matches!(i1_gesture, Some(&oc_individual::Gesture::Prone(_)))
+                && matches!(i2_gesture, Some(&oc_individual::Gesture::Prone(_)))
+        }
+        TestCase::Hidden => {
+            i1_visible
+                && !i2_visible
+                && matches!(i1_gesture, Some(&oc_individual::Gesture::Idle(_)))
+                && matches!(i2_gesture, Some(&oc_individual::Gesture::Idle(_)))
+        }
+        TestCase::Discover => {
+            i1_visible
+                && i2_visible
+                && matches!(i1_gesture, Some(&oc_individual::Gesture::Prone(_)))
+                && matches!(i2_gesture, Some(&oc_individual::Gesture::Prone(_)))
+        }
     } {
         // FIXME: must test individuals behavior/gesture too (hide)
         state.success = Some(Instant::now());
