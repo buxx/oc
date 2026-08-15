@@ -18,7 +18,7 @@ const SIDE_B_START_ROW: usize = 6;
 #[derive(Debug, Resource)]
 pub struct SoldierAnimations {
     sprite: Sprite,
-    side_a_idle: Handle<Animation>,
+    side_a_stand_up: Handle<Animation>,
     side_a_walking: Handle<Animation>,
     side_a_running: Handle<Animation>,
     side_a_crawling: Handle<Animation>,
@@ -26,7 +26,7 @@ pub struct SoldierAnimations {
     side_a_dead_prone: Handle<Animation>,
     #[allow(unused)]
     side_a_hurt_prone: Handle<Animation>,
-    side_b_idle: Handle<Animation>,
+    side_b_stand_up: Handle<Animation>,
     side_b_walking: Handle<Animation>,
     side_b_running: Handle<Animation>,
     side_b_crawling: Handle<Animation>,
@@ -46,7 +46,7 @@ impl SoldierAnimations {
         let image = assets.load(sprites.join("soldiers.png"));
         let spritesheet = Spritesheet::new(&image, COLUMNS, ROWS);
 
-        let side_a_idle = spritesheet
+        let side_a_stand_up = spritesheet
             .create_animation()
             .add_horizontal_strip(0, 0, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
@@ -82,7 +82,7 @@ impl SoldierAnimations {
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
 
-        let side_a_idle = animations.add(side_a_idle);
+        let side_a_stand_up = animations.add(side_a_stand_up);
         let side_a_walking = animations.add(side_a_walking);
         let side_a_running = animations.add(side_a_running);
         let side_a_crawling = animations.add(side_a_crawling);
@@ -90,7 +90,7 @@ impl SoldierAnimations {
         let side_a_dead_prone = animations.add(side_a_dead_prone);
         let side_a_hurt_prone = animations.add(side_a_hurt_prone);
 
-        let side_b_idle = spritesheet
+        let side_b_stand_up = spritesheet
             .create_animation()
             .add_horizontal_strip(0, SIDE_B_START_ROW, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
@@ -126,7 +126,7 @@ impl SoldierAnimations {
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
 
-        let side_b_idle = animations.add(side_b_idle);
+        let side_b_stand_up = animations.add(side_b_stand_up);
         let side_b_walking = animations.add(side_b_walking);
         let side_b_running = animations.add(side_b_running);
         let side_b_crawling = animations.add(side_b_crawling);
@@ -140,14 +140,14 @@ impl SoldierAnimations {
 
         Self {
             sprite,
-            side_a_idle,
+            side_a_stand_up,
             side_a_walking,
             side_a_running,
             side_a_crawling,
             side_a_prone,
             side_a_dead_prone,
             side_a_hurt_prone,
-            side_b_idle,
+            side_b_stand_up,
             side_b_walking,
             side_b_running,
             side_b_crawling,
@@ -161,10 +161,10 @@ impl SoldierAnimations {
         self.sprite.clone()
     }
 
-    pub fn idle(&self, side: Side) -> Handle<Animation> {
+    pub fn stand_up(&self, side: Side) -> Handle<Animation> {
         match side {
-            Side::A => self.side_a_idle.clone(),
-            Side::B => self.side_b_idle.clone(),
+            Side::A => self.side_a_stand_up.clone(),
+            Side::B => self.side_b_stand_up.clone(),
         }
     }
 
@@ -229,7 +229,7 @@ impl IntoAnimation<SoldierAnimations> for SoldierAnimationInfos {
 
         match status {
             oc_individual::Status::Operational => match gesture {
-                oc_individual::Gesture::StandUp(_) => animations.idle(*side),
+                oc_individual::Gesture::StandUp(_) => animations.stand_up(*side),
                 oc_individual::Gesture::Walking(_) => animations.walking(*side),
                 oc_individual::Gesture::Running(_) => animations.running(*side),
                 oc_individual::Gesture::Crawling(_) => animations.crawling(*side),

@@ -306,7 +306,6 @@ impl Status {
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Gesture {
-    /// FIXME BS NOW: rename StandUp
     StandUp(Direction),
     Walking(Direction),
     Running(Direction),
