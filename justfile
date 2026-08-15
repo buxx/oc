@@ -154,6 +154,7 @@ test-e2e:
     just test-visibilities-direct
     just test-visibilities-through
     just test-visibilities-hidden
+    just test-visibilities-discover
 
 test-projectiles-obstacles-one-wall:
     RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-against-wall --test
@@ -220,6 +221,9 @@ test-visibilities-through:
 
 test-visibilities-hidden:
     RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- hidden --test
+
+test-visibilities-discover:
+    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- discover --test
 
 test-all:
     just test
