@@ -87,6 +87,7 @@ impl Physic for Tile {
         let exceedance = nature.z.0 * w.geo_pixels_per_meters;
 
         vec![
+            // Tile "ground". Always not traversable.
             (
                 Volume::Cube {
                     x: ref_.x,
@@ -94,10 +95,11 @@ impl Physic for Tile {
                     z: -DEPTH,
                     width: w.geo_pixels_per_tile as f32,
                     height: w.geo_pixels_per_tile as f32,
-                    depth: DEPTH + ref_.z + exceedance,
+                    depth: DEPTH + ref_.z,
                 },
                 Traversability::none(),
             ),
+            // Tile nature (hedge part for example)
             (
                 Volume::Cube {
                     x: ref_.x,
