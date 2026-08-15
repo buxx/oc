@@ -16,6 +16,7 @@ use crate::ingame;
 use crate::ingame::draw::Z_PROJECTILE;
 use crate::ingame::input::individual::UpdateProjectilePhysicsEvent;
 use crate::ingame::input::projectile::InsertProjectileEvent;
+use crate::ingame::physics::Direction;
 use crate::ingame::region::ForgottenRegion;
 use crate::states::{AppState, GameConfig};
 
@@ -57,6 +58,13 @@ pub fn on_insert_projectile(
     let position = projectile.1.position();
     let position_ = ScreenVec2::from_(position, &g.w);
     let line = Polyline2d::new(vec![position_.into()]);
+    let volumes = projectile
+        .1
+        .volumes(position, &g.w, &g.mod_)
+        .clone()
+        .into_iter()
+        .map(|(p, v, _)| (p, v))
+        .collect::<Vec<_>>();
 
     let entity = commands
         .spawn((
@@ -66,7 +74,8 @@ pub fn on_insert_projectile(
             Region(projectile.1.region()),
             Forces(projectile.1.forces(&g.w).clone()),
             Material_(Some(oc_root::material::MaterialKind::Projectile)),
-            Volumes(projectile.1.volumes(position, &g.w, &g.mod_).clone()),
+            Volumes(volumes),
+            Direction(oc_utils::d2::Direction::NORTH),
             Mesh2d(meshes.add(line)),
             MeshMaterial2d(materials.add(Color::from(RED))),
             Transform::from_xyz(position_.x, position_.y, Z_PROJECTILE),

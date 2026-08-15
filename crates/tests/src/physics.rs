@@ -10,7 +10,7 @@ mod test {
         WorldConfig,
         physics::{Meters, MetersSeconds},
     };
-    use oc_utils::d2::Xy;
+    use oc_utils::d2::{Direction, Xy};
     use oc_world::tile::Tile;
     use rstest::rstest;
     use serde::Serialize;
@@ -49,7 +49,7 @@ mod test {
             ref_: WorldVec3,
             _: &WorldConfig,
             _: &Mod,
-        ) -> Vec<(Volume, Traversability)> {
+        ) -> Vec<(Volume, Traversability, Direction)> {
             vec![(
                 Volume::Point {
                     x: ref_.x,
@@ -57,6 +57,7 @@ mod test {
                     z: ref_.z,
                 },
                 Traversability::all(),
+                Direction::NORTH,
             )]
         }
     }

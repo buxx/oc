@@ -42,6 +42,7 @@ enum TestCase {
     DifferentTile,
     Above,
     AboveProne,
+    NearRotatedProne,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -109,7 +110,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     assert!(collision.is_some());
                     assert!(dead.is_some());
                 }
-                TestCase::Above | TestCase::AboveProne => {
+                TestCase::Above | TestCase::AboveProne | TestCase::NearRotatedProne => {
                     assert!(collision.is_none());
                     assert!(dead.is_none());
                 }
@@ -136,6 +137,7 @@ fn individuals(
         TestCase::DifferentTile => vec![[149.0, 149.0, 0.0]],
         TestCase::Above => vec![[151.0, 151.0, 0.0]],
         TestCase::AboveProne => vec![[151.0, 151.0, 0.0]],
+        TestCase::NearRotatedProne => vec![[151.0, 151.0, 0.0]],
     };
 
     // TODO: avoid repetition with main()
@@ -166,6 +168,7 @@ fn individuals(
             Order::Idle
         }
         TestCase::AboveProne => Order::Hide(Direction::NORTH),
+        TestCase::NearRotatedProne => Order::Hide(Direction::EST),
     };
     let squads = positions
         .iter()
@@ -196,7 +199,7 @@ fn install(app: &mut bevy::app::App) {
                 Duration::from_secs(1),
                 Duration::from_secs(10),
             ),
-            TestCase::Above | TestCase::AboveProne => (
+            TestCase::Above | TestCase::AboveProne | TestCase::NearRotatedProne => (
                 oc_individual::Status::Operational,
                 Duration::from_secs(5),
                 Duration::from_secs(10),
@@ -271,7 +274,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
         .find(|s| s.name() == "Single")
         .unwrap();
 
-    let translations = match args.case {
+    let projectiles = match args.case {
         TestCase::SamePixel
         | TestCase::InVolume
         | TestCase::DifferentTile
@@ -279,9 +282,10 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
             vec![([220.0, 151.0, 5.0], [100.0, 151.0, 5.0])]
         }
         TestCase::Above => vec![([220.0, 151.0, 15.0], [100.0, 151.0, 15.0])],
+        TestCase::NearRotatedProne => vec![([220.0, 152.0, 1.0], [100.0, 152.0, 1.0])],
     };
 
-    for (start, end) in translations {
+    for (start, end) in projectiles {
         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(
             SpawnProjectile::new(
                 weapon1.index(),

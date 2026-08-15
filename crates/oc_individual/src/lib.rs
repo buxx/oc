@@ -39,9 +39,9 @@ pub const INDIVIDUAL_STAND_UP_VOLUME_HEIGHT: Meters = Meters(0.8);
 pub const INDIVIDUAL_STAND_UP_VOLUME_DEPTH: Meters = Meters(1.8);
 
 // FIXME BS NOW: oh boudiou, deux choses changent avec le soldat allongé:
-// - Son volume dépend de sa direction
+// - Son volume dépend de sa direction FAIT
 // - Les indexation de quel tile sont concerné dépendent de son orientation et de sa gesture
-// FIXME BS NOW: write e2e test about direction and projectile
+// FIXME BS NOW: write e2e test about direction and projectile FAIT
 pub const INDIVIDUAL_PRONE_VOLUME_WIDTH: Meters = Meters(0.8);
 pub const INDIVIDUAL_PRONE_VOLUME_HEIGHT: Meters = Meters(1.8);
 pub const INDIVIDUAL_PRONE_VOLUME_DEPTH: Meters = Meters(0.8);
@@ -213,7 +213,8 @@ impl Physic for Individual {
         ref_: WorldVec3,
         w: &WorldConfig,
         _mod_: &Mod,
-    ) -> Vec<(Volume, Traversability)> {
+    ) -> Vec<(Volume, Traversability, Direction)> {
+        let direction = self.gesture.direction();
         let cube = match self.gesture {
             Gesture::StandUp(_) | Gesture::Walking(_) | Gesture::Running(_) => Volume::Cube {
                 x: ref_.x,
@@ -223,7 +224,6 @@ impl Physic for Individual {
                 height: INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
                 depth: INDIVIDUAL_STAND_UP_VOLUME_DEPTH.pixels(w),
             },
-            // FIXME BS NOW: see constant fixme
             Gesture::Crawling(_direction) | Gesture::Prone(_direction) => Volume::Cube {
                 x: ref_.x,
                 y: ref_.y,
@@ -239,6 +239,7 @@ impl Physic for Individual {
                 individual: true, // TODO: prevent individual collisions ? Will need enhance physic model ...
                 projectile: false,
             },
+            direction,
         )]
     }
 }

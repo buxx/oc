@@ -6150,6 +6150,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "derive_more",
+ "glam 0.33.2",
  "line_drawing",
  "oc_geo",
  "oc_mod",

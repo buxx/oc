@@ -4,7 +4,7 @@ use anyhow::Context;
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
 use oc_battle_gui::{ingame::FirstIngameEnter, network::output::ToServerEvent, states::Game};
-use oc_examples::{run, snapshot::SnapshotBuilder};
+use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_root::{WorldConfig, physics::Meters};
@@ -34,6 +34,8 @@ enum TestCase {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    logging::setup_logging()?;
+
     let args = Args::parse();
     if args.test {
         #[cfg(not(feature = "test"))]

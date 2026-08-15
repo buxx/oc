@@ -1,8 +1,8 @@
 use crate::{collision::Material, volume::Volume};
 use line_drawing::Bresenham3d;
 use oc_mod::{Mod, nature::Traversability};
-use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec3, physics::MetersSeconds};
-use oc_utils::d2::Xy;
+use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec3, physics::MetersSeconds, y::V};
+use oc_utils::d2::{Direction, Xy};
 use rkyv::Archive;
 
 pub mod collision;
@@ -22,7 +22,7 @@ pub trait Physic: Material {
         ref_: WorldVec3,
         w: &WorldConfig,
         mod_: &Mod,
-    ) -> Vec<(Volume, Traversability)>;
+    ) -> Vec<(Volume, Traversability, Direction)>;
 }
 
 pub trait UpdatePhysic: Physic + Material {
@@ -137,9 +137,9 @@ where
                         // let [other_x, other_y, other_z] = other.position(w).into();
                         // let position2 = [other_x, other_y, other_z].into();
 
-                        for (volume1, traversability1) in &volumes {
+                        for (volume1, traversability1, direction1) in &volumes {
                             let volumes2 = other.volumes(other_position, w, mod_);
-                            'other_volumes: for (volume2, traversability2) in volumes2 {
+                            'other_volumes: for (volume2, traversability2, direction2) in volumes2 {
                                 // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
                                 tracing::trace!(name="physics-step-translation-prohibe-test", origin=origin, i=?i, traversability1=?traversability1, traversability2=?traversability2);
                                 if kind.map(|kind| traversability2.allow(kind)).unwrap_or(true) {
@@ -148,7 +148,11 @@ where
                                 }
 
                                 tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?xy, o=?o, op=?other_position, volume1=?volume1, volume2=?volume2);
-                                if volume1.collide(&volume2) {
+                                if volume1.collide(
+                                    direction1.quat(V::Server),
+                                    &volume2,
+                                    direction2.quat(V::Server),
+                                ) {
                                     tracing::trace!(name="physics-step-translation-collide", origin=origin, i=?i, p=?position, xy=?xy);
 
                                     let left = i.clone().into();
@@ -214,7 +218,7 @@ mod tests {
             ref_: WorldVec3,
             _: &WorldConfig,
             _: &Mod,
-        ) -> Vec<(Volume, Traversability)> {
+        ) -> Vec<(Volume, Traversability, Direction)> {
             vec![(
                 Volume::Point {
                     x: ref_.x,
@@ -222,6 +226,7 @@ mod tests {
                     z: ref_.z,
                 },
                 Traversability::all(),
+                Direction::NORTH,
             )]
         }
     }
@@ -249,7 +254,7 @@ mod tests {
             ref_: WorldVec3,
             w: &WorldConfig,
             _: &Mod,
-        ) -> Vec<(Volume, Traversability)> {
+        ) -> Vec<(Volume, Traversability, Direction)> {
             vec![(
                 Volume::Cube {
                     x: ref_.x,
@@ -260,6 +265,7 @@ mod tests {
                     depth: f32::MAX,
                 },
                 self.1.clone(),
+                Direction::NORTH,
             )]
         }
     }
@@ -287,7 +293,7 @@ mod tests {
             ref_: WorldVec3,
             _w: &WorldConfig,
             _: &Mod,
-        ) -> Vec<(Volume, Traversability)> {
+        ) -> Vec<(Volume, Traversability, Direction)> {
             vec![(
                 Volume::Cube {
                     x: ref_.x,
@@ -298,6 +304,7 @@ mod tests {
                     depth: 10.,
                 },
                 Traversability::none(),
+                Direction::NORTH,
             )]
         }
     }

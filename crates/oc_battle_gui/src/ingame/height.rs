@@ -9,7 +9,7 @@ use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_physics::Physic;
 use oc_physics::volume::Volume;
-use oc_root::y::Y;
+use oc_root::y::{V, Y};
 use oc_root::{Wcfg, WcfgFrom, WcfgInto, WorldConfig};
 use oc_utils::d2::Xy;
 use oc_utils::{let_ok, let_some};
@@ -306,7 +306,8 @@ fn on_spawn(
                         let y = y.to_gui_y(&g.w);
                         let z = tile.z_pixels(&g.w);
                         let ref_ = [x, y, z].into();
-                        for (volume, _) in individual.volumes(ref_, &g.w, &g.mod_) {
+                        let rotation = individual.gesture.rotation(V::Gui);
+                        for (volume, _, _) in individual.volumes(ref_, &g.w, &g.mod_) {
                             let alpha = 1.0;
                             if let Volume::Cube {
                                 x,
@@ -321,7 +322,7 @@ fn on_spawn(
                                 let y_length = height;
                                 let z_length = depth;
                                 let x = x as f32;
-                                let y = (y as f32).to_gui_y(&g.w);
+                                let y = y as f32;
                                 tracing::trace!(
                                     name = "ingame-height-on-spawn-individuals-individual",
                                     x_length = x_length,
@@ -338,7 +339,7 @@ fn on_spawn(
                                         alpha_mode: AlphaMode::AlphaToCoverage,
                                         ..default()
                                     })),
-                                    Transform::from_xyz(x, y, z),
+                                    Transform::from_xyz(x, y, z).with_rotation(rotation),
                                 ));
                             }
                         }

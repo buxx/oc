@@ -1,3 +1,4 @@
+use glam::{Quat, Vec3};
 use rkyv::{Archive, Deserialize, Serialize};
 
 // WARNING: this module has been AI generated
@@ -54,7 +55,14 @@ impl Volume {
         self
     }
 
-    pub fn collide(&self, other: &Self) -> bool {
+    /// Collision test with per-volume rotation.
+    ///
+    /// `self_rotation` / `other_rotation` rotate each volume about its own
+    /// center (for `Cube`, `x/y/z` is treated as the min corner and the
+    /// pivot is `pos + size / 2`; for `Point`, rotation has no effect since
+    /// a dimensionless point can't change shape/position by spinning about
+    /// itself).
+    pub fn collide(&self, self_rotation: Quat, other: &Self, other_rotation: Quat) -> bool {
         match (self, other) {
             (
                 Volume::Point {
@@ -67,45 +75,53 @@ impl Volume {
                     y: y2,
                     z: z2,
                 },
-            ) => x1 == x2 && y1 == y2 && z1 == z2,
+            ) => {
+                // Rotation is irrelevant for point-vs-point: a point has no
+                // extent, so spinning it about itself doesn't move it.
+                x1 == x2 && y1 == y2 && z1 == z2
+            }
 
             (
                 Volume::Point {
-                    x: x1,
-                    y: y1,
-                    z: z1,
+                    x: px,
+                    y: py,
+                    z: pz,
                 },
                 Volume::Cube {
-                    x: x2,
-                    y: y2,
-                    z: z2,
+                    x: cx,
+                    y: cy,
+                    z: cz,
                     width,
                     height,
                     depth,
                 },
-            )
-            | (
+            ) => point_in_rotated_cube(
+                Vec3::new(*px, *py, *pz),
+                Vec3::new(*cx, *cy, *cz),
+                Vec3::new(*width, *height, *depth),
+                other_rotation,
+            ),
+
+            (
                 Volume::Cube {
-                    x: x2,
-                    y: y2,
-                    z: z2,
+                    x: cx,
+                    y: cy,
+                    z: cz,
                     width,
                     height,
                     depth,
                 },
                 Volume::Point {
-                    x: x1,
-                    y: y1,
-                    z: z1,
+                    x: px,
+                    y: py,
+                    z: pz,
                 },
-            ) => {
-                x1 >= x2
-                    && *x1 <= x2 + width
-                    && y1 >= y2
-                    && *y1 <= y2 + height
-                    && z1 >= z2
-                    && *z1 <= z2 + depth
-            }
+            ) => point_in_rotated_cube(
+                Vec3::new(*px, *py, *pz),
+                Vec3::new(*cx, *cy, *cz),
+                Vec3::new(*width, *height, *depth),
+                self_rotation,
+            ),
 
             (
                 Volume::Cube {
@@ -124,16 +140,110 @@ impl Volume {
                     height: h2,
                     depth: d2,
                 },
-            ) => {
-                *x1 < x2 + w2
-                    && x1 + w1 > *x2
-                    && *y1 < y2 + h2
-                    && y1 + h1 > *y2
-                    && *z1 < z2 + d2
-                    && z1 + d1 > *z2
+            ) => obb_collide(
+                Vec3::new(*x1, *y1, *z1),
+                Vec3::new(*w1, *h1, *d1),
+                self_rotation,
+                Vec3::new(*x2, *y2, *z2),
+                Vec3::new(*w2, *h2, *d2),
+                other_rotation,
+            ),
+        }
+    }
+}
+
+/// Converts a min-corner + size cube into (center, half_extents).
+fn cube_center_and_half_extents(pos: Vec3, size: Vec3) -> (Vec3, Vec3) {
+    let half = size * 0.5;
+    (pos + half, half)
+}
+
+/// Tests whether `point` lies inside a cube of `size` positioned at
+/// min-corner `cube_pos` and rotated by `cube_rotation` about its own center.
+fn point_in_rotated_cube(
+    point: Vec3,
+    cube_pos: Vec3,
+    cube_size: Vec3,
+    cube_rotation: Quat,
+) -> bool {
+    let (center, half_extents) = cube_center_and_half_extents(cube_pos, cube_size);
+
+    // Move into the cube's local, unrotated space.
+    let local_point = cube_rotation.inverse() * (point - center);
+
+    local_point.x.abs() <= half_extents.x
+        && local_point.y.abs() <= half_extents.y
+        && local_point.z.abs() <= half_extents.z
+}
+
+/// Oriented bounding box collision via the Separating Axis Theorem (SAT).
+///
+/// Tests the 3 face normals of each box plus the 9 cross products of their
+/// edge axes (15 axes total, the standard minimal set for 3D OBB-OBB SAT).
+fn obb_collide(
+    pos_a: Vec3,
+    size_a: Vec3,
+    rot_a: Quat,
+    pos_b: Vec3,
+    size_b: Vec3,
+    rot_b: Quat,
+) -> bool {
+    let (center_a, half_a) = cube_center_and_half_extents(pos_a, size_a);
+    let (center_b, half_b) = cube_center_and_half_extents(pos_b, size_b);
+
+    let axes_a = [rot_a * Vec3::X, rot_a * Vec3::Y, rot_a * Vec3::Z];
+    let axes_b = [rot_b * Vec3::X, rot_b * Vec3::Y, rot_b * Vec3::Z];
+
+    let translation = center_b - center_a;
+
+    let mut axes: Vec<Vec3> = Vec::with_capacity(15);
+    axes.extend_from_slice(&axes_a);
+    axes.extend_from_slice(&axes_b);
+
+    for a in &axes_a {
+        for b in &axes_b {
+            let cross = a.cross(*b);
+            // Skip near-parallel edge pairs; their cross product is ~zero
+            // and doesn't give a valid axis (already covered by face tests).
+            if cross.length_squared() > 1e-6 {
+                axes.push(cross.normalize());
             }
         }
     }
+
+    for axis in axes {
+        if is_separating_axis(axis, translation, &axes_a, half_a, &axes_b, half_b) {
+            return false;
+        }
+    }
+
+    true
+}
+
+// Small tolerance so that boxes which are exactly face-to-face (or off by
+// float rounding) are treated as touching-but-not-overlapping, matching the
+// original strict `<`/`>` AABB semantics (touching == no collision).
+const SAT_EPSILON: f32 = 1e-5;
+
+fn is_separating_axis(
+    axis: Vec3,
+    translation: Vec3,
+    axes_a: &[Vec3; 3],
+    half_a: Vec3,
+    axes_b: &[Vec3; 3],
+    half_b: Vec3,
+) -> bool {
+    let proj_translation = translation.dot(axis).abs();
+
+    let proj_a = half_a.x * axes_a[0].dot(axis).abs()
+        + half_a.y * axes_a[1].dot(axis).abs()
+        + half_a.z * axes_a[2].dot(axis).abs();
+
+    let proj_b = half_b.x * axes_b[0].dot(axis).abs()
+        + half_b.y * axes_b[1].dot(axis).abs()
+        + half_b.z * axes_b[2].dot(axis).abs();
+
+    proj_translation >= proj_a + proj_b - SAT_EPSILON
 }
 
 #[cfg(test)]
@@ -153,7 +263,7 @@ mod tests {
             y: 1.0,
             z: 1.0,
         };
-        assert!(a.collide(&b));
+        assert!(a.collide(Quat::IDENTITY, &b, Quat::IDENTITY));
     }
 
     #[test]
@@ -168,7 +278,7 @@ mod tests {
             y: 2.0,
             z: 1.0,
         };
-        assert!(!a.collide(&b));
+        assert!(!a.collide(Quat::IDENTITY, &b, Quat::IDENTITY));
     }
 
     // Point vs Cube
@@ -187,7 +297,7 @@ mod tests {
             height: 5.0,
             depth: 5.0,
         };
-        assert!(p.collide(&c));
+        assert!(p.collide(Quat::IDENTITY, &c, Quat::IDENTITY));
     }
 
     #[test]
@@ -205,7 +315,7 @@ mod tests {
             height: 5.0,
             depth: 5.0,
         };
-        assert!(!p.collide(&c));
+        assert!(!p.collide(Quat::IDENTITY, &c, Quat::IDENTITY));
     }
 
     #[test]
@@ -223,7 +333,7 @@ mod tests {
             height: 5.0,
             depth: 5.0,
         };
-        assert!(!p.collide(&c));
+        assert!(!p.collide(Quat::IDENTITY, &c, Quat::IDENTITY));
     }
 
     #[test]
@@ -241,7 +351,7 @@ mod tests {
             height: 5.0,
             depth: 5.0,
         };
-        assert!(p.collide(&c));
+        assert!(p.collide(Quat::IDENTITY, &c, Quat::IDENTITY));
     }
 
     #[test]
@@ -259,7 +369,7 @@ mod tests {
             height: 5.0,
             depth: 5.0,
         };
-        assert!(p.collide(&c));
+        assert!(p.collide(Quat::IDENTITY, &c, Quat::IDENTITY));
     }
 
     // Symmetry: Cube vs Point should mirror Point vs Cube
@@ -278,7 +388,10 @@ mod tests {
             height: 5.0,
             depth: 5.0,
         };
-        assert_eq!(p.collide(&c), c.collide(&p));
+        assert_eq!(
+            p.collide(Quat::IDENTITY, &c, Quat::IDENTITY),
+            c.collide(Quat::IDENTITY, &p, Quat::IDENTITY)
+        );
     }
 
     // Cube vs Cube
@@ -300,7 +413,7 @@ mod tests {
             height: 5.0,
             depth: 5.0,
         };
-        assert!(a.collide(&b));
+        assert!(a.collide(Quat::IDENTITY, &b, Quat::IDENTITY));
     }
 
     #[test]
@@ -321,7 +434,7 @@ mod tests {
             height: 5.0,
             depth: 5.0,
         };
-        assert!(!a.collide(&b));
+        assert!(!a.collide(Quat::IDENTITY, &b, Quat::IDENTITY));
     }
 
     #[test]
@@ -342,7 +455,7 @@ mod tests {
             height: 5.0,
             depth: 5.0,
         };
-        assert!(!a.collide(&b));
+        assert!(!a.collide(Quat::IDENTITY, &b, Quat::IDENTITY));
     }
 
     #[test]
@@ -363,7 +476,7 @@ mod tests {
             height: 5.0,
             depth: 5.0,
         };
-        assert!(!a.collide(&b));
+        assert!(!a.collide(Quat::IDENTITY, &b, Quat::IDENTITY));
     }
 
     #[test]
@@ -384,7 +497,7 @@ mod tests {
             height: 3.0,
             depth: 3.0,
         };
-        assert!(outer.collide(&inner));
+        assert!(outer.collide(Quat::IDENTITY, &inner, Quat::IDENTITY));
     }
 
     #[test]
@@ -405,7 +518,7 @@ mod tests {
             height: 5.0,
             depth: 5.0,
         };
-        assert!(a.collide(&b));
+        assert!(a.collide(Quat::IDENTITY, &b, Quat::IDENTITY));
     }
 
     #[test]
@@ -426,6 +539,9 @@ mod tests {
             height: 5.0,
             depth: 5.0,
         };
-        assert_eq!(a.collide(&b), b.collide(&a));
+        assert_eq!(
+            a.collide(Quat::IDENTITY, &b, Quat::IDENTITY),
+            b.collide(Quat::IDENTITY, &a, Quat::IDENTITY)
+        );
     }
 }

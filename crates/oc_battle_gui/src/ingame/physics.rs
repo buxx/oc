@@ -15,6 +15,9 @@ use crate::{ingame::projectile::ForgotProjectile, states::GameConfig, world::Wor
 #[derive(Debug, Clone, Event)]
 pub struct PhysicEvent(oc_physics::Event<ObjectId>);
 
+#[derive(Debug, Deref, Component)]
+pub struct Direction(pub oc_utils::d2::Direction);
+
 pub fn physics_step<I, C>(
     mut commands: Commands,
     g: Res<GameConfig>,
@@ -25,6 +28,7 @@ pub fn physics_step<I, C>(
         &mut Forces,
         &Material_,
         &Volumes,
+        &Direction,
         &mut Transform,
     )>,
     index: Res<World>,
@@ -37,7 +41,7 @@ pub fn physics_step<I, C>(
     // tracing::trace!(name = "projectile-physics-start");
     let delta = time.delta_secs() / 1.;
 
-    for (object, mut position, mut forces, material, volume, mut transform) in query {
+    for (object, mut position, mut forces, material, volume, direction, mut transform) in query {
         let i = object.as_ref();
         tracing::trace!(name = "projectile-physics-object", i=?i);
 
@@ -52,6 +56,7 @@ pub fn physics_step<I, C>(
         let corps = Corps::new(
             i.clone(),
             position.0,
+            direction.0,
             forces.0.clone(),
             material.0,
             volume.0.clone(),

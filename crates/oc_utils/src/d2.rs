@@ -2,7 +2,7 @@ use std::f32::consts::FRAC_PI_2;
 
 use derive_more::Constructor;
 use geo::{Contains, Triangle, coord};
-use glam::{Vec2, Vec3};
+use glam::{Quat, Vec2, Vec3};
 use oc_root::{
     WcfgFrom,
     geo::{WorldVec2, WorldVec3},
@@ -284,6 +284,17 @@ impl Direction {
             V::Gui => -self.y,
         };
         Angle(y.atan2(self.x) - std::f32::consts::FRAC_PI_2)
+    }
+
+    #[cfg(feature = "bevy")]
+    pub fn bquat(&self, v: V) -> bevy::prelude::Quat {
+        let angle = self.angle(v);
+        bevy::prelude::Quat::from_rotation_z(angle.0)
+    }
+
+    pub fn quat(&self, v: V) -> Quat {
+        let angle = self.angle(v);
+        Quat::from_rotation_z(angle.0)
     }
 }
 

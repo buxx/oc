@@ -8,7 +8,7 @@ use oc_geo::{
 use oc_mod::{Mod, nature::Traversability};
 use oc_physics::{Force, Physic, UpdatePhysic, collision::Material, volume::Volume};
 use oc_root::{WorldConfig, geo::WorldVec3, ids::Ids, material::MaterialKind};
-use oc_utils::collections::WithIds;
+use oc_utils::{collections::WithIds, d2::Direction};
 use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::bullet::Bullet;
@@ -101,7 +101,7 @@ impl Physic for Projectile {
         ref_: WorldVec3,
         _: &WorldConfig,
         _mod_: &Mod,
-    ) -> Vec<(Volume, Traversability)> {
+    ) -> Vec<(Volume, Traversability, Direction)> {
         vec![(
             Volume::Point {
                 x: ref_.x,
@@ -109,6 +109,7 @@ impl Physic for Projectile {
                 z: ref_.z,
             },
             Traversability::all(),
+            Direction::NORTH,
         )]
     }
 }

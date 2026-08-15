@@ -8,6 +8,7 @@ use oc_mod::nature::Traversability;
 use oc_mod::{Mod, nature::NatureIndex};
 use oc_physics::{Force, Physic, collision::Material, volume::Volume};
 use oc_root::{WcfgInto, WorldConfig, geo::WorldVec3, material::MaterialKind};
+use oc_utils::d2::Direction;
 
 use crate::{World, navmesh::Walls};
 use derive_more::Constructor;
@@ -81,7 +82,7 @@ impl Physic for Tile {
         ref_: WorldVec3,
         w: &WorldConfig,
         mod_: &Mod,
-    ) -> Vec<(Volume, Traversability)> {
+    ) -> Vec<(Volume, Traversability, Direction)> {
         tracing::trace!(name = "tile-volume", ref_ = ?ref_);
         let nature = mod_.nature(self.nature);
         let exceedance = nature.z.0 * w.geo_pixels_per_meters;
@@ -98,6 +99,7 @@ impl Physic for Tile {
                     depth: DEPTH + ref_.z,
                 },
                 Traversability::none(),
+                Direction::NORTH,
             ),
             // Tile nature (hedge part for example)
             (
@@ -111,6 +113,7 @@ impl Physic for Tile {
                 },
                 // TODO: perf test with reference ?
                 nature.traversability.clone(),
+                Direction::NORTH,
             ),
         ]
     }

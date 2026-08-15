@@ -58,6 +58,7 @@ enum TestCase {
 
 fn main() -> Result<(), anyhow::Error> {
     logging::setup_logging()?;
+
     let args = Args::parse();
     if args.test {
         #[cfg(not(feature = "test"))]

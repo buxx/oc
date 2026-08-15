@@ -21,6 +21,7 @@ use crate::ingame::input::individual::{
 };
 use crate::ingame::input::left_click::LeftClickModeType;
 use crate::ingame::input::left_click::select::Select;
+use crate::ingame::physics::Direction;
 use crate::ingame::region::ForgottenRegion;
 use crate::ingame::squad::menu::contextual::{
     PrepareOpenSquadContextualMenu, on_prepare_open_squad_contextual_menu,
@@ -137,6 +138,13 @@ pub fn on_insert_individual(
         true => Visibility::Visible,
         false => Visibility::Hidden,
     };
+    let volumes = individual
+        .1
+        .volumes(position, &g.w, &g.mod_)
+        .clone()
+        .into_iter()
+        .map(|(p, v, _)| (p, v))
+        .collect::<Vec<_>>();
 
     let entity = commands
         .spawn((
@@ -153,7 +161,8 @@ pub fn on_insert_individual(
                 Status(individual.1.status),
                 Orders(individual.1.orders.clone()),
                 Gesture(individual.1.gesture.clone()),
-                Volumes(individual.1.volumes(position, &g.w, &g.mod_).clone()),
+                Direction(individual.1.gesture.direction()),
+                Volumes(volumes),
                 Material_(individual.1.kind()),
             ),
             // Visual (sprites, animation, etc)
@@ -370,38 +379,48 @@ impl selected::Selection for Selection {
 
 fn on_set_gesture_event(
     gesture: On<SetGestureEvent>,
-    mut query: Query<&mut Gesture>,
+    mut query: Query<(&mut Gesture, &mut Direction)>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut world: ResMut<crate::world::World>,
 ) {
     let_some!(entity = state.get(&gesture.0), return);
-    let_ok!(mut gesture_ = query.get_mut(*entity), return);
+    let_ok!((mut gesture_, mut direction) = query.get_mut(*entity), return);
+    let_some!(individual = world.get_individual_mut(gesture.0), return);
     tracing::trace!(name = "update-individual-gesture", i=?gesture.0, gesture=?gesture.1);
 
     gesture_.0 = gesture.1.clone();
+    direction.0 = gesture.1.direction();
+    individual.gesture = gesture.1.clone();
 }
 
 fn on_set_intent_event(
     intent: On<SetIntentEvent>,
     mut query: Query<&mut Intent>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut world: ResMut<crate::world::World>,
 ) {
     let_some!(entity = state.get(&intent.0), return);
     let_ok!(mut intent_ = query.get_mut(*entity), return);
+    let_some!(individual = world.get_individual_mut(intent.0), return);
     tracing::trace!(name = "update-individual-intent", i=?intent.0, intent=?intent.1);
 
     intent_.0 = intent.1.clone();
+    individual.intent = intent.1.clone();
 }
 
 fn on_set_behavior_event(
     behavior: On<SetBehaviorEvent>,
     mut query: Query<&mut Behavior>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut world: ResMut<crate::world::World>,
 ) {
     let_some!(entity = state.get(&behavior.0), return);
     let_ok!(mut behavior_ = query.get_mut(*entity), return);
+    let_some!(individual = world.get_individual_mut(behavior.0), return);
     tracing::trace!(name = "update-individual-behavior", i=?behavior.0, behavior=?behavior.1);
 
     behavior_.0 = behavior.1.clone();
+    individual.behavior = behavior.1.clone();
 }
 
 fn on_move_step_accomplished_event(
@@ -473,12 +492,15 @@ fn on_set_status_event(
     status: On<SetStatusEvent>,
     mut query: Query<&mut Status>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut world: ResMut<crate::world::World>,
 ) {
     let_some!(entity = state.get(&status.0), return);
     let_ok!(mut status_ = query.get_mut(*entity), return);
+    let_some!(individual = world.get_individual_mut(status.0), return);
     tracing::trace!(name = "update-individual-set-status", i=?status.0, status=?status.1);
 
     status_.0 = status.1;
+    individual.status = status.1;
 }
 
 // TODO: should be automatized (macro? derive ?)

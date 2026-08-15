@@ -65,8 +65,8 @@ enum TestCase {
 
 fn main() -> Result<(), anyhow::Error> {
     logging::setup_logging()?;
-    let args = Args::parse();
 
+    let args = Args::parse();
     let mod_ = PathBuf::from(MOD);
     let mod__ = oc_mod::Mod::load(&mod_, None)?;
     let map = PathBuf::from("examples/meadow1");

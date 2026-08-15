@@ -42,6 +42,7 @@ const MSAO_POS2: [f32; 2] = [250., 415.];
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
+
     let args = Args::parse();
 
     #[cfg(not(feature = "test"))]
