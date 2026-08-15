@@ -30,6 +30,7 @@ enum TestCase {
     MultipleAgainstWall,
     OneAgainstHill,
     MultipleAgainstHill,
+    OneTraverseVolumes,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -103,6 +104,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .count();
 
                     assert!(collisions == 1);
+                    println!("✅ Test success");
+                }
+                TestCase::OneTraverseVolumes => {
+                    let collisions = tracker
+                        .physics
+                        .iter()
+                        .filter(|e| match e {
+                            oc_physics::Event::Collision(
+                                ObjectId::Projectile(_),
+                                ObjectId::Tile(_),
+                            ) => true,
+                            _ => false,
+                        })
+                        .count();
+
+                    assert!(collisions == 0);
                     println!("✅ Test success");
                 }
             };
@@ -230,6 +247,18 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 1,
                 [70., 125., 8.5].into(),
                 [100., 125., 8.5].into(),
+            )] {
+                commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+            }
+        }
+        TestCase::OneTraverseVolumes => {
+            for spawn in [SpawnProjectile::new(
+                weapon1.index(),
+                ammunition.index(),
+                shot.index(),
+                1,
+                [120., 145., 1.0].into(),
+                [120., 245., 1.0].into(),
             )] {
                 commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
             }

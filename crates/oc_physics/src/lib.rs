@@ -51,7 +51,6 @@ pub trait World<Z> {
     fn at(&self, xy: Xy) -> Vec<(Z, Box<dyn Physic>)>;
 }
 
-// FIXME BS NOW: add e2e test about projectile traverse tiles like hedge (already have test about not tarversal brickwall)
 #[inline]
 pub fn step<'a, I, O, F, Z>(
     w: &WorldConfig,
