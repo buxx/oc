@@ -170,7 +170,7 @@ fn on_refresh_individual_orders(
     for order in orders_ {
         if orders
             .get(&i)
-            .and_then(|orders| orders.iter().find(|(o, _)| o.equal(order)))
+            .and_then(|orders| orders.iter().find(|(o, _)| o == order))
             .is_none()
         {
             tracing::trace!(name = "ingame-behavior-on-refresh-individual-orders-trigger-spawn-order", i=?i, order=?order);
@@ -181,7 +181,7 @@ fn on_refresh_individual_orders(
     // Search for missing ones
     if let Some(orders) = orders.get(&i) {
         for (order, _) in orders {
-            if orders_.iter().find(|o| o.equal(order)).is_none() {
+            if orders_.iter().find(|o| o == &order).is_none() {
                 tracing::trace!(name = "ingame-behavior-on-refresh-individual-orders-trigger-despawn-order", i=?i, order=?order);
                 commands.trigger(DespawnIndividualOrder(i, order.clone()));
             }
@@ -201,7 +201,7 @@ fn on_refresh_squad_orders(
     for (o, order) in orders_.iter().rev().enumerate() {
         if orders
             .get(&i)
-            .and_then(|orders| orders.iter().find(|(o, _)| o.equal(order)))
+            .and_then(|orders| orders.iter().find(|(o, _)| o == order))
             .is_none()
         {
             tracing::trace!(name = "ingame-behavior-on-refresh-squad-orders-trigger-spawn-order", i=?i, order=?order);
@@ -213,7 +213,7 @@ fn on_refresh_squad_orders(
     // Search for missing ones
     if let Some(orders) = orders.get(&i) {
         for (order, _) in orders {
-            if orders_.iter().find(|o| o.equal(order)).is_none() {
+            if orders_.iter().find(|o| o == &order).is_none() {
                 tracing::trace!(name = "ingame-behavior-on-refresh-squad-orders-trigger-despawn-order", i=?i, order=?order);
                 commands.trigger(DespawnSquadOrder(i, order.clone()));
             }
@@ -259,7 +259,7 @@ fn on_despawn_individual_order(
 ) {
     tracing::trace!(name = "ingame-behavior-on-despawn-individual-order", i=?event.0, order=?event.1);
     if let Some(orders) = orders.get_mut(&event.0) {
-        if let Some(x) = orders.iter().position(|(o, _)| o.equal(&event.1)) {
+        if let Some(x) = orders.iter().position(|(o, _)| o == &event.1) {
             let (_, entity) = orders.remove(x);
             commands.entity(entity).despawn();
         }
@@ -359,7 +359,7 @@ fn on_despawn_squad_order(
 ) {
     tracing::trace!(name = "ingame-behavior-on-despawn-squad-order", i=?event.0, event=?event);
     if let Some(orders) = orders.get_mut(&event.0) {
-        if let Some(x) = orders.iter().position(|(o, _)| o.equal(&event.1)) {
+        if let Some(x) = orders.iter().position(|(o, _)| o == &event.1) {
             let (_, entity) = orders.remove(x);
             commands.entity(entity).despawn();
         }

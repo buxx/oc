@@ -30,27 +30,6 @@ pub enum Order {
 }
 
 impl Order {
-    // FIXME BS NOW: remove this as order do not own path anymore
-    /// A manner to consider two order as same without strict compare.
-    /// Useful for gui to know if its same order whereas details (like angle, path, ...)
-    pub fn equal(&self, other: &Order) -> bool {
-        match self {
-            Order::Idle => matches!(other, Self::Idle),
-            Order::MoveTo(position) => {
-                matches!(other, Self::MoveTo(other_position) if other_position == position)
-            }
-            Order::MoveFastTo(position) => {
-                matches!(other, Self::MoveFastTo(other_position) if other_position == position)
-            }
-            Order::Defend(direction) => {
-                matches!(other, Self::Defend(other_direction) if other_direction == direction)
-            }
-            Order::Hide(direction) => {
-                matches!(other, Self::Hide(other_direction) if other_direction == direction)
-            }
-        }
-    }
-
     /// Return position if order own it (moves / fires)
     pub fn position(&self) -> Option<WorldVec2> {
         match self {
