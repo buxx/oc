@@ -4,7 +4,9 @@ use oc_geo::region::Region;
 use oc_geo::tile::TileXy;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_individual::squad::SquadIndex;
-use oc_individual::{INDIVIDUAL_VOLUME_HEIGHT, INDIVIDUAL_VOLUME_WIDTH, IndividualIndex};
+use oc_individual::{
+    INDIVIDUAL_STAND_UP_VOLUME_HEIGHT, INDIVIDUAL_STAND_UP_VOLUME_WIDTH, IndividualIndex,
+};
 use oc_projectile::Projectile;
 use oc_projectile::ProjectileId;
 use oc_root::side::Side;
@@ -65,8 +67,8 @@ impl Indexes {
 
             for tile_ in shape_cover_tiles(
                 [position.x, position.y],
-                INDIVIDUAL_VOLUME_WIDTH.pixels(w),
-                INDIVIDUAL_VOLUME_HEIGHT.pixels(w),
+                INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
+                INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
                 w.geo_pixels_per_tile as f32,
                 w.geo_pixels_per_tile as f32,
             ) {
@@ -135,8 +137,8 @@ impl Indexes {
     ) {
         for before in shape_cover_tiles(
             before,
-            INDIVIDUAL_VOLUME_WIDTH.pixels(w),
-            INDIVIDUAL_VOLUME_HEIGHT.pixels(w),
+            INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
+            INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
             w.geo_pixels_per_tile as f32,
             w.geo_pixels_per_tile as f32,
         ) {
@@ -150,8 +152,8 @@ impl Indexes {
 
         for now in shape_cover_tiles(
             now,
-            INDIVIDUAL_VOLUME_WIDTH.pixels(w),
-            INDIVIDUAL_VOLUME_HEIGHT.pixels(w),
+            INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
+            INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
             w.geo_pixels_per_tile as f32,
             w.geo_pixels_per_tile as f32,
         ) {

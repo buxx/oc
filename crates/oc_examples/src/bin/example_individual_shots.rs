@@ -22,7 +22,7 @@ use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectile;
 use oc_root::{WcfgFrom, WorldConfig, physics::Meters, side::Side};
-use oc_utils::d2::Xy;
+use oc_utils::d2::{Direction, Xy};
 use oc_world::{meta::Meta, tile::Tile};
 
 #[derive(Parser, Debug, Clone)]
@@ -40,6 +40,8 @@ enum TestCase {
     SamePixel,
     InVolume,
     DifferentTile,
+    Above,
+    AboveProne,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -102,8 +104,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )
             });
 
-            assert!(collision.is_some());
-            assert!(dead.is_some());
+            match args.case {
+                TestCase::SamePixel | TestCase::InVolume | TestCase::DifferentTile => {
+                    assert!(collision.is_some());
+                    assert!(dead.is_some());
+                }
+                TestCase::Above | TestCase::AboveProne => {
+                    assert!(collision.is_none());
+                    assert!(dead.is_none());
+                }
+            }
 
             println!("✅ (SERVER) All tests passed");
         }
@@ -124,6 +134,8 @@ fn individuals(
         TestCase::SamePixel => vec![[151.0, 151.0, 0.0]],
         TestCase::InVolume => vec![[150.0, 150.0, 0.0]],
         TestCase::DifferentTile => vec![[149.0, 149.0, 0.0]],
+        TestCase::Above => vec![[151.0, 151.0, 0.0]],
+        TestCase::AboveProne => vec![[151.0, 151.0, 0.0]],
     };
 
     // TODO: avoid repetition with main()
@@ -149,6 +161,12 @@ fn individuals(
         })
         .collect();
 
+    let order = match args.case {
+        TestCase::SamePixel | TestCase::InVolume | TestCase::DifferentTile | TestCase::Above => {
+            Order::Idle
+        }
+        TestCase::AboveProne => Order::Hide(Direction::NORTH),
+    };
     let squads = positions
         .iter()
         .enumerate()
@@ -160,7 +178,7 @@ fn individuals(
                 members: vec![individual],
                 actives: 2,
                 formation: SquadFormation::Line,
-                orders: vec![Order::Idle],
+                orders: vec![order.clone()],
             }
         })
         .collect();
@@ -172,34 +190,62 @@ fn install(app: &mut bevy::app::App) {
     let args = Args::parse();
 
     if args.test {
+        let (expected_status, expected_duration, timeout) = match args.case {
+            TestCase::SamePixel | TestCase::InVolume | TestCase::DifferentTile => (
+                oc_individual::Status::Dead,
+                Duration::from_secs(1),
+                Duration::from_secs(10),
+            ),
+            TestCase::Above | TestCase::AboveProne => (
+                oc_individual::Status::Operational,
+                Duration::from_secs(5),
+                Duration::from_secs(10),
+            ),
+        };
+
         app.add_systems(
             Update,
-            |mut commands: Commands,
-             game: Res<Game>,
-             individuals: Query<
+            move |mut commands: Commands,
+                  game: Res<Game>,
+                  individuals: Query<
                 &Status,
                 With<oc_battle_gui::entity::individual::IndividualIndex>,
             >| {
-                static DEAD: Mutex<Option<Instant>> = Mutex::new(None);
+                // Store instant where individual is in expected status
+                static STATUS_AS_EXPECTED_SINCE: Mutex<Option<Instant>> = Mutex::new(None);
 
-                let timeout = game.started.elapsed() > Duration::from_secs(10);
-                let mut dead = DEAD.lock().unwrap();
-                *dead = match *dead {
-                    None => individuals
-                        .iter()
-                        .find(|status| matches!(status.0, oc_individual::Status::Dead))
-                        .is_some()
-                        .then(|| Instant::now()),
-                    Some(value) => {
-                        if value.elapsed().as_secs() > 1 {
-                            println!("✅ (GUI) Individual is dead");
-                            commands.write_message(bevy::app::AppExit::from_code(0));
-                        };
-                        Some(value)
+                let mut status_as_expected_since = STATUS_AS_EXPECTED_SINCE.lock().unwrap();
+
+                let status_as_expected = individuals
+                    .iter()
+                    .find(|status| status.0 == expected_status)
+                    .is_some();
+
+                match *status_as_expected_since {
+                    Some(_) => {
+                        // Status is still not or not anymore in expected status, keep or reset instant to None
+                        if !status_as_expected {
+                            *status_as_expected_since = None;
+                        }
                     }
-                };
-                if timeout {
-                    eprintln!("❌ (GUI) Timeout reached ! Individual is not dead.");
+                    None => {
+                        // Status just switched to expected, store the instant
+                        if status_as_expected {
+                            *status_as_expected_since = Some(Instant::now());
+                        }
+                    }
+                }
+
+                if (*status_as_expected_since)
+                    .and_then(|s| Some(s.elapsed() >= expected_duration))
+                    .unwrap_or_default()
+                {
+                    println!("✅ (GUI) Individual is in expected status");
+                    commands.write_message(bevy::app::AppExit::from_code(0));
+                }
+
+                if game.started.elapsed() > timeout {
+                    eprintln!("❌ (GUI) Timeout reached ! Individual is not in expected status");
                     commands.write_message(bevy::app::AppExit::from_code(1));
                 }
             },
@@ -210,6 +256,7 @@ fn install(app: &mut bevy::app::App) {
 }
 
 fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
+    let args = Args::parse();
     let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
 
     let weapon1 = mod_.weapons.iter().find(|w| w.name() == "Weapon1").unwrap();
@@ -224,7 +271,17 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
         .find(|s| s.name() == "Single")
         .unwrap();
 
-    for (start, end) in vec![([220.0, 151.0, 5.0], [100.0, 151.0, 5.0])] {
+    let translations = match args.case {
+        TestCase::SamePixel
+        | TestCase::InVolume
+        | TestCase::DifferentTile
+        | TestCase::AboveProne => {
+            vec![([220.0, 151.0, 5.0], [100.0, 151.0, 5.0])]
+        }
+        TestCase::Above => vec![([220.0, 151.0, 15.0], [100.0, 151.0, 15.0])],
+    };
+
+    for (start, end) in translations {
         commands.trigger(ToServerEvent(ToServer::SpawnProjectile(
             SpawnProjectile::new(
                 weapon1.index(),

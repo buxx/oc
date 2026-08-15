@@ -75,7 +75,7 @@ fn show(
     tracing::trace!(name="ingame-input-left_click-show-order", mode=?mode.0, point=?point);
 
     match order {
-        OrderType::Idle => {}
+        OrderType::Idle | OrderType::Defend | OrderType::Hide => {}
         OrderType::MoveTo | OrderType::MoveFastTo => {
             let spawns = path_profiles(w, point, mode, ingame, world, &drag, &markers);
             commands.trigger(ComputeDisplayPaths(spawns));
@@ -215,6 +215,7 @@ pub fn on_click(
     mut ingame: ResMut<crate::ingame::state::State>,
     camera: Single<(&Camera, &GlobalTransform)>,
     left_click: Res<LeftClick>,
+    world: Res<crate::world::World>,
 ) {
     let_some!(g = &g.0, return);
     let_some!(point = click.hit.position, return);
@@ -227,20 +228,23 @@ pub fn on_click(
             let LeftClickMode::Order(order_type) = left_click.0 else {
                 return;
             };
-            // TODO: When multiple squad, need decal a little (distance from each others ?)
-            let order = order_type.into_order(point);
-
             tracing::trace!(name = "ingame-input-left-click-order-action");
 
             if !adding {
-                give_orders(&mut commands, &ingame, Some(order));
+                give_orders(&mut commands, &ingame, &world, point, Some(order_type));
                 cancel(&mut commands, &mut ingame);
             } else {
-                ingame.push_pending_orders(order);
+                if let Some(order) = match order_type {
+                    OrderType::MoveTo => Some(Order::MoveTo(point)),
+                    OrderType::MoveFastTo => Some(Order::MoveFastTo(point)),
+                    OrderType::Idle | OrderType::Defend | OrderType::Hide => None,
+                } {
+                    ingame.push_pending_orders(order);
+                }
             }
         }
         PointerButton::Secondary => {
-            give_orders(&mut commands, &ingame, None);
+            give_orders(&mut commands, &ingame, &world, point, None);
             cancel(&mut commands, &mut ingame);
         }
         PointerButton::Middle => {
@@ -254,11 +258,16 @@ pub fn on_click(
 fn give_orders(
     commands: &mut Commands,
     ingame: &crate::ingame::state::State,
-    order: Option<Order>,
+    world: &crate::world::World,
+    point: WorldVec2,
+    order_type: Option<OrderType>,
 ) {
     for squad in ingame.selected_squads() {
         let mut orders = ingame.pending_orders().to_vec();
-        if let Some(order) = &order {
+        if let Some(order_type) = &order_type {
+            let_some!(squad_ = world.squad(*squad), continue);
+            // FIXME: With multiple squad, need decal a little (distance from each others ?)
+            let order = order_type.into_order(point, squad_.position);
             orders.push(order.clone());
         }
         let set_orders = oc_network::SquadMessage::SetOrders(orders.clone());

@@ -34,9 +34,17 @@ pub mod network;
 pub mod order;
 pub mod squad;
 
-pub const INDIVIDUAL_VOLUME_WIDTH: Meters = Meters(0.8);
-pub const INDIVIDUAL_VOLUME_HEIGHT: Meters = Meters(0.8);
-pub const INDIVIDUAL_VOLUME_DEPTH: Meters = Meters(1.8);
+pub const INDIVIDUAL_STAND_UP_VOLUME_WIDTH: Meters = Meters(0.8);
+pub const INDIVIDUAL_STAND_UP_VOLUME_HEIGHT: Meters = Meters(0.8);
+pub const INDIVIDUAL_STAND_UP_VOLUME_DEPTH: Meters = Meters(1.8);
+
+// FIXME BS NOW: oh boudiou, deux choses changent avec le soldat allongé:
+// - Son volume dépend de sa direction
+// - Les indexation de quel tile sont concerné dépendent de son orientation et de sa gesture
+// FIXME BS NOW: write e2e test about direction and projectile
+pub const INDIVIDUAL_PRONE_VOLUME_WIDTH: Meters = Meters(0.8);
+pub const INDIVIDUAL_PRONE_VOLUME_HEIGHT: Meters = Meters(1.8);
+pub const INDIVIDUAL_PRONE_VOLUME_DEPTH: Meters = Meters(0.8);
 
 #[derive(
     Archive,
@@ -206,15 +214,27 @@ impl Physic for Individual {
         w: &WorldConfig,
         _mod_: &Mod,
     ) -> Vec<(Volume, Traversability)> {
-        vec![(
-            Volume::Cube {
+        let cube = match self.gesture {
+            Gesture::Idle(_) | Gesture::Walking(_) | Gesture::Running(_) => Volume::Cube {
                 x: ref_.x,
                 y: ref_.y,
                 z: ref_.z,
-                width: INDIVIDUAL_VOLUME_WIDTH.pixels(w),
-                height: INDIVIDUAL_VOLUME_HEIGHT.pixels(w),
-                depth: INDIVIDUAL_VOLUME_DEPTH.pixels(w),
+                width: INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
+                height: INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
+                depth: INDIVIDUAL_STAND_UP_VOLUME_DEPTH.pixels(w),
             },
+            // FIXME BS NOW: see constant fixme
+            Gesture::Crawling(_direction) | Gesture::Prone(_direction) => Volume::Cube {
+                x: ref_.x,
+                y: ref_.y,
+                z: ref_.z,
+                width: INDIVIDUAL_PRONE_VOLUME_WIDTH.pixels(w),
+                height: INDIVIDUAL_PRONE_VOLUME_HEIGHT.pixels(w),
+                depth: INDIVIDUAL_PRONE_VOLUME_DEPTH.pixels(w),
+            },
+        };
+        vec![(
+            cube,
             Traversability {
                 individual: true, // TODO: prevent individual collisions ? Will need enhance physic model ...
                 projectile: false,
@@ -286,6 +306,7 @@ impl Status {
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Gesture {
+    /// FIXME BS NOW: rename StandUp
     Idle(Direction),
     Walking(Direction),
     Running(Direction),

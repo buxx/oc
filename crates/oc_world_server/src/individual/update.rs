@@ -34,7 +34,7 @@ pub fn write(
             individual.orders.pop();
         }
         Update::MoveStepAccomplished => match &mut individual.intent {
-            Intent::Idle(_) => {}
+            Intent::Idle(_) | Intent::Defend(_) | Intent::Hide(_) => {}
             Intent::MoveTo(_, path) | Intent::MoveFastTo(_, path) => {
                 path.remove(0);
             }

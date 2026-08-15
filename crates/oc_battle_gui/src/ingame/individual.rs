@@ -414,7 +414,9 @@ fn on_move_step_accomplished_event(
     tracing::trace!(name = "update-individual-move-step-accomplished", i=?accomplished.0);
 
     match &mut intent.0 {
-        oc_individual::behavior::Intent::Idle(_) => {}
+        oc_individual::behavior::Intent::Idle(_)
+        | oc_individual::behavior::Intent::Defend(_)
+        | oc_individual::behavior::Intent::Hide(_) => {}
         oc_individual::behavior::Intent::MoveTo(_, path)
         | oc_individual::behavior::Intent::MoveFastTo(_, path) => {
             if !path.is_empty() {

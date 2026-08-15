@@ -1,6 +1,7 @@
 use derive_more::Deref;
 use enum_type_derive::EnumType;
 use oc_root::geo::WorldVec2;
+use oc_utils::d2::Direction;
 use rkyv::Archive;
 
 /// Index of squad order in squad order, by starting end
@@ -24,9 +25,12 @@ pub enum Order {
     Idle,
     MoveTo(WorldVec2),
     MoveFastTo(WorldVec2),
+    Defend(Direction),
+    Hide(Direction),
 }
 
 impl Order {
+    // FIXME BS NOW: remove this as order do not own path anymore
     /// A manner to consider two order as same without strict compare.
     /// Useful for gui to know if its same order whereas details (like angle, path, ...)
     pub fn equal(&self, other: &Order) -> bool {
@@ -38,30 +42,48 @@ impl Order {
             Order::MoveFastTo(position) => {
                 matches!(other, Self::MoveFastTo(other_position) if other_position == position)
             }
+            Order::Defend(direction) => {
+                matches!(other, Self::Defend(other_direction) if other_direction == direction)
+            }
+            Order::Hide(direction) => {
+                matches!(other, Self::Hide(other_direction) if other_direction == direction)
+            }
         }
     }
 
+    /// Return position if order own it (moves / fires)
     pub fn position(&self) -> Option<WorldVec2> {
         match self {
-            Order::Idle => None,
+            Order::Idle | Order::Defend(_) | Order::Hide(_) => None,
             Order::MoveTo(position) | Order::MoveFastTo(position) => Some(*position),
         }
     }
 
+    /// Update position if order own one (moves / fires)
     pub fn set_position(&mut self, position: WorldVec2) {
         match self {
-            Order::Idle => todo!(),
+            Order::Idle | Order::Defend(_) | Order::Hide(_) => {}
             Order::MoveTo(position_) | Order::MoveFastTo(position_) => *position_ = position,
         }
     }
 }
 
 impl OrderType {
-    pub fn into_order(&self, point: WorldVec2) -> Order {
+    /// Transform into Order. `point` and `reference` are used to determine target or direction according
+    /// to order type.
+    pub fn into_order(&self, point: WorldVec2, reference: WorldVec2) -> Order {
         match self {
             OrderType::Idle => Order::Idle,
             OrderType::MoveTo => Order::MoveTo(point),
             OrderType::MoveFastTo => Order::MoveFastTo(point),
+            OrderType::Defend => {
+                let direction = Direction::from_points2d(reference.into(), point.into());
+                Order::Defend(direction)
+            }
+            OrderType::Hide => {
+                let direction = Direction::from_points2d(reference.into(), point.into());
+                Order::Hide(direction)
+            }
         }
     }
 }

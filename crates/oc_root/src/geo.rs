@@ -154,6 +154,12 @@ impl From<WorldVec2> for bevy::math::Vec2 {
     }
 }
 
+impl From<WorldVec2> for Vec2 {
+    fn from(value: WorldVec2) -> Self {
+        Vec2::new(value.x, value.y)
+    }
+}
+
 impl WorldVec3 {
     #[inline]
     pub fn sub(self, rhs: Self) -> Self {

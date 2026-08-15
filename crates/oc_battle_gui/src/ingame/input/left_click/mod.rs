@@ -75,7 +75,11 @@ impl LeftClickMode {
             LeftClickMode::SpawnProjectile(_) => false,
             LeftClickMode::LineOfView(_) => true,
             LeftClickMode::Order(order) => match order {
-                OrderType::Idle | OrderType::MoveTo | OrderType::MoveFastTo => false,
+                OrderType::Idle
+                | OrderType::MoveTo
+                | OrderType::MoveFastTo
+                | OrderType::Defend
+                | OrderType::Hide => false,
             },
         }
     }
