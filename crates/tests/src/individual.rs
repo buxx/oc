@@ -18,7 +18,7 @@ pub struct TestIndividual {
     position: WorldVec3,
     #[builder(default = Behavior::Idle(Direction::NORTH))]
     behavior: Behavior,
-    #[builder(default = Gesture::Idle(Direction::NORTH))]
+    #[builder(default = Gesture::StandUp(Direction::NORTH))]
     gesture: Gesture,
     #[builder(default = Intent::Idle(Direction::NORTH))]
     intent: Intent,

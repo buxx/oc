@@ -270,8 +270,8 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Visibilit
         TestCase::Hidden => {
             i1_visible
                 && !i2_visible
-                && matches!(i1_gesture, Some(&oc_individual::Gesture::Idle(_)))
-                && matches!(i2_gesture, Some(&oc_individual::Gesture::Idle(_)))
+                && matches!(i1_gesture, Some(&oc_individual::Gesture::StandUp(_)))
+                && matches!(i2_gesture, Some(&oc_individual::Gesture::StandUp(_)))
         }
         TestCase::Discover => {
             i1_visible

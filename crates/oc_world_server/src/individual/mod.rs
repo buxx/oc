@@ -332,7 +332,7 @@ impl<'a> Processor<'a> {
         match behavior {
             Behavior::Idle(direction) => match situation.imply_hide() {
                 true => Gesture::Prone(*direction),
-                false => Gesture::Idle(*direction),
+                false => Gesture::StandUp(*direction),
             },
             Behavior::Walk(direction) => Gesture::Walking(*direction),
             Behavior::Run(direction) => Gesture::Running(*direction),
@@ -653,14 +653,14 @@ mod tests {
         let individual1 = TestIndividual::builder();
         let individual1 = individual1.position(individual_1_position);
         let individual1 = individual1
-            .gesture(Gesture::Idle(Direction::EST)) // Gesture & Behavior & Intent are important
+            .gesture(Gesture::StandUp(Direction::EST)) // Gesture & Behavior & Intent are important
             .behavior(Behavior::Idle(Direction::EST)) // to conditionate the .step() response
             .intent(Intent::Idle(Direction::EST));
         let individual1 = individual1.build().make(w);
         let individual2 = TestIndividual::builder();
         let individual2 = individual2.position(individual_2_position);
         let individual2 = individual2
-            .gesture(Gesture::Idle(Direction::EST)) // Gesture & Behavior & Intent are important
+            .gesture(Gesture::StandUp(Direction::EST)) // Gesture & Behavior & Intent are important
             .behavior(Behavior::Idle(Direction::EST)) // to conditionate the .step() response
             .intent(Intent::Idle(Direction::EST));
         let individual2 = individual2.build().make(w);
@@ -685,7 +685,7 @@ mod tests {
         let individual = TestIndividual::builder();
         let individual = individual.position(position);
         let individual = individual
-            .gesture(Gesture::Idle(Direction::EST)) // Gesture & Behavior & Intent are important
+            .gesture(Gesture::StandUp(Direction::EST)) // Gesture & Behavior & Intent are important
             .behavior(Behavior::Idle(Direction::EST)) // to conditionate the .step() response
             .intent(Intent::Idle(Direction::EST));
         let individual = individual.build().make(w);

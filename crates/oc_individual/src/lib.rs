@@ -154,7 +154,7 @@ impl Individual {
             Behavior::Idle(Direction::default()),
             vec![],
             Status::Operational,
-            Gesture::Idle(Direction::default()),
+            Gesture::StandUp(Direction::default()),
             Intent::Idle(Direction::default()),
         )
     }
@@ -215,7 +215,7 @@ impl Physic for Individual {
         _mod_: &Mod,
     ) -> Vec<(Volume, Traversability)> {
         let cube = match self.gesture {
-            Gesture::Idle(_) | Gesture::Walking(_) | Gesture::Running(_) => Volume::Cube {
+            Gesture::StandUp(_) | Gesture::Walking(_) | Gesture::Running(_) => Volume::Cube {
                 x: ref_.x,
                 y: ref_.y,
                 z: ref_.z,
@@ -307,7 +307,7 @@ impl Status {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Gesture {
     /// FIXME BS NOW: rename StandUp
-    Idle(Direction),
+    StandUp(Direction),
     Walking(Direction),
     Running(Direction),
     Crawling(Direction),
@@ -323,7 +323,7 @@ impl Gesture {
 
     pub fn direction(&self) -> Direction {
         match self {
-            Gesture::Idle(direction)
+            Gesture::StandUp(direction)
             | Gesture::Walking(direction)
             | Gesture::Running(direction)
             | Gesture::Crawling(direction)

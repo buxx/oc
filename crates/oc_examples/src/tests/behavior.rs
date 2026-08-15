@@ -101,7 +101,7 @@ fn individuals(
                 let position = [position[0], position[1], z].into();
 
                 oc_individual::Individual::fresh(Side::A, position, tile_i, WorldRegionIndex(0))
-                    .with_gesture(Gesture::Idle(DIRECTION))
+                    .with_gesture(Gesture::StandUp(DIRECTION))
             })
         })
         .flatten()
