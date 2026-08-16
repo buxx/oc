@@ -142,7 +142,8 @@ pub fn draw(
             | oc_individual::behavior::Intent::Defend(_)
             | oc_individual::behavior::Intent::Hide(_) => {}
             oc_individual::behavior::Intent::MoveTo(_, path)
-            | oc_individual::behavior::Intent::MoveFastTo(_, path) => {
+            | oc_individual::behavior::Intent::MoveFastTo(_, path)
+            | oc_individual::behavior::Intent::SneakTo(_, path) => {
                 let mut previous = ScreenVec2::from_(position.0, &g.w);
                 for point in path.iter() {
                     let point = ScreenVec2::from_(*point, &g.w);

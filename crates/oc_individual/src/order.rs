@@ -25,6 +25,7 @@ pub enum Order {
     Idle,
     MoveTo(WorldVec2),
     MoveFastTo(WorldVec2),
+    SneakTo(WorldVec2),
     Defend(Direction),
     Hide(Direction),
 }
@@ -34,7 +35,9 @@ impl Order {
     pub fn position(&self) -> Option<WorldVec2> {
         match self {
             Order::Idle | Order::Defend(_) | Order::Hide(_) => None,
-            Order::MoveTo(position) | Order::MoveFastTo(position) => Some(*position),
+            Order::MoveTo(position) | Order::MoveFastTo(position) | Order::SneakTo(position) => {
+                Some(*position)
+            }
         }
     }
 
@@ -42,7 +45,9 @@ impl Order {
     pub fn set_position(&mut self, position: WorldVec2) {
         match self {
             Order::Idle | Order::Defend(_) | Order::Hide(_) => {}
-            Order::MoveTo(position_) | Order::MoveFastTo(position_) => *position_ = position,
+            Order::MoveTo(position_) | Order::MoveFastTo(position_) | Order::SneakTo(position_) => {
+                *position_ = position
+            }
         }
     }
 }
@@ -55,6 +60,7 @@ impl OrderType {
             OrderType::Idle => Order::Idle,
             OrderType::MoveTo => Order::MoveTo(point),
             OrderType::MoveFastTo => Order::MoveFastTo(point),
+            OrderType::SneakTo => Order::SneakTo(point),
             OrderType::Defend => {
                 let direction = Direction::from_points2d(reference.into(), point.into());
                 Order::Defend(direction)

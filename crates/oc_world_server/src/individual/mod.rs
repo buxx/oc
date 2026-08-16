@@ -154,7 +154,7 @@ impl<'a> Processor<'a> {
                 tracing::trace!(name = "individual-step-accomplished-idle-finished", i = ?self.i);
                 updates = Some(accomplished_updates(self.i, direction));
             }
-            Order::MoveTo(position) | Order::MoveFastTo(position) => {
+            Order::MoveTo(position) | Order::MoveFastTo(position) | Order::SneakTo(position) => {
                 if position.almost_equal(individual.position, POSITION_TOLERANCE) {
                     tracing::trace!(name = "individual-step-accomplished-move-to-finished", i = ?self.i);
                     updates = Some(accomplished_updates(self.i, direction));
@@ -171,7 +171,9 @@ impl<'a> Processor<'a> {
         match &individual.intent {
             // Idle/Defend/Hide never finish
             Intent::Idle(_) | Intent::Defend(_) | Intent::Hide(_) => {}
-            Intent::MoveTo(_, move_path) | Intent::MoveFastTo(_, move_path) => {
+            Intent::MoveTo(_, move_path)
+            | Intent::MoveFastTo(_, move_path)
+            | Intent::SneakTo(_, move_path) => {
                 let Some(next) = move_path.iter().next() else {
                     tracing::trace!(name = "individual-step-accomplished-intent-move-to-no-next", i=?self.i);
                     return updates;
@@ -233,9 +235,9 @@ impl<'a> Processor<'a> {
                     Order::Idle => vec![Order::MoveTo(position.into())],
                     Order::MoveTo(_) => vec![Order::MoveTo(position.into())],
                     Order::MoveFastTo(_) => vec![Order::MoveFastTo(position.into())],
+                    Order::SneakTo(_) => vec![Order::SneakTo(position.into())],
                     Order::Defend(_) => vec![Order::MoveFastTo(position.into())],
-                    // FIXME BS NOW: SneakTo
-                    Order::Hide(_) => vec![Order::MoveFastTo(position.into())],
+                    Order::Hide(_) => vec![Order::SneakTo(position.into())],
                 },
                 None => {
                     vec![Order::MoveTo(position.into())]
@@ -286,7 +288,6 @@ impl<'a> Processor<'a> {
                         Intent::MoveTo,
                     )
                 }
-
                 Some(Order::MoveFastTo(position)) => {
                     let current = individual.intent.path();
                     self.resolve_move_intent(
@@ -295,6 +296,16 @@ impl<'a> Processor<'a> {
                         *position,
                         current,
                         Intent::MoveFastTo,
+                    )
+                }
+                Some(Order::SneakTo(position)) => {
+                    let current = individual.intent.path();
+                    self.resolve_move_intent(
+                        individual,
+                        situation,
+                        *position,
+                        current,
+                        Intent::SneakTo,
                     )
                 }
             },
@@ -316,13 +327,16 @@ impl<'a> Processor<'a> {
                 Some(direction) => Behavior::Walk(direction),
                 None => Behavior::Idle(Direction::NORTH),
             },
-
             Intent::MoveFastTo(_, path) => {
                 match self.direction_to_next(individual, path, "move-fast") {
                     Some(direction) => Behavior::Run(direction),
                     None => Behavior::Idle(Direction::NORTH),
                 }
             }
+            Intent::SneakTo(_, path) => match self.direction_to_next(individual, path, "sneak") {
+                Some(direction) => Behavior::Crawl(direction),
+                None => Behavior::Idle(Direction::NORTH),
+            },
             Intent::Defend(direction) => Behavior::Defend(*direction),
             Intent::Hide(direction) => Behavior::Hide(*direction),
         }
@@ -336,6 +350,7 @@ impl<'a> Processor<'a> {
             },
             Behavior::Walk(direction) => Gesture::Walking(*direction),
             Behavior::Run(direction) => Gesture::Running(*direction),
+            Behavior::Crawl(direction) => Gesture::Crawling(*direction),
             Behavior::Defend(direction) => Gesture::Prone(*direction),
             Behavior::Hide(direction) => Gesture::Prone(*direction),
         }
@@ -345,7 +360,7 @@ impl<'a> Processor<'a> {
     fn forces(&self, individual: &Individual, behavior: &Behavior, intent: &Intent) -> Vec<Force> {
         match behavior {
             Behavior::Idle(_) => vec![],
-            Behavior::Walk(direction) | Behavior::Run(direction) => {
+            Behavior::Walk(direction) | Behavior::Run(direction) | Behavior::Crawl(direction) => {
                 let nominal_speed = behavior.nominal_speed();
                 let move_disability_factor = self.move_disability_factor(individual, behavior);
                 let arrival_factor = self.arrival_factor(intent);
@@ -374,6 +389,7 @@ impl<'a> Processor<'a> {
             Intent::Idle(_) | Intent::Defend(_) | Intent::Hide(_) => return 1.0, // fallback (should not happens)
             Intent::MoveTo(_, path) => path,
             Intent::MoveFastTo(_, path) => path,
+            Intent::SneakTo(_, path) => path,
         };
         let_some!(next = path.iter().next(), return 1.0); // 1.0 is fallback (should not happens)
 

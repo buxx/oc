@@ -10,6 +10,7 @@ pub enum Intent {
     Idle(Direction),
     MoveTo(WorldVec2, MovePath),
     MoveFastTo(WorldVec2, MovePath),
+    SneakTo(WorldVec2, MovePath),
     Defend(Direction),
     Hide(Direction),
 }
@@ -20,6 +21,7 @@ pub enum Behavior {
     Idle(Direction),
     Walk(Direction),
     Run(Direction),
+    Crawl(Direction),
     Defend(Direction),
     Hide(Direction),
 }
@@ -28,9 +30,9 @@ impl Intent {
     pub fn path(&self) -> Option<(WorldVec2, &MovePath)> {
         match self {
             Intent::Idle(_) | Intent::Defend(_) | Intent::Hide(_) => None,
-            Intent::MoveTo(target, path) | Intent::MoveFastTo(target, path) => {
-                Some((*target, path))
-            }
+            Intent::MoveTo(target, path)
+            | Intent::MoveFastTo(target, path)
+            | Intent::SneakTo(target, path) => Some((*target, path)),
         }
     }
 }
@@ -41,6 +43,7 @@ impl Behavior {
             Behavior::Idle(_) | Behavior::Defend(_) | Behavior::Hide(_) => MetersSeconds(0.0),
             Behavior::Walk(_) => MetersSeconds(1.0),
             Behavior::Run(_) => MetersSeconds(2.0),
+            Behavior::Crawl(_) => MetersSeconds(0.35),
         }
     }
 
@@ -49,6 +52,7 @@ impl Behavior {
             Behavior::Idle(direction)
             | Behavior::Walk(direction)
             | Behavior::Run(direction)
+            | Behavior::Crawl(direction)
             | Behavior::Defend(direction)
             | Behavior::Hide(direction) => *direction,
         }

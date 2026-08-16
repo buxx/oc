@@ -437,7 +437,8 @@ fn on_move_step_accomplished_event(
         | oc_individual::behavior::Intent::Defend(_)
         | oc_individual::behavior::Intent::Hide(_) => {}
         oc_individual::behavior::Intent::MoveTo(_, path)
-        | oc_individual::behavior::Intent::MoveFastTo(_, path) => {
+        | oc_individual::behavior::Intent::MoveFastTo(_, path)
+        | oc_individual::behavior::Intent::SneakTo(_, path) => {
             if !path.is_empty() {
                 path.remove(0);
             }

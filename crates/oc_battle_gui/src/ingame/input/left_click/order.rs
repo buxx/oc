@@ -76,7 +76,7 @@ fn show(
 
     match order {
         OrderType::Idle | OrderType::Defend | OrderType::Hide => {}
-        OrderType::MoveTo | OrderType::MoveFastTo => {
+        OrderType::MoveTo | OrderType::MoveFastTo | OrderType::SneakTo => {
             let spawns = path_profiles(w, point, mode, ingame, world, &drag, &markers);
             commands.trigger(ComputeDisplayPaths(spawns));
         }
@@ -237,6 +237,7 @@ pub fn on_click(
                 if let Some(order) = match order_type {
                     OrderType::MoveTo => Some(Order::MoveTo(point)),
                     OrderType::MoveFastTo => Some(Order::MoveFastTo(point)),
+                    OrderType::SneakTo => Some(Order::SneakTo(point)),
                     OrderType::Idle | OrderType::Defend | OrderType::Hide => None,
                 } {
                     ingame.push_pending_orders(order);

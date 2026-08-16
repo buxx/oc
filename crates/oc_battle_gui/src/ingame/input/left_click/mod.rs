@@ -78,6 +78,7 @@ impl LeftClickMode {
                 OrderType::Idle
                 | OrderType::MoveTo
                 | OrderType::MoveFastTo
+                | OrderType::SneakTo
                 | OrderType::Defend
                 | OrderType::Hide => false,
             },

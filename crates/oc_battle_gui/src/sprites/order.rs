@@ -7,6 +7,7 @@ pub enum SquadOrderSprite {
     Idle,
     Move,
     MoveFast,
+    Crawl,
     Defend,
     Hide,
 }
@@ -15,6 +16,7 @@ pub enum IndividualOrderSprite {
     Idle,
     Move,
     MoveFast,
+    Crawl,
     Defend,
     Hide,
 }
@@ -25,6 +27,7 @@ impl IntoSprite<SquadOrderSprite> for Order {
             Order::Idle => SquadOrderSprite::Idle,
             Order::MoveTo(_) => SquadOrderSprite::Move,
             Order::MoveFastTo(_) => SquadOrderSprite::MoveFast,
+            Order::SneakTo(_) => SquadOrderSprite::Crawl,
             Order::Defend(_) => SquadOrderSprite::Defend,
             Order::Hide(_) => SquadOrderSprite::Hide,
         }
@@ -65,6 +68,16 @@ impl SpriteRect for SquadOrderSprite {
                     start_y + POSITION_HEIGHT,
                 )
             }
+            SquadOrderSprite::Crawl => {
+                const INDEX: f32 = 2.;
+                let start_y = POSITION_START_Y + (INDEX * POSITION_HEIGHT);
+                Rect::new(
+                    POSITION_START_X,
+                    start_y,
+                    POSITION_START_X + POSITION_WIDTH,
+                    start_y + POSITION_HEIGHT,
+                )
+            }
             SquadOrderSprite::Defend => {
                 const INDEX: f32 = 0.;
                 let start_y = DIRECTION_START_Y + (INDEX * DIRECTION_HEIGHT);
@@ -95,6 +108,7 @@ impl IntoIndividualSprite<IndividualOrderSprite> for Order {
             Order::Idle => IndividualOrderSprite::Idle,
             Order::MoveTo(_) => IndividualOrderSprite::Move,
             Order::MoveFastTo(_) => IndividualOrderSprite::MoveFast,
+            Order::SneakTo(_) => IndividualOrderSprite::Crawl,
             Order::Defend(_) => IndividualOrderSprite::Defend,
             Order::Hide(_) => IndividualOrderSprite::Hide,
         }
@@ -112,6 +126,7 @@ impl SpriteRect for IndividualOrderSprite {
             IndividualOrderSprite::Idle => return Rect::EMPTY, // Should never happen
             IndividualOrderSprite::Move => 0,
             IndividualOrderSprite::MoveFast => 1,
+            IndividualOrderSprite::Crawl => 2,
             IndividualOrderSprite::Defend => return Rect::EMPTY, // Should never happen
             IndividualOrderSprite::Hide => return Rect::EMPTY,   // Should never happen
         } as f32;
