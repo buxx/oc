@@ -31,6 +31,7 @@ pub struct Menu;
 pub enum Choice {
     Move,
     MoveFast,
+    Sneak,
 }
 
 impl OpenContextualMenu<Menu> for Open {
@@ -62,6 +63,7 @@ impl contextual::choice::Choice<Choice> for Choice {
         let index = match self {
             Choice::Move => 0,
             Choice::MoveFast => 1,
+            Choice::Sneak => 2,
         };
 
         let yp = index as f32 * ITEM_HEIGHT;
@@ -76,6 +78,7 @@ impl contextual::choice::Choice<Choice> for Choice {
         let index = match self {
             Choice::Move => 0,
             Choice::MoveFast => 1,
+            Choice::Sneak => 2,
         };
 
         let yp = index as f32 * ITEM_HEIGHT;
@@ -102,6 +105,9 @@ pub fn on_choose(item: On<Choice>, mut commands: Commands) {
         }
         Choice::MoveFast => {
             commands.trigger(SetLeftClick(LeftClickMode::Order(OrderType::MoveFastTo)));
+        }
+        Choice::Sneak => {
+            commands.trigger(SetLeftClick(LeftClickMode::Order(OrderType::SneakTo)));
         }
     }
 }
