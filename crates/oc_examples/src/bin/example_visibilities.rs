@@ -42,7 +42,10 @@ struct Args {
 impl Args {
     fn timeout(&self) -> Duration {
         match self.case {
-            TestCase::Direct | TestCase::Through | TestCase::Hidden => Duration::from_secs(10),
+            TestCase::Direct
+            | TestCase::Through
+            | TestCase::Hidden
+            | TestCase::MoveThenEnemyVisible => Duration::from_secs(10),
             TestCase::Discover => Duration::from_secs(20),
         }
     }
@@ -54,6 +57,7 @@ enum TestCase {
     Through,
     Hidden,
     Discover,
+    MoveThenEnemyVisible,
 }
 
 fn main() -> Result<(), anyhow::Error> {
@@ -153,6 +157,18 @@ fn individuals(w: &WorldConfig, _tiles: &Vec<Tile>, args: &Args) -> Vec<oc_indiv
                 .build()
                 .make(&w),
         ],
+        TestCase::MoveThenEnemyVisible => vec![
+            TestIndividual::builder()
+                .side(side::Side::A)
+                .position(WorldVec3::new(250., 175., 0.))
+                .build()
+                .make(&w),
+            TestIndividual::builder()
+                .side(side::Side::B)
+                .position(WorldVec3::new(450., 150., 0.))
+                .build()
+                .make(&w),
+        ],
     }
 }
 
@@ -191,6 +207,20 @@ fn squads(
                 .build()
                 .make(),
         ],
+        TestCase::MoveThenEnemyVisible => vec![
+            TestSquad::builder()
+                .position(individuals.get(0).unwrap().position.into())
+                .members(vec![oc_individual::IndividualIndex(0)])
+                .orders(vec![Order::MoveTo(WorldVec2::new(250., 100.))])
+                .build()
+                .make(),
+            TestSquad::builder()
+                .position(individuals.get(1).unwrap().position.into())
+                .members(vec![oc_individual::IndividualIndex(1)])
+                .orders(vec![])
+                .build()
+                .make(),
+        ],
     }
 }
 
@@ -215,7 +245,11 @@ fn install(app: &mut bevy::app::App) {
     app.init_resource::<State>();
 
     match args.case {
-        TestCase::Direct | TestCase::Through | TestCase::Hidden | TestCase::Discover => {
+        TestCase::Direct
+        | TestCase::Through
+        | TestCase::Hidden
+        | TestCase::Discover
+        | TestCase::MoveThenEnemyVisible => {
             #[cfg(feature = "test")]
             app.add_systems(Update, tracking);
         }
@@ -279,6 +313,9 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Visibilit
                 && i2_visible
                 && matches!(i1_gesture, Some(&oc_individual::Gesture::Prone(_)))
                 && matches!(i2_gesture, Some(&oc_individual::Gesture::Prone(_)))
+        }
+        TestCase::MoveThenEnemyVisible => {
+            matches!(i1_gesture, Some(&oc_individual::Gesture::Running(_)))
         }
     } {
         // FIXME: must test individuals behavior/gesture too (hide)

@@ -279,34 +279,13 @@ impl<'a> Processor<'a> {
                     self.resolve_hide_intent(individual, situation, *direction)
                 }
                 Some(Order::MoveTo(position)) => {
-                    let current = individual.intent.path();
-                    self.resolve_move_intent(
-                        individual,
-                        situation,
-                        *position,
-                        current,
-                        Intent::MoveTo,
-                    )
+                    self.resolve_move_to_intent(individual, situation, *position)
                 }
                 Some(Order::MoveFastTo(position)) => {
-                    let current = individual.intent.path();
-                    self.resolve_move_intent(
-                        individual,
-                        situation,
-                        *position,
-                        current,
-                        Intent::MoveFastTo,
-                    )
+                    self.resolve_move_fast_to_intent(individual, situation, *position)
                 }
                 Some(Order::SneakTo(position)) => {
-                    let current = individual.intent.path();
-                    self.resolve_move_intent(
-                        individual,
-                        situation,
-                        *position,
-                        current,
-                        Intent::SneakTo,
-                    )
+                    self.resolve_sneak_to_intent(individual, situation, *position)
                 }
             },
             false => individual.intent.clone(),
@@ -434,34 +413,57 @@ impl<'a> Processor<'a> {
         Intent::Hide(direction)
     }
 
-    fn resolve_move_intent(
+    fn resolve_move_to_intent(
+        &self,
+        individual: &Individual,
+        situation: &Situation,
+        position: WorldVec2,
+    ) -> Intent {
+        match self.resolve_path(individual, position) {
+            Some(path) => match situation.enemy_visible {
+                // Move fast as enemy can fire on them
+                true => Intent::MoveFastTo(position, path),
+                // Move normally
+                false => Intent::MoveTo(position, path),
+            },
+            None => todo!(),
+        }
+    }
+
+    fn resolve_move_fast_to_intent(
         &self,
         individual: &Individual,
         _situation: &Situation,
         position: WorldVec2,
-        current_path: Option<(WorldVec2, &MovePath)>,
-        intent: impl FnOnce(WorldVec2, MovePath) -> Intent,
     ) -> Intent {
-        let direction = individual.gesture.direction();
+        match self.resolve_path(individual, position) {
+            Some(path) => Intent::MoveTo(position, path),
+            None => todo!(),
+        }
+    }
 
-        // Reuse the existing path if we're already moving toward this exact
-        // target — don't recompute it every tick.
-        if let Some((current_target, current_path)) = current_path {
-            if current_target == position && current_path.iter().next().is_some() {
-                return individual.intent.clone();
+    fn resolve_sneak_to_intent(
+        &self,
+        individual: &Individual,
+        _situation: &Situation,
+        position: WorldVec2,
+    ) -> Intent {
+        match self.resolve_path(individual, position) {
+            Some(path) => Intent::MoveTo(position, path),
+            None => todo!(),
+        }
+    }
+
+    fn resolve_path(&self, individual: &Individual, target: WorldVec2) -> Option<MovePath> {
+        if let Some((current_target, current_path)) = individual.intent.path() {
+            if current_target == target && current_path.iter().next().is_some() {
+                return Some(current_path.clone());
             }
         }
 
         let from = (individual.position.x, individual.position.y);
-        let to = (position.x, position.y);
-
-        match self.world.navmesh.path(from, to) {
-            Some(path) => intent(position.clone(), MovePath::from(path)),
-            None => {
-                tracing::debug!("no path from {:?} to {:?}, falling back to Idle", from, to);
-                Intent::Idle(direction)
-            }
-        }
+        let to = (target.x, target.y);
+        self.world.navmesh.path(from, to).map(MovePath::from)
     }
 
     fn direction_to_next(
