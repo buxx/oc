@@ -17,12 +17,14 @@ use oc_utils::let_some;
 use oc_utils::return_if;
 
 use crate::cursor_to;
+use crate::ingame::InGameState;
 use crate::ingame::behavior::DirectionSquadOrder;
 use crate::ingame::behavior::PositionSquadOrder;
 use crate::ingame::draw::UI_FILE;
 use crate::ingame::draw::Z_SQUAD_ORDER;
 use crate::ingame::input::left_click::LeftClick;
 use crate::ingame::input::left_click::LeftClickMode;
+use crate::ingame::input::left_click::LeftClickModeType;
 use crate::ingame::input::left_click::SetLeftClick;
 use crate::ingame::path::ComputeDisplayPaths;
 use crate::ingame::path::SpawnPathProfile;
@@ -30,8 +32,12 @@ use crate::ingame::path::SpawnPathProfileKey;
 use crate::network::output::ToServerEvent;
 use crate::sprites::SpriteRect;
 use crate::sprites::order::SquadOrderSprite;
+use crate::states::AppState;
 use crate::states::GameConfig;
+use crate::utils::drag;
+use crate::utils::drag::Dragged;
 use crate::utils::drag::Phantom;
+use crate::utils::selected::Selected;
 
 /// Marker which indicate order is pending (player prepare to give it)
 #[derive(Debug, Clone, Component)]
@@ -306,6 +312,7 @@ fn give_orders(
     }
 }
 
+/// React to left click mode change to defend/hide order and spawn position order marker on selected squads
 pub fn on_set_left_click(
     event: On<SetLeftClick>,
     g: Res<GameConfig>,
@@ -331,9 +338,9 @@ pub fn on_set_left_click(
                 | OrderType::MoveFastTo
                 | OrderType::SneakTo => None,
             },
-            LeftClickMode::Select
-            | LeftClickMode::SpawnProjectile(_)
-            | LeftClickMode::LineOfView(_) => None,
+            LeftClickMode::Select | LeftClickMode::LineOfView(_) => None,
+            #[cfg(feature = "debug")]
+            LeftClickMode::SpawnProjectile(_) => None,
         } {
             let_some!(squad = world.squad(*squad), continue);
 
@@ -346,13 +353,24 @@ pub fn on_set_left_click(
                 ..default()
             };
 
+            // FIXME BS NOW: when squad leader position update, update direction order too
             tracing::debug!("Spawn direction order {component:?} at {point:?}");
-            commands.spawn((
-                component.clone(),
-                PendingOrder,
-                sprite,
-                Transform::from_xyz(point.x, point.y.to_gui_y(&g.w), Z_SQUAD_ORDER),
-            ));
+            commands
+                .spawn((
+                    component.clone(),
+                    PendingOrder,
+                    sprite,
+                    Transform::from_xyz(point.x, point.y.to_gui_y(&g.w), Z_SQUAD_ORDER),
+                    Pickable::default(),
+                    Selected::default(),
+                    Dragged::<DirectionSquadOrder>::default(),
+                ))
+                .observe(
+                    drag::on_drag_start::<DirectionSquadOrder>
+                        .run_if(in_state(AppState::InGame))
+                        .run_if(in_state(InGameState::Battle))
+                        .run_if(in_state(LeftClickModeType::Select)),
+                );
         }
     }
 }

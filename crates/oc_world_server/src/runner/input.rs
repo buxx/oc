@@ -129,7 +129,7 @@ impl<'a, E: Client> Dealer<'a, E> {
                     oc_individual::squad::Update::SetOrders(orders),
                 )];
             }
-            SquadMessage::SetOrderPosition(index, position) => {
+            SquadMessage::SetPositionOrderPosition(index, position) => {
                 return vec![Update::UpdateSquad(
                     squad,
                     oc_individual::squad::Update::SetOrderPosition(index, position),

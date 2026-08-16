@@ -63,5 +63,5 @@ pub struct GameConfig {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum SquadMessage {
     SetOrders(Vec<Order>),
-    SetOrderPosition(OrderIndex, WorldVec2),
+    SetPositionOrderPosition(OrderIndex, WorldVec2),
 }

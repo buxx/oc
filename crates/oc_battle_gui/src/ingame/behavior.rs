@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 use oc_individual::{
-    order::{Order, OrderIndex},
+    order::{Order, OrderIndex, OrderType},
     squad::SquadIndex,
 };
 use oc_network::{SquadMessage, ToServer};
 use oc_root::{geo::WorldVec2, y::Y};
-use oc_utils::{collections::InvertedIndex, let_ok, let_some};
+use oc_utils::{collections::InvertedIndex, d2::Direction, let_ok, let_some};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -91,6 +91,10 @@ impl Dragging for PositionSquadOrder {
     fn drop(commands: &mut Commands, subject: Entity, point: WorldVec2) {
         commands.trigger(DropSquadOrderMarkerPhantom(subject, point));
     }
+
+    fn visual() -> drag::Visual {
+        drag::Visual::Offset
+    }
 }
 
 #[derive(Debug, Event)]
@@ -103,6 +107,28 @@ pub struct DropSquadOrderMarkerPhantom(Entity, WorldVec2);
 pub enum DirectionSquadOrder {
     Defend(SquadIndex),
     Hide(SquadIndex),
+}
+
+#[derive(Debug, Event)]
+pub struct EnterDragDirectionSquadOrderMarker(Phantom);
+
+#[derive(Debug, Event)]
+pub struct UpdateDirectionSquadOrderTarget(Entity, WorldVec2);
+
+impl Dragging for DirectionSquadOrder {
+    fn spawn(commands: &mut Commands, marker: Phantom) {
+        commands.trigger(EnterDragDirectionSquadOrderMarker(marker));
+    }
+
+    fn drop(commands: &mut Commands, subject: Entity, point: WorldVec2) {
+        commands.entity(subject).remove::<Phantom>();
+        tracing::trace!(name = "ingame-behavior-dragging-direction-squad-order-drop-trigger",);
+        commands.trigger(UpdateDirectionSquadOrderTarget(subject, point));
+    }
+
+    fn visual() -> drag::Visual {
+        drag::Visual::Direction
+    }
 }
 
 impl DirectionSquadOrder {
@@ -143,16 +169,57 @@ pub fn on_drop_squad_order_marker_phantom(
 ) {
     let_ok!(order = query.get(event.0), return);
     let (squad, index, position) = (order.0, order.1, event.1);
-    let message = SquadMessage::SetOrderPosition(index, position);
+    let message = SquadMessage::SetPositionOrderPosition(index, position);
     tracing::trace!(name = "ingame-behavior-on-drop-squad-order-marker-phantom", squad=?squad, index=?index, position=?position);
     commands.trigger(ToServerEvent(ToServer::Squad(squad, message)));
     commands.trigger(SetLeftClick(LeftClickMode::Select));
     commands.trigger(ComputeDisplayPaths(vec![]));
 }
 
+pub fn on_enter_drag_direction_squad_order_marker(
+    event: On<EnterDragDirectionSquadOrderMarker>,
+    mut commands: Commands,
+    markers: Query<&DirectionSquadOrder>,
+) {
+    let phantom = event.0;
+    let_ok!(order = markers.get(phantom.0), return);
+    let order_type = match order {
+        DirectionSquadOrder::Defend(_) => OrderType::Defend,
+        DirectionSquadOrder::Hide(_) => OrderType::Hide,
+    };
+    // The position order become the phantom itself
+    commands.entity(phantom.0).insert(phantom);
+    // Prevent other system/observer
+    commands.trigger(SetLeftClick(LeftClickMode::Order(order_type)));
+}
+
+pub fn on_update_direction_squad_order_target(
+    event: On<UpdateDirectionSquadOrderTarget>,
+    mut commands: Commands,
+    query: Query<&mut DirectionSquadOrder>,
+    world: Res<crate::world::World>,
+) {
+    let_ok!(order = query.get(event.0), return);
+    let (squad, target) = (order.squad(), event.1);
+    let_some!(squad_ = world.squad(order.squad()), return);
+    let reference = squad_.position;
+    let direction = Direction::from_points2d(reference.into(), target.into());
+
+    let order = match order {
+        DirectionSquadOrder::Defend(_) => Order::Defend(direction),
+        DirectionSquadOrder::Hide(_) => Order::Hide(direction),
+    };
+
+    tracing::trace!(name="ingame-behavior-on-update-direction-squad-order-target", squad=?squad, order=?order);
+    let orders = SquadMessage::SetOrders(vec![order]);
+    commands.trigger(ToServerEvent(ToServer::Squad(squad, orders)));
+    commands.trigger(SetLeftClick(LeftClickMode::Select));
+}
+
 impl Plugin for BehaviorPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(DragPlugin::<PositionSquadOrder>::default())
+            .add_plugins(DragPlugin::<DirectionSquadOrder>::default())
             .init_resource::<IndividualOrders>()
             .init_resource::<SquadOrders>()
             .add_observer(on_refresh_individual_orders)
@@ -167,8 +234,11 @@ impl Plugin for BehaviorPlugin {
             .add_observer(on_listening_region)
             .add_observer(on_forgotten_region)
             .add_observer(on_spawn_squad_order_marker_phantom)
-            .add_observer(on_drop_squad_order_marker_phantom);
+            .add_observer(on_drop_squad_order_marker_phantom)
+            .add_observer(on_enter_drag_direction_squad_order_marker)
+            .add_observer(on_update_direction_squad_order_target);
         // FIXME BS NOW: must spawn/despawn according to existing squad order and not only pending;
+        // FIXME BS NOW: currently, when set new order, direction squad order entity (visible by sprite) is not despawn
     }
 }
 

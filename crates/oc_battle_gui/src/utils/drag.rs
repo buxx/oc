@@ -4,8 +4,9 @@ use bevy::prelude::*;
 use oc_root::{
     WcfgFrom,
     geo::{ScreenVec2, WorldVec2},
+    y::V,
 };
-use oc_utils::{let_ok, let_some};
+use oc_utils::{d2::Direction, let_ok, let_some};
 
 use crate::{cursor_to, states::GameConfig, utils::selected};
 
@@ -38,6 +39,11 @@ impl<T: Dragging + std::fmt::Debug + Send + Sync + 'static> std::ops::DerefMut f
     }
 }
 
+pub enum Visual {
+    Offset,
+    Direction,
+}
+
 #[derive(Debug)]
 pub struct DragPlugin<T: Dragging + std::fmt::Debug + Send + Sync + 'static>(PhantomData<T>);
 
@@ -50,8 +56,12 @@ impl<T: Dragging + std::fmt::Debug + Send + Sync + 'static> Default for DragPlug
 impl<T: Dragging + std::fmt::Debug + Send + Sync + 'static> Plugin for DragPlugin<T> {
     fn build(&self, app: &mut App) {
         app.init_resource::<Cursor>()
-            .add_systems(Update, update_positions::<T>)
             .add_observer(on_drag_stop::<T>);
+
+        match T::visual() {
+            Visual::Offset => app.add_systems(Update, update_positions::<T>),
+            Visual::Direction => app.add_systems(Update, update_directions::<T>),
+        };
     }
 }
 
@@ -60,6 +70,8 @@ pub trait Dragging {
     fn spawn(commands: &mut Commands, marker: Phantom);
     /// Implementation assume consequences of drop
     fn drop(commands: &mut Commands, subject: Entity, point: WorldVec2);
+    /// Which visual method to apply
+    fn visual() -> Visual;
 }
 
 /// Observer to attach on spawned bundle owning `Selected` + `Dragged` components.
@@ -73,6 +85,7 @@ pub fn on_drag_start<T>(
 {
     let_some!(point = event.hit.position, return);
     let point = WorldVec2::new(point.x, point.y);
+    tracing::trace!(name="utils-drag-on-drag-start", point=?point);
 
     // Consider dragged entity as selected
     let target = event.event_target();
@@ -82,6 +95,7 @@ pub fn on_drag_start<T>(
 
     // Spawn phantom for each selected entities
     for (_, _, entity) in selected.iter().filter(|(_, selected, _)| selected.0) {
+        tracing::trace!(name="utils-drag-on-drag-start-spawn", point=?point, entity=?entity);
         T::spawn(&mut commands, Phantom(entity));
     }
 
@@ -102,6 +116,8 @@ pub fn on_drag_stop<T>(
 {
     let_some!(g = &g.0, return);
     let_some!(point = event.hit.position, return);
+    tracing::trace!(name="utils-drag-on-drag-stop", point=?point);
+
     let point = Vec2::new(point.x, point.y);
     let point = cursor_to!(point, camera, &g.w, WorldVec2);
     let_some!(cursor_ = cursor.0, return);
@@ -111,7 +127,11 @@ pub fn on_drag_stop<T>(
     cursor.0 = None;
 
     for (entity, phantom) in phantoms {
-        commands.entity(entity).despawn();
+        if let Visual::Offset = T::visual() {
+            commands.entity(entity).despawn()
+        }
+
+        tracing::trace!(name="utils-drag-on-drag-stop-drop", point=?point, entity=?entity);
         T::drop(&mut commands, phantom.0, point);
     }
 
@@ -125,18 +145,48 @@ fn update_positions<T: Dragging + std::fmt::Debug + Send + Sync + 'static>(
     window: Single<&Window>,
     camera: Single<(&Camera, &GlobalTransform)>,
 ) {
+    if phantoms.is_empty() {
+        return;
+    }
+
     let_some!(point = window.cursor_position(), return);
-    let (camera, transform) = *camera;
-    let point = camera.viewport_to_world_2d(transform, point);
+    let (camera, camera_transform) = *camera;
+    let point = camera.viewport_to_world_2d(camera_transform, point);
     let_ok!(point = point, return);
 
     let_some!((cursor, _) = cursor.0, return);
-    let cursor: Vec2 = Vec2::new(cursor.x, cursor.y);
+    let cursor = Vec2::new(cursor.x, cursor.y);
     let offset = (point - cursor).extend(0.);
     let offset: Vec3 = offset.into();
 
     for (phantom, mut phantom_transform) in phantoms.iter_mut() {
         let_ok!((_, origin) = origins.get_mut(phantom.0), continue);
         phantom_transform.translation = origin.translation + offset;
+        tracing::trace!(name="utils-drag-update-position", point=?point, phantom=?phantom, translation=?phantom_transform.translation);
+    }
+}
+
+fn update_directions<T: Dragging + std::fmt::Debug + Send + Sync + 'static>(
+    mut phantoms: Query<(&Phantom, &mut Transform), With<Dragged<T>>>,
+    window: Single<&Window>,
+    camera: Single<(&Camera, &GlobalTransform)>,
+) {
+    if phantoms.is_empty() {
+        return;
+    }
+
+    let_some!(point = window.cursor_position(), return);
+    let (camera, camera_transform) = *camera;
+    let point = camera.viewport_to_world_2d(camera_transform, point);
+    let_ok!(point = point, return);
+
+    let cursor = glam::Vec2::new(point.x, point.y);
+
+    for (phantom, mut phantom_transform) in phantoms.iter_mut() {
+        let reference = phantom_transform.translation;
+        let reference = glam::Vec2::new(reference.x, reference.y);
+        let direction = Direction::from_points2d(reference, cursor);
+        phantom_transform.rotation = direction.bquat(V::Server); // Weird, there is mistake in points natures
+        tracing::trace!(name="utils-drag-update-rotation", point=?point, phantom=?phantom, rotation=?phantom_transform.rotation);
     }
 }
