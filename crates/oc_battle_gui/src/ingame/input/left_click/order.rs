@@ -9,13 +9,16 @@ use oc_root::WcfgFrom;
 use oc_root::WorldConfig;
 use oc_root::geo::ScreenVec2;
 use oc_root::geo::WorldVec2;
+use oc_root::y::V;
 use oc_root::y::Y;
+use oc_utils::d2::Direction;
 use oc_utils::let_ok;
 use oc_utils::let_some;
 use oc_utils::return_if;
 
 use crate::cursor_to;
-use crate::ingame::behavior::SquadOrder;
+use crate::ingame::behavior::DirectionSquadOrder;
+use crate::ingame::behavior::PositionSquadOrder;
 use crate::ingame::draw::UI_FILE;
 use crate::ingame::draw::Z_SQUAD_ORDER;
 use crate::ingame::input::left_click::LeftClick;
@@ -30,11 +33,9 @@ use crate::sprites::order::SquadOrderSprite;
 use crate::states::GameConfig;
 use crate::utils::drag::Phantom;
 
+/// Marker which indicate order is pending (player prepare to give it)
 #[derive(Debug, Clone, Component)]
-pub enum DirectionOrder {
-    Defend,
-    Hide,
-}
+pub struct PendingOrder;
 
 pub fn system(
     mut commands: Commands,
@@ -47,7 +48,8 @@ pub fn system(
     world: Res<crate::world::World>,
     mut ingame: ResMut<crate::ingame::state::State>,
     drag: Query<&Phantom>,
-    markers: Query<&SquadOrder>,
+    position_markers: Query<&PositionSquadOrder>,
+    mut direction_markers: Query<(&DirectionSquadOrder, &mut Transform), With<PendingOrder>>,
 ) {
     let_some!(w = &w.0, return);
     let_some!(cursor = window.cursor_position(), return);
@@ -68,7 +70,8 @@ pub fn system(
         &ingame,
         &world,
         &drag,
-        &markers,
+        &position_markers,
+        &mut direction_markers,
     );
 }
 
@@ -81,16 +84,32 @@ fn show(
     ingame: &crate::ingame::state::State,
     world: &crate::world::World,
     drag: &Query<&Phantom>,
-    markers: &Query<&SquadOrder>,
+    position_markers: &Query<&PositionSquadOrder>,
+    direction_markers: &mut Query<(&DirectionSquadOrder, &mut Transform), With<PendingOrder>>,
 ) {
     tracing::trace!(name="ingame-input-left_click-show-order", mode=?mode.0, point=?point);
 
     match order {
-        OrderType::Idle | OrderType::Defend | OrderType::Hide => {}
+        OrderType::Idle | OrderType::Defend | OrderType::Hide => {
+            rotate_direction_markers(point, world, direction_markers);
+        }
         OrderType::MoveTo | OrderType::MoveFastTo | OrderType::SneakTo => {
-            let spawns = path_profiles(w, point, mode, ingame, world, &drag, &markers);
+            let spawns = path_profiles(w, point, mode, ingame, world, &drag, &position_markers);
             commands.trigger(ComputeDisplayPaths(spawns));
         }
+    }
+}
+
+fn rotate_direction_markers(
+    point: WorldVec2,
+    world: &crate::world::World,
+    direction_markers: &mut Query<(&DirectionSquadOrder, &mut Transform), With<PendingOrder>>,
+) {
+    for (order, mut transform) in direction_markers.iter_mut() {
+        let_some!(squad = world.squad(order.squad()), continue);
+        let reference = squad.position;
+        let direction = Direction::from_points2d(reference.into(), point.into());
+        *transform = transform.with_rotation(direction.bquat(V::Gui));
     }
 }
 
@@ -101,7 +120,7 @@ fn path_profiles(
     ingame: &crate::ingame::state::State,
     world: &crate::world::World,
     drag: &Query<&Phantom>,
-    markers: &Query<&SquadOrder>,
+    markers: &Query<&PositionSquadOrder>,
 ) -> Vec<SpawnPathProfile> {
     let mut spawns = vec![];
     // Spawns points from selected squads
@@ -124,7 +143,7 @@ fn path_profiles(
                 let mut profiles = vec![];
 
                 let marker = markers.get(dragged.0).ok()?;
-                let SquadOrder(squad, index) = marker;
+                let PositionSquadOrder(squad, index) = marker;
                 let i = *squad;
                 let squad = world.squad(*squad)?;
                 let orders = &squad.orders;
@@ -297,19 +316,25 @@ pub fn on_set_left_click(
 ) {
     let_some!(g = &g.0, return);
 
-    if let Some((component, sprite)) = match event.0 {
-        LeftClickMode::Order(order) => match order {
-            OrderType::Defend => Some((DirectionOrder::Defend, SquadOrderSprite::Defend)),
-            OrderType::Hide => Some((DirectionOrder::Hide, SquadOrderSprite::Hide)),
-            OrderType::Idle | OrderType::MoveTo | OrderType::MoveFastTo | OrderType::SneakTo => {
-                None
-            }
-        },
-        LeftClickMode::Select
-        | LeftClickMode::SpawnProjectile(_)
-        | LeftClickMode::LineOfView(_) => None,
-    } {
-        for squad in state.selected_squads() {
+    for squad in state.selected_squads() {
+        if let Some((component, sprite)) = match event.0 {
+            LeftClickMode::Order(order) => match order {
+                OrderType::Defend => Some((
+                    DirectionSquadOrder::Defend(*squad),
+                    SquadOrderSprite::Defend,
+                )),
+                OrderType::Hide => {
+                    Some((DirectionSquadOrder::Hide(*squad), SquadOrderSprite::Hide))
+                }
+                OrderType::Idle
+                | OrderType::MoveTo
+                | OrderType::MoveFastTo
+                | OrderType::SneakTo => None,
+            },
+            LeftClickMode::Select
+            | LeftClickMode::SpawnProjectile(_)
+            | LeftClickMode::LineOfView(_) => None,
+        } {
             let_some!(squad = world.squad(*squad), continue);
 
             let point = squad.position;
@@ -324,6 +349,7 @@ pub fn on_set_left_click(
             tracing::debug!("Spawn direction order {component:?} at {point:?}");
             commands.spawn((
                 component.clone(),
+                PendingOrder,
                 sprite,
                 Transform::from_xyz(point.x, point.y.to_gui_y(&g.w), Z_SQUAD_ORDER),
             ));

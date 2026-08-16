@@ -81,9 +81,9 @@ pub struct DespawnSquadOrder(
 );
 
 #[derive(Debug, Component)]
-pub struct SquadOrder(pub SquadIndex, pub OrderIndex);
+pub struct PositionSquadOrder(pub SquadIndex, pub OrderIndex);
 
-impl Dragging for SquadOrder {
+impl Dragging for PositionSquadOrder {
     fn spawn(commands: &mut Commands, marker: Phantom) {
         commands.trigger(SpawnSquadOrderMarkerPhantom(marker));
     }
@@ -99,11 +99,25 @@ pub struct SpawnSquadOrderMarkerPhantom(Phantom);
 #[derive(Debug, Event)]
 pub struct DropSquadOrderMarkerPhantom(Entity, WorldVec2);
 
+#[derive(Debug, Clone, Component)]
+pub enum DirectionSquadOrder {
+    Defend(SquadIndex),
+    Hide(SquadIndex),
+}
+
+impl DirectionSquadOrder {
+    pub fn squad(&self) -> SquadIndex {
+        match self {
+            DirectionSquadOrder::Defend(squad) | DirectionSquadOrder::Hide(squad) => *squad,
+        }
+    }
+}
+
 pub fn on_spawn_squad_order_marker_phantom(
     event: On<SpawnSquadOrderMarkerPhantom>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    query: Query<&mut SquadOrder>,
+    query: Query<&mut PositionSquadOrder>,
     world: Res<crate::world::World>,
 ) {
     let_ok!(order = query.get(event.0.0), return);
@@ -125,7 +139,7 @@ pub fn on_spawn_squad_order_marker_phantom(
 pub fn on_drop_squad_order_marker_phantom(
     event: On<DropSquadOrderMarkerPhantom>,
     mut commands: Commands,
-    query: Query<&mut SquadOrder>,
+    query: Query<&mut PositionSquadOrder>,
 ) {
     let_ok!(order = query.get(event.0), return);
     let (squad, index, position) = (order.0, order.1, event.1);
@@ -138,10 +152,9 @@ pub fn on_drop_squad_order_marker_phantom(
 
 impl Plugin for BehaviorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(DragPlugin::<SquadOrder>::default())
+        app.add_plugins(DragPlugin::<PositionSquadOrder>::default())
             .init_resource::<IndividualOrders>()
             .init_resource::<SquadOrders>()
-            // .add_observer(on_set_individual_orders)
             .add_observer(on_refresh_individual_orders)
             .add_observer(on_spawn_individual_order)
             .add_observer(on_despawn_individual_order)
@@ -155,6 +168,7 @@ impl Plugin for BehaviorPlugin {
             .add_observer(on_forgotten_region)
             .add_observer(on_spawn_squad_order_marker_phantom)
             .add_observer(on_drop_squad_order_marker_phantom);
+        // FIXME BS NOW: must spawn/despawn according to existing squad order and not only pending;
     }
 }
 
@@ -323,15 +337,15 @@ fn on_spawn_squad_order(
     let transform = Transform::from_translation(translation);
     let entity = commands
         .spawn((
-            SquadOrder(*squad, *index),
+            PositionSquadOrder(*squad, *index),
             sprite,
             transform,
             Pickable::default(),
             Selected::default(),
-            Dragged::<SquadOrder>::default(),
+            Dragged::<PositionSquadOrder>::default(),
         ))
         .observe(
-            drag::on_drag_start::<SquadOrder>
+            drag::on_drag_start::<PositionSquadOrder>
                 .run_if(in_state(AppState::InGame))
                 .run_if(in_state(InGameState::Battle))
                 .run_if(in_state(LeftClickModeType::Select)),
