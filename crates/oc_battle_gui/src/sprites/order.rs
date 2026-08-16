@@ -79,7 +79,7 @@ impl SpriteRect for SquadOrderSprite {
                 )
             }
             SquadOrderSprite::Defend => {
-                const INDEX: f32 = 0.;
+                const INDEX: f32 = 1.;
                 let start_y = DIRECTION_START_Y + (INDEX * DIRECTION_HEIGHT);
                 Rect::new(
                     DIRECTION_START_X,
@@ -89,7 +89,7 @@ impl SpriteRect for SquadOrderSprite {
                 )
             }
             SquadOrderSprite::Hide => {
-                const INDEX: f32 = 1.;
+                const INDEX: f32 = 0.;
                 let start_y = DIRECTION_START_Y + (INDEX * DIRECTION_HEIGHT);
                 Rect::new(
                     DIRECTION_START_X,

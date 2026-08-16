@@ -50,6 +50,12 @@ impl Plugin for InputPlugin {
                     .run_if(in_state(LeftClickModeType::Order))
                     .run_if(in_state(PointerIn::Battle)),
             )
+            .add_observer(
+                left_click::order::on_set_left_click
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(PointerIn::Battle)),
+            )
             .add_systems(Startup, left_click::select::setup)
             .add_systems(
                 Update,

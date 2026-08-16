@@ -9,12 +9,15 @@ use oc_root::WcfgFrom;
 use oc_root::WorldConfig;
 use oc_root::geo::ScreenVec2;
 use oc_root::geo::WorldVec2;
+use oc_root::y::Y;
 use oc_utils::let_ok;
 use oc_utils::let_some;
 use oc_utils::return_if;
 
 use crate::cursor_to;
 use crate::ingame::behavior::SquadOrder;
+use crate::ingame::draw::UI_FILE;
+use crate::ingame::draw::Z_SQUAD_ORDER;
 use crate::ingame::input::left_click::LeftClick;
 use crate::ingame::input::left_click::LeftClickMode;
 use crate::ingame::input::left_click::SetLeftClick;
@@ -22,8 +25,16 @@ use crate::ingame::path::ComputeDisplayPaths;
 use crate::ingame::path::SpawnPathProfile;
 use crate::ingame::path::SpawnPathProfileKey;
 use crate::network::output::ToServerEvent;
+use crate::sprites::SpriteRect;
+use crate::sprites::order::SquadOrderSprite;
 use crate::states::GameConfig;
 use crate::utils::drag::Phantom;
+
+#[derive(Debug, Clone, Component)]
+pub enum DirectionOrder {
+    Defend,
+    Hide,
+}
 
 pub fn system(
     mut commands: Commands,
@@ -273,5 +284,49 @@ fn give_orders(
         }
         let set_orders = oc_network::SquadMessage::SetOrders(orders.clone());
         commands.trigger(ToServerEvent(ToServer::Squad(*squad, set_orders)));
+    }
+}
+
+pub fn on_set_left_click(
+    event: On<SetLeftClick>,
+    g: Res<GameConfig>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    state: Res<crate::ingame::state::State>,
+    world: Res<crate::world::World>,
+) {
+    let_some!(g = &g.0, return);
+
+    if let Some((component, sprite)) = match event.0 {
+        LeftClickMode::Order(order) => match order {
+            OrderType::Defend => Some((DirectionOrder::Defend, SquadOrderSprite::Defend)),
+            OrderType::Hide => Some((DirectionOrder::Hide, SquadOrderSprite::Hide)),
+            OrderType::Idle | OrderType::MoveTo | OrderType::MoveFastTo | OrderType::SneakTo => {
+                None
+            }
+        },
+        LeftClickMode::Select
+        | LeftClickMode::SpawnProjectile(_)
+        | LeftClickMode::LineOfView(_) => None,
+    } {
+        for squad in state.selected_squads() {
+            let_some!(squad = world.squad(*squad), continue);
+
+            let point = squad.position;
+            let image = asset_server.load(UI_FILE);
+            let rect = sprite.rect();
+            let sprite = Sprite {
+                image,
+                rect: Some(rect),
+                ..default()
+            };
+
+            tracing::debug!("Spawn direction order {component:?} at {point:?}");
+            commands.spawn((
+                component.clone(),
+                sprite,
+                Transform::from_xyz(point.x, point.y.to_gui_y(&g.w), Z_SQUAD_ORDER),
+            ));
+        }
     }
 }

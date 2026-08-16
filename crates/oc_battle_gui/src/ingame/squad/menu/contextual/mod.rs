@@ -15,7 +15,7 @@ const ITEMS_IDLE_START_X: f32 = 0.;
 const ITEMS_IDLE_START_Y: f32 = 0.;
 const ITEMS_HOVER_START_X: f32 = 71.;
 const ITEMS_HOVER_START_Y: f32 = 0.;
-const ITEM_HEIGHT: f32 = 16.;
+const ITEM_HEIGHT: f32 = 15.;
 const ITEM_WIDTH: f32 = 70.;
 
 #[derive(Debug, Event)]
@@ -32,6 +32,9 @@ pub enum Choice {
     Move,
     MoveFast,
     Sneak,
+    Fire,
+    Defend,
+    Hide,
 }
 
 impl OpenContextualMenu<Menu> for Open {
@@ -64,6 +67,9 @@ impl contextual::choice::Choice<Choice> for Choice {
             Choice::Move => 0,
             Choice::MoveFast => 1,
             Choice::Sneak => 2,
+            Choice::Fire => 3,
+            Choice::Defend => 4,
+            Choice::Hide => 5,
         };
 
         let yp = index as f32 * ITEM_HEIGHT;
@@ -79,6 +85,9 @@ impl contextual::choice::Choice<Choice> for Choice {
             Choice::Move => 0,
             Choice::MoveFast => 1,
             Choice::Sneak => 2,
+            Choice::Fire => 3,
+            Choice::Defend => 4,
+            Choice::Hide => 5,
         };
 
         let yp = index as f32 * ITEM_HEIGHT;
@@ -99,15 +108,14 @@ pub fn on_prepare_open_squad_contextual_menu(
 }
 
 pub fn on_choose(item: On<Choice>, mut commands: Commands) {
-    match *item {
-        Choice::Move => {
-            commands.trigger(SetLeftClick(LeftClickMode::Order(OrderType::MoveTo)));
-        }
-        Choice::MoveFast => {
-            commands.trigger(SetLeftClick(LeftClickMode::Order(OrderType::MoveFastTo)));
-        }
-        Choice::Sneak => {
-            commands.trigger(SetLeftClick(LeftClickMode::Order(OrderType::SneakTo)));
-        }
-    }
+    let order = match *item {
+        Choice::Move => OrderType::MoveTo,
+        Choice::MoveFast => OrderType::MoveFastTo,
+        Choice::Sneak => OrderType::SneakTo,
+        Choice::Fire => todo!(),
+        Choice::Defend => OrderType::Defend,
+        Choice::Hide => OrderType::Hide,
+    };
+
+    commands.trigger(SetLeftClick(LeftClickMode::Order(order)));
 }
