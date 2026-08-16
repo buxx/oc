@@ -57,6 +57,8 @@ Options:
 
 ## In images
 
+(not finished map ...)
+
 ![minidblue](src/minidblue.jpg)
 ![minidblue_terrain](src/minidblue_terrain.png)
 ![minidblue_height](src/minidblue_height.png)
