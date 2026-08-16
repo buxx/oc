@@ -5,7 +5,8 @@ use oc_geo::tile::TileXy;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_individual::squad::SquadIndex;
 use oc_individual::{
-    INDIVIDUAL_STAND_UP_VOLUME_HEIGHT, INDIVIDUAL_STAND_UP_VOLUME_WIDTH, IndividualIndex,
+    INDIVIDUAL_INDEXATION_SHAPE, INDIVIDUAL_STAND_UP_VOLUME_HEIGHT,
+    INDIVIDUAL_STAND_UP_VOLUME_WIDTH, IndividualIndex,
 };
 use oc_projectile::Projectile;
 use oc_projectile::ProjectileId;
@@ -67,8 +68,8 @@ impl Indexes {
 
             for tile_ in shape_cover_tiles(
                 [position.x, position.y],
-                INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
-                INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
+                INDIVIDUAL_INDEXATION_SHAPE.pixels(w),
+                INDIVIDUAL_INDEXATION_SHAPE.pixels(w),
                 w.geo_pixels_per_tile as f32,
                 w.geo_pixels_per_tile as f32,
             ) {

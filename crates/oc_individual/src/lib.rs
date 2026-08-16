@@ -38,10 +38,9 @@ pub const INDIVIDUAL_STAND_UP_VOLUME_WIDTH: Meters = Meters(0.8);
 pub const INDIVIDUAL_STAND_UP_VOLUME_HEIGHT: Meters = Meters(0.8);
 pub const INDIVIDUAL_STAND_UP_VOLUME_DEPTH: Meters = Meters(1.8);
 
-// FIXME BS NOW: oh boudiou, deux choses changent avec le soldat allongé:
-// - Son volume dépend de sa direction FAIT
-// - Les indexation de quel tile sont concerné dépendent de son orientation et de sa gesture
-// FIXME BS NOW: write e2e test about direction and projectile FAIT
+// When maintain index of tile/individual, consider this shape to cover prone and rotation
+pub const INDIVIDUAL_INDEXATION_SHAPE: Meters = Meters(2.0);
+
 pub const INDIVIDUAL_PRONE_VOLUME_WIDTH: Meters = Meters(0.8);
 pub const INDIVIDUAL_PRONE_VOLUME_HEIGHT: Meters = Meters(1.8);
 pub const INDIVIDUAL_PRONE_VOLUME_DEPTH: Meters = Meters(0.8);
