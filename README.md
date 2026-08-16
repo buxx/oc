@@ -2,7 +2,7 @@
 
 ## Developer guide
 
-See also [developer guide](/doc/developer.md)
+See also [developer guide](doc/developer/developer.md)
 
 ## Setup
 
