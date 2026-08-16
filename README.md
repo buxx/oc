@@ -2,6 +2,8 @@
 
 ## Developer guide
 
+See also [developer guide](./doc/developer.md)
+
 ## Setup
 
 On your computer:
