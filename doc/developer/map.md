@@ -54,7 +54,7 @@ Options:
 
 ## In images
 
-![minidblue](minidblue.jpg)
-![minidblue_height](minidblue_height.png)
-![minidblue_height_3d](minidblue_height_3d.png)
-![minidblue_terrain](minidblue_terrain.png)
+![minidblue](src/minidblue.jpg)
+![minidblue_terrain](src/minidblue_terrain.png)
+![minidblue_height](src/minidblue_height.png)
+![minidblue_height_3d](src/minidblue_height_3d.png)
