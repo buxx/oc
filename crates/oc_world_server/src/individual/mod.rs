@@ -437,7 +437,7 @@ impl<'a> Processor<'a> {
         position: WorldVec2,
     ) -> Intent {
         match self.resolve_path(individual, position) {
-            Some(path) => Intent::MoveTo(position, path),
+            Some(path) => Intent::MoveFastTo(position, path),
             None => todo!(),
         }
     }
@@ -449,7 +449,7 @@ impl<'a> Processor<'a> {
         position: WorldVec2,
     ) -> Intent {
         match self.resolve_path(individual, position) {
-            Some(path) => Intent::MoveTo(position, path),
+            Some(path) => Intent::SneakTo(position, path),
             None => todo!(),
         }
     }
