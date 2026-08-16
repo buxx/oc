@@ -454,6 +454,7 @@ impl<'a> Processor<'a> {
         }
     }
 
+    /// Compute path to target, or reuse current if already known path
     fn resolve_path(&self, individual: &Individual, target: WorldVec2) -> Option<MovePath> {
         if let Some((current_target, current_path)) = individual.intent.path() {
             if current_target == target && current_path.iter().next().is_some() {
