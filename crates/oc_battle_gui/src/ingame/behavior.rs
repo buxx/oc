@@ -11,8 +11,8 @@ use rustc_hash::FxHashMap;
 use crate::{
     ingame::{
         InGameState,
-        draw::{self, UI_FILE},
-        input::left_click::{LeftClickMode, LeftClickModeType, SetLeftClick},
+        draw::{self, UI_FILE, Z_SQUAD_ORDER},
+        input::left_click::{LeftClickMode, LeftClickModeType, SetLeftClick, order::PendingOrder},
         path::ComputeDisplayPaths,
         region::{ForgottenRegion, ListeningRegion},
     },
@@ -31,6 +31,7 @@ pub struct BehaviorPlugin;
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
 pub struct IndividualOrders(FxHashMap<oc_individual::IndividualIndex, Vec<(Order, Entity)>>);
 
+// FIXME BS NOW: Seems not used, try delete it
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
 pub struct SquadOrders(FxHashMap<oc_individual::squad::SquadIndex, Vec<(Order, Entity)>>);
 
@@ -50,11 +51,36 @@ pub struct RefreshSquadsOrdersEvent(
 pub struct SpawnIndividualOrder(oc_individual::IndividualIndex, oc_individual::order::Order);
 
 #[derive(Debug, Event)]
-pub struct SpawnSquadOrder(
-    oc_individual::squad::SquadIndex,
-    oc_individual::order::OrderIndex,
-    oc_individual::order::Order,
-);
+pub enum SpawnSquadOrder {
+    Position(
+        oc_individual::squad::SquadIndex,
+        oc_individual::order::OrderIndex,
+        oc_individual::order::Order,
+    ),
+    Direction(
+        oc_individual::squad::SquadIndex,
+        oc_individual::order::Order,
+        bool, // Pending (true when player is giving order)
+    ),
+}
+
+impl SpawnSquadOrder {
+    pub fn squad(&self) -> SquadIndex {
+        match self {
+            SpawnSquadOrder::Position(squad, _, _) | SpawnSquadOrder::Direction(squad, _, _) => {
+                *squad
+            }
+        }
+    }
+
+    pub fn order(&self) -> &Order {
+        match self {
+            SpawnSquadOrder::Position(_, _, order) | SpawnSquadOrder::Direction(_, order, _) => {
+                order
+            }
+        }
+    }
+}
 
 #[derive(Debug, Event)]
 pub struct SpawnSquadOrders(
@@ -181,12 +207,15 @@ pub fn on_enter_drag_direction_squad_order_marker(
     mut commands: Commands,
     markers: Query<&DirectionSquadOrder>,
 ) {
+    dbg!(0);
     let phantom = event.0;
     let_ok!(order = markers.get(phantom.0), return);
     let order_type = match order {
         DirectionSquadOrder::Defend(_) => OrderType::Defend,
         DirectionSquadOrder::Hide(_) => OrderType::Hide,
     };
+
+    tracing::trace!(name = "ingame-behavior-on-enter-drag-direction-squad-order-marker");
     // The position order become the phantom itself
     commands.entity(phantom.0).insert(phantom);
     // Prevent other system/observer
@@ -289,7 +318,8 @@ fn on_refresh_squad_orders(
             .is_none()
         {
             tracing::trace!(name = "ingame-behavior-on-refresh-squad-orders-trigger-spawn-order", i=?i, order=?order);
-            commands.trigger(SpawnSquadOrder(i, OrderIndex(o as u32), order.clone()));
+            let spawn = SpawnSquadOrder::Position(i, OrderIndex(o as u32), order.clone());
+            commands.trigger(spawn);
         }
     }
 
@@ -387,52 +417,108 @@ fn on_spawn_squad_order(
     mut orders: ResMut<SquadOrders>,
     asset_server: Res<AssetServer>,
     mut commands: Commands,
+    world: Res<crate::world::World>,
 ) {
     let_some!(g = &g.0, return);
     let image = asset_server.load(UI_FILE);
-    let SpawnSquadOrder(squad, index, order) = &*event;
+    let (squad, order) = (event.squad(), event.order());
     let rect = order.sprite().rect();
-    let_some!(position = order.position(), return);
-    let x = position.x;
-    let y = position.y;
-    let translation = Vec3::new(x as f32, (y as f32).to_gui_y(&g.w), draw::Z_SQUAD_ORDER);
 
-    tracing::trace!(name = "ingame-behavior-on-spawn-squad-orders-spawn", i=?squad, position=?position, rect=?rect, translation=?translation);
+    tracing::trace!(name = "ingame-behavior-on-spawn-squad-orders-spawn", i=?squad);
 
     let sprite = Sprite {
         image,
         rect: Some(rect),
         ..default()
     };
-    let transform = Transform::from_translation(translation);
-    let entity = commands
-        .spawn((
-            PositionSquadOrder(*squad, *index),
-            sprite,
-            transform,
-            Pickable::default(),
-            Selected::default(),
-            Dragged::<PositionSquadOrder>::default(),
-        ))
-        .observe(
-            drag::on_drag_start::<PositionSquadOrder>
-                .run_if(in_state(AppState::InGame))
-                .run_if(in_state(InGameState::Battle))
-                .run_if(in_state(LeftClickModeType::Select)),
-        )
-        .id();
+    let (entity, track) = match *event {
+        SpawnSquadOrder::Position(_, index, _) => {
+            let marker = PositionSquadOrder(squad, index);
 
-    orders
-        .entry(event.0)
-        .or_insert_with(|| vec![])
-        .push((order.clone(), entity));
+            let_some!(position = order.position(), return);
+            let x = position.x;
+            let y = position.y;
+            let translation = Vec3::new(x as f32, (y as f32).to_gui_y(&g.w), draw::Z_SQUAD_ORDER);
+            let transform = Transform::from_translation(translation);
+
+            (
+                commands
+                    .spawn((
+                        marker,
+                        sprite,
+                        transform,
+                        Pickable::default(),
+                        Selected::default(),
+                        Dragged::<PositionSquadOrder>::default(),
+                    ))
+                    .observe(
+                        drag::on_drag_start::<PositionSquadOrder>
+                            .run_if(in_state(AppState::InGame))
+                            .run_if(in_state(InGameState::Battle))
+                            .run_if(in_state(LeftClickModeType::Select)),
+                    )
+                    .id(),
+                true,
+            )
+        }
+        SpawnSquadOrder::Direction(_, _, pending) => {
+            let marker = match order {
+                Order::Idle | Order::MoveTo(_) | Order::MoveFastTo(_) | Order::SneakTo(_) => return,
+                Order::Defend(_) => DirectionSquadOrder::Defend(squad),
+                Order::Hide(_) => DirectionSquadOrder::Hide(squad),
+            };
+            let_some!(squad_ = world.squad(squad), return);
+            let point = squad_.position;
+            let transform = Transform::from_xyz(point.x, point.y.to_gui_y(&g.w), Z_SQUAD_ORDER);
+
+            let mut entity = commands.spawn((
+                marker,
+                sprite,
+                transform,
+                Pickable::default(),
+                Selected::default(),
+                Dragged::<DirectionSquadOrder>::default(),
+            ));
+            if pending {
+                entity.insert(PendingOrder);
+            }
+            (
+                entity
+                    .observe(
+                        drag::on_drag_start::<DirectionSquadOrder>
+                            .run_if(in_state(AppState::InGame))
+                            .run_if(in_state(InGameState::Battle))
+                            .run_if(in_state(LeftClickModeType::Select)),
+                    )
+                    .id(),
+                !pending,
+            )
+        }
+    };
+
+    if track {
+        orders
+            .entry(squad)
+            .or_insert_with(|| vec![])
+            .push((order.clone(), entity));
+    }
 }
 
 fn on_spawn_squad_orders(event: On<SpawnSquadOrders>, mut commands: Commands) {
     let (i, orders) = (event.0, &event.1);
 
     for (o, order) in orders.iter().rev().enumerate() {
-        commands.trigger(SpawnSquadOrder(i, OrderIndex(o as u32), order.clone()));
+        if let Some(event) = match order {
+            Order::Idle => None,
+            Order::MoveTo(_) | Order::MoveFastTo(_) | Order::SneakTo(_) => Some(
+                SpawnSquadOrder::Position(i, OrderIndex(o as u32), order.clone()),
+            ),
+            Order::Defend(_) | Order::Hide(_) => {
+                Some(SpawnSquadOrder::Direction(i, order.clone(), false))
+            }
+        } {
+            commands.trigger(event);
+        }
     }
 }
 

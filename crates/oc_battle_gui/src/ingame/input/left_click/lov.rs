@@ -1,7 +1,7 @@
 use bevy::prelude::*;
-use oc_root::geo::{ScreenVec2, WorldVec2};
+use oc_root::geo::WorldVec2;
 use oc_root::{Wcfg, WcfgFrom, WorldConfig};
-use oc_utils::{let_ok, let_some, return_if};
+use oc_utils::{let_some, return_if};
 
 use crate::ingame::input::left_click::{LeftClick, LeftClickMode, SetLeftClick};
 use crate::ingame::lov::{DespawnLov, LovClickMode, SpawnLov, SpawnLovConfig, SpawnLovProfile};

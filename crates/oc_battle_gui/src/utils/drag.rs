@@ -1,11 +1,7 @@
 use std::marker::PhantomData;
 
 use bevy::prelude::*;
-use oc_root::{
-    WcfgFrom,
-    geo::{ScreenVec2, WorldVec2},
-    y::V,
-};
+use oc_root::{WcfgFrom, geo::WorldVec2, y::V};
 use oc_utils::{d2::Direction, let_ok, let_some};
 
 use crate::{cursor_to, states::GameConfig, utils::selected};

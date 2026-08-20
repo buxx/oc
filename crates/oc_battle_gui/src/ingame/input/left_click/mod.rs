@@ -6,7 +6,7 @@ use oc_individual::order::OrderType;
 use oc_root::WcfgFrom;
 use oc_root::geo::ScreenVec2;
 use oc_root::geo::WorldVec2;
-use oc_utils::{let_ok, let_some};
+use oc_utils::let_some;
 use strum_macros::EnumIter;
 
 use crate::cursor_to;
@@ -82,6 +82,16 @@ impl LeftClickMode {
                 | OrderType::Defend
                 | OrderType::Hide => false,
             },
+        }
+    }
+
+    pub fn order(&self) -> Option<&OrderType> {
+        match self {
+            LeftClickMode::Select => None,
+            #[cfg(feature = "debug")]
+            LeftClickMode::SpawnProjectile(_) => None,
+            LeftClickMode::LineOfView(_) => None,
+            LeftClickMode::Order(type_) => Some(type_),
         }
     }
 }

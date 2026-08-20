@@ -2,11 +2,8 @@ use bevy::prelude::*;
 use oc_individual::{Individual, squad::SquadIndex};
 use oc_physics::update::bevy::UpdatePhysicsEvent;
 use oc_projectile::ProjectileId;
-use oc_root::{
-    WcfgFrom,
-    geo::{ScreenVec2, WorldVec2},
-};
-use oc_utils::{let_ok, let_some};
+use oc_root::{WcfgFrom, geo::WorldVec2};
+use oc_utils::let_some;
 
 use crate::{
     cursor_to, entity::individual::IndividualIndex,
