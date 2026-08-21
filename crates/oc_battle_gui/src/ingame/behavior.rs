@@ -8,7 +8,7 @@ use oc_root::{
     geo::WorldVec2,
     y::{V, Y},
 };
-use oc_utils::{collections::InvertedIndex, d2::Direction, let_ok, let_some};
+use oc_utils::{bevy::EntityMapping, collections::InvertedIndex, d2::Direction, let_ok, let_some};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -444,7 +444,7 @@ fn on_spawn_squad_order(
         rect: Some(rect),
         ..default()
     };
-    let (entity, track) = match *event {
+    let entity = match *event {
         SpawnSquadOrder::Position(_, index, _) => {
             let marker = PositionSquadOrder(squad, index);
 
@@ -455,25 +455,23 @@ fn on_spawn_squad_order(
             let transform = Transform::from_translation(translation);
 
             tracing::trace!(name = "ingame-behavior-on-spawn-squad-orders-spawn-position", i=?squad, order=?order);
-            (
-                commands
-                    .spawn((
-                        marker,
-                        sprite,
-                        transform,
-                        Pickable::default(),
-                        Selected::default(),
-                        Dragged::<PositionSquadOrder>::default(),
-                    ))
-                    .observe(
-                        drag::on_drag_start::<PositionSquadOrder>
-                            .run_if(in_state(AppState::InGame))
-                            .run_if(in_state(InGameState::Battle))
-                            .run_if(in_state(LeftClickModeType::Select)),
-                    )
-                    .id(),
-                true,
-            )
+
+            commands
+                .spawn((
+                    marker,
+                    sprite,
+                    transform,
+                    Pickable::default(),
+                    Selected::default(),
+                    Dragged::<PositionSquadOrder>::default(),
+                ))
+                .observe(
+                    drag::on_drag_start::<PositionSquadOrder>
+                        .run_if(in_state(AppState::InGame))
+                        .run_if(in_state(InGameState::Battle))
+                        .run_if(in_state(LeftClickModeType::Select)),
+                )
+                .id()
         }
         SpawnSquadOrder::Direction(_, _, pending) => {
             let (marker, direction) = match order {
@@ -499,26 +497,22 @@ fn on_spawn_squad_order(
             if pending {
                 entity.insert(PendingOrder);
             }
-            (
-                entity
-                    .observe(
-                        drag::on_drag_start::<DirectionSquadOrder>
-                            .run_if(in_state(AppState::InGame))
-                            .run_if(in_state(InGameState::Battle))
-                            .run_if(in_state(LeftClickModeType::Select)),
-                    )
-                    .id(),
-                true,
-            )
+
+            entity
+                .observe(
+                    drag::on_drag_start::<DirectionSquadOrder>
+                        .run_if(in_state(AppState::InGame))
+                        .run_if(in_state(InGameState::Battle))
+                        .run_if(in_state(LeftClickModeType::Select)),
+                )
+                .id()
         }
     };
 
-    if track {
-        orders
-            .entry(squad)
-            .or_insert_with(|| vec![])
-            .push((order.clone(), entity));
-    }
+    orders
+        .entry(squad)
+        .or_insert_with(|| vec![])
+        .push((order.clone(), entity));
 }
 
 fn on_spawn_squad_orders(event: On<SpawnSquadOrders>, mut commands: Commands) {
