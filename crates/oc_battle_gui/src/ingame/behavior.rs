@@ -4,11 +4,12 @@ use oc_individual::{
     squad::SquadIndex,
 };
 use oc_network::{SquadMessage, ToServer};
+use oc_physics::update::bevy::SetPositionEvent;
 use oc_root::{
     geo::WorldVec2,
     y::{V, Y},
 };
-use oc_utils::{bevy::EntityMapping, collections::InvertedIndex, d2::Direction, let_ok, let_some};
+use oc_utils::{collections::InvertedIndex, d2::Direction, let_ok, let_some};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -268,6 +269,7 @@ impl Plugin for BehaviorPlugin {
             .add_observer(on_spawn_squad_order_marker_phantom)
             .add_observer(on_drop_squad_order_marker_phantom)
             .add_observer(on_enter_drag_direction_squad_order_marker)
+            .add_observer(on_set_position)
             .add_observer(on_update_direction_squad_order_target);
         // FIXME BS NOW: must spawn/despawn according to existing squad order and not only pending;
         // FIXME BS NOW: currently, when set new order, direction squad order entity (visible by sprite) is not despawn
@@ -559,4 +561,22 @@ fn on_despawn_squad_orders(
         }
     }
     orders.remove(&event.0);
+}
+
+// Not very CPU optimal but attach DirectionSquadOrder as leader child imply inherit rotation and we don't want it
+fn on_set_position(
+    position: On<SetPositionEvent<oc_individual::IndividualIndex>>,
+    g: Res<GameConfig>,
+    mut markers: Query<(&mut Transform, &DirectionSquadOrder)>,
+    world: Res<crate::world::World>,
+) {
+    let_some!(g = &g.0, return);
+
+    for (mut transform, marker) in markers.iter_mut() {
+        let_some!(squad = world.squad(marker.squad()), continue);
+        if position.0 == squad.leader() {
+            transform.translation = position.1.into();
+            transform.translation = transform.translation.to_gui_y(&g.w);
+        }
+    }
 }
