@@ -431,6 +431,7 @@ fn on_spawn_squad_order(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
     world: Res<crate::world::World>,
+    individuals: Res<EntityMapping<oc_individual::IndividualIndex>>,
 ) {
     let_some!(g = &g.0, return);
     let image = asset_server.load(UI_FILE);
@@ -480,10 +481,8 @@ fn on_spawn_squad_order(
                 Order::Hide(direction) => (DirectionSquadOrder::Hide(squad), direction),
             };
             let_some!(squad_ = world.squad(squad), return);
-            let point = squad_.position;
             let rotation = direction.bquat(V::Gui);
-            let transform = Transform::from_xyz(point.x, point.y.to_gui_y(&g.w), Z_SQUAD_ORDER);
-            let transform = transform.with_rotation(rotation);
+            let transform = Transform::from_rotation(rotation);
 
             tracing::trace!(name = "ingame-behavior-on-spawn-squad-orders-spawn-direction", i=?squad, order=?order);
             let mut entity = commands.spawn((
@@ -498,14 +497,21 @@ fn on_spawn_squad_order(
                 entity.insert(PendingOrder);
             }
 
-            entity
+            let entity = entity
                 .observe(
                     drag::on_drag_start::<DirectionSquadOrder>
                         .run_if(in_state(AppState::InGame))
                         .run_if(in_state(InGameState::Battle))
                         .run_if(in_state(LeftClickModeType::Select)),
                 )
-                .id()
+                .id();
+
+            // Attach direction order marker to squad leader to be displayed on him
+            if let Some(leader) = individuals.get(&squad_.leader()) {
+                commands.entity(*leader).add_child(entity);
+            }
+
+            entity
         }
     };
 
