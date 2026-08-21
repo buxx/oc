@@ -4,7 +4,10 @@ use oc_individual::{
     squad::SquadIndex,
 };
 use oc_network::{SquadMessage, ToServer};
-use oc_root::{geo::WorldVec2, y::Y};
+use oc_root::{
+    geo::WorldVec2,
+    y::{V, Y},
+};
 use oc_utils::{collections::InvertedIndex, d2::Direction, let_ok, let_some};
 use rustc_hash::FxHashMap;
 
@@ -318,8 +321,18 @@ fn on_refresh_squad_orders(
             .is_none()
         {
             tracing::trace!(name = "ingame-behavior-on-refresh-squad-orders-trigger-spawn-order", i=?i, order=?order);
-            let spawn = SpawnSquadOrder::Position(i, OrderIndex(o as u32), order.clone());
-            commands.trigger(spawn);
+
+            if let Some(spawn) = match order {
+                Order::Idle => None,
+                Order::MoveTo(_) | Order::MoveFastTo(_) | Order::SneakTo(_) => Some(
+                    SpawnSquadOrder::Position(i, OrderIndex(o as u32), order.clone()),
+                ),
+                Order::Defend(_) | Order::Hide(_) => {
+                    Some(SpawnSquadOrder::Direction(i, order.clone(), true))
+                }
+            } {
+                commands.trigger(spawn);
+            }
         }
     }
 
@@ -424,7 +437,7 @@ fn on_spawn_squad_order(
     let (squad, order) = (event.squad(), event.order());
     let rect = order.sprite().rect();
 
-    tracing::trace!(name = "ingame-behavior-on-spawn-squad-orders-spawn", i=?squad);
+    tracing::trace!(name = "ingame-behavior-on-spawn-squad-orders-spawn", i=?squad, event=?event);
 
     let sprite = Sprite {
         image,
@@ -441,6 +454,7 @@ fn on_spawn_squad_order(
             let translation = Vec3::new(x as f32, (y as f32).to_gui_y(&g.w), draw::Z_SQUAD_ORDER);
             let transform = Transform::from_translation(translation);
 
+            tracing::trace!(name = "ingame-behavior-on-spawn-squad-orders-spawn-position", i=?squad, order=?order);
             (
                 commands
                     .spawn((
@@ -462,15 +476,18 @@ fn on_spawn_squad_order(
             )
         }
         SpawnSquadOrder::Direction(_, _, pending) => {
-            let marker = match order {
+            let (marker, direction) = match order {
                 Order::Idle | Order::MoveTo(_) | Order::MoveFastTo(_) | Order::SneakTo(_) => return,
-                Order::Defend(_) => DirectionSquadOrder::Defend(squad),
-                Order::Hide(_) => DirectionSquadOrder::Hide(squad),
+                Order::Defend(direction) => (DirectionSquadOrder::Defend(squad), direction),
+                Order::Hide(direction) => (DirectionSquadOrder::Hide(squad), direction),
             };
             let_some!(squad_ = world.squad(squad), return);
             let point = squad_.position;
+            let rotation = direction.bquat(V::Gui);
             let transform = Transform::from_xyz(point.x, point.y.to_gui_y(&g.w), Z_SQUAD_ORDER);
+            let transform = transform.with_rotation(rotation);
 
+            tracing::trace!(name = "ingame-behavior-on-spawn-squad-orders-spawn-direction", i=?squad, order=?order);
             let mut entity = commands.spawn((
                 marker,
                 sprite,
@@ -491,7 +508,7 @@ fn on_spawn_squad_order(
                             .run_if(in_state(LeftClickModeType::Select)),
                     )
                     .id(),
-                !pending,
+                true,
             )
         }
     };
