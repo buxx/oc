@@ -100,9 +100,15 @@ impl super::Context {
                         let point = subject.physics.position.into();
                         action = Some(Action::GoToPoint(point));
                     }
+                    let infos = subject
+                        .infos
+                        .iter()
+                        .map(|(k, v)| format!("{k}={v}"))
+                        .collect::<Vec<_>>()
+                        .join(" ");
                     ui.label(format!(
-                        "{} {}.{} ({}.{})",
-                        subject.i, position.x, position.y, region.0.0, region.0.1
+                        "{} {}.{} ({}.{}) {}",
+                        subject.i, position.x, position.y, region.0.0, region.0.1, infos
                     ));
                 });
             }

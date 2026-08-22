@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use bevy::prelude::*;
 
-use crate::menu::contextual::{close::CloseContextMenu, open::OpenContextualMenu};
+use crate::menu::contextual::open::OpenContextualMenu;
 
 pub mod choice;
 pub mod close;
@@ -35,11 +35,7 @@ where
             // On over menu
             .add_observer(choice::on_out::<T>)
             // On close menu
-            .add_observer(close::on_close::<T>)
-            // On click menu
-            .add_observer(|_: On<Pointer<Press>>, mut commands: Commands| {
-                commands.trigger(CloseContextMenu::<T>::default());
-            });
+            .add_observer(close::on_close::<T>);
     }
 }
 

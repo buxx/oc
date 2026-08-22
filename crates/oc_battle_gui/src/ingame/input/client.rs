@@ -4,6 +4,8 @@ use oc_network::ToClient;
 use oc_projectile::network::Projectile;
 use oc_root::Wcfg;
 
+#[cfg(feature = "debug")]
+use crate::debug::DebugEvent;
 use crate::{
     fx::FxEvent,
     ingame::{
@@ -85,5 +87,7 @@ pub fn on_to_client(
             tracing::trace!(name = "ingame-input-visibilities");
             commands.trigger(UpdateVisibilities(visibilities.clone()));
         }
+        #[cfg(feature = "debug")]
+        ToClient::Debug(debug) => commands.trigger(DebugEvent(debug.clone())),
     }
 }

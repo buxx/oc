@@ -8,6 +8,7 @@ use oc_physics::update::bevy::{
 };
 use oc_root::WcfgFrom;
 use oc_root::geo::ScreenVec2;
+use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
 use oc_utils::{let_ok, let_some};
 
@@ -86,16 +87,18 @@ pub fn on_insert_projectile(
 
 fn on_update_position(
     position: On<SetPositionEvent<oc_projectile::ProjectileId>>,
+    g: Res<GameConfig>,
     projectiles: Res<EntityMapping<oc_projectile::ProjectileId>>,
     mut meshes: ResMut<Assets<Mesh>>,
     query: Query<&Mesh2d>,
 ) {
+    let_some!(g = &g.0, return);
     let (i, position, previous) = (position.0, position.1, position.2);
     let_some!(entity = projectiles.get(&i), return);
     let_ok!(mesh = query.get(*entity), return);
     let_some!(mut mesh = meshes.get_mut(mesh), return);
 
-    let relative = previous - position;
+    let relative = previous.to_gui_y(&g.w) - position.to_gui_y(&g.w);
     *mesh = Polyline2d::new(vec![Vec2::new(0.0, 0.0), Vec2::new(relative.x, relative.y)]).into();
 }
 

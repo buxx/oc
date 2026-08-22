@@ -71,6 +71,7 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
         self.regions_listeners[region.0 as usize].retain(|l| l != listener);
     }
 
+    // TODO: maybe more performant to return references ?
     pub fn find(&self, filter: Listening) -> FxHashSet<T> {
         match filter {
             Listening::Regions(regions) => regions
@@ -103,6 +104,8 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
                 Some(listeners) => listeners.clone().into_iter().collect::<FxHashSet<_>>(),
                 None => FxHashSet::default(),
             },
+            #[cfg(feature = "debug")]
+            Listening::Any => self.all.iter().cloned().collect::<FxHashSet<_>>(),
         }
     }
 
@@ -114,6 +117,8 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
 
 #[derive(Debug, Clone)]
 pub enum Listening {
+    #[cfg(feature = "debug")]
+    Any,
     /// Will match with all listener of one of these regions
     Regions(Vec<WorldRegionIndex>),
     /// Will match with all listener NOT listening region1 and listening region2

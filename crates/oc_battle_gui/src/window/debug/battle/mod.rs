@@ -11,7 +11,7 @@ use oc_mod::{
     weapons::{IndexedWeapon, WeaponType},
 };
 use oc_projectile::ProjectileId;
-use oc_root::{WorldConfig, physics::Meters};
+use oc_root::{WorldConfig, physics::Meters, side::Side};
 use strum_macros::EnumIter;
 
 pub mod component;
@@ -19,6 +19,7 @@ pub mod cursor;
 pub mod left_click;
 pub mod refresh;
 pub mod states;
+pub mod weapons;
 pub mod window;
 
 use crate::{
@@ -43,6 +44,7 @@ pub struct Context {
     refresh: refresh::Refresh,
     show_tiles: bool,
     show_formation_positions: bool,
+    show_visibilities: bool,
     // Cursor
     cursor: Option<Vec2>,
     point: Option<Vec2>,
@@ -64,6 +66,7 @@ pub struct Context {
     spawn_projectile_click_mode: SpawnProjectileClickMode,
     spawn_repeat: u8,
     spawn_projectile_plus_z: Meters,
+    spawn_projectile_side: Side,
     lov_click_mode: LovClickMode,
     lov_start_plus_z: Meters,
     lov_end_plus_z: Meters,
@@ -75,6 +78,7 @@ impl Default for Context {
             refresh: Default::default(),
             show_tiles: Default::default(),
             show_formation_positions: Default::default(),
+            show_visibilities: Default::default(),
             cursor: Default::default(),
             point: Default::default(),
             tile: Default::default(),
@@ -93,6 +97,7 @@ impl Default for Context {
             spawn_projectile_click_mode: Default::default(),
             spawn_repeat: 1,
             spawn_projectile_plus_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS,
+            spawn_projectile_side: Side::A,
             lov_click_mode: Default::default(),
             lov_start_plus_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS,
             lov_end_plus_z: Meters(0.),
@@ -115,6 +120,7 @@ pub enum Tab {
     Cursor,
     Components,
     Leftclick,
+    Weapons,
 }
 
 impl Display for Tab {
@@ -124,6 +130,7 @@ impl Display for Tab {
             Tab::Cursor => f.write_str("Cursor"),
             Tab::Components => f.write_str("Components"),
             Tab::Leftclick => f.write_str("Left click"),
+            Tab::Weapons => f.write_str("Weapons"),
         }
     }
 }
@@ -146,6 +153,7 @@ impl<'a, 'b, 'w, 's, 'c> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's, 'c> 
             Tab::Cursor => context.ui_cursor(w, ui, commands, mod_),
             Tab::Components => context.ui_components(w, ui, commands, mod_),
             Tab::Leftclick => context.ui_left_click(w, ui, commands, mod_),
+            Tab::Weapons => context.weapons(w, ui, commands, mod_),
         }
     }
 }

@@ -1,5 +1,7 @@
 use bevy::dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin, FrameTimeGraphConfig};
 use bevy::{prelude::*, text::FontSmoothing};
+#[cfg(feature = "debug")]
+use oc_network::Debug;
 
 pub struct DebugPlugin;
 
@@ -32,3 +34,7 @@ impl Plugin for DebugPlugin {
         });
     }
 }
+
+#[cfg(feature = "debug")]
+#[derive(Debug, Clone, Deref, Event)]
+pub struct DebugEvent(pub Debug);

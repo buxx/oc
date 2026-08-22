@@ -1,6 +1,8 @@
 use oc_individual::IndividualIndex;
 use oc_projectile::ProjectileId;
 use oc_root::Client;
+#[cfg(feature = "debug")]
+use oc_root::WorldConfig;
 
 use crate::{physics::Processor, runner::update::Update};
 
@@ -29,7 +31,12 @@ impl<'x, E: Client> Processor<'x, E> {
                         .individuals
                         .push((i, status.clone()));
                 }
+                #[cfg(not(feature = "debug"))]
                 updates.push(Update::UpdateIndividual(i, status));
+                #[cfg(feature = "debug")]
+                if !WorldConfig::immortality() {
+                    updates.push(Update::UpdateIndividual(i, status));
+                }
                 updates.push(Update::RemoveProjectile(projectile));
             }
         }

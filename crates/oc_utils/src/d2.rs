@@ -274,7 +274,7 @@ impl Direction {
         Self::from((b - a).normalize_or_zero())
     }
 
-    pub fn from_points3d(&self, a: Vec3, b: Vec3) -> Self {
+    pub fn from_points3d(a: Vec3, b: Vec3) -> Self {
         Self::from((b - a).normalize_or_zero())
     }
 
@@ -295,6 +295,13 @@ impl Direction {
     pub fn quat(&self, v: V) -> Quat {
         let angle = self.angle(v);
         Quat::from_rotation_z(angle.0)
+    }
+
+    /// Rotate a vector (vx, vy) by this direction, treating
+    /// (x, y) as (cos θ, sin θ) of the rotation.
+    #[inline]
+    pub fn rotate(&self, vx: f32, vy: f32) -> (f32, f32) {
+        (vx * self.x - vy * self.y, vx * self.y + vy * self.x)
     }
 }
 

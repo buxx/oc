@@ -1,0 +1,7 @@
+[
+    Cartridge((
+        name: "MosinNagant5x",
+        capacity: 5,
+        accept: ["7,62x54"]
+    )),
+]

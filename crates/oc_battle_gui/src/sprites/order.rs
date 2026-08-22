@@ -8,6 +8,8 @@ pub enum SquadOrderSprite {
     Move,
     MoveFast,
     Crawl,
+    Engage,
+    Suppress,
     Defend,
     Hide,
 }
@@ -17,6 +19,8 @@ pub enum IndividualOrderSprite {
     Move,
     MoveFast,
     Crawl,
+    Engage,
+    Suppress,
     Defend,
     Hide,
 }
@@ -30,6 +34,8 @@ impl IntoSprite<SquadOrderSprite> for Order {
             Order::SneakTo(_) => SquadOrderSprite::Crawl,
             Order::Defend(_) => SquadOrderSprite::Defend,
             Order::Hide(_) => SquadOrderSprite::Hide,
+            Order::Engage(_) => SquadOrderSprite::Engage,
+            Order::Suppress(_) => SquadOrderSprite::Suppress,
         }
     }
 }
@@ -37,12 +43,12 @@ impl IntoSprite<SquadOrderSprite> for Order {
 impl SpriteRect for SquadOrderSprite {
     fn rect(&self) -> Rect {
         const POSITION_START_X: f32 = 0.;
-        const POSITION_START_Y: f32 = 100.;
+        const POSITION_START_Y: f32 = 115.;
         const POSITION_WIDTH: f32 = 11.;
         const POSITION_HEIGHT: f32 = 11.;
 
         const DIRECTION_START_X: f32 = 0.;
-        const DIRECTION_START_Y: f32 = 145.;
+        const DIRECTION_START_Y: f32 = 160.;
         const DIRECTION_WIDTH: f32 = 50.;
         const DIRECTION_HEIGHT: f32 = 48.;
 
@@ -75,6 +81,26 @@ impl SpriteRect for SquadOrderSprite {
                     POSITION_START_X,
                     start_y,
                     POSITION_START_X + POSITION_WIDTH,
+                    start_y + POSITION_HEIGHT,
+                )
+            }
+            SquadOrderSprite::Engage => {
+                const INDEX: f32 = 3.;
+                let start_y = POSITION_START_Y + (INDEX * POSITION_HEIGHT);
+                Rect::new(
+                    POSITION_START_X,
+                    start_y,
+                    POSITION_START_X + POSITION_WIDTH,
+                    start_y + POSITION_HEIGHT,
+                )
+            }
+            SquadOrderSprite::Suppress => {
+                const INDEX: f32 = 3.;
+                let start_y = POSITION_START_Y + (INDEX * POSITION_HEIGHT);
+                Rect::new(
+                    POSITION_START_X + POSITION_WIDTH,
+                    start_y,
+                    POSITION_START_X + POSITION_WIDTH + POSITION_WIDTH,
                     start_y + POSITION_HEIGHT,
                 )
             }
@@ -111,6 +137,8 @@ impl IntoIndividualSprite<IndividualOrderSprite> for Order {
             Order::SneakTo(_) => IndividualOrderSprite::Crawl,
             Order::Defend(_) => IndividualOrderSprite::Defend,
             Order::Hide(_) => IndividualOrderSprite::Hide,
+            Order::Engage(_) => IndividualOrderSprite::Engage,
+            Order::Suppress(_) => IndividualOrderSprite::Suppress,
         }
     }
 }
@@ -127,6 +155,8 @@ impl SpriteRect for IndividualOrderSprite {
             IndividualOrderSprite::Move => 0,
             IndividualOrderSprite::MoveFast => 1,
             IndividualOrderSprite::Crawl => 2,
+            IndividualOrderSprite::Engage => 3,
+            IndividualOrderSprite::Suppress => 3,
             IndividualOrderSprite::Defend => return Rect::EMPTY, // Should never happen
             IndividualOrderSprite::Hide => return Rect::EMPTY,   // Should never happen
         } as f32;

@@ -6,7 +6,7 @@ use oc_geo::{
     tile::WorldTileIndex,
 };
 use oc_mod::{Mod, nature::Traversability};
-use oc_physics::{Force, Physic, UpdatePhysic, collision::Material, volume::Volume};
+use oc_physics::{Force, IgnoreSide, Physic, UpdatePhysic, collision::Material, volume::Volume};
 use oc_root::{WorldConfig, geo::WorldVec3, ids::Ids, material::MaterialKind};
 use oc_utils::{collections::WithIds, d2::Direction};
 use rkyv::{Archive, Deserialize, Serialize};
@@ -67,6 +67,13 @@ impl Projectile {
             Projectile::Bullet(bullet) => bullet.tile,
         }
     }
+
+    #[cfg(feature = "debug")]
+    pub fn shooter(&self) -> Option<oc_individual::IndividualIndex> {
+        match self {
+            Projectile::Bullet(bullet) => bullet.shooter,
+        }
+    }
 }
 
 impl Region for Projectile {
@@ -111,6 +118,20 @@ impl Physic for Projectile {
             Traversability::all(),
             Direction::NORTH,
         )]
+    }
+
+    fn ignore_side(&self) -> IgnoreSide {
+        match self {
+            Projectile::Bullet(bullet) => IgnoreSide::Side(bullet.side),
+        }
+    }
+
+    fn side(&self) -> Option<oc_root::side::Side> {
+        None
+    }
+
+    fn emit_proximity(&self) -> bool {
+        true
     }
 }
 

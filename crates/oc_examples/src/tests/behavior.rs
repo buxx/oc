@@ -8,7 +8,7 @@ use oc_geo::{
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::{
-    Gesture, IndividualIndex,
+    BodyGesture, Gesture, IndividualIndex,
     order::Order,
     squad::{Squad, SquadFormation},
 };
@@ -101,7 +101,7 @@ fn individuals(
                 let position = [position[0], position[1], z].into();
 
                 oc_individual::Individual::fresh(Side::A, position, tile_i, WorldRegionIndex(0))
-                    .with_gesture(Gesture::StandUp(DIRECTION))
+                    .with_gesture(Gesture::body(BodyGesture::StandUp(DIRECTION)))
             })
         })
         .flatten()

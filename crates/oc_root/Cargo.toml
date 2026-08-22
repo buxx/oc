@@ -5,6 +5,7 @@ edition = "2024"
 
 [features]
 bevy = ["dep:bevy"]
+debug = []
 
 [dependencies]
 rkyv = { workspace = true, features = ["uuid-1"] }

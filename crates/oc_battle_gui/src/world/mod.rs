@@ -91,7 +91,7 @@ pub struct World {
     // do it asynchronously ? Or compute paths server side ?
     navmesh: polyanya::Mesh,
     // FIXME: something with index ? See usage
-    visibilities: Visibilities,
+    pub visibilities: Visibilities,
 }
 
 impl World {
@@ -291,7 +291,7 @@ impl World {
     }
 
     pub fn visible(&self, i: IndividualIndex) -> bool {
-        self.visibilities.contains(&i)
+        self.visibilities.visible.contains(&i)
     }
 }
 

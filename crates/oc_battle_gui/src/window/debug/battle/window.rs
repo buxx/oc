@@ -9,6 +9,7 @@ use strum::IntoEnumIterator;
 
 use crate::ingame::{
     camera::{debug::tile::ToggleShowTiles, squad::ToggleShowFormationPositions},
+    debug::visibility::ToggleShowVisibility,
     input::left_click::{LeftClickMode, LeftClickModeType, SetLeftClick},
     lov::SpawnLovConfig,
 };
@@ -49,6 +50,7 @@ impl Window {
                 ui.horizontal(|ui| {
                     let show_tiles = &mut context.context.show_tiles;
                     let show_formation_positions = &mut context.context.show_formation_positions;
+                    let show_visibilities = &mut context.context.show_visibilities;
 
                     bevy_egui::egui::ComboBox::from_label("Refresh every")
                         .selected_text(format!("{:?}", context.context.refresh))
@@ -80,6 +82,9 @@ impl Window {
                         .changed()
                     {
                         context.commands.trigger(ToggleShowFormationPositions);
+                    }
+                    if ui.checkbox(show_visibilities, "Visibility").changed() {
+                        context.commands.trigger(ToggleShowVisibility);
                     }
 
                     ui.separator();

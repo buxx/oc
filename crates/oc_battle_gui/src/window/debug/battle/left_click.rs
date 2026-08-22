@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::prelude::*;
 use oc_mod::{Mod, weapons::WeaponType};
-use oc_root::WorldConfig;
+use oc_root::{WorldConfig, side::Side};
 use strum::IntoEnumIterator;
 
 use crate::ingame::{
@@ -93,6 +93,7 @@ impl super::Context {
                 let repeat = &mut self.spawn_repeat;
                 let click_mode = &mut self.spawn_projectile_click_mode;
                 let plus_z = &mut self.spawn_projectile_plus_z;
+                let side = &mut self.spawn_projectile_side;
 
                 ui.horizontal(|ui| {
                     egui::ComboBox::new("weapon_type", "")
@@ -161,6 +162,16 @@ impl super::Context {
                             .speed(0.1),
                     );
                     ui.label("+z");
+
+                    ui.separator();
+
+                    egui::ComboBox::new("side", "")
+                        .selected_text(side.letter().to_string())
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(side, Side::A, "A");
+                            ui.selectable_value(side, Side::B, "B");
+                        });
+                    ui.label("side");
                 });
 
                 if weapon_type_before != self.spawn_weapon_type {
@@ -183,6 +194,7 @@ impl super::Context {
                         shot.index(),
                         *repeat,
                         *plus_z,
+                        *side,
                     );
                     commands.trigger(SetLeftClick(LeftClickMode::SpawnProjectile(spawn)));
                 }

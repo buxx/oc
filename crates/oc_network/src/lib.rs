@@ -9,7 +9,9 @@ use oc_individual::{
 use oc_mod::Mod;
 use oc_physics::fx::Fx;
 use oc_projectile::network::Projectile;
-use oc_projectile::spawn::SpawnProjectile;
+use oc_projectile::spawn::SpawnProjectiles;
+#[cfg(feature = "debug")]
+use oc_root::geo::WorldVec3;
 use oc_root::{WorldConfig, geo::WorldVec2, identity::Identity, static_::StaticSource};
 use oc_world::{meta::Meta, resume::WorldResume, tile::Tile, visibility::Visibility};
 use rkyv::{Archive, Deserialize, Serialize};
@@ -25,6 +27,8 @@ pub enum ToClient {
     Tiles(WorldRegionIndex, Vec<(WorldTileIndex, Tile)>),
     Fx(Fx),
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
+    #[cfg(feature = "debug")]
+    Debug(Debug),
 }
 
 impl From<Individual> for ToClient {
@@ -46,7 +50,7 @@ pub enum ToServer {
     ListenRegion(WorldRegionIndex),
     ForgotRegion(WorldRegionIndex),
     Refresh,
-    SpawnProjectile(SpawnProjectile),
+    ExplodeProjectile(SpawnProjectiles),
     Squad(SquadIndex, SquadMessage),
 }
 
@@ -64,4 +68,11 @@ pub struct GameConfig {
 pub enum SquadMessage {
     SetOrders(Vec<Order>),
     SetPositionOrderPosition(OrderIndex, WorldVec2),
+}
+
+#[cfg(feature = "debug")]
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum Debug {
+    Collision(WorldVec3),
 }

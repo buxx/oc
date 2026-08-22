@@ -10,6 +10,7 @@ use oc_projectile::ProjectileId;
 use oc_root::{Client, WcfgInto, WorldConfig, geo::WorldVec3};
 use oc_utils::collections::WithIds;
 use oc_world::World;
+use rustc_hash::FxHashMap;
 
 use crate::{
     index::{self, IntoIndexEffect},
@@ -67,8 +68,8 @@ impl<'x, E: Client> Processor<'x, E> {
             return (vec![], vec![]);
         };
 
-        // Move code (wich must take worl and indexes as ref because RwReadLockGuard lifetime)
-        let objects = |xy| {
+        // Move code (which must take world and indexes as ref because RwReadLockGuard lifetime)
+        let collision_objects = |xy| {
             #[cfg(feature = "perfs")]
             self.ctx.state.perf.increment_physic();
 
@@ -93,6 +94,25 @@ impl<'x, E: Client> Processor<'x, E> {
             objects
         };
 
+        // Move code (which must take world and indexes as ref because RwReadLockGuard lifetime)
+        let proximity_objects = |xy| {
+            #[cfg(feature = "perfs")]
+            self.ctx.state.perf.increment_physic();
+
+            let tile = TileXy(xy);
+            let i: WorldTileIndex = tile.into_(&self.ctx.state.w);
+            let individuals = indexes.proximity_individuals(i);
+
+            let mut objects = vec![];
+            for i in individuals {
+                let individual = world.individual(*i);
+                let individual: Box<&dyn Physic> = Box::new(individual);
+                objects.push((ObjectId::Individual(*i), individual));
+            }
+
+            objects
+        };
+
         let mut events = vec![];
         let updates = chunk
             .iter()
@@ -102,7 +122,9 @@ impl<'x, E: Client> Processor<'x, E> {
                     &self.ctx.state._mod,
                     self.ctx.state.w.physics_coeff_per_tick,
                     (*i, *subject),
-                    objects,
+                    collision_objects,
+                    proximity_objects,
+                    self.ctx.state.w.ignore_firsts_physics_pixels as usize,
                     "server"
                 );
                 tracing::trace!(name="physics-subject", i=?i, position=?position, forces=?forces);
@@ -171,12 +193,12 @@ impl<'x, E: Client> Processor<'x, E> {
                         continue; // TODO: its possible ? What to do ? Simply log ?
                     };
 
-                    tracing::trace!(name="subject-update-write-broadast-insert", i=?i);
+                    tracing::trace!(name="subject-update-write-broadcast-insert", i=?i);
                     let filter = Listening::EnterBorder(before, after);
                     let messages = vec![subject.into_network_insert(i)];
                     self.ctx.broadcast(filter, messages);
 
-                    tracing::trace!(name="subject-update-write-broadast-forgot", i=?i);
+                    tracing::trace!(name="subject-update-write-broadcast-forgot", i=?i);
                     let filter = Listening::ExitBorder(before, after);
                     let messages = vec![subject.into_network_forgot(i)];
                     self.ctx.broadcast(filter, messages);
@@ -186,10 +208,31 @@ impl<'x, E: Client> Processor<'x, E> {
     }
 
     fn react(&self, events: Vec<Event<ObjectId>>) -> Vec<crate::runner::update::Update> {
+        let w = &self.ctx.state.w;
         let mut updates = vec![];
+        // Consider only on proximity event par physics tick
+        let mut proximity = FxHashMap::default();
 
         for event in events {
             tracing::trace!(name="physics-event", event=?event);
+
+            #[cfg(feature = "debug")]
+            {
+                use oc_network::ToClient;
+
+                match event {
+                    Event::Collision(ObjectId::Projectile(projectile_id), _) => {
+                        if let Some(projectile) = self.ctx.state.world().projectile(&projectile_id)
+                        {
+                            let position = projectile.position();
+                            let debug = oc_network::Debug::Collision(position);
+                            let messages = vec![ToClient::Debug(debug)];
+                            self.ctx.broadcast(Listening::Any, messages);
+                        }
+                    }
+                    _ => {}
+                }
+            }
 
             match event {
                 Event::NoTile(id) => match id {
@@ -213,10 +256,72 @@ impl<'x, E: Client> Processor<'x, E> {
                         updates.push(crate::runner::update::Update::RemoveProjectile(id));
                     }
                 },
+                Event::Proximity(kind, a, b, p) => {
+                    // We care only about proximity when projectile move near individual
+                    match (a, b) {
+                        (ObjectId::Projectile(_), ObjectId::Individual(i)) => {
+                            proximity.insert(i, (kind, p.into()));
+                        }
+                        _ => {}
+                    }
+                    //
+                }
             }
         }
 
+        // Proximity to updates
+        let world = self.ctx.state.world();
+        let proximity = proximity
+            .iter()
+            .map(|(i, (kind, position))| {
+                let individual = world.individual(*i);
+                let suppress = self.increase_suppress(
+                    w,
+                    individual.suppress,
+                    *kind,
+                    individual.position,
+                    *position,
+                );
+                crate::runner::update::Update::UpdateIndividual(
+                    *i,
+                    oc_individual::Update::SetSuppress(suppress),
+                )
+            })
+            .collect::<Vec<_>>();
+        updates.extend(proximity);
+
         updates
+    }
+
+    fn increase_suppress(
+        &self,
+        w: &WorldConfig,
+        suppress: oc_root::Suppress,
+        kind: oc_physics::ProximityKind,
+        position_reference: WorldVec3,
+        position: WorldVec3,
+    ) -> oc_root::Suppress {
+        let (maximum_distance, increment) = match kind {
+            oc_physics::ProximityKind::Fly => w.proximity_projectile_fly_tick_increase_value,
+            oc_physics::ProximityKind::Impact => w.proximity_projectile_impact_tick_increase_value,
+        };
+        let maximum_distance = maximum_distance.pixels(w);
+
+        if maximum_distance <= 0.0 {
+            return suppress;
+        }
+
+        let event_distance = position_reference.distance(position);
+
+        // When further than maximum distance, suppress value not modified
+        if event_distance > maximum_distance {
+            return suppress;
+        }
+
+        let proximity = maximum_distance - event_distance;
+        let factor = proximity / maximum_distance;
+        let value = (increment.0 as f32 * factor).round() as u8;
+        oc_root::Suppress(suppress.0.saturating_add(value))
     }
 }
 
