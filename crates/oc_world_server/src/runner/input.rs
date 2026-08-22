@@ -5,13 +5,12 @@ use oc_geo::region::WorldRegionIndex;
 use oc_individual::squad::SquadIndex;
 use oc_mod::Mod;
 use oc_network::{SquadMessage, ToClient, ToServer};
-use oc_projectile::spawn::SpawnProjectile;
+use oc_projectile::spawn::SpawnProjectiles;
 use oc_root::Client;
 use oc_root::identity::Identity;
 use oc_utils::error::OkOrLogError;
 use oc_world::tile::IntoTiles;
 
-use crate::schedule::Schedule;
 use crate::{
     network::IntoNetworkInsert, runner::update::Update, state::State, utils::subject::IntoSubject,
 };
@@ -33,7 +32,7 @@ impl<'a, E: Client> Dealer<'a, E> {
             ToServer::ListenRegion(region) => self.listen_region(region),
             ToServer::ForgotRegion(region) => self.forgot_region(region),
             ToServer::Refresh => self.refresh(),
-            ToServer::SpawnProjectile(spawn) => self.spawn_projectile(spawn),
+            ToServer::ExplodeProjectile(spawn) => self.spawn_projectiles(spawn),
             ToServer::Squad(squad, message) => self.squad_message(squad, message),
         }
     }
@@ -108,17 +107,9 @@ impl<'a, E: Client> Dealer<'a, E> {
         self.output.send(message).ok_or_log();
     }
 
-    fn spawn_projectile(&self, spawn: SpawnProjectile) -> Vec<Update> {
-        spawn
-            .schedule(self._mod)
-            .iter()
-            .map(|(instant, fx)| {
-                Update::Schedule(
-                    *instant,
-                    Box::new(Update::SpawnProjectile(spawn.clone(), *fx)),
-                )
-            })
-            .collect()
+    fn spawn_projectiles(&self, spawns: SpawnProjectiles) -> Vec<Update> {
+        tracing::trace!(name="runner-input-spawn-projectiles", spawn=?spawns);
+        vec![Update::SpawnProjectiles(spawns)]
     }
 
     fn squad_message(&self, squad: SquadIndex, message: SquadMessage) -> Vec<Update> {

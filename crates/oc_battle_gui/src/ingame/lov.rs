@@ -17,7 +17,10 @@ use crate::states::GameConfig;
 use crate::{ingame::InGameState, ingame::draw, world::World};
 
 #[derive(Debug, Event, Deref)]
-pub struct SpawnLov(pub SpawnLovProfile);
+pub struct SpawnBeginningLov(pub SpawnLovProfile);
+
+#[derive(Debug, Event, Deref)]
+pub struct SpawnLov(pub Lov);
 
 #[derive(Debug, Event)]
 pub struct UpdateLovFor(pub Entity, pub WorldVec2);
@@ -49,7 +52,7 @@ pub struct SpawnLovProfile {
     pub stop_plus_z: Meters,
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug, Clone, Component)]
 pub struct Lov {
     pub start: WorldVec3,
     pub stop: WorldVec3,
@@ -70,6 +73,7 @@ pub enum LovClickMode {
     TwoClicks,
     #[default]
     DraggedClick,
+    // SelectedSquads,
 }
 
 #[derive(Default, Reflect, GizmoConfigGroup)]
@@ -81,6 +85,7 @@ impl Plugin for LovPlugin {
     fn build(&self, app: &mut App) {
         app.init_gizmo_group::<LovGizmos>()
             .add_systems(Startup, setup)
+            .add_observer(on_spawn_beginning_lov)
             .add_observer(on_spawn_lov)
             .add_observer(on_update_lov_for)
             .add_observer(on_despawn_lov)
@@ -96,20 +101,30 @@ fn setup(mut config: ResMut<GizmoConfigStore>) {
     gizmos.line.width = 5.0;
 }
 
-fn on_spawn_lov(spawn: On<SpawnLov>, w: Res<Wcfg>, mut commands: Commands, world: Res<World>) {
-    tracing::trace!(name = "lov-spawn", spawn=?spawn);
+fn on_spawn_beginning_lov(
+    spawn: On<SpawnBeginningLov>,
+    w: Res<Wcfg>,
+    mut commands: Commands,
+    world: Res<World>,
+) {
+    tracing::trace!(name = "lov-spawn-beginning", spawn=?spawn);
     let_some!(w = &w.0, return);
     let_some!(tile = world.tile_at(w, spawn.start), return);
     let z = tile.z_pixels(w) + spawn.start_plus_z.0 * w.geo_pixels_per_meters;
     let start = spawn.start.extend(z);
 
-    tracing::trace!(name = "lov-spawn", start=?start);
+    tracing::trace!(name = "lov-spawn-beginning", start=?start);
     commands.spawn(Lov {
         start,
         stop: start,
         stop_plus_z: spawn.stop_plus_z,
         sections: vec![],
     });
+}
+
+fn on_spawn_lov(spawn: On<SpawnLov>, mut commands: Commands) {
+    tracing::trace!(name = "lov-spawn", lov=?spawn.0);
+    commands.spawn(spawn.0.clone());
 }
 
 fn update_lov(
@@ -167,7 +182,7 @@ fn on_update_lov_for(
 
     let stop = position.extend(stop_tile.z_pixels(&g.w) + lov.stop_plus_z.pixels(&g.w));
     let at = |xy, z| path_objects_at(&g.w, &g.mod_, &world, xy, z);
-    let path = oc_lov::PathBuilder::new(&g.w, at).build_(start, stop);
+    let path = oc_lov::PathBuilder::new(&g.w, at).build(start, stop, 0);
 
     let sections = path.sections.iter().map(|section| {
         let color = Color::srgb(0.0 + section.opacity.0, 1.0 - section.opacity.0, 0.0);

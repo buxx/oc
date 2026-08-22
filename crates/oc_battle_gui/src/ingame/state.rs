@@ -1,5 +1,10 @@
+#[cfg(feature = "debug")]
+use std::time::Instant;
+
 use bevy::prelude::*;
 use oc_individual::{IndividualIndex, order::Order, squad::SquadIndex};
+#[cfg(feature = "debug")]
+use oc_root::geo::WorldVec3;
 
 #[derive(Debug, Resource, Default)]
 #[cfg_attr(feature = "debug", derive(Clone))]
@@ -12,6 +17,8 @@ pub struct State {
     selected_individuals: Vec<IndividualIndex>,
     /// Orders which player is creating
     pending_orders: Vec<Order>,
+    #[cfg(feature = "debug")]
+    pub collisions: Vec<(Instant, WorldVec3)>,
 }
 
 impl State {

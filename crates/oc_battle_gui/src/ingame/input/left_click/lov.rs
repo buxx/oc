@@ -4,7 +4,9 @@ use oc_root::{Wcfg, WcfgFrom, WorldConfig};
 use oc_utils::{let_some, return_if};
 
 use crate::ingame::input::left_click::{LeftClick, LeftClickMode, SetLeftClick};
-use crate::ingame::lov::{DespawnLov, LovClickMode, SpawnLov, SpawnLovConfig, SpawnLovProfile};
+use crate::ingame::lov::{
+    DespawnLov, LovClickMode, SpawnBeginningLov, SpawnLovConfig, SpawnLovProfile,
+};
 use crate::{cursor_to, ingame};
 
 pub fn system(
@@ -25,6 +27,7 @@ pub fn system(
         return;
     };
 
+    tracing::trace!(name = "ingame-input-left-click-lov-system", profile=?profile);
     return_if!(maybe_cancel(&mut commands, &buttons, &keys));
     show(w, point, &mut commands, &buttons, &mut state, &profile);
 }
@@ -42,7 +45,7 @@ pub fn show(
             if buttons.just_pressed(MouseButton::Left) {
                 tracing::trace!(name = "ingame-input-left-click-lov-dragged-pressed");
                 state.clicks.push(point);
-                commands.trigger(SpawnLov(SpawnLovProfile {
+                commands.trigger(SpawnBeginningLov(SpawnLovProfile {
                     start: point,
                     start_plus_z: profile.start_plus_z,
                     stop_plus_z: profile.stop_plus_z,

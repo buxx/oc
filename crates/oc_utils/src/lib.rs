@@ -7,6 +7,7 @@ pub mod debug;
 pub mod error;
 pub mod image;
 pub mod number;
+pub mod random;
 #[cfg(feature = "tiled")]
 pub mod tileset;
 

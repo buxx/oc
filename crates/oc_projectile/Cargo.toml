@@ -12,6 +12,7 @@ oc_utils = { path = "../oc_utils" }
 oc_geo = { path = "../oc_geo" }
 oc_mod = { path = "../oc_mod" }
 oc_physics = { path = "../oc_physics" }
+oc_individual = { path = "../oc_individual" }
 derive_more = { workspace = true, features = ["constructor", "deref"] }
 rkyv.workspace = true
 serde.workspace = true

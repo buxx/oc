@@ -6,9 +6,15 @@ use crate::{
     world::{UpdateVisibilities, VisibilitiesUpdated},
 };
 
-#[derive(Debug, Clone, Deref, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Visibilities {
-    visible: Vec<oc_individual::IndividualIndex>,
+    pub visible: Vec<oc_individual::IndividualIndex>,
+    #[cfg(feature = "debug")]
+    pub all: Vec<(
+        oc_individual::IndividualIndex,
+        oc_individual::IndividualIndex,
+        oc_world::visibility::Visibility,
+    )>,
 }
 
 impl Visibilities {
@@ -23,7 +29,15 @@ impl Visibilities {
             .iter()
             .filter_map(|(_, i2, v)| v.visible.then(|| *i2))
             .collect::<Vec<_>>();
-        Self { visible }
+
+        #[cfg(not(feature = "debug"))]
+        return Self { visible };
+
+        #[cfg(feature = "debug")]
+        return Self {
+            visible,
+            all: visibilities.clone(),
+        };
     }
 }
 
@@ -45,11 +59,10 @@ pub fn on_visibilities_updated(
     let_some!(identity = &network.identity, return);
 
     for (i, mut visibility, side) in query.iter_mut() {
+        // Change visibility only on other side individuals
         if side.0 != identity.side {
-            match world.visible(i.0) {
-                true => *visibility = Visibility::Visible,
-                false => *visibility = Visibility::Hidden,
-            }
+            let_some!(individual = world.get_individual(i.0), continue);
+            *visibility = crate::ingame::individual::visibility(identity, i.0, &individual, &world);
         }
     }
 }

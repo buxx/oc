@@ -89,7 +89,7 @@ impl<E: Client> State<E> {
 }
 
 // TODO: move code
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ObjectId {
     Individual(IndividualIndex),
     Projectile(ProjectileId),

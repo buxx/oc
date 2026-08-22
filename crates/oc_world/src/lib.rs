@@ -151,7 +151,16 @@ mod tests {
     fn test_region_tiles() {
         // Given
         let w = WorldConfig::new(1000, 1000, Meters(0.1));
-        let mod_ = Mod::new("MyMod".to_string(), 1, vec![], vec![], vec![], vec![], 1.5);
+        let mod_ = Mod::new(
+            "MyMod".to_string(),
+            1,
+            vec![],
+            vec![],
+            vec![],
+            vec![],
+            vec![],
+            1.5,
+        );
         let meta = Meta::new("MyWorld".to_string(), 0, w.geo_meters_per_z.0);
         let tiles: Vec<Tile> = (0..w.tiles_count)
             .map(|i| {

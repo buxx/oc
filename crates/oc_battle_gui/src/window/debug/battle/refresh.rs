@@ -8,6 +8,7 @@ use oc_root::{Wcfg, WcfgInto};
 use oc_utils::let_some;
 
 use crate::ingame;
+use crate::ingame::individual::{Status, Suppress};
 use crate::world::World;
 use crate::{
     entity::{individual::IndividualIndex, projectile::ProjectileId},
@@ -39,7 +40,15 @@ pub fn on_refresh(
     w: Res<Wcfg>,
     mut window: ResMut<states::Window>,
     camera: Res<State>,
-    individuals: Query<(&IndividualIndex, &Position, &Tile, &Region, &Forces)>,
+    individuals: Query<(
+        &IndividualIndex,
+        &Position,
+        &Tile,
+        &Region,
+        &Forces,
+        &Status,
+        &Suppress,
+    )>,
     projectiles: Query<(&ProjectileId, &Position, &Tile, &Region, &Forces)>,
     window_: Single<&bevy::window::Window>,
     camera_: Single<(&Camera, &GlobalTransform)>,
@@ -53,7 +62,7 @@ pub fn on_refresh(
         window.context.regions = camera.regions.clone().unwrap_or(vec![]);
         window.context.individuals = individuals
             .iter()
-            .map(|(id, position, _, region, _)| {
+            .map(|(id, position, _, region, _, status, suppress)| {
                 Subject::new(
                     id.0.clone(),
                     PhysicsRepr::new(
@@ -62,6 +71,10 @@ pub fn on_refresh(
                         region.0.clone().into_(w),
                         // forces.0.clone(),
                     ),
+                    vec![
+                        ("Status".to_string(), format!("{:?}", status.0)),
+                        ("Suppress".to_string(), format!("{:?}", suppress.0)),
+                    ],
                 )
             })
             .collect();
@@ -76,6 +89,7 @@ pub fn on_refresh(
                         region.0.clone().into_(w),
                         // forces.0.clone(),
                     ),
+                    vec![],
                 )
             })
             .collect();

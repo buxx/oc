@@ -17,6 +17,7 @@ use crate::{
         InGameState,
         draw::{self, UI_FILE, Z_SQUAD_ORDER},
         input::left_click::{LeftClickMode, LeftClickModeType, SetLeftClick, order::PendingOrder},
+        lov::DespawnLov,
         path::ComputeDisplayPaths,
         region::{ForgottenRegion, ListeningRegion},
     },
@@ -35,7 +36,6 @@ pub struct BehaviorPlugin;
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
 pub struct IndividualOrders(FxHashMap<oc_individual::IndividualIndex, Vec<(Order, Entity)>>);
 
-// FIXME BS NOW: Seems not used, try delete it
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
 pub struct SquadOrders(FxHashMap<oc_individual::squad::SquadIndex, Vec<(Order, Entity)>>);
 
@@ -204,6 +204,7 @@ pub fn on_drop_squad_order_marker_phantom(
     commands.trigger(ToServerEvent(ToServer::Squad(squad, message)));
     commands.trigger(SetLeftClick(LeftClickMode::Select));
     commands.trigger(ComputeDisplayPaths(vec![]));
+    commands.trigger(DespawnLov);
 }
 
 pub fn on_enter_drag_direction_squad_order_marker(
@@ -211,7 +212,6 @@ pub fn on_enter_drag_direction_squad_order_marker(
     mut commands: Commands,
     markers: Query<&DirectionSquadOrder>,
 ) {
-    dbg!(0);
     let phantom = event.0;
     let_ok!(order = markers.get(phantom.0), return);
     let order_type = match order {
@@ -271,8 +271,6 @@ impl Plugin for BehaviorPlugin {
             .add_observer(on_enter_drag_direction_squad_order_marker)
             .add_observer(on_set_position)
             .add_observer(on_update_direction_squad_order_target);
-        // FIXME BS NOW: must spawn/despawn according to existing squad order and not only pending;
-        // FIXME BS NOW: currently, when set new order, direction squad order entity (visible by sprite) is not despawn
     }
 }
 
@@ -326,9 +324,15 @@ fn on_refresh_squad_orders(
 
             if let Some(spawn) = match order {
                 Order::Idle => None,
-                Order::MoveTo(_) | Order::MoveFastTo(_) | Order::SneakTo(_) => Some(
-                    SpawnSquadOrder::Position(i, OrderIndex(o as u32), order.clone()),
-                ),
+                Order::MoveTo(_)
+                | Order::MoveFastTo(_)
+                | Order::SneakTo(_)
+                | Order::Engage(_)
+                | Order::Suppress(_) => Some(SpawnSquadOrder::Position(
+                    i,
+                    OrderIndex(o as u32),
+                    order.clone(),
+                )),
                 Order::Defend(_) | Order::Hide(_) => {
                     Some(SpawnSquadOrder::Direction(i, order.clone(), true))
                 }
@@ -477,7 +481,12 @@ fn on_spawn_squad_order(
         }
         SpawnSquadOrder::Direction(_, _, pending) => {
             let (marker, direction) = match order {
-                Order::Idle | Order::MoveTo(_) | Order::MoveFastTo(_) | Order::SneakTo(_) => return,
+                Order::Idle
+                | Order::MoveTo(_)
+                | Order::MoveFastTo(_)
+                | Order::SneakTo(_)
+                | Order::Engage(_)
+                | Order::Suppress(_) => return,
                 Order::Defend(direction) => (DirectionSquadOrder::Defend(squad), direction),
                 Order::Hide(direction) => (DirectionSquadOrder::Hide(squad), direction),
             };
@@ -523,9 +532,15 @@ fn on_spawn_squad_orders(event: On<SpawnSquadOrders>, mut commands: Commands) {
     for (o, order) in orders.iter().rev().enumerate() {
         if let Some(event) = match order {
             Order::Idle => None,
-            Order::MoveTo(_) | Order::MoveFastTo(_) | Order::SneakTo(_) => Some(
-                SpawnSquadOrder::Position(i, OrderIndex(o as u32), order.clone()),
-            ),
+            Order::MoveTo(_)
+            | Order::MoveFastTo(_)
+            | Order::SneakTo(_)
+            | Order::Engage(_)
+            | Order::Suppress(_) => Some(SpawnSquadOrder::Position(
+                i,
+                OrderIndex(o as u32),
+                order.clone(),
+            )),
             Order::Defend(_) | Order::Hide(_) => {
                 Some(SpawnSquadOrder::Direction(i, order.clone(), false))
             }

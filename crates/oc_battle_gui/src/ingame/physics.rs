@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::IndividualIndex;
 use oc_physics::{
+    IgnoreSide,
     collision::Material_,
     corps::Corps,
     update::bevy::{Forces, Position, Volumes},
@@ -33,7 +34,7 @@ pub fn physics_step<I, C>(
     )>,
     index: Res<World>,
 ) where
-    I: Clone + Send + Sync + Into<ObjectId> + std::fmt::Debug + 'static,
+    I: Clone + Copy + Send + Sync + Into<ObjectId> + std::fmt::Debug + 'static,
     C: Component + AsRef<I>,
 {
     let_some!(g = &g.0, return);
@@ -60,9 +61,19 @@ pub fn physics_step<I, C>(
             forces.0.clone(),
             material.0,
             volume.0.clone(),
+            None,
+            IgnoreSide::All, // Gui prevent all "side" collision (let server manage it)
         );
-        let (position_, forces_, events) =
-            oc_physics::step(&g.w, &g.mod_, delta, (i.clone(), &corps), objects, "gui");
+        let (position_, forces_, events) = oc_physics::step(
+            &g.w,
+            &g.mod_,
+            delta,
+            (i.clone(), &corps),
+            objects,
+            |_| vec![],
+            g.w.ignore_firsts_physics_pixels as usize,
+            "gui",
+        );
 
         position.0 = position_;
         forces.0 = forces_;
@@ -103,11 +114,12 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
                 }
             }
         }
+        oc_physics::Event::Proximity(_, _, _, _) => {}
     }
 }
 
 // TODO: move code (use same than server, refacto it)
-#[derive(Debug, Clone, serde::Serialize, PartialEq)]
+#[derive(Debug, Copy, Clone, serde::Serialize, PartialEq)]
 pub enum ObjectId {
     #[allow(unused)]
     Individual(IndividualIndex),

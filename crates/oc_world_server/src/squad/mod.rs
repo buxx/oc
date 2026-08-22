@@ -29,7 +29,10 @@ impl<'a> Processor<'a> {
             .collect();
 
         let position = leader.position.into();
-        let actives = members.into_iter().filter(|m| m.can_follow_order()).count();
+        let actives = members
+            .into_iter()
+            .filter(|m| m.can_follow_orders())
+            .count();
         let updates = vec![
             runner::update::Update::UpdateSquad(self.i, Update::SetPosition(position)),
             runner::update::Update::UpdateSquad(self.i, Update::SetActives(actives as u8)),

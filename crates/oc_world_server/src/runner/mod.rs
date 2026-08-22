@@ -162,6 +162,7 @@ impl<E: Client> Runner<E> {
                             tracing::trace!(name = "runner-individual", i = ?i);
 
                             for update in {
+                                // FIXME: optimize tensions on locks (wan, update make deadlock)
                                 let world = &ctx.state.world();
                                 let indexes = &ctx.state.indexes();
                                 individual::Processor::new(world, indexes, i).step()
@@ -213,8 +214,8 @@ impl<E: Client> Runner<E> {
                 let wait = interval - elapsed.min(interval);
                 #[cfg(feature = "perfs")]
                 {
-                    let percent = wait as f32 / interval as f32;
-                    ctx.state.perf.set_visibilities_percent(_i, 1. - percent);
+                    // let percent = wait as f32 / interval as f32;
+                    // ctx.state.perf.set_visibilities_percent(_i, 1. - percent);
                 }
 
                 tracing::trace!(name = "runner-visibilities-sleep", wait=?wait);

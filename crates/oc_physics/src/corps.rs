@@ -1,9 +1,9 @@
 use oc_mod::{Mod, nature::Traversability};
-use oc_root::{WorldConfig, geo::WorldVec3, material::MaterialKind};
+use oc_root::{WorldConfig, geo::WorldVec3, material::MaterialKind, side::Side};
 use oc_utils::d2::Direction;
 
 use super::Force;
-use crate::{Physic, collision::Material, volume::Volume};
+use crate::{IgnoreSide, Physic, collision::Material, volume::Volume};
 
 #[derive(Debug)]
 pub struct Corps<I: Clone + std::fmt::Debug> {
@@ -13,6 +13,8 @@ pub struct Corps<I: Clone + std::fmt::Debug> {
     pub forces: Vec<Force>,
     pub material: Option<MaterialKind>,
     pub volumes: Vec<(Volume, Traversability)>,
+    pub side: Option<Side>,
+    pub ignore_side: IgnoreSide,
 }
 
 impl<I: Clone + std::fmt::Debug> Corps<I> {
@@ -23,6 +25,8 @@ impl<I: Clone + std::fmt::Debug> Corps<I> {
         forces: Vec<Force>,
         material: Option<MaterialKind>,
         volumes: Vec<(Volume, Traversability)>,
+        side: Option<Side>,
+        ignore_side: IgnoreSide,
     ) -> Self {
         Self {
             i,
@@ -31,6 +35,8 @@ impl<I: Clone + std::fmt::Debug> Corps<I> {
             forces,
             material,
             volumes,
+            side,
+            ignore_side,
         }
     }
 }
@@ -55,6 +61,14 @@ impl<I: Clone + std::fmt::Debug> Physic for Corps<I> {
             .into_iter()
             .map(|(v, t)| (v.with_ref(ref_), t, self.direction))
             .collect()
+    }
+
+    fn ignore_side(&self) -> IgnoreSide {
+        self.ignore_side
+    }
+
+    fn side(&self) -> Option<Side> {
+        self.side
     }
 }
 

@@ -1,0 +1,7 @@
+[
+    Cartridge((
+        name: "Magazine1",
+        capacity: 5,
+        accept: ["model1"]
+    )),
+]

@@ -8,4 +8,5 @@ use crate::window::debug::physics::PhysicsRepr;
 pub struct Subject<I: Display> {
     pub i: I,
     pub physics: PhysicsRepr,
+    pub infos: Vec<(String, String)>,
 }

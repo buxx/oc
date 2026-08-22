@@ -1,12 +1,27 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
+use clap::{Parser, ValueEnum};
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
 use oc_root::{WorldConfig, physics::Meters};
 use oc_world::{load::WorldPath, meta::Meta};
 
+#[derive(Parser, Debug, Clone)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg()]
+    case: Case,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum Case {
+    Empty,
+    Battle1,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
     logging::setup_logging()?;
 
     let mod_ = Mod::load(&PathBuf::from("mods/std1"), None)?;

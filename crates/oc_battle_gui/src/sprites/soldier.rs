@@ -228,12 +228,12 @@ impl IntoAnimation<SoldierAnimations> for SoldierAnimationInfos {
         } = self;
 
         match status {
-            oc_individual::Status::Operational => match gesture {
-                oc_individual::Gesture::StandUp(_) => animations.stand_up(*side),
-                oc_individual::Gesture::Walking(_) => animations.walking(*side),
-                oc_individual::Gesture::Running(_) => animations.running(*side),
-                oc_individual::Gesture::Crawling(_) => animations.crawling(*side),
-                oc_individual::Gesture::Prone(_) => animations.prone(*side),
+            oc_individual::Status::Operational => match gesture.body {
+                oc_individual::BodyGesture::StandUp(_) => animations.stand_up(*side),
+                oc_individual::BodyGesture::Walking(_) => animations.walking(*side),
+                oc_individual::BodyGesture::Running(_) => animations.running(*side),
+                oc_individual::BodyGesture::Crawling(_) => animations.crawling(*side),
+                oc_individual::BodyGesture::Prone(_) => animations.prone(*side),
             },
             oc_individual::Status::Dead => animations.dead_prone(*side),
         }

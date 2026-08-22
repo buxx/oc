@@ -25,13 +25,13 @@ mod test {
             .to_path_buf()
     }
 
-    #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
     enum ObjectsId {
         Tile(WorldTileIndex),
         Object(ObjectId),
     }
 
-    #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
     struct ObjectId(usize);
     struct Object(WorldVec3, Vec<Force>);
 
@@ -60,6 +60,14 @@ mod test {
                 Direction::NORTH,
             )]
         }
+
+        fn ignore_side(&self) -> oc_physics::IgnoreSide {
+            oc_physics::IgnoreSide::None
+        }
+
+        fn side(&self) -> Option<oc_root::side::Side> {
+            None
+        }
     }
 
     impl Material for Object {
@@ -83,7 +91,7 @@ mod test {
         (5.1, 5.1, Meters(0.)), vec![Force::Translation([-1., -1., -1.].into(), MetersSeconds(1.))],
         // produce collision
         Meters(0.),
-        ([4.0, 4.0, -1.0].into(), vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
+        ([4.0, 4.0, -2.0].into(), vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
     )]
     // Case 3
     #[case(
@@ -138,6 +146,8 @@ mod test {
             delta,
             (ObjectsId::Object(object_i), &object),
             objects,
+            |_| vec![],
+            0,
             "tests",
         );
 
