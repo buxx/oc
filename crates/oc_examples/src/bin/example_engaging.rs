@@ -14,13 +14,7 @@ use oc_battle_gui::{
     entity::individual::IndividualIndex, ingame::individual::Gesture, states::Game,
 };
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
-use oc_individual::order::Order;
-use oc_root::{
-    WorldConfig,
-    geo::{WorldVec2, WorldVec3},
-    physics::Meters,
-    side,
-};
+use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side};
 use oc_world::{meta::Meta, tile::Tile};
 use tests::{individual::TestIndividual, squad::TestSquad};
 
@@ -42,11 +36,7 @@ struct Args {
 impl Args {
     fn timeout(&self) -> Duration {
         match self.case {
-            TestCase::Direct
-            | TestCase::Through
-            | TestCase::Hidden
-            | TestCase::MoveThenEnemyVisible => Duration::from_secs(10),
-            TestCase::Discover => Duration::from_secs(20),
+            TestCase::Direct => Duration::from_secs(10),
         }
     }
 }
@@ -54,10 +44,6 @@ impl Args {
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum TestCase {
     Direct,
-    Through,
-    Hidden,
-    Discover,
-    MoveThenEnemyVisible,
 }
 
 fn main() -> Result<(), anyhow::Error> {
@@ -121,54 +107,6 @@ fn individuals(w: &WorldConfig, _tiles: &Vec<Tile>, args: &Args) -> Vec<oc_indiv
                 .build()
                 .make(&w),
         ],
-        TestCase::Through => vec![
-            TestIndividual::builder()
-                .side(side::Side::A)
-                .position(WorldVec3::new(250., 250., 0.))
-                .build()
-                .make(&w),
-            TestIndividual::builder()
-                .side(side::Side::B)
-                .position(WorldVec3::new(450., 250., 0.))
-                .build()
-                .make(&w),
-        ],
-        TestCase::Hidden => vec![
-            TestIndividual::builder()
-                .side(side::Side::A)
-                .position(WorldVec3::new(250., 250., 0.))
-                .build()
-                .make(&w),
-            TestIndividual::builder()
-                .side(side::Side::B)
-                .position(WorldVec3::new(450., 150., 0.))
-                .build()
-                .make(&w),
-        ],
-        TestCase::Discover => vec![
-            TestIndividual::builder()
-                .side(side::Side::A)
-                .position(WorldVec3::new(250., 175., 0.))
-                .build()
-                .make(&w),
-            TestIndividual::builder()
-                .side(side::Side::B)
-                .position(WorldVec3::new(450., 150., 0.))
-                .build()
-                .make(&w),
-        ],
-        TestCase::MoveThenEnemyVisible => vec![
-            TestIndividual::builder()
-                .side(side::Side::A)
-                .position(WorldVec3::new(250., 175., 0.))
-                .build()
-                .make(&w),
-            TestIndividual::builder()
-                .side(side::Side::B)
-                .position(WorldVec3::new(450., 150., 0.))
-                .build()
-                .make(&w),
-        ],
     }
 }
 
@@ -179,39 +117,11 @@ fn squads(
     args: &Args,
 ) -> Vec<oc_individual::squad::Squad> {
     match args.case {
-        TestCase::Direct | TestCase::Through | TestCase::Hidden => vec![
+        TestCase::Direct => vec![
             TestSquad::builder()
                 .position(individuals.get(0).unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
                 .orders(vec![])
-                .build()
-                .make(),
-            TestSquad::builder()
-                .position(individuals.get(1).unwrap().position.into())
-                .members(vec![oc_individual::IndividualIndex(1)])
-                .orders(vec![])
-                .build()
-                .make(),
-        ],
-        TestCase::Discover => vec![
-            TestSquad::builder()
-                .position(individuals.get(0).unwrap().position.into())
-                .members(vec![oc_individual::IndividualIndex(0)])
-                .orders(vec![Order::MoveFastTo(WorldVec2::new(250., 150.))])
-                .build()
-                .make(),
-            TestSquad::builder()
-                .position(individuals.get(1).unwrap().position.into())
-                .members(vec![oc_individual::IndividualIndex(1)])
-                .orders(vec![])
-                .build()
-                .make(),
-        ],
-        TestCase::MoveThenEnemyVisible => vec![
-            TestSquad::builder()
-                .position(individuals.get(0).unwrap().position.into())
-                .members(vec![oc_individual::IndividualIndex(0)])
-                .orders(vec![Order::MoveTo(WorldVec2::new(250., 100.))])
                 .build()
                 .make(),
             TestSquad::builder()
@@ -245,11 +155,7 @@ fn install(app: &mut bevy::app::App) {
     app.init_resource::<State>();
 
     match args.case {
-        TestCase::Direct
-        | TestCase::Through
-        | TestCase::Hidden
-        | TestCase::Discover
-        | TestCase::MoveThenEnemyVisible => {
+        TestCase::Direct => {
             #[cfg(feature = "test")]
             app.add_systems(Update, tracking);
         }
@@ -295,27 +201,6 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Visibilit
                 && i2_visible
                 && matches!(i1_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
                 && matches!(i2_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
-        }
-        TestCase::Through => {
-            i1_visible
-                && i2_visible
-                && matches!(i1_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
-                && matches!(i2_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
-        }
-        TestCase::Hidden => {
-            i1_visible
-                && !i2_visible
-                && matches!(i1_gesture, Some(&oc_individual::BodyGesture::StandUp(_)))
-                && matches!(i2_gesture, Some(&oc_individual::BodyGesture::StandUp(_)))
-        }
-        TestCase::Discover => {
-            i1_visible
-                && i2_visible
-                && matches!(i1_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
-                && matches!(i2_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
-        }
-        TestCase::MoveThenEnemyVisible => {
-            matches!(i1_gesture, Some(&oc_individual::BodyGesture::Running(_)))
         }
     } {
         // FIXME: must test individuals behavior/gesture too (hide)

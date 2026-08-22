@@ -128,6 +128,12 @@ impl From<WorldVec3> for WorldVec2 {
     }
 }
 
+impl From<WorldVec3> for Vec3 {
+    fn from(value: WorldVec3) -> Vec3 {
+        Vec3::new(value.x, value.y, value.z)
+    }
+}
+
 impl WcfgFrom<ScreenVec2> for WorldVec2 {
     fn from_(value: ScreenVec2, w: &crate::WorldConfig) -> Self {
         Self {
@@ -174,6 +180,15 @@ impl WorldVec3 {
     pub fn normalize_or_zero(&self) -> Self {
         let vec = Vec3::new(self.x, self.y, self.z).normalize_or_zero();
         Self::new(vec.x, vec.y, vec.z)
+    }
+
+    pub fn distance(&self, other: WorldVec3) -> f32 {
+        let dx = other.x - self.x;
+        let dy = other.y - self.y;
+        let dz = other.z - self.z;
+
+        // Calculate the absolute distance
+        ((dx * dx) + (dy * dy) + (dz * dz)).sqrt()
     }
 }
 

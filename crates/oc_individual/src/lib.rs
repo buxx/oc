@@ -14,6 +14,7 @@ use oc_physics::Physic;
 use oc_physics::UpdatePhysic;
 use oc_physics::collision::Material;
 use oc_physics::volume::Volume;
+use oc_root::Suppress;
 use oc_root::WorldConfig;
 use oc_root::geo::WorldVec3;
 use oc_root::material::MaterialKind;
@@ -86,6 +87,7 @@ pub struct Individual {
     pub gesture: Gesture,
     /// Intent is the intention of individual, like taking cover, to accomplish its defending behavior
     pub intent: Intent,
+    pub suppress: Suppress,
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
@@ -153,8 +155,9 @@ impl Individual {
             Behavior::Idle(Direction::default()),
             vec![],
             Status::Operational,
-            Gesture::StandUp(Direction::default()),
+            Gesture::body(BodyGesture::StandUp(Direction::default())),
             Intent::Idle(Direction::default()),
+            Suppress::zero(),
         )
     }
 
@@ -214,16 +217,18 @@ impl Physic for Individual {
         _mod_: &Mod,
     ) -> Vec<(Volume, Traversability, Direction)> {
         let direction = self.gesture.direction();
-        let cube = match self.gesture {
-            Gesture::StandUp(_) | Gesture::Walking(_) | Gesture::Running(_) => Volume::Cube {
-                x: ref_.x,
-                y: ref_.y,
-                z: ref_.z,
-                width: INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
-                height: INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
-                depth: INDIVIDUAL_STAND_UP_VOLUME_DEPTH.pixels(w),
-            },
-            Gesture::Crawling(_direction) | Gesture::Prone(_direction) => Volume::Cube {
+        let cube = match self.gesture.body {
+            BodyGesture::StandUp(_) | BodyGesture::Walking(_) | BodyGesture::Running(_) => {
+                Volume::Cube {
+                    x: ref_.x,
+                    y: ref_.y,
+                    z: ref_.z,
+                    width: INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
+                    height: INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
+                    depth: INDIVIDUAL_STAND_UP_VOLUME_DEPTH.pixels(w),
+                }
+            }
+            BodyGesture::Crawling(_direction) | BodyGesture::Prone(_direction) => Volume::Cube {
                 x: ref_.x,
                 y: ref_.y,
                 z: ref_.z,
@@ -305,12 +310,36 @@ impl Status {
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub enum Gesture {
+pub struct Gesture {
+    pub body: BodyGesture,
+    pub hands: HandsGesture,
+}
+
+impl Gesture {
+    pub fn body(gesture: BodyGesture) -> Self {
+        Self {
+            body: gesture,
+            hands: HandsGesture::Idle,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum BodyGesture {
     StandUp(Direction),
     Walking(Direction),
     Running(Direction),
     Crawling(Direction),
     Prone(Direction),
+}
+
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum HandsGesture {
+    Idle,
+    Reloading(u8),
+    Aiming(u8),
 }
 
 impl Gesture {
@@ -321,12 +350,12 @@ impl Gesture {
     }
 
     pub fn direction(&self) -> Direction {
-        match self {
-            Gesture::StandUp(direction)
-            | Gesture::Walking(direction)
-            | Gesture::Running(direction)
-            | Gesture::Crawling(direction)
-            | Gesture::Prone(direction) => direction.clone(),
+        match self.body {
+            BodyGesture::StandUp(direction)
+            | BodyGesture::Walking(direction)
+            | BodyGesture::Running(direction)
+            | BodyGesture::Crawling(direction)
+            | BodyGesture::Prone(direction) => direction.clone(),
         }
     }
 }

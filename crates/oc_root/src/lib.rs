@@ -171,3 +171,23 @@ where
 #[cfg(feature = "bevy")]
 #[derive(Debug, Resource, Deref, Default)]
 pub struct Wcfg(pub Option<WorldConfig>);
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Suppress(u8);
+
+impl Suppress {
+    pub fn zero() -> Self {
+        Self(0)
+    }
+}

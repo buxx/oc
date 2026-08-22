@@ -1,13 +1,14 @@
 use derive_more::Constructor;
 use glam::Vec2;
 use oc_individual::{
-    Gesture, Individual, IndividualIndex, Update,
+    BodyGesture, Gesture, Individual, IndividualIndex, Update,
     behavior::{Behavior, Intent, MovePath},
     order::Order,
 };
 use oc_physics::Force;
 use oc_root::{
     geo::{WorldVec2, WorldVec3},
+    physics::Meters,
     y::V,
 };
 use oc_utils::{
@@ -16,7 +17,11 @@ use oc_utils::{
 };
 use oc_world::World;
 
-use crate::{index::Indexes, individual::situation::Situation, runner};
+use crate::{
+    index::Indexes,
+    individual::situation::{Situation, Visible},
+    runner,
+};
 
 pub mod situation;
 pub mod update;
@@ -32,6 +37,9 @@ const ARRIVAL_RADIUS: f32 = 8.0;
 // Force is never scaled below this factor, so approach still makes progress
 // instead of asymptotically crawling forever.
 const MIN_FORCE_FACTOR: f32 = 0.05;
+
+// TODO: When click hide order, permit use key (like Shift) to specify distance
+const HIDE_ENGAGE_DISTANCE: Meters = Meters(30.0);
 
 #[derive(Constructor)]
 pub struct Processor<'a> {
@@ -56,11 +64,11 @@ impl<'a> Processor<'a> {
             return updates;
         }
 
-        let situation = &self.situation();
+        let situation = &self.situation(individual);
         let distribute = self.distribute();
         let intent = self.decide(situation);
         let behavior = self.act(situation, &intent);
-        let gesture = self.gesture(situation, &behavior);
+        let gesture = self.gesture(individual, situation, &behavior);
         let forces = self.forces(individual, &behavior, &intent);
 
         tracing::trace!(
@@ -170,7 +178,12 @@ impl<'a> Processor<'a> {
 
         match &individual.intent {
             // Idle/Defend/Hide never finish
-            Intent::Idle(_) | Intent::Defend(_) | Intent::Hide(_) => {}
+            // FIXME BS NOW: engage finished when killed/not views anymore ? Suppress when no more ammo ?
+            Intent::Idle(_)
+            | Intent::Defend(_)
+            | Intent::Hide(_)
+            | Intent::Engage(_)
+            | Intent::Suppress(_) => {}
             Intent::MoveTo(_, move_path)
             | Intent::MoveFastTo(_, move_path)
             | Intent::SneakTo(_, move_path) => {
@@ -252,15 +265,28 @@ impl<'a> Processor<'a> {
     }
 
     /// Build object which reflect individual situation against environment
-    fn situation(&self) -> Situation {
-        let enemy_visible = self
+    fn situation(&self, individual: &Individual) -> Situation<'_> {
+        let reference = individual.position;
+
+        let mut visible: Vec<Visible> = self
             .world
             .visibilities
             .for_(self.i)
             .iter()
-            .any(|v| v.visible);
+            .enumerate()
+            .filter_map(|(i, v)| {
+                v.visible.then(|| {
+                    let target = IndividualIndex(i as u64);
+                    let target_ = self.world.individual(target);
+                    let distance = reference.distance(target_.position);
+                    let distance = Meters(distance / self.world.w.geo_pixels_per_meters);
+                    Visible::new(target, v, distance)
+                })
+            })
+            .collect();
+        visible.sort_unstable_by(|a, b| a.distance.0.total_cmp(&b.distance.0));
 
-        Situation { enemy_visible }
+        Situation { visible }
     }
 
     /// Decide the individual's intent for this tick. Will be influenced by situation.
@@ -271,21 +297,21 @@ impl<'a> Processor<'a> {
         let intent = match individual.can_follow_order() {
             // TODO: things which can prohibe follow order
             true => match order {
-                None | Some(Order::Idle) => self.resolve_idle_intent(individual, situation),
+                None | Some(Order::Idle) => self.resolve_idle_order(individual, situation),
                 Some(Order::Defend(direction)) => {
-                    self.resolve_defend_intent(individual, situation, *direction)
+                    self.resolve_defend_order(individual, situation, *direction)
                 }
                 Some(Order::Hide(direction)) => {
-                    self.resolve_hide_intent(individual, situation, *direction)
+                    self.resolve_hide_order(individual, situation, *direction)
                 }
                 Some(Order::MoveTo(position)) => {
-                    self.resolve_move_to_intent(individual, situation, *position)
+                    self.resolve_move_to_order(individual, situation, *position)
                 }
                 Some(Order::MoveFastTo(position)) => {
-                    self.resolve_move_fast_to_intent(individual, situation, *position)
+                    self.resolve_move_fast_to_order(individual, situation, *position)
                 }
                 Some(Order::SneakTo(position)) => {
-                    self.resolve_sneak_to_intent(individual, situation, *position)
+                    self.resolve_sneak_to_order(individual, situation, *position)
                 }
             },
             false => individual.intent.clone(),
@@ -318,20 +344,39 @@ impl<'a> Processor<'a> {
             },
             Intent::Defend(direction) => Behavior::Defend(*direction),
             Intent::Hide(direction) => Behavior::Hide(*direction),
+            Intent::Engage(individual) => Behavior::Engage(*individual),
+            Intent::Suppress(position) => Behavior::Suppress(*position),
         }
     }
 
-    fn gesture(&self, situation: &Situation, behavior: &Behavior) -> Gesture {
+    fn gesture(
+        &self,
+        individual: &Individual,
+        situation: &Situation,
+        behavior: &Behavior,
+    ) -> Gesture {
         match behavior {
             Behavior::Idle(direction) => match situation.imply_hide() {
-                true => Gesture::Prone(*direction),
-                false => Gesture::StandUp(*direction),
+                true => Gesture::body(BodyGesture::Prone(*direction)),
+                false => Gesture::body(BodyGesture::StandUp(*direction)),
             },
-            Behavior::Walk(direction) => Gesture::Walking(*direction),
-            Behavior::Run(direction) => Gesture::Running(*direction),
-            Behavior::Crawl(direction) => Gesture::Crawling(*direction),
-            Behavior::Defend(direction) => Gesture::Prone(*direction),
-            Behavior::Hide(direction) => Gesture::Prone(*direction),
+            Behavior::Walk(direction) => Gesture::body(BodyGesture::Walking(*direction)),
+            Behavior::Run(direction) => Gesture::body(BodyGesture::Running(*direction)),
+            Behavior::Crawl(direction) => Gesture::body(BodyGesture::Crawling(*direction)),
+            Behavior::Defend(direction) => Gesture::body(BodyGesture::Prone(*direction)),
+            Behavior::Hide(direction) => Gesture::body(BodyGesture::Prone(*direction)),
+            Behavior::Engage(target) => {
+                let target = self.world.individual(*target).position;
+                let direction = Direction::from_points3d(individual.position.into(), target.into());
+                Gesture::body(BodyGesture::Prone(direction))
+            }
+            Behavior::Suppress(position) => {
+                let direction = Direction::from_points3d(
+                    individual.position.into(),
+                    position.extend(0.).into(),
+                );
+                Gesture::body(BodyGesture::Prone(direction))
+            }
         }
     }
 
@@ -351,6 +396,8 @@ impl<'a> Processor<'a> {
             }
             Behavior::Defend(_) => vec![],
             Behavior::Hide(_) => vec![],
+            Behavior::Engage(_) => vec![],
+            Behavior::Suppress(_) => vec![],
         }
     }
 
@@ -365,7 +412,11 @@ impl<'a> Processor<'a> {
     /// pixel and avoid turning around target.
     fn arrival_factor(&self, intent: &Intent) -> f32 {
         let path = match intent {
-            Intent::Idle(_) | Intent::Defend(_) | Intent::Hide(_) => return 1.0, // fallback (should not happens)
+            Intent::Idle(_)
+            | Intent::Defend(_)
+            | Intent::Hide(_)
+            | Intent::Engage(_)
+            | Intent::Suppress(_) => return 1.0, // fallback (should not happens)
             Intent::MoveTo(_, path) => path,
             Intent::MoveFastTo(_, path) => path,
             Intent::SneakTo(_, path) => path,
@@ -388,39 +439,69 @@ impl<'a> Processor<'a> {
     }
 
     // TODO: can change to fire target if any
-    fn resolve_idle_intent(&self, individual: &Individual, _situation: &Situation) -> Intent {
+    fn resolve_idle_order(&self, individual: &Individual, situation: &Situation) -> Intent {
         let direction = individual.gesture.direction();
-        Intent::Idle(direction)
+
+        // FIXME: introduce suppressed, etc (refactored way!)
+        match &individual.intent {
+            Intent::Engage(target) => Intent::Engage(*target),
+            _ => match situation.visible.first() {
+                Some(visible) => Intent::Engage(visible.individual),
+                None => Intent::Idle(direction),
+            },
+        }
     }
 
     // TODO: can change to fire target if any
-    fn resolve_defend_intent(
+    fn resolve_defend_order(
         &self,
-        _individual: &Individual,
-        _situation: &Situation,
+        individual: &Individual,
+        situation: &Situation,
         direction: Direction,
     ) -> Intent {
-        Intent::Defend(direction)
+        // FIXME: introduce suppressed, etc (refactored way!)
+        match &individual.intent {
+            Intent::Engage(target) => Intent::Engage(*target),
+            _ => match situation.visible.first() {
+                Some(visible) => Intent::Engage(visible.individual),
+                None => Intent::Defend(direction),
+            },
+        }
     }
 
     // TODO: can change to fire target if any and near individual
-    fn resolve_hide_intent(
+    fn resolve_hide_order(
         &self,
-        _individual: &Individual,
-        _situation: &Situation,
+        individual: &Individual,
+        situation: &Situation,
         direction: Direction,
     ) -> Intent {
-        Intent::Hide(direction)
+        // FIXME: introduce suppressed, etc (refactored way!)
+        match &individual.intent {
+            // FIXME: maybe stop engage if enemy is not anymore near ?
+            Intent::Engage(target) => Intent::Engage(*target),
+            _ => match situation
+                .visible
+                .iter()
+                // FIXME BS NOW: must engage if squad already engaging near (to avoid not engage "just" near)
+                // maybe a second distance ?
+                .filter(|v| v.distance <= HIDE_ENGAGE_DISTANCE)
+                .next()
+            {
+                Some(visible) => Intent::Engage(visible.individual),
+                None => Intent::Hide(direction),
+            },
+        }
     }
 
-    fn resolve_move_to_intent(
+    fn resolve_move_to_order(
         &self,
         individual: &Individual,
         situation: &Situation,
         position: WorldVec2,
     ) -> Intent {
         match self.resolve_path(individual, position) {
-            Some(path) => match situation.enemy_visible {
+            Some(path) => match !situation.visible.is_empty() {
                 // Move fast as enemy can fire on them
                 true => Intent::MoveFastTo(position, path),
                 // Move normally
@@ -430,7 +511,7 @@ impl<'a> Processor<'a> {
         }
     }
 
-    fn resolve_move_fast_to_intent(
+    fn resolve_move_fast_to_order(
         &self,
         individual: &Individual,
         _situation: &Situation,
@@ -442,7 +523,7 @@ impl<'a> Processor<'a> {
         }
     }
 
-    fn resolve_sneak_to_intent(
+    fn resolve_sneak_to_order(
         &self,
         individual: &Individual,
         _situation: &Situation,
@@ -487,7 +568,7 @@ impl<'a> Processor<'a> {
 #[cfg(test)]
 mod tests {
     use oc_individual::{
-        Gesture, IndividualIndex,
+        BodyGesture, Gesture, IndividualIndex,
         behavior::{Behavior, Intent},
         order::Order,
         squad::SquadIndex,
@@ -672,14 +753,14 @@ mod tests {
         let individual1 = TestIndividual::builder();
         let individual1 = individual1.position(individual_1_position);
         let individual1 = individual1
-            .gesture(Gesture::StandUp(Direction::EST)) // Gesture & Behavior & Intent are important
+            .gesture(Gesture::body(BodyGesture::StandUp(Direction::EST))) // Gesture & Behavior & Intent are important
             .behavior(Behavior::Idle(Direction::EST)) // to conditionate the .step() response
             .intent(Intent::Idle(Direction::EST));
         let individual1 = individual1.build().make(w);
         let individual2 = TestIndividual::builder();
         let individual2 = individual2.position(individual_2_position);
         let individual2 = individual2
-            .gesture(Gesture::StandUp(Direction::EST)) // Gesture & Behavior & Intent are important
+            .gesture(Gesture::body(BodyGesture::StandUp(Direction::EST))) // Gesture & Behavior & Intent are important
             .behavior(Behavior::Idle(Direction::EST)) // to conditionate the .step() response
             .intent(Intent::Idle(Direction::EST));
         let individual2 = individual2.build().make(w);
@@ -704,7 +785,7 @@ mod tests {
         let individual = TestIndividual::builder();
         let individual = individual.position(position);
         let individual = individual
-            .gesture(Gesture::StandUp(Direction::EST)) // Gesture & Behavior & Intent are important
+            .gesture(Gesture::body(BodyGesture::StandUp(Direction::EST))) // Gesture & Behavior & Intent are important
             .behavior(Behavior::Idle(Direction::EST)) // to conditionate the .step() response
             .intent(Intent::Idle(Direction::EST));
         let individual = individual.build().make(w);

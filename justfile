@@ -50,6 +50,9 @@ example-individual-behaviors *args:
 example-visibilities *args:
     cargo run --bin example_visibilities --features debug {{ args }}
 
+example-engaging *args:
+    cargo run --bin example_engaging --features debug {{ args }}
+
 example-stress-gui-projectiles:
     cargo run --bin example_stress_projectiles --features debug,perfs --release
 
@@ -155,6 +158,7 @@ test-e2e:
     just test-visibilities-through
     just test-visibilities-hidden
     just test-visibilities-discover
+    just test-engaging
 
 test-projectiles-obstacles-one-wall:
     RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-against-wall --test
@@ -224,6 +228,9 @@ test-visibilities-hidden:
 
 test-visibilities-discover:
     RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- discover --test
+
+test-engaging-direct:
+    RUST_LOG=ERROR cargo run --bin example_engaging --features test -- direct --test
 
 test-all:
     just test

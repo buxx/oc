@@ -28,6 +28,7 @@ pub struct Seconds(pub f32);
     serde::Serialize,
     Debug,
     PartialEq,
+    PartialOrd,
     Clone,
     Copy,
     Default,

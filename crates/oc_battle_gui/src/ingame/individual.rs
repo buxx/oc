@@ -435,7 +435,9 @@ fn on_move_step_accomplished_event(
     match &mut intent.0 {
         oc_individual::behavior::Intent::Idle(_)
         | oc_individual::behavior::Intent::Defend(_)
-        | oc_individual::behavior::Intent::Hide(_) => {}
+        | oc_individual::behavior::Intent::Hide(_)
+        | oc_individual::behavior::Intent::Engage(_)
+        | oc_individual::behavior::Intent::Suppress(_) => {}
         oc_individual::behavior::Intent::MoveTo(_, path)
         | oc_individual::behavior::Intent::MoveFastTo(_, path)
         | oc_individual::behavior::Intent::SneakTo(_, path) => {

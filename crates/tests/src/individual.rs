@@ -4,7 +4,7 @@ use oc_geo::{
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::{
-    Gesture, Individual,
+    BodyGesture, Gesture, Individual,
     behavior::{Behavior, Intent},
 };
 use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec3, side::Side};
@@ -18,7 +18,7 @@ pub struct TestIndividual {
     position: WorldVec3,
     #[builder(default = Behavior::Idle(Direction::NORTH))]
     behavior: Behavior,
-    #[builder(default = Gesture::StandUp(Direction::NORTH))]
+    #[builder(default = Gesture::body(BodyGesture::StandUp(Direction::NORTH)))]
     gesture: Gesture,
     #[builder(default = Intent::Idle(Direction::NORTH))]
     intent: Intent,
