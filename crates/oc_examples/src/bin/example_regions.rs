@@ -23,11 +23,12 @@ use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::{IndividualIndex, order::Order};
 use oc_mod::Mod;
 use oc_network::ToServer;
-use oc_projectile::{ProjectileId, spawn::SpawnProjectile};
+use oc_projectile::{ProjectileId, spawn::SpawnProjectiles};
 use oc_root::{
     WorldConfig,
     geo::{WorldVec2, WorldVec3},
     physics::Meters,
+    side::Side,
 };
 use oc_world::{meta::Meta, tile::Tile};
 use tests::{individual::TestIndividual, squad::TestSquad};
@@ -222,26 +223,36 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
 
     match args.case {
         TestCase::ProjectileMoveIn => {
-            let spawn = SpawnProjectile::new(
+            let directions = vec![
+                (WorldVec3::new(100., 248., 8.5) - WorldVec3::new(450., 248., 8.5))
+                    .normalize_or_zero(),
+            ];
+            let spawn = SpawnProjectiles::new(
                 weapon1.index(),
                 ammunition.index(),
                 shot.index(),
                 1,
                 [450., 248., 8.5].into(),
-                [100., 248., 8.5].into(),
+                directions,
+                Side::A,
             );
-            commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+            commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
         }
         TestCase::ProjectileMoveOut => {
-            let spawn = SpawnProjectile::new(
+            let directions = vec![
+                (WorldVec3::new(100., 248., 8.5) - WorldVec3::new(250., 248., 8.5))
+                    .normalize_or_zero(),
+            ];
+            let spawn = SpawnProjectiles::new(
                 weapon1.index(),
                 ammunition.index(),
                 shot.index(),
                 1,
                 [250., 248., 8.5].into(),
-                [100., 248., 8.5].into(),
+                directions,
+                Side::A,
             );
-            commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+            commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
         }
         TestCase::IndividualMoveIn => {}
         TestCase::IndividualMoveOut => {}

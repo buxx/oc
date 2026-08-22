@@ -34,4 +34,9 @@ impl Visibilities {
     pub fn for_(&self, i: IndividualIndex) -> &Vec<Visibility> {
         &self.values[i.0 as usize]
     }
+
+    #[cfg(feature = "tests")]
+    pub fn values_mut(&mut self) -> &mut Vec<Vec<Visibility>> {
+        &mut self.values
+    }
 }

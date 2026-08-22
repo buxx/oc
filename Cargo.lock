@@ -6204,6 +6204,7 @@ dependencies = [
  "gungraun",
  "image 0.25.10",
  "oc_root",
+ "rand 0.10.2",
  "rkyv",
  "rstest",
  "rustc-hash 2.1.3",

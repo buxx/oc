@@ -21,12 +21,13 @@ impl<'a, F> PathBuilder<'a, F>
 where
     F: Fn(Xy, f32) -> Vec<Step>,
 {
-    pub fn build_(&self, start: WorldVec3, end: WorldVec3) -> Path {
+    pub fn build(&self, start: WorldVec3, end: WorldVec3, ignore: usize) -> Path {
         tracing::trace!(name="lov-path-build", start=?start, end=?end);
         let mut opacity = CumulatedOpacity(0.);
         let mut tile = TileXy::from_([start.x, start.y], self.w);
         let mut sections = vec![];
         let mut last = start;
+        let mut ignored = 0usize;
 
         let start_ = (start.x as isize, start.y as isize, start.z as isize);
         let end_ = (end.x as isize, end.y as isize, end.z as isize);
@@ -36,6 +37,13 @@ where
             let xy = Xy::from_((pixel_x, pixel_y), self.w);
 
             if xy != tile.0 {
+                tile.0 = xy;
+
+                if ignored < ignore {
+                    ignored += 1;
+                    continue;
+                }
+
                 let mut new_opacity = opacity.0;
                 for obj in (self.at)(xy, pixel.z) {
                     new_opacity += obj.opacity.0;
@@ -54,8 +62,6 @@ where
                         break;
                     }
                 }
-
-                tile.0 = xy;
             }
         }
 
@@ -120,7 +126,7 @@ mod test {
         };
 
         // When
-        let path = PathBuilder::new(&w, at).build_(start.into(), end.into());
+        let path = PathBuilder::new(&w, at).build(start.into(), end.into(), 0);
 
         // Then
         assert_eq!(
@@ -168,7 +174,7 @@ mod test {
         };
 
         // When
-        let path = PathBuilder::new(&w, at).build_(start.into(), end.into());
+        let path = PathBuilder::new(&w, at).build(start.into(), end.into(), 0);
 
         // Then
         assert_eq!(
@@ -212,7 +218,7 @@ mod test {
         };
 
         // When
-        let path = PathBuilder::new(&w, at).build_(start.into(), end.into());
+        let path = PathBuilder::new(&w, at).build(start.into(), end.into(), 0);
 
         // Then
         assert_eq!(
@@ -238,6 +244,44 @@ mod test {
                         nature: Nature::Visibility
                     }
                 ]
+            }
+        )
+    }
+
+    #[test]
+    fn test_opaque_path_but_ignore() {
+        // Given
+        let w = WorldConfig::new(3, 1, Meters(0.1)).geo_pixels_per_tile(5);
+        let start = [0., 0., 0.];
+        let end = [14., 0., 0.];
+        let at = |_, _| {
+            vec![Step {
+                opacity: Opacity(0.6),
+                // solid: false,
+            }]
+        };
+
+        // When
+        let path = PathBuilder::new(&w, at).build(start.into(), end.into(), 999);
+
+        // Then
+        assert_eq!(
+            path,
+            Path {
+                sections: vec![Section {
+                    start: WorldVec3 {
+                        x: 0.0,
+                        y: 0.0,
+                        z: 0.0
+                    },
+                    stop: WorldVec3 {
+                        x: 14.0,
+                        y: 0.0,
+                        z: 0.0
+                    },
+                    opacity: CumulatedOpacity(0.0),
+                    nature: Nature::Visibility
+                }]
             }
         )
     }

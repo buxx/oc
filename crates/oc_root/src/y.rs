@@ -5,8 +5,10 @@ use bevy::math::Vec3 as BevyVec3;
 use glam::{Vec2, Vec3};
 
 use crate::WorldConfig;
+use crate::geo::WorldVec2;
+use crate::geo::WorldVec3;
 
-// TODO: T not necessary ?
+// TODO: T not necessary ? Use Self
 pub trait Y<T> {
     fn to_world_y(&self, w: &WorldConfig) -> T;
     fn to_gui_y(&self, w: &WorldConfig) -> T;
@@ -78,4 +80,24 @@ impl Y<BevyVec3> for BevyVec3 {
 pub enum V {
     Server,
     Gui,
+}
+
+impl Y<WorldVec3> for WorldVec3 {
+    fn to_world_y(&self, w: &WorldConfig) -> WorldVec3 {
+        WorldVec3::new(self.x, w.world_height_pixels as f32 - self.y, self.z)
+    }
+
+    fn to_gui_y(&self, w: &WorldConfig) -> WorldVec3 {
+        WorldVec3::new(self.x, w.world_height_pixels as f32 - self.y, self.z)
+    }
+}
+
+impl Y<WorldVec2> for WorldVec2 {
+    fn to_world_y(&self, w: &WorldConfig) -> WorldVec2 {
+        WorldVec2::new(self.x, w.world_height_pixels as f32 - self.y)
+    }
+
+    fn to_gui_y(&self, w: &WorldConfig) -> WorldVec2 {
+        WorldVec2::new(self.x, w.world_height_pixels as f32 - self.y)
+    }
 }

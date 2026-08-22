@@ -44,4 +44,5 @@ polyanya.workspace = true
 
 [dev-dependencies]
 tests = { path = "../tests" }
+oc_world = { path = "../oc_world", features = ["tests"] }
 rstest.workspace = true

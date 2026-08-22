@@ -9,8 +9,8 @@ use oc_mod::{
     Mod, ammunition::IndexedAmmunition, armament::IndexedShotMode, weapons::IndexedWeapon,
 };
 use oc_network::ToServer;
-use oc_projectile::spawn::SpawnProjectile;
-use oc_root::{WorldConfig, physics::Meters};
+use oc_projectile::spawn::SpawnProjectiles;
+use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
 use oc_world::meta::Meta;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -126,14 +126,20 @@ fn orbit(
         transform.translation = Vec3::new(x, y, 3.);
 
         let (weapon, ammunition, shot) = weapons(&config);
-        commands.trigger(ToServerEvent(ToServer::SpawnProjectile(
-            SpawnProjectile::new(
+        let directions: Vec<WorldVec3> = vec![
+            (WorldVec3::new(orbiter.center.x + x, orbiter.center.y + y, 500.)
+                - WorldVec3::new(orbiter.center.x, orbiter.center.y, 500.))
+            .normalize_or_zero(),
+        ];
+        commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(
+            SpawnProjectiles::new(
                 weapon.index(),
                 ammunition.index(),
                 shot.index(),
                 1,
                 [orbiter.center.x, orbiter.center.y, 500.].into(),
-                [orbiter.center.x + x, orbiter.center.y + y, 500.].into(),
+                directions,
+                Side::A,
             ),
         )));
     }

@@ -24,6 +24,7 @@ tiled = { workspace = true, optional = true }
 anyhow.workspace = true
 backtrace = { workspace = true, optional = true }
 uuid.workspace = true
+rand.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true

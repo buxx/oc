@@ -103,6 +103,7 @@ impl<'x, E: Client> Processor<'x, E> {
                     self.ctx.state.w.physics_coeff_per_tick,
                     (*i, *subject),
                     objects,
+                    self.ctx.state.w.ignore_firsts_physics_pixels as usize,
                     "server"
                 );
                 tracing::trace!(name="physics-subject", i=?i, position=?position, forces=?forces);
@@ -190,6 +191,24 @@ impl<'x, E: Client> Processor<'x, E> {
 
         for event in events {
             tracing::trace!(name="physics-event", event=?event);
+
+            #[cfg(feature = "debug")]
+            {
+                use oc_network::ToClient;
+
+                match event {
+                    Event::Collision(ObjectId::Projectile(projectile_id), _) => {
+                        if let Some(projectile) = self.ctx.state.world().projectile(&projectile_id)
+                        {
+                            let position = projectile.position();
+                            let debug = oc_network::Debug::Collision(position);
+                            let messages = vec![ToClient::Debug(debug)];
+                            self.ctx.broadcast(Listening::Any, messages);
+                        }
+                    }
+                    _ => {}
+                }
+            }
 
             match event {
                 Event::NoTile(id) => match id {

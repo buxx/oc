@@ -3,7 +3,11 @@ use std::time::{Duration, Instant};
 use derive_more::Constructor;
 use oc_mod::Mod;
 use oc_physics::Force;
-use oc_projectile::{Projectile, bullet::Bullet, spawn::SpawnProjectile};
+use oc_projectile::{
+    Projectile,
+    bullet::Bullet,
+    spawn::{SpawnProjectile, SpawnProjectiles},
+};
 use oc_root::WorldConfig;
 
 use crate::schedule::{Schedule, Scheduling};
@@ -20,21 +24,19 @@ impl<'a, 'b> Builder<'a, 'b> {
         let weapon = self.mod_.weapon(self.spawn.weapon);
         let ammunition = self.mod_.ammunition(self.spawn.ammunition);
         let from = self.spawn.from;
-        let to = self.spawn.to;
-        let position = self.spawn.from;
-        let direction = (to - from).normalize_or_zero();
+        let direction = self.spawn.direction.into();
         let speed = weapon.velocity();
-        let forces = vec![Force::Translation(direction.into(), speed)];
+        let forces = vec![Force::Translation(direction, speed)];
 
         match ammunition {
             oc_mod::ammunition::Ammunition::Cartridge(_) => {
-                Projectile::Bullet(Bullet::new(position, forces, self.w))
+                Projectile::Bullet(Bullet::new(from, self.spawn.side, forces, self.w))
             }
         }
     }
 }
 
-impl Schedule<&Mod, (Instant, bool)> for SpawnProjectile {
+impl Schedule<&Mod, (Instant, bool)> for SpawnProjectiles {
     fn schedule(&self, mod_: &Mod) -> Scheduling<(Instant, bool)> {
         let weapon = mod_.weapon(self.weapon);
         let repeat = self.repeat;

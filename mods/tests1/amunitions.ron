@@ -1,5 +1,6 @@
 [
     Cartridge((
-        name: "Ammo1"
+        name: "Ammo1",
+        model: "model1",
     )),
 ]

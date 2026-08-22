@@ -213,8 +213,8 @@ impl<E: Client> Runner<E> {
                 let wait = interval - elapsed.min(interval);
                 #[cfg(feature = "perfs")]
                 {
-                    let percent = wait as f32 / interval as f32;
-                    ctx.state.perf.set_visibilities_percent(_i, 1. - percent);
+                    // let percent = wait as f32 / interval as f32;
+                    // ctx.state.perf.set_visibilities_percent(_i, 1. - percent);
                 }
 
                 tracing::trace!(name = "runner-visibilities-sleep", wait=?wait);

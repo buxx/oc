@@ -20,8 +20,8 @@ use oc_geo::{
 use oc_individual::{IndividualIndex, order::Order, squad::SquadFormation};
 use oc_mod::Mod;
 use oc_network::ToServer;
-use oc_projectile::spawn::SpawnProjectile;
-use oc_root::{WcfgFrom, WorldConfig, physics::Meters, side::Side};
+use oc_projectile::spawn::SpawnProjectiles;
+use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
 use oc_utils::d2::{Direction, Xy};
 use oc_world::{meta::Meta, tile::Tile};
 
@@ -286,14 +286,18 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
     };
 
     for (start, end) in projectiles {
-        commands.trigger(ToServerEvent(ToServer::SpawnProjectile(
-            SpawnProjectile::new(
+        let direction = (WorldVec3::new(end[0], end[1], end[2])
+            - WorldVec3::new(start[0], start[1], start[2]))
+        .normalize_or_zero();
+        commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(
+            SpawnProjectiles::new(
                 weapon1.index(),
                 ammunition.index(),
                 shot.index(),
                 1,
                 start.into(),
-                end.into(),
+                vec![direction],
+                Side::B,
             ),
         )));
     }

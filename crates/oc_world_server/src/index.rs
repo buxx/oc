@@ -79,11 +79,11 @@ impl Indexes {
                 }
                 let tile_ = WorldTileIndex::from_(tile_, w);
                 tiles_individuals[tile_.0 as usize].push(i.into());
+            }
 
-                match individual.side {
-                    Side::A => side_a_individuals.push(IndividualIndex(i as u64)),
-                    Side::B => side_b_individuals.push(IndividualIndex(i as u64)),
-                }
+            match individual.side {
+                Side::A => side_a_individuals.push(IndividualIndex(i as u64)),
+                Side::B => side_b_individuals.push(IndividualIndex(i as u64)),
             }
 
             regions_individuals[region.0 as usize].push(i.into());

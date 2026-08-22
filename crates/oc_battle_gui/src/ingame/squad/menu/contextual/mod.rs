@@ -32,7 +32,8 @@ pub enum Choice {
     Move,
     MoveFast,
     Sneak,
-    Fire,
+    Engage,
+    Suppress,
     Defend,
     Hide,
 }
@@ -67,9 +68,10 @@ impl contextual::choice::Choice<Choice> for Choice {
             Choice::Move => 0,
             Choice::MoveFast => 1,
             Choice::Sneak => 2,
-            Choice::Fire => 3,
-            Choice::Defend => 4,
-            Choice::Hide => 5,
+            Choice::Engage => 3,
+            Choice::Suppress => 4,
+            Choice::Defend => 5,
+            Choice::Hide => 6,
         };
 
         let yp = index as f32 * ITEM_HEIGHT;
@@ -85,9 +87,10 @@ impl contextual::choice::Choice<Choice> for Choice {
             Choice::Move => 0,
             Choice::MoveFast => 1,
             Choice::Sneak => 2,
-            Choice::Fire => 3,
-            Choice::Defend => 4,
-            Choice::Hide => 5,
+            Choice::Engage => 3,
+            Choice::Suppress => 4,
+            Choice::Defend => 5,
+            Choice::Hide => 6,
         };
 
         let yp = index as f32 * ITEM_HEIGHT;
@@ -112,7 +115,8 @@ pub fn on_choose(item: On<Choice>, mut commands: Commands) {
         Choice::Move => OrderType::MoveTo,
         Choice::MoveFast => OrderType::MoveFastTo,
         Choice::Sneak => OrderType::SneakTo,
-        Choice::Fire => todo!(),
+        Choice::Engage => OrderType::Engage,
+        Choice::Suppress => OrderType::Suppress,
         Choice::Defend => OrderType::Defend,
         Choice::Hide => OrderType::Hide,
     };

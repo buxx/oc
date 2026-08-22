@@ -274,7 +274,7 @@ impl Direction {
         Self::from((b - a).normalize_or_zero())
     }
 
-    pub fn from_points3d(&self, a: Vec3, b: Vec3) -> Self {
+    pub fn from_points3d(a: Vec3, b: Vec3) -> Self {
         Self::from((b - a).normalize_or_zero())
     }
 

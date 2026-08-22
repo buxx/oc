@@ -4,9 +4,10 @@ use oc_geo::region::WorldRegionIndex;
 use oc_physics::Physic;
 use oc_physics::collision::{Material, Material_};
 use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volumes};
+use oc_root::WcfgFrom;
 use oc_root::geo::ScreenVec2;
+use oc_root::identity::Identity;
 use oc_root::y::V;
-use oc_root::{WcfgFrom, side};
 use oc_utils::bevy::EntityMapping;
 use oc_utils::let_ok;
 use oc_utils::let_some;
@@ -24,9 +25,10 @@ use crate::ingame::input::left_click::select::Select;
 use crate::ingame::physics::Direction;
 use crate::ingame::region::ForgottenRegion;
 use crate::ingame::squad::menu::contextual::{
-    PrepareOpenSquadContextualMenu, on_prepare_open_squad_contextual_menu,
+    self, PrepareOpenSquadContextualMenu, on_prepare_open_squad_contextual_menu,
 };
 use crate::ingame::{self, InGameState};
+use crate::menu::contextual::close::CloseContextMenu;
 use crate::sprites::IntoAnimation;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
 use crate::states::{AppState, GameConfig};
@@ -71,6 +73,9 @@ pub struct SetIntentEvent(
     oc_individual::behavior::Intent,
 );
 
+#[derive(Debug, Event)]
+pub struct SetWeaponsEvent(oc_individual::IndividualIndex, oc_individual::Weapons);
+
 #[derive(Debug, Clone, Event, Deref)]
 pub struct AccomplishedEvent(oc_individual::IndividualIndex);
 
@@ -79,6 +84,9 @@ pub struct MoveStepAccomplishedEvent(oc_individual::IndividualIndex);
 
 #[derive(Debug, Deref, Component)]
 pub struct Status(pub oc_individual::Status);
+
+#[derive(Debug, Deref, Component)]
+pub struct Weapons(pub oc_individual::Weapons);
 
 #[derive(Debug, Deref, Component)]
 pub struct Gesture(pub oc_individual::Gesture);
@@ -113,6 +121,18 @@ fn positions(
     }
 }
 
+pub fn visibility(
+    identity: &Identity,
+    i: oc_individual::IndividualIndex,
+    individual: &oc_individual::Individual,
+    world: &World,
+) -> Visibility {
+    match identity.side == individual.side || individual.is_always_visible() || world.visible(i) {
+        true => Visibility::Visible,
+        false => Visibility::Hidden,
+    }
+}
+
 pub fn on_insert_individual(
     individual: On<InsertIndividualEvent>,
     mut commands: Commands,
@@ -134,10 +154,7 @@ pub fn on_insert_individual(
     let animation = animation.animation(&animations);
     let position = individual.1.position;
     let position_ = ScreenVec2::from_(position, &g.w);
-    let visibility = match identity.side == individual.1.side || world.visible(individual.0) {
-        true => Visibility::Visible,
-        false => Visibility::Hidden,
-    };
+    let visibility = visibility(identity, individual.0, &individual.1, &world);
     let volumes = individual
         .1
         .volumes(position, &g.w, &g.mod_)
@@ -220,6 +237,8 @@ fn on_click(
         state.update_selected(squads, squad.members.clone(), vec![individual.0]);
         let position = individual_.position;
         tracing::debug!("Trigger open squad contextual menu from individual on {position:?}");
+        // Close existing menu before open new one
+        commands.trigger(CloseContextMenu::<contextual::Menu>::default());
         commands.trigger(PrepareOpenSquadContextualMenu(position.into()));
         // As its a click, all selected units will be deleted, so we restore them
         commands.trigger(Select::Restore(state.selection()));
@@ -235,28 +254,43 @@ fn on_click(
 fn on_refresh_render(
     individual: On<RefreshRender>,
     mut query: Query<
-        (&Status, &Gesture, &mut SpritesheetAnimation, &mut Transform),
+        (
+            &Status,
+            &Side,
+            &Gesture,
+            &mut SpritesheetAnimation,
+            &mut Transform,
+            &mut Visibility,
+        ),
         With<IndividualIndex>,
     >,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
     animations: Res<SoldierAnimations>,
+    world: Res<crate::world::World>,
+    network: Res<crate::network::state::State>,
 ) {
+    let_some!(identity = &network.identity, return);
     let i = individual.0;
     let_some!(entity = state.get(&i), return);
-    let Ok((status, gesture, mut animation, mut transform)) = query.get_mut(*entity) else {
+    let_some!(individual = world.get_individual(i), return);
+    let Ok((status, side, gesture, mut animation, mut transform, mut visibility_)) =
+        query.get_mut(*entity)
+    else {
         return;
     };
 
-    let animation_ = SoldierAnimationInfos::new(side::Side::A, status.0, gesture.0.clone());
+    let animation_ = SoldierAnimationInfos::new(side.0, status.0, gesture.0.clone());
     let animation_ = animation_.animation(&animations);
     let rotation = gesture.rotation(V::Gui);
+    let visibility__ = visibility(identity, i, &individual, &world);
 
-    tracing::trace!(name = "ingame-individual-on-refresh-render", i=?i, animation_=?animation_);
+    tracing::trace!(name = "ingame-individual-on-refresh-render", i=?i, animation=?animation_, rotation=?rotation, visibility=?visibility__);
     // Only switch (and thus reset frame/repetition indices) if the target animation actually changed.
     if animation.animation != animation_ {
         animation.switch(animation_);
     }
     transform.rotation = rotation;
+    *visibility_ = visibility__;
 }
 
 pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Commands) {
@@ -297,6 +331,10 @@ pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Com
             commands.trigger(MoveStepAccomplishedEvent(i));
             false
         }
+        oc_individual::Update::SetWeapons(weapons) => {
+            commands.trigger(SetWeaponsEvent(i, weapons.clone()));
+            false
+        }
     };
 
     if refresh {
@@ -325,6 +363,7 @@ impl Plugin for IndividualPlugin {
             .add_observer(on_forgot_individual)
             .add_observer(on_set_status_event)
             .add_observer(on_set_orders_event)
+            .add_observer(on_set_weapons_event)
             .add_observer(on_accomplished_event)
             .add_observer(on_move_step_accomplished_event)
             .add_observer(on_refresh_render)
@@ -435,7 +474,9 @@ fn on_move_step_accomplished_event(
     match &mut intent.0 {
         oc_individual::behavior::Intent::Idle(_)
         | oc_individual::behavior::Intent::Defend(_)
-        | oc_individual::behavior::Intent::Hide(_) => {}
+        | oc_individual::behavior::Intent::Hide(_)
+        | oc_individual::behavior::Intent::Engage(_)
+        | oc_individual::behavior::Intent::Suppress(_) => {}
         oc_individual::behavior::Intent::MoveTo(_, path)
         | oc_individual::behavior::Intent::MoveFastTo(_, path)
         | oc_individual::behavior::Intent::SneakTo(_, path) => {
@@ -502,6 +543,21 @@ fn on_set_status_event(
 
     status_.0 = status.1;
     individual.status = status.1;
+}
+
+fn on_set_weapons_event(
+    weapons: On<SetWeaponsEvent>,
+    mut query: Query<&mut Weapons>,
+    state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut world: ResMut<crate::world::World>,
+) {
+    let_some!(entity = state.get(&weapons.0), return);
+    let_ok!(mut weapons_ = query.get_mut(*entity), return);
+    let_some!(individual = world.get_individual_mut(weapons.0), return);
+    tracing::trace!(name = "update-individual-set-weapons", i=?weapons.0, weapons=?weapons.1);
+
+    weapons_.0 = weapons.1.clone();
+    individual.weapons = weapons.1.clone();
 }
 
 // TODO: should be automatized (macro? derive ?)

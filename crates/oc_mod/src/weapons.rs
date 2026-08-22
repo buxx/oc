@@ -10,6 +10,7 @@ use crate::{
     Mod, PickSound,
     ammunition::IndexedAmmunition,
     armament::{IndexedShotMode, ShotMode, ShotModeIndex, ShotModeRaw},
+    magazine::IndexedMagazine,
     sound::SoundIndex,
 };
 
@@ -114,6 +115,13 @@ impl WeaponRaw {
         }
     }
 
+    pub fn magazines(&self) -> &Vec<String> {
+        match self {
+            WeaponRaw::Rifle(rifle) => &rifle.magazines,
+            WeaponRaw::MachineGun(machine_gun) => &machine_gun.magazines,
+        }
+    }
+
     pub fn shots(&self) -> &Vec<ShotModeRaw> {
         match self {
             WeaponRaw::Rifle(rifle) => &rifle.shots,
@@ -153,6 +161,20 @@ impl Weapon {
         }
     }
 
+    pub fn magazines(&self) -> &Vec<IndexedMagazine> {
+        match self {
+            Weapon::Rifle(rifle) => &rifle.magazines,
+            Weapon::MachineGun(machine_gun) => &machine_gun.magazines,
+        }
+    }
+
+    pub fn set_magazines(&mut self, value: Vec<IndexedMagazine>) {
+        match self {
+            Weapon::Rifle(rifle) => rifle.magazines = value,
+            Weapon::MachineGun(machine_gun) => machine_gun.magazines = value,
+        }
+    }
+
     pub fn interval(&self) -> Seconds {
         match self {
             Weapon::Rifle(rifle) => rifle.interval,
@@ -185,6 +207,27 @@ impl Weapon {
         match self {
             Weapon::Rifle(rifle) => &rifle.shots[index.0 as usize],
             Weapon::MachineGun(machine_gun) => &machine_gun.shots[index.0 as usize],
+        }
+    }
+
+    pub fn reload(&self) -> Seconds {
+        match self {
+            Weapon::Rifle(rifle) => rifle.reload,
+            Weapon::MachineGun(machine_gun) => machine_gun.reload,
+        }
+    }
+
+    pub fn aim(&self) -> Seconds {
+        match self {
+            Weapon::Rifle(rifle) => rifle.aim,
+            Weapon::MachineGun(machine_gun) => machine_gun.aim,
+        }
+    }
+
+    pub fn inaccuracy(&self, _w: &oc_root::WorldConfig) -> f32 {
+        match self {
+            Weapon::Rifle(rifle) => rifle.inaccuracy,
+            Weapon::MachineGun(machine_gun) => machine_gun.inaccuracy,
         }
     }
 }
@@ -220,9 +263,13 @@ impl WeaponType {
 pub struct Rifle {
     name: String,
     amunitions: Vec<IndexedAmmunition>,
+    magazines: Vec<IndexedMagazine>,
     shots: Vec<IndexedShotMode>,
     interval: Seconds,
     velocity: MetersSeconds,
+    reload: Seconds,
+    aim: Seconds,
+    inaccuracy: f32,
 }
 
 // TODO: Derive or macro to raw version
@@ -230,9 +277,13 @@ pub struct Rifle {
 pub struct RifleRaw {
     name: String,
     amunitions: Vec<String>,
+    magazines: Vec<String>,
     shots: Vec<ShotModeRaw>,
     interval: Seconds,
     velocity: MetersSeconds,
+    reload: Seconds,
+    aim: Seconds,
+    inaccuracy: f32,
 }
 
 impl From<RifleRaw> for Rifle {
@@ -240,9 +291,13 @@ impl From<RifleRaw> for Rifle {
         Rifle {
             name: val.name,
             amunitions: vec![],
+            magazines: vec![],
             shots: vec![],
             interval: val.interval,
             velocity: val.velocity,
+            reload: val.reload,
+            aim: val.aim,
+            inaccuracy: val.inaccuracy,
         }
     }
 }
@@ -261,9 +316,13 @@ impl From<RifleRaw> for Rifle {
 pub struct MachineGun {
     name: String,
     amunitions: Vec<IndexedAmmunition>,
+    magazines: Vec<IndexedMagazine>,
     shots: Vec<IndexedShotMode>,
     interval: Seconds,
     velocity: MetersSeconds,
+    reload: Seconds,
+    aim: Seconds,
+    inaccuracy: f32,
 }
 
 // TODO: Derive or macro to raw version
@@ -271,9 +330,13 @@ pub struct MachineGun {
 pub struct MachineGunRaw {
     name: String,
     amunitions: Vec<String>,
+    magazines: Vec<String>,
     shots: Vec<ShotModeRaw>,
     interval: Seconds,
     velocity: MetersSeconds,
+    reload: Seconds,
+    aim: Seconds,
+    inaccuracy: f32,
 }
 
 impl From<MachineGunRaw> for MachineGun {
@@ -281,9 +344,13 @@ impl From<MachineGunRaw> for MachineGun {
         MachineGun {
             name: val.name,
             amunitions: vec![],
+            magazines: vec![],
             shots: vec![],
             interval: val.interval,
             velocity: val.velocity,
+            reload: val.reload,
+            aim: val.aim,
+            inaccuracy: val.inaccuracy,
         }
     }
 }
@@ -303,6 +370,12 @@ pub fn load(path: &PathBuf, mod_: &Mod) -> Result<Vec<IndexedWeapon>, Error> {
                 .into_iter()
                 .cloned()
                 .collect();
+            let magazines = mod_
+                .magazines_from_names(weapon_.magazines().clone())
+                .map_err(|e| Error::MagazineRef(weapon_.name().to_string(), e.to_string()))?
+                .into_iter()
+                .cloned()
+                .collect();
             let shots = weapon_
                 .shots()
                 .iter()
@@ -317,6 +390,7 @@ pub fn load(path: &PathBuf, mod_: &Mod) -> Result<Vec<IndexedWeapon>, Error> {
             let mut weapon: Weapon = weapon_.into();
 
             weapon.set_ammunitions(amunitions);
+            weapon.set_magazines(magazines);
             weapon.set_shots(shots);
 
             Ok(weapon)
@@ -363,6 +437,8 @@ pub enum Error {
     Amunition(String, String),
     #[error("Amunition error ({0}): {1}")]
     AmunitionRef(String, String),
+    #[error("Magazine error ({0}): {1}")]
+    MagazineRef(String, String),
     #[error("Invalid shot mode ({0}): {1}")]
     ShotMode(String, String),
 }

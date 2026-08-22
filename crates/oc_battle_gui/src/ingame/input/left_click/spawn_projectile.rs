@@ -77,7 +77,7 @@ pub fn show(
                     ) {
                         let spawn = profile.spawn(start, end);
                         tracing::debug!("Spawn projectile {spawn:?}");
-                        commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                        commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
                     }
 
                     state.clicks.clear();
@@ -98,7 +98,7 @@ pub fn show(
                     ) {
                         let spawn = profile.spawn(start, end);
                         tracing::debug!("Spawn projectile {spawn:?}");
-                        commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                        commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
                     }
                 }
 

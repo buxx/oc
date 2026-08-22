@@ -11,18 +11,18 @@ use anyhow::Context;
 use clap::{Parser, ValueEnum};
 #[cfg(feature = "test")]
 use oc_battle_gui::{
-    entity::individual::IndividualIndex, ingame::individual::Gesture, states::Game,
+    entity::individual::IndividualIndex,
+    ingame::individual::{Gesture, Status},
+    states::Game,
 };
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
-use oc_individual::order::Order;
-use oc_root::{
-    WorldConfig,
-    geo::{WorldVec2, WorldVec3},
-    physics::Meters,
-    side,
-};
+use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side};
 use oc_world::{meta::Meta, tile::Tile};
-use tests::{individual::TestIndividual, squad::TestSquad};
+use tests::{
+    individual::TestIndividual,
+    squad::TestSquad,
+    weapons::{TestWeapon, TestWeapons},
+};
 
 #[cfg(feature = "test")]
 const AFTER_SUCCESS_WAIT: Duration = Duration::from_secs(1);
@@ -36,17 +36,19 @@ struct Args {
 
     #[arg(long, action)]
     test: bool,
+
+    /// All shots are precise (true when --test)
+    #[arg(long, action)]
+    precise: bool,
 }
 
 #[cfg(feature = "test")]
 impl Args {
     fn timeout(&self) -> Duration {
         match self.case {
-            TestCase::Direct
-            | TestCase::Through
-            | TestCase::Hidden
-            | TestCase::MoveThenEnemyVisible => Duration::from_secs(10),
-            TestCase::Discover => Duration::from_secs(20),
+            TestCase::Direct | TestCase::Direct2 | TestCase::FarMachineGun => {
+                Duration::from_secs(10)
+            }
         }
     }
 }
@@ -54,12 +56,11 @@ impl Args {
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum TestCase {
     Direct,
-    Through,
-    Hidden,
-    Discover,
-    MoveThenEnemyVisible,
+    Direct2,
+    FarMachineGun,
 }
 
+// FIXME BS NOW: set random precision (fire) and permit set precise at 100% for test
 fn main() -> Result<(), anyhow::Error> {
     logging::setup_logging()?;
 
@@ -81,10 +82,17 @@ fn main() -> Result<(), anyhow::Error> {
         map_.width().unwrap() as u64,
         map_.height().unwrap() as u64,
         Meters(meta.geo_meters_per_z),
-    );
+    )
+    .visibilities_tick_each_seconds(0.5); // To ensure one shot and test it
+
+    let w = match args.case {
+        TestCase::Direct | TestCase::Direct2 => w,
+        TestCase::FarMachineGun => w.individual_tick_interval_us(1_000_000 / 10),
+    };
+
     let tiles = map_.tiles(&w, &mod__).unwrap();
 
-    let individuals = individuals(&w, &tiles, &args);
+    let individuals = individuals(&w, &mod__, &tiles, &args);
     let squads = squads(&w, &tiles, &individuals, &args);
     let snapshot = SnapshotBuilder::new(map_, individuals, squads, vec![]).build(w, &mod__)?;
 
@@ -107,12 +115,23 @@ fn main() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn individuals(w: &WorldConfig, _tiles: &Vec<Tile>, args: &Args) -> Vec<oc_individual::Individual> {
+fn individuals(
+    w: &WorldConfig,
+    mod_: &oc_mod::Mod,
+    _tiles: &Vec<Tile>,
+    args: &Args,
+) -> Vec<oc_individual::Individual> {
     match args.case {
         TestCase::Direct => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
                 .position(WorldVec3::new(250., 250., 0.))
+                .weapons(
+                    TestWeapons::builder()
+                        .primary(TestWeapon::filled(mod_, "Weapon3").make())
+                        .build()
+                        .make(),
+                )
                 .build()
                 .make(&w),
             TestIndividual::builder()
@@ -121,51 +140,44 @@ fn individuals(w: &WorldConfig, _tiles: &Vec<Tile>, args: &Args) -> Vec<oc_indiv
                 .build()
                 .make(&w),
         ],
-        TestCase::Through => vec![
+        TestCase::Direct2 => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
                 .position(WorldVec3::new(250., 250., 0.))
+                .weapons(
+                    TestWeapons::builder()
+                        .primary(TestWeapon::filled(mod_, "Weapon3").make())
+                        .build()
+                        .make(),
+                )
                 .build()
                 .make(&w),
             TestIndividual::builder()
                 .side(side::Side::B)
-                .position(WorldVec3::new(450., 250., 0.))
+                .position(WorldVec3::new(250., 150., 0.))
+                .build()
+                .make(&w),
+            TestIndividual::builder()
+                .side(side::Side::B)
+                .position(WorldVec3::new(260., 150., 0.))
                 .build()
                 .make(&w),
         ],
-        TestCase::Hidden => vec![
+        TestCase::FarMachineGun => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
-                .position(WorldVec3::new(250., 250., 0.))
+                .position(WorldVec3::new(350., 450., 0.))
+                .weapons(
+                    TestWeapons::builder()
+                        .primary(TestWeapon::filled(mod_, "FullFast").make())
+                        .build()
+                        .make(),
+                )
                 .build()
                 .make(&w),
             TestIndividual::builder()
                 .side(side::Side::B)
-                .position(WorldVec3::new(450., 150., 0.))
-                .build()
-                .make(&w),
-        ],
-        TestCase::Discover => vec![
-            TestIndividual::builder()
-                .side(side::Side::A)
-                .position(WorldVec3::new(250., 175., 0.))
-                .build()
-                .make(&w),
-            TestIndividual::builder()
-                .side(side::Side::B)
-                .position(WorldVec3::new(450., 150., 0.))
-                .build()
-                .make(&w),
-        ],
-        TestCase::MoveThenEnemyVisible => vec![
-            TestIndividual::builder()
-                .side(side::Side::A)
-                .position(WorldVec3::new(250., 175., 0.))
-                .build()
-                .make(&w),
-            TestIndividual::builder()
-                .side(side::Side::B)
-                .position(WorldVec3::new(450., 150., 0.))
+                .position(WorldVec3::new(50., 50., 0.))
                 .build()
                 .make(&w),
         ],
@@ -179,7 +191,7 @@ fn squads(
     args: &Args,
 ) -> Vec<oc_individual::squad::Squad> {
     match args.case {
-        TestCase::Direct | TestCase::Through | TestCase::Hidden => vec![
+        TestCase::Direct => vec![
             TestSquad::builder()
                 .position(individuals.get(0).unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
@@ -193,25 +205,28 @@ fn squads(
                 .build()
                 .make(),
         ],
-        TestCase::Discover => vec![
+        TestCase::Direct2 => vec![
             TestSquad::builder()
                 .position(individuals.get(0).unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
-                .orders(vec![Order::MoveFastTo(WorldVec2::new(250., 150.))])
+                .orders(vec![])
                 .build()
                 .make(),
             TestSquad::builder()
                 .position(individuals.get(1).unwrap().position.into())
-                .members(vec![oc_individual::IndividualIndex(1)])
+                .members(vec![
+                    oc_individual::IndividualIndex(1),
+                    oc_individual::IndividualIndex(2),
+                ])
                 .orders(vec![])
                 .build()
                 .make(),
         ],
-        TestCase::MoveThenEnemyVisible => vec![
+        TestCase::FarMachineGun => vec![
             TestSquad::builder()
                 .position(individuals.get(0).unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
-                .orders(vec![Order::MoveTo(WorldVec2::new(250., 100.))])
+                .orders(vec![])
                 .build()
                 .make(),
             TestSquad::builder()
@@ -245,11 +260,7 @@ fn install(app: &mut bevy::app::App) {
     app.init_resource::<State>();
 
     match args.case {
-        TestCase::Direct
-        | TestCase::Through
-        | TestCase::Hidden
-        | TestCase::Discover
-        | TestCase::MoveThenEnemyVisible => {
+        TestCase::Direct | TestCase::Direct2 | TestCase::FarMachineGun => {
             #[cfg(feature = "test")]
             app.add_systems(Update, tracking);
         }
@@ -271,54 +282,48 @@ fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>) {
 }
 
 #[cfg(feature = "test")]
-fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Visibility, &Gesture)>) {
+fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Status, &Gesture)>) {
     let args = Args::parse();
 
-    let i1_visible = query
+    static I0_SEEN_PRONE: AtomicBool = AtomicBool::new(false);
+    static I1_SEEN_DEAD: AtomicBool = AtomicBool::new(false);
+    static I2_SEEN_DEAD: AtomicBool = AtomicBool::new(false);
+
+    let i0_body = query
         .iter()
-        .any(|(i, v, _)| i.0 == oc_individual::IndividualIndex(0) && v == &Visibility::Visible);
-    let i1_gesture = query
-        .iter()
-        .filter_map(|(i, _, g)| (i.0 == oc_individual::IndividualIndex(0)).then(|| &g.0.body))
+        .filter_map(|(i, _, gesture)| {
+            (i.0 == oc_individual::IndividualIndex(0)).then(|| &gesture.0.body)
+        })
         .next();
-    let i2_visible = query
+    let i1_status = query
         .iter()
-        .any(|(i, v, _)| i.0 == oc_individual::IndividualIndex(1) && v == &Visibility::Visible);
-    let i2_gesture = query
+        .filter_map(|(i, status, _)| (i.0 == oc_individual::IndividualIndex(1)).then(|| &status.0))
+        .next();
+    let i2_status = query
         .iter()
-        .filter_map(|(i, _, g)| (i.0 == oc_individual::IndividualIndex(1)).then(|| &g.0.body))
+        .filter_map(|(i, status, _)| (i.0 == oc_individual::IndividualIndex(2)).then(|| &status.0))
         .next();
 
+    if matches!(i0_body, Some(&oc_individual::BodyGesture::Prone(_))) {
+        I0_SEEN_PRONE.store(true, Ordering::Relaxed);
+    }
+    if i1_status == Some(&oc_individual::Status::Dead) {
+        I1_SEEN_DEAD.store(true, Ordering::Relaxed);
+    }
+    if i2_status == Some(&oc_individual::Status::Dead) {
+        I2_SEEN_DEAD.store(true, Ordering::Relaxed);
+    }
+
     if match args.case {
-        TestCase::Direct => {
-            i1_visible
-                && i2_visible
-                && matches!(i1_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
-                && matches!(i2_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
+        TestCase::Direct | TestCase::FarMachineGun => {
+            I1_SEEN_DEAD.load(Ordering::Relaxed) && I0_SEEN_PRONE.load(Ordering::Relaxed)
         }
-        TestCase::Through => {
-            i1_visible
-                && i2_visible
-                && matches!(i1_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
-                && matches!(i2_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
-        }
-        TestCase::Hidden => {
-            i1_visible
-                && !i2_visible
-                && matches!(i1_gesture, Some(&oc_individual::BodyGesture::StandUp(_)))
-                && matches!(i2_gesture, Some(&oc_individual::BodyGesture::StandUp(_)))
-        }
-        TestCase::Discover => {
-            i1_visible
-                && i2_visible
-                && matches!(i1_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
-                && matches!(i2_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
-        }
-        TestCase::MoveThenEnemyVisible => {
-            matches!(i1_gesture, Some(&oc_individual::BodyGesture::Running(_)))
+        TestCase::Direct2 => {
+            I1_SEEN_DEAD.load(Ordering::Relaxed)
+                && I2_SEEN_DEAD.load(Ordering::Relaxed)
+                && I0_SEEN_PRONE.load(Ordering::Relaxed)
         }
     } {
-        // FIXME: must test individuals behavior/gesture too (hide)
         state.success = Some(Instant::now());
         SUCCESS.store(true, Ordering::Relaxed);
     }

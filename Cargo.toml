@@ -53,6 +53,7 @@ polyanya = { git = "https://github.com/buxx/polyanya.git", branch = "main" }  # 
 parking_lot = { version = "0.12", features = ["deadlock_detection"] }
 backtrace = "0.3"
 derive_is_enum_variant = "0.1"
+rand = "0.10"
 
 # derive
 proc-macro2 = "1"

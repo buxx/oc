@@ -60,6 +60,14 @@ mod test {
                 Direction::NORTH,
             )]
         }
+
+        fn ignore_side(&self) -> oc_physics::IgnoreSide {
+            oc_physics::IgnoreSide::None
+        }
+
+        fn side(&self) -> Option<oc_root::side::Side> {
+            None
+        }
     }
 
     impl Material for Object {
@@ -83,7 +91,7 @@ mod test {
         (5.1, 5.1, Meters(0.)), vec![Force::Translation([-1., -1., -1.].into(), MetersSeconds(1.))],
         // produce collision
         Meters(0.),
-        ([4.0, 4.0, -1.0].into(), vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
+        ([4.0, 4.0, -2.0].into(), vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
     )]
     // Case 3
     #[case(
@@ -138,6 +146,7 @@ mod test {
             delta,
             (ObjectsId::Object(object_i), &object),
             objects,
+            0,
             "tests",
         );
 

@@ -10,13 +10,15 @@ use thiserror::Error;
 
 use crate::{
     ammunition::{Ammunition, AmmunitionIndex, IndexedAmmunition},
+    magazine::{IndexedMagazine, MagazineIndex},
     nature::{Nature, NatureIndex},
     sound::IndexedSound,
-    weapons::{Weapon, WeaponIndex},
+    weapons::{IndexedWeapon, WeaponIndex},
 };
 
 pub mod ammunition;
 pub mod armament;
+pub mod magazine;
 pub mod nature;
 pub mod sound;
 pub mod weapons;
@@ -47,6 +49,8 @@ pub struct Mod {
     #[serde(skip, default)]
     pub ammunitions: Vec<ammunition::IndexedAmmunition>,
     #[serde(skip, default)]
+    pub magazines: Vec<magazine::IndexedMagazine>,
+    #[serde(skip, default)]
     pub weapons: Vec<weapons::IndexedWeapon>,
     // Below game specs
     #[serde(default = "default_human_default_stand_up_fire_meters")]
@@ -60,6 +64,7 @@ impl Mod {
         mod_.natures = nature::load(path)?;
         mod_.sounds = sound::load(path)?;
         mod_.ammunitions = ammunition::load(path)?;
+        mod_.magazines = magazine::load(path)?;
         mod_.weapons = weapons::load(path, &mod_)?;
 
         // TODO: centralize caching at server startup
@@ -97,12 +102,28 @@ impl Mod {
             .collect::<Result<Vec<&IndexedAmmunition>, Error>>()
     }
 
+    fn magazines_from_names(&self, magazines: Vec<String>) -> Result<Vec<&IndexedMagazine>, Error> {
+        magazines
+            .iter()
+            .map(|magazine| {
+                self.magazines
+                    .iter()
+                    .find(|a| a.name() == magazine)
+                    .ok_or(Error::UnknownMagazineName(magazine.clone()))
+            })
+            .collect::<Result<Vec<&IndexedMagazine>, Error>>()
+    }
+
     pub fn ammunition(&self, index: AmmunitionIndex) -> &Ammunition {
         &self.ammunitions[index.0 as usize]
     }
 
-    pub fn weapon(&self, index: WeaponIndex) -> &Weapon {
+    pub fn weapon(&self, index: WeaponIndex) -> &IndexedWeapon {
         &self.weapons[index.0 as usize]
+    }
+
+    pub fn magazine(&self, index: MagazineIndex) -> &IndexedMagazine {
+        &self.magazines[index.0 as usize]
     }
 
     fn find_sounds(&self, sounds: &[String]) -> Result<Vec<&IndexedSound>, Error> {
@@ -178,7 +199,11 @@ pub enum Error {
     #[error("Amunitions: {0}")]
     Amunitions(#[from] ammunition::Error),
     #[error("Unknown amunitions name: {0}")]
+    Magazine(#[from] magazine::Error),
+    #[error("Unknown amunitions name: {0}")]
     UnknownAmunitionName(String),
+    #[error("Unknown magazine name: {0}")]
+    UnknownMagazineName(String),
     #[error("Unknown sound name: {0}")]
     UnknownSoundName(String),
     #[error("Weapons: {0}")]

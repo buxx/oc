@@ -1,9 +1,13 @@
 use bevy::prelude::*;
-use oc_root::geo::WorldVec2;
+use oc_root::{
+    WcfgFrom,
+    geo::{ScreenVec2, WorldVec2},
+};
+use oc_utils::let_some;
 
 use crate::{
     ingame::{InGameState, input::left_click::LeftClickModeType},
-    states::{AppState, PointerIn},
+    states::{AppState, GameConfig, PointerIn},
 };
 
 pub mod client;
@@ -16,6 +20,7 @@ pub mod projectile;
 pub struct State {
     pub clicks: Vec<WorldVec2>,
     pub first_left_press: Option<WorldVec2>,
+    pub first_right_press: Option<WorldVec2>,
 }
 
 pub struct InputPlugin;
@@ -57,6 +62,13 @@ impl Plugin for InputPlugin {
                     .run_if(in_state(PointerIn::Battle)),
             )
             .add_systems(Startup, left_click::select::setup)
+            .add_systems(
+                Update,
+                (watch_clicks,)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(PointerIn::Battle)),
+            )
             .add_systems(
                 Update,
                 (left_click::select::area,)
@@ -102,5 +114,24 @@ impl Plugin for InputPlugin {
                     .run_if(in_state(LeftClickModeType::SpawnProjectile))
                     .run_if(in_state(PointerIn::Battle)),
             );
+    }
+}
+
+fn watch_clicks(
+    g: Res<GameConfig>,
+    mut state: ResMut<State>,
+    window: Single<&Window>,
+    buttons: Res<ButtonInput<MouseButton>>,
+) {
+    let_some!(g = &g.0, return);
+
+    if buttons.just_pressed(MouseButton::Right) {
+        let_some!(cursor = window.cursor_position(), return);
+        let position = ScreenVec2::from(cursor);
+        let position = WorldVec2::from_(position, &g.w);
+        state.first_right_press = Some(position);
+    }
+    if buttons.just_released(MouseButton::Right) {
+        state.first_right_press = None;
     }
 }

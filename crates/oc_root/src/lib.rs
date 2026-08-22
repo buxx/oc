@@ -1,9 +1,15 @@
+#[cfg(feature = "debug")]
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+
 #[cfg(feature = "bevy")]
 use bevy::prelude::*;
 
 use rkyv::{Archive, Deserialize, Serialize};
 
-use crate::{opacity::CumulatedOpacity, physics::Meters};
+use crate::{
+    opacity::CumulatedOpacity,
+    physics::{Meters, Seconds},
+};
 
 pub mod end;
 pub mod files;
@@ -17,6 +23,11 @@ pub mod side;
 pub mod static_;
 pub mod utils;
 pub mod y;
+
+#[cfg(feature = "debug")]
+static INACCURACY_SPREAD_RAW: AtomicU32 = AtomicU32::new(0);
+#[cfg(feature = "debug")]
+static INACCURACY_SPREAD_ENABLED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
@@ -46,6 +57,21 @@ pub struct WorldConfig {
     pub minimap_height_pixels: u64,
     pub formation_tiles_between_positions: u64,
     pub individual_visibility_until: CumulatedOpacity,
+    /// Inaccuracy start value
+    pub base_inaccuracy: f32,
+    /// Inaccuracy value for 100% suppressed (50% suppressed will by 50% of this value)
+    pub suppress_inaccuracy: f32,
+    pub standup_inaccuracy: f32,
+    pub walking_inaccuracy: f32,
+    pub running_inaccuracy: f32,
+    pub crawling_inaccuracy: f32,
+    pub prone_inaccuracy: f32,
+    /// Inaccuracy value for 100% opacity (50% opacity will by 50% of this value)
+    pub opacity_inaccuracy: f32,
+    /// To prevent problems due to "square 3d" (when gunner is close to the edge)
+    pub ignore_firsts_lov_tiles: u8,
+    /// To prevent problems due to "square 3d" (when gunner is close to the edge)
+    pub ignore_firsts_physics_pixels: u8,
 }
 
 impl WorldConfig {
@@ -76,6 +102,16 @@ impl WorldConfig {
 
         let formation_tiles_between_positions = 2;
         let individual_visibility_until = CumulatedOpacity(0.6);
+        let base_inaccuracy = 0.05;
+        let suppress_inaccuracy = 2.0;
+        let standup_inaccuracy = 0.1;
+        let walking_inaccuracy = 1.5;
+        let running_inaccuracy = 2.5;
+        let crawling_inaccuracy = 1.8;
+        let prone_inaccuracy = 0.0;
+        let opacity_inaccuracy = 2.0;
+        let ignore_firsts_lov_tiles = 2;
+        let ignore_firsts_physics_pixels = 8;
 
         Self {
             world_width,
@@ -103,6 +139,16 @@ impl WorldConfig {
             minimap_height_pixels,
             formation_tiles_between_positions,
             individual_visibility_until,
+            base_inaccuracy,
+            suppress_inaccuracy,
+            standup_inaccuracy,
+            walking_inaccuracy,
+            running_inaccuracy,
+            crawling_inaccuracy,
+            prone_inaccuracy,
+            opacity_inaccuracy,
+            ignore_firsts_lov_tiles,
+            ignore_firsts_physics_pixels,
         }
     }
 
@@ -119,6 +165,11 @@ impl WorldConfig {
         self.regions_count = self.tiles_count / (self.region_width * self.region_height);
         self.regions_height = self.world_height / self.region_height;
         self.region_height_pixels = self.region_height * self.geo_pixels_per_tile;
+        self
+    }
+
+    pub fn individual_tick_interval_us(mut self, value: u64) -> Self {
+        self.individual_tick_interval_us = value;
         self
     }
 
@@ -146,6 +197,42 @@ impl WorldConfig {
         self.visibilities_tick_interval_us = (1_000_000 as f32 / value) as u64;
         self
     }
+
+    #[cfg(feature = "debug")]
+    pub fn inaccuracy_spread() -> f32 {
+        INACCURACY_SPREAD_RAW.load(Ordering::Relaxed) as f32 / 10_000.
+    }
+
+    #[cfg(not(feature = "debug"))]
+    pub fn inaccuracy_spread() -> f32 {
+        0.0
+    }
+
+    #[cfg(feature = "debug")]
+    pub fn set_inaccuracy_spread(value: f32) {
+        INACCURACY_SPREAD_RAW.store((value * 10_000.) as u32, Ordering::Relaxed);
+    }
+
+    #[cfg(not(feature = "debug"))]
+    pub fn set_inaccuracy_spread(_: f32) {}
+
+    #[cfg(feature = "debug")]
+    pub fn inaccuracy_spread_enabled() -> bool {
+        INACCURACY_SPREAD_ENABLED.load(Ordering::Relaxed)
+    }
+
+    #[cfg(not(feature = "debug"))]
+    pub fn inaccuracy_spread_enabled() -> bool {
+        false
+    }
+
+    #[cfg(feature = "debug")]
+    pub fn set_inaccuracy_spread_enabled(value: bool) {
+        INACCURACY_SPREAD_ENABLED.store(value, Ordering::Relaxed);
+    }
+
+    #[cfg(not(feature = "debug"))]
+    pub fn set_inaccuracy_spread_enabled(_: bool) {}
 }
 
 pub trait Client: Clone + std::hash::Hash + Eq + std::fmt::Debug + Send + Sync + 'static {}
@@ -171,3 +258,137 @@ where
 #[cfg(feature = "bevy")]
 #[derive(Debug, Resource, Deref, Default)]
 pub struct Wcfg(pub Option<WorldConfig>);
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Suppress(u8);
+
+impl Suppress {
+    pub fn zero() -> Self {
+        Self(0)
+    }
+
+    pub fn normalize(&self) -> f32 {
+        self.0 as f32 / 255.0
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct U8Progress(pub u8);
+
+impl U8Progress {
+    pub fn zero() -> Self {
+        Self(0)
+    }
+
+    pub fn tick(&self, interval_micros: u64, total: Seconds) -> Self {
+        let total_micros = (total.0 * 1_000_000.0) as u64;
+        let total_ticks = (total_micros / interval_micros).max(1); // avoid div-by-zero
+        let increment = (255u32 / total_ticks as u32) as u8;
+        Self(self.0.saturating_add(increment))
+    }
+
+    pub fn finished(&self) -> bool {
+        self.0 == 255
+    }
+}
+
+// WARN: U8Progress tests AI generated
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // 2s action, 10 ticks/sec -> interval = 100_000 µs, total_ticks = 20
+    // increment = 255 / 20 = 12 (integer division)
+    #[test]
+    fn single_tick_2s_at_10tps() {
+        let p = U8Progress(0);
+        let p = p.tick(100_000, Seconds(2.0));
+        assert_eq!(p.0, 12);
+    }
+
+    // 1s action, 10 ticks/sec -> interval = 100_000 µs, total_ticks = 10
+    // increment = 255 / 10 = 25  (this matches your original expected example)
+    #[test]
+    fn single_tick_1s_at_10tps() {
+        let p = U8Progress(0);
+        let p = p.tick(100_000, Seconds(1.0));
+        assert_eq!(p.0, 25);
+    }
+
+    // Accumulation over the full duration of a 2s/10tps action.
+    // 20 ticks * 12 = 240, NOT 255 -- documents the truncation issue.
+    #[test]
+    fn full_duration_does_not_reach_max_due_to_truncation() {
+        let mut p = U8Progress(0);
+        for _ in 0..20 {
+            p = p.tick(100_000, Seconds(2.0));
+        }
+        assert_eq!(p.0, 240);
+        assert!(p.0 < 255);
+    }
+
+    // Progress must never exceed 255 (u8::MAX) even with excess ticks.
+    #[test]
+    fn saturates_at_max() {
+        let mut p = U8Progress(0);
+        for _ in 0..100 {
+            p = p.tick(100_000, Seconds(1.0)); // increment 25 each time
+        }
+        assert_eq!(p.0, 255);
+    }
+
+    // Starting near the top should saturate, not wrap around.
+    #[test]
+    fn saturating_add_does_not_wrap() {
+        let p = U8Progress(250);
+        let p = p.tick(100_000, Seconds(1.0)); // increment 25 -> would be 275
+        assert_eq!(p.0, 255);
+    }
+
+    // interval longer than total duration -> total_ticks clamped to 1,
+    // increment = 255 / 1 = 255 (jumps straight to max in one tick).
+    #[test]
+    fn interval_larger_than_total_clamped_to_one_tick() {
+        let p = U8Progress(0);
+        let p = p.tick(5_000_000, Seconds(1.0)); // 5s interval, 1s total
+        assert_eq!(p.0, 255);
+    }
+
+    // Sanity check: zero-length action still doesn't panic (div-by-zero guarded).
+    #[test]
+    fn zero_duration_does_not_panic() {
+        let p = U8Progress(0);
+        let p = p.tick(100_000, Seconds(0.0));
+        assert_eq!(p.0, 255); // total_ticks clamped to 1 -> full jump
+    }
+
+    // Progress from non-zero starting point still respects saturating add.
+    #[test]
+    fn tick_from_nonzero_start() {
+        let p = U8Progress(100);
+        let p = p.tick(100_000, Seconds(2.0)); // increment 12
+        assert_eq!(p.0, 112);
+    }
+}

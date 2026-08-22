@@ -34,11 +34,16 @@ pub fn write(
             individual.orders.pop();
         }
         Update::MoveStepAccomplished => match &mut individual.intent {
-            Intent::Idle(_) | Intent::Defend(_) | Intent::Hide(_) => {}
+            Intent::Idle(_)
+            | Intent::Defend(_)
+            | Intent::Hide(_)
+            | Intent::Engage(_)
+            | Intent::Suppress(_) => {}
             Intent::MoveTo(_, path) | Intent::MoveFastTo(_, path) | Intent::SneakTo(_, path) => {
                 path.remove(0);
             }
         },
+        Update::SetWeapons(weapons) => individual.weapons = weapons.clone(),
     }
 
     let region = individual.region;

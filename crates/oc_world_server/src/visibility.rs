@@ -22,39 +22,24 @@ impl<'a> Processor<'a> {
         let at = |xy, z| path_objects_at(w, mod_, self.world, xy, z);
 
         let mut compute_pair = |i1: &IndividualIndex, i2: &IndividualIndex| {
-            tracing::trace!(name = "visibility-processor-compute", i1=?i1);
+            tracing::trace!(name = "visibility-processor-compute", i1=?i1, i2=?i2);
 
             let individual1 = self.world.individual(*i1);
             if !individual1.can_lov() {
-                tracing::trace!(name="visibility-processor-compute-cant-lov", i1=?i1);
+                tracing::trace!(name="visibility-processor-compute-cant-lov", i1=?i1, i2=?i2);
                 return;
             }
 
             let individual2 = self.world.individual(*i2);
-            if !individual2.is_lov() {
+            if !individual2.is_lov_target() {
                 tracing::trace!(name="visibility-processor-compute-cant-be-lov", i1=?i1, i2=?i2);
                 return;
             }
 
             let p1 = individual1.position;
             let p2 = individual2.position;
-            let lov = oc_lov::PathBuilder::new(w, at).build_(p1, p2);
-
-            let opacity = lov
-                .sections
-                .last()
-                .map(|s| s.opacity)
-                .unwrap_or(CumulatedOpacity(1.0));
-            let visible = opacity <= w.individual_visibility_until;
-
-            tracing::trace!(
-                name="visibility-processor-compute-result",
-                i1=?i1,
-                i2=?i2,
-                visible=visible,
-                opacity=?opacity
-            );
-            visibilities.push((*i1, *i2, Visibility::new(visible, opacity)));
+            let visibility = visibility(w, at, p1, p2);
+            visibilities.push((*i1, *i2, visibility));
         };
 
         for i1 in self.index.side_a_individuals() {
@@ -73,7 +58,32 @@ impl<'a> Processor<'a> {
     }
 }
 
-fn path_objects_at(
+pub fn visibility(
+    w: &WorldConfig,
+    at: impl Fn(Xy, f32) -> Vec<oc_lov::Step>,
+    p1: oc_root::geo::WorldVec3,
+    p2: oc_root::geo::WorldVec3,
+) -> Visibility {
+    let ignore = w.ignore_firsts_lov_tiles as usize;
+    let lov = oc_lov::PathBuilder::new(w, at).build(p1, p2, ignore);
+
+    let opacity = lov
+        .sections
+        .last()
+        .map(|s| s.opacity)
+        .unwrap_or(CumulatedOpacity(1.0));
+    let visible = opacity <= w.individual_visibility_until;
+
+    tracing::trace!(
+        name="visibility-processor-compute-result",
+        visible=visible,
+        opacity=?opacity
+    );
+
+    Visibility::new(visible, opacity)
+}
+
+pub fn path_objects_at(
     w: &WorldConfig,
     mod_: &oc_mod::Mod,
     world: &World,

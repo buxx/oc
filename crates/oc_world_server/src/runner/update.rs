@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use crate::projectile;
 use crate::routing::Listening;
+use crate::schedule::Schedule;
 use crate::utils::context::Context;
 use oc_geo::region::{Region, WorldRegionIndex};
 use oc_individual::IndividualIndex;
@@ -12,6 +13,7 @@ use oc_physics::fx;
 use oc_projectile::NextProjectileId;
 use oc_projectile::ProjectileId;
 use oc_projectile::spawn::SpawnProjectile;
+use oc_projectile::spawn::SpawnProjectiles;
 use oc_root::Client;
 use oc_root::side::Side;
 use oc_world::visibility::Visibilities;
@@ -19,8 +21,9 @@ use oc_world::visibility::Visibility;
 
 #[derive(Debug, PartialEq)]
 pub enum Update {
-    Schedule(Instant, Box<Update>),
-    SpawnProjectile(SpawnProjectile, bool), // bool == fx
+    // Schedule(Instant, Box<Update>),
+    SpawnProjectiles(SpawnProjectiles),
+    SpawnProjectile(SpawnProjectile, bool), // bool = fx
     RemoveProjectile(ProjectileId),
     UpdateIndividual(IndividualIndex, oc_individual::Update),
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
@@ -32,7 +35,8 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
     tracing::trace!(name="runner-update", update=?update);
 
     for (filter, messages) in match update {
-        Update::Schedule(instant, update) => state.schedule(instant, *update),
+        // Update::Schedule(instant, update) => state.schedule(instant, *update),
+        Update::SpawnProjectiles(spawns) => state.spawn_projectiles(spawns),
         Update::SpawnProjectile(spawn, fx) => state.spawn_projectile(spawn, fx),
         Update::RemoveProjectile(i) => state.remove_projectile(i),
         Update::UpdateIndividual(i, update) => {
@@ -154,6 +158,25 @@ impl<E: Client> super::State<E> {
         let update = oc_individual::network::Squad::Update(i, update);
         let update = ToClient::Squad(update);
         vec![(Listening::Side(squad.side), vec![update])]
+    }
+
+    fn spawn_projectiles(&self, spawns: SpawnProjectiles) -> Vec<(Listening, Vec<ToClient>)> {
+        for (i, (instant, fx)) in spawns.schedule(&self._mod).iter().enumerate() {
+            let direction = match spawns.directions.get(i) {
+                Some(direction) => *direction,
+                None => match spawns.directions.first() {
+                    Some(direction) => *direction,
+                    None => {
+                        tracing::error!("No direction available in SpawnProjectiles");
+                        return vec![];
+                    }
+                },
+            };
+            let spawn = SpawnProjectiles::from_spawns(&spawns, direction);
+            self.schedule(*instant, Update::SpawnProjectile(spawn, *fx));
+        }
+
+        vec![]
     }
 
     fn spawn_projectile(

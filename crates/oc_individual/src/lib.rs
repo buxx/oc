@@ -8,12 +8,18 @@ use oc_geo::region::Region;
 use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::WorldTileIndex;
 use oc_mod::Mod;
+use oc_mod::ammunition::AmmunitionIndex;
+use oc_mod::magazine::MagazineIndex;
 use oc_mod::nature::Traversability;
+use oc_mod::weapons::WeaponIndex;
 use oc_physics::Force;
+use oc_physics::IgnoreSide;
 use oc_physics::Physic;
 use oc_physics::UpdatePhysic;
 use oc_physics::collision::Material;
 use oc_physics::volume::Volume;
+use oc_root::Suppress;
+use oc_root::U8Progress;
 use oc_root::WorldConfig;
 use oc_root::geo::WorldVec3;
 use oc_root::material::MaterialKind;
@@ -86,6 +92,8 @@ pub struct Individual {
     pub gesture: Gesture,
     /// Intent is the intention of individual, like taking cover, to accomplish its defending behavior
     pub intent: Intent,
+    pub suppress: Suppress,
+    pub weapons: Weapons,
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
@@ -99,6 +107,7 @@ pub enum Update {
     SetIntent(Intent),
     Accomplished,
     MoveStepAccomplished,
+    SetWeapons(Weapons),
 }
 
 impl Region for Individual {
@@ -153,8 +162,10 @@ impl Individual {
             Behavior::Idle(Direction::default()),
             vec![],
             Status::Operational,
-            Gesture::StandUp(Direction::default()),
+            Gesture::body(BodyGesture::StandUp(Direction::default())),
             Intent::Idle(Direction::default()),
+            Suppress::zero(),
+            Weapons::default(),
         )
     }
 
@@ -173,6 +184,11 @@ impl Individual {
         self
     }
 
+    pub fn with_weapons(mut self, value: Weapons) -> Self {
+        self.weapons = value;
+        self
+    }
+
     pub fn tile(&self) -> WorldTileIndex {
         self.tile
     }
@@ -181,20 +197,50 @@ impl Individual {
         self.region
     }
 
-    pub fn can_follow_order(&self) -> bool {
-        // TODO ...
-        true
+    pub fn can_follow_orders(&self) -> bool {
+        match self.status {
+            Status::Operational => true,
+            Status::Dead => false,
+        }
     }
 
     pub fn can_lov(&self) -> bool {
-        // TODO ...
-        true
+        match self.status {
+            Status::Operational => true,
+            Status::Dead => false,
+        }
     }
 
     /// True if compute lov on it (when dead or incapacitated, false)
-    pub fn is_lov(&self) -> bool {
-        // TODO ...
-        true
+    pub fn is_lov_target(&self) -> bool {
+        match self.status {
+            Status::Operational => true,
+            Status::Dead => false,
+        }
+    }
+
+    /// True if consider it as solid (when dead or incapacitated, false)
+    pub fn is_solid(&self) -> bool {
+        match self.status {
+            Status::Operational => true,
+            Status::Dead => false,
+        }
+    }
+
+    pub fn is_always_visible(&self) -> bool {
+        match self.status {
+            Status::Operational => false,
+            Status::Dead => true, // Dead are always displayed at screen
+        }
+    }
+
+    pub fn xp_inaccuracy(&self, _w: &WorldConfig) -> f32 {
+        // TODO
+        0.0
+    }
+
+    pub fn suppress_inaccuracy(&self, w: &WorldConfig) -> f32 {
+        self.suppress.normalize() * w.suppress_inaccuracy
     }
 }
 
@@ -214,16 +260,19 @@ impl Physic for Individual {
         _mod_: &Mod,
     ) -> Vec<(Volume, Traversability, Direction)> {
         let direction = self.gesture.direction();
-        let cube = match self.gesture {
-            Gesture::StandUp(_) | Gesture::Walking(_) | Gesture::Running(_) => Volume::Cube {
-                x: ref_.x,
-                y: ref_.y,
-                z: ref_.z,
-                width: INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
-                height: INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
-                depth: INDIVIDUAL_STAND_UP_VOLUME_DEPTH.pixels(w),
-            },
-            Gesture::Crawling(_direction) | Gesture::Prone(_direction) => Volume::Cube {
+        let traversable = !self.is_solid();
+        let cube = match self.gesture.body {
+            BodyGesture::StandUp(_) | BodyGesture::Walking(_) | BodyGesture::Running(_) => {
+                Volume::Cube {
+                    x: ref_.x,
+                    y: ref_.y,
+                    z: ref_.z,
+                    width: INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
+                    height: INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
+                    depth: INDIVIDUAL_STAND_UP_VOLUME_DEPTH.pixels(w),
+                }
+            }
+            BodyGesture::Crawling(_direction) | BodyGesture::Prone(_direction) => Volume::Cube {
                 x: ref_.x,
                 y: ref_.y,
                 z: ref_.z,
@@ -236,10 +285,18 @@ impl Physic for Individual {
             cube,
             Traversability {
                 individual: true, // TODO: prevent individual collisions ? Will need enhance physic model ...
-                projectile: false,
+                projectile: traversable,
             },
             direction,
         )]
+    }
+
+    fn ignore_side(&self) -> IgnoreSide {
+        IgnoreSide::None
+    }
+
+    fn side(&self) -> Option<Side> {
+        Some(self.side)
     }
 }
 
@@ -294,6 +351,7 @@ pub enum Status {
     Operational,
     Dead,
 }
+
 impl Status {
     pub fn can_step(&self) -> bool {
         match self {
@@ -305,13 +363,92 @@ impl Status {
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub enum Gesture {
+pub struct Gesture {
+    pub body: BodyGesture,
+    pub hands: HandsGesture,
+}
+
+impl Gesture {
+    pub fn body(gesture: BodyGesture) -> Self {
+        Self {
+            body: gesture,
+            hands: HandsGesture::Idle,
+        }
+    }
+
+    pub fn with_hands(mut self, value: HandsGesture) -> Self {
+        self.hands = value;
+        self
+    }
+
+    pub fn inaccuracy(&self, w: &WorldConfig) -> f32 {
+        match self.body {
+            BodyGesture::StandUp(_) => w.standup_inaccuracy,
+            BodyGesture::Walking(_) => w.walking_inaccuracy,
+            BodyGesture::Running(_) => w.running_inaccuracy,
+            BodyGesture::Crawling(_) => w.crawling_inaccuracy,
+            BodyGesture::Prone(_) => w.prone_inaccuracy,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum BodyGesture {
     StandUp(Direction),
     Walking(Direction),
     Running(Direction),
     Crawling(Direction),
     Prone(Direction),
 }
+
+impl BodyGesture {
+    /// Meters (from ground) to consider as weapon height
+    pub fn weapon_z(&self) -> Meters {
+        match self {
+            BodyGesture::StandUp(_) | BodyGesture::Walking(_) | BodyGesture::Running(_) => {
+                Meters(1.5)
+            }
+            BodyGesture::Crawling(_) | BodyGesture::Prone(_) => Meters(0.35),
+        }
+    }
+
+    /// Meters (from ground) to consider as target point
+    pub fn target_z(&self) -> Meters {
+        match self {
+            BodyGesture::StandUp(_) | BodyGesture::Walking(_) | BodyGesture::Running(_) => {
+                Meters(0.75)
+            }
+            BodyGesture::Crawling(_) | BodyGesture::Prone(_) => Meters(0.30),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum HandsGesture {
+    Idle,
+    Reloading(U8Progress),
+    Aiming(U8Progress),
+}
+
+// impl HandsGesture {
+//     pub fn reloading(&self) -> Option<u8> {
+//         match self {
+//             HandsGesture::Idle => None,
+//             HandsGesture::Reloading(progress) => Some(*progress),
+//             HandsGesture::Aiming(_) => None,
+//         }
+//     }
+
+//     pub fn aiming(&self) -> Option<u8> {
+//         match self {
+//             HandsGesture::Idle => None,
+//             HandsGesture::Reloading(_) => None,
+//             HandsGesture::Aiming(progress) => Some(*progress),
+//         }
+//     }
+// }
 
 impl Gesture {
     #[cfg(feature = "bevy")]
@@ -321,12 +458,32 @@ impl Gesture {
     }
 
     pub fn direction(&self) -> Direction {
-        match self {
-            Gesture::StandUp(direction)
-            | Gesture::Walking(direction)
-            | Gesture::Running(direction)
-            | Gesture::Crawling(direction)
-            | Gesture::Prone(direction) => direction.clone(),
+        match self.body {
+            BodyGesture::StandUp(direction)
+            | BodyGesture::Walking(direction)
+            | BodyGesture::Running(direction)
+            | BodyGesture::Crawling(direction)
+            | BodyGesture::Prone(direction) => direction.clone(),
         }
     }
+}
+
+#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone, Default)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Weapons {
+    pub primary: Option<Weapon>,
+}
+
+#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Weapon {
+    pub i: WeaponIndex,
+    pub filled: Option<(MagazineIndex, AmmunitionIndex)>, // TODO: probably rethink arch for weapon without magazine
+    pub filled_count: u16,
+}
+
+#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum WeaponKind {
+    Primary,
 }

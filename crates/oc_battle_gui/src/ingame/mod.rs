@@ -110,9 +110,10 @@ impl Plugin for IngamePlugin {
             .add_observer(physics::on_physics_event)
             // TODO: despawn entities on OnExit(AppState::InGame)
             .add_systems(Startup, (path::setup,))
+            .add_systems(Startup, (init::init,))
             .add_systems(
                 OnEnter(AppState::InGame),
-                (init::init, init::refresh, init::spawn_world_map),
+                (init::refresh, init::spawn_world_map),
             )
             .add_systems(
                 Update,
@@ -122,10 +123,19 @@ impl Plugin for IngamePlugin {
             );
 
         #[cfg(feature = "debug")]
-        app.add_observer(region::debug::on_listening_region)
+        app.init_gizmo_group::<debug::projectile::CollisionGizmos>()
+            .add_systems(Startup, debug::projectile::setup)
+            .add_observer(region::debug::on_listening_region)
             .add_observer(region::debug::on_spawn_region_wire_frame_debug)
             .add_observer(region::debug::on_forgotten_region)
-            .add_observer(region::debug::on_despawn_region_wire_frame_debug);
+            .add_observer(region::debug::on_despawn_region_wire_frame_debug)
+            .add_observer(debug::on_debug_input)
+            .add_systems(
+                Update,
+                (debug::projectile::show_collisions,)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle)),
+            );
         // .add_observer(init::on_first_ingame_enter)
     }
 }

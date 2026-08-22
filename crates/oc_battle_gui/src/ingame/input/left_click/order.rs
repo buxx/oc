@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use oc_geo::tile::TileXy;
 use oc_geo::tile::WorldTileIndex;
+use oc_individual::BodyGesture;
 use oc_individual::order::Order;
 use oc_individual::order::OrderType;
 use oc_network::ToServer;
@@ -10,16 +11,21 @@ use oc_root::WorldConfig;
 use oc_root::geo::WorldVec2;
 use oc_root::y::V;
 use oc_utils::d2::Direction;
+use oc_utils::let_ok;
 use oc_utils::let_some;
 use oc_utils::return_if;
 
 use crate::cursor_to;
+use crate::entity::individual::IndividualIndex;
 use crate::ingame::behavior::DirectionSquadOrder;
 use crate::ingame::behavior::PositionSquadOrder;
 use crate::ingame::behavior::SpawnSquadOrder;
 use crate::ingame::input::left_click::LeftClick;
 use crate::ingame::input::left_click::LeftClickMode;
 use crate::ingame::input::left_click::SetLeftClick;
+use crate::ingame::lov::DespawnLov;
+use crate::ingame::lov::SpawnLov;
+use crate::ingame::lov::SpawnLovProfile;
 use crate::ingame::path::ComputeDisplayPaths;
 use crate::ingame::path::SpawnPathProfile;
 use crate::ingame::path::SpawnPathProfileKey;
@@ -52,6 +58,7 @@ pub fn system(
     let LeftClickMode::Order(order) = &mode.0 else {
         return;
     };
+    tracing::trace!(name="ingame-input-left-click-order", order=?order);
 
     return_if!(maybe_cancel(&mut commands, &buttons, &keys, &mut ingame));
     // TODO: maybe too CPU consumer (compute it not at each frames ?)
@@ -91,6 +98,12 @@ fn show(
             let spawns = path_profiles(w, point, mode, ingame, world, &drag, &position_markers);
             commands.trigger(ComputeDisplayPaths(spawns));
         }
+        OrderType::Engage | OrderType::Suppress => {
+            let spawns = lov_profiles(&ingame, &world, &drag, &position_markers);
+            for spawn in spawns {
+                commands.trigger(SpawnLov(spawn));
+            }
+        }
     }
 }
 
@@ -105,6 +118,42 @@ fn rotate_direction_markers(
         let direction = Direction::from_points2d(reference.into(), point.into());
         *transform = transform.with_rotation(direction.bquat(V::Gui));
     }
+}
+
+fn lov_profiles(
+    state: &crate::ingame::state::State,
+    world: &crate::world::World,
+    drag: &Query<&Phantom>,
+    markers: &Query<&PositionSquadOrder>,
+) -> Vec<SpawnLovProfile> {
+    let mut profiles = vec![];
+
+    // Spawns points from selected squads
+    for squad in state.selected_squads() {
+        tracing::trace!(name = "ingame-input-left-click-lov-selected-squads-squad", squad=?squad);
+        let_some!(squad = world.squad(*squad), continue);
+        let_some!(leader = world.get_individual(squad.leader()), continue);
+        profiles.push(SpawnLovProfile {
+            start: leader.position.into(),
+            start_plus_z: leader.gesture.body.weapon_z(),
+            stop_plus_z: BodyGesture::Prone(Direction::NORTH).target_z(),
+        });
+    }
+
+    for dragged in drag {
+        let_ok!(marker = markers.get(dragged.0), continue);
+        let PositionSquadOrder(squad, _) = marker;
+        let_some!(squad = world.squad(*squad), continue);
+        let_some!(leader = world.get_individual(squad.leader()), continue);
+
+        profiles.push(SpawnLovProfile {
+            start: leader.position.into(),
+            start_plus_z: leader.gesture.body.weapon_z(),
+            stop_plus_z: BodyGesture::Prone(Direction::NORTH).target_z(),
+        });
+    }
+
+    profiles
 }
 
 fn path_profiles(
@@ -227,6 +276,7 @@ fn maybe_cancel(
 fn cancel(commands: &mut Commands, ingame: &mut crate::ingame::state::State) {
     commands.trigger(ComputeDisplayPaths(vec![]));
     commands.trigger(SetLeftClick(LeftClickMode::Select));
+    commands.trigger(DespawnLov);
     ingame.clear_pending_orders();
 }
 
@@ -240,11 +290,22 @@ pub fn on_click(
     camera: Single<(&Camera, &GlobalTransform)>,
     left_click: Res<LeftClick>,
     world: Res<crate::world::World>,
+    individuals: Query<&IndividualIndex>,
+    network: Res<crate::network::state::State>,
 ) {
     let_some!(g = &g.0, return);
     let_some!(point = click.hit.position, return);
+    let_some!(identity = &network.identity, return);
     let point = Vec2::new(point.x, point.y);
     let point = cursor_to!(point, camera, &g.w, WorldVec2);
+    let individual = individuals.get(click.event_target()).ok();
+    let individual = individual.map(|i| i.0);
+    // Keep under cursor individual only if in opposite side
+    let individual = individual.filter(|&i| {
+        world
+            .get_individual(i)
+            .is_some_and(|individual_| individual_.side != identity.side)
+    });
 
     match click.button {
         PointerButton::Primary => {
@@ -252,24 +313,48 @@ pub fn on_click(
             let LeftClickMode::Order(order_type) = left_click.0 else {
                 return;
             };
-            tracing::trace!(name = "ingame-input-left-click-order-action");
+            // Transform engage order into suppress if cursor is not over an opposite individual
+            let order_type = match (individual, order_type) {
+                (None, OrderType::Engage) => {
+                    tracing::trace!(
+                        "Switch order 'engage' to 'suppress' as no opposite individual under cursor"
+                    );
+                    OrderType::Suppress
+                }
+                _ => order_type,
+            };
+            tracing::trace!(name = "ingame-input-left-click-order-action", order_type=?order_type);
 
+            // Its a final order give
             if !adding {
-                give_orders(&mut commands, &ingame, &world, point, Some(order_type));
+                give_orders(
+                    &mut commands,
+                    &ingame,
+                    &world,
+                    point,
+                    Some(order_type),
+                    individual,
+                );
                 cancel(&mut commands, &mut ingame);
+            // User want stack order
             } else {
                 if let Some(order) = match order_type {
                     OrderType::MoveTo => Some(Order::MoveTo(point)),
                     OrderType::MoveFastTo => Some(Order::MoveFastTo(point)),
                     OrderType::SneakTo => Some(Order::SneakTo(point)),
-                    OrderType::Idle | OrderType::Defend | OrderType::Hide => None,
+                    // These orders can't be stacked
+                    OrderType::Idle
+                    | OrderType::Defend
+                    | OrderType::Hide
+                    | OrderType::Engage
+                    | OrderType::Suppress => None,
                 } {
                     ingame.push_pending_orders(order);
                 }
             }
         }
         PointerButton::Secondary => {
-            give_orders(&mut commands, &ingame, &world, point, None);
+            give_orders(&mut commands, &ingame, &world, point, None, None);
             cancel(&mut commands, &mut ingame);
         }
         PointerButton::Middle => {
@@ -286,15 +371,42 @@ fn give_orders(
     world: &crate::world::World,
     point: WorldVec2,
     order_type: Option<OrderType>,
+    individual: Option<oc_individual::IndividualIndex>,
 ) {
     for squad in ingame.selected_squads() {
         let mut orders = ingame.pending_orders().to_vec();
         if let Some(order_type) = &order_type {
             let_some!(squad_ = world.squad(*squad), continue);
+
             // FIXME: With multiple squad, need decal a little (distance from each others ?)
-            let order = order_type.into_order(point, squad_.position);
+            let order = match order_type {
+                OrderType::Idle => Order::Idle,
+                OrderType::MoveTo => Order::MoveTo(point),
+                OrderType::MoveFastTo => Order::MoveFastTo(point),
+                OrderType::SneakTo => Order::SneakTo(point),
+                OrderType::Suppress => Order::Suppress(point),
+                OrderType::Defend => {
+                    let direction = Direction::from_points2d(squad_.position.into(), point.into());
+                    Order::Defend(direction)
+                }
+                OrderType::Hide => {
+                    let direction = Direction::from_points2d(squad_.position.into(), point.into());
+                    Order::Hide(direction)
+                }
+                OrderType::Engage => match individual {
+                    Some(individual) => Order::Engage(individual),
+                    None => {
+                        tracing::trace!(
+                            "Skip giving order type 'engage' as individual not provided"
+                        );
+                        return;
+                    }
+                },
+            };
+
             orders.push(order.clone());
         }
+
         let set_orders = oc_network::SquadMessage::SetOrders(orders.clone());
         commands.trigger(ToServerEvent(ToServer::Squad(*squad, set_orders)));
     }
@@ -310,9 +422,12 @@ pub fn on_set_left_click(
         if let Some(order) = match order {
             OrderType::Defend => Some(Order::Defend(Direction::NORTH)),
             OrderType::Hide => Some(Order::Hide(Direction::NORTH)),
-            OrderType::Idle | OrderType::MoveTo | OrderType::MoveFastTo | OrderType::SneakTo => {
-                None
-            }
+            OrderType::Idle
+            | OrderType::MoveTo
+            | OrderType::MoveFastTo
+            | OrderType::SneakTo
+            | OrderType::Engage
+            | OrderType::Suppress => None,
         } {
             for squad in state.selected_squads() {
                 tracing::trace!(name="ingame-input-left-click-order-on-set-left-click-trigger", squad=?squad, order=?order);

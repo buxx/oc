@@ -7,12 +7,12 @@ use oc_battle_gui::{ingame::FirstIngameEnter, network::output::ToServerEvent, st
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
 use oc_network::ToServer;
-use oc_root::{WorldConfig, physics::Meters};
+use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
 use oc_world::{load::WorldPath, meta::Meta, reader};
 #[cfg(feature = "test")]
 use oc_world_server::state::ObjectId;
 
-use oc_projectile::spawn::SpawnProjectile;
+use oc_projectile::spawn::SpawnProjectiles;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -171,98 +171,143 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
     match args.case {
         TestCase::MultipleAgainstHill => {
             for spawn in [
-                SpawnProjectile::new(
+                SpawnProjectiles::new(
                     weapon1.index(),
                     ammunition.index(),
                     shot.index(),
                     10,
                     [70., 60., 8.5].into(),
-                    [100., 60., 8.5].into(),
+                    vec![
+                        (WorldVec3::new(100., 60., 8.5) - WorldVec3::new(70., 60., 8.5))
+                            .normalize_or_zero();
+                        10
+                    ],
+                    Side::A,
                 ),
-                SpawnProjectile::new(
+                SpawnProjectiles::new(
                     weapon2.index(),
                     ammunition.index(),
                     shot.index(),
                     10,
                     [70., 65., 8.5].into(),
-                    [100., 65., 8.5].into(),
+                    vec![
+                        (WorldVec3::new(100., 65., 8.5) - WorldVec3::new(70., 65., 8.5))
+                            .normalize_or_zero();
+                        10
+                    ],
+                    Side::A,
                 ),
-                SpawnProjectile::new(
+                SpawnProjectiles::new(
                     weapon3.index(),
                     ammunition.index(),
                     shot3.index(),
                     10,
                     [70., 70., 8.5].into(),
-                    [100., 70., 8.5].into(),
+                    vec![
+                        (WorldVec3::new(100., 70., 8.5) - WorldVec3::new(70., 70., 8.5))
+                            .normalize_or_zero();
+                        10
+                    ],
+                    Side::A,
                 ),
             ] {
-                commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
             }
         }
         TestCase::OneAgainstHill => {
-            for spawn in [SpawnProjectile::new(
+            for spawn in [SpawnProjectiles::new(
                 weapon1.index(),
                 ammunition.index(),
                 shot.index(),
                 1,
                 [70., 60., 8.5].into(),
-                [100., 60., 8.5].into(),
+                vec![
+                    (WorldVec3::new(100., 60., 8.5) - WorldVec3::new(70., 60., 8.5))
+                        .normalize_or_zero();
+                    10
+                ],
+                Side::A,
             )] {
-                commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
             }
         }
         TestCase::MultipleAgainstWall => {
             for spawn in [
-                SpawnProjectile::new(
+                SpawnProjectiles::new(
                     weapon1.index(),
                     ammunition.index(),
                     shot.index(),
                     10,
                     [70., 125., 8.5].into(),
-                    [100., 125., 8.5].into(),
+                    vec![
+                        (WorldVec3::new(100., 125., 8.5) - WorldVec3::new(70., 125., 8.5))
+                            .normalize_or_zero();
+                        10
+                    ],
+                    Side::A,
                 ),
-                SpawnProjectile::new(
+                SpawnProjectiles::new(
                     weapon2.index(),
                     ammunition.index(),
                     shot.index(),
                     10,
                     [70., 130., 8.5].into(),
-                    [100., 130., 8.5].into(),
+                    vec![
+                        (WorldVec3::new(100., 130., 8.5) - WorldVec3::new(70., 130., 8.5))
+                            .normalize_or_zero();
+                        10
+                    ],
+                    Side::A,
                 ),
-                SpawnProjectile::new(
+                SpawnProjectiles::new(
                     weapon3.index(),
                     ammunition.index(),
                     shot3.index(),
                     10,
                     [70., 135., 8.5].into(),
-                    [100., 135., 8.5].into(),
+                    vec![
+                        (WorldVec3::new(100., 135., 8.5) - WorldVec3::new(70., 135., 8.5))
+                            .normalize_or_zero();
+                        10
+                    ],
+                    Side::A,
                 ),
             ] {
-                commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
             }
         }
         TestCase::OneAgainstWall => {
-            for spawn in [SpawnProjectile::new(
+            for spawn in [SpawnProjectiles::new(
                 weapon1.index(),
                 ammunition.index(),
                 shot.index(),
                 1,
                 [70., 125., 8.5].into(),
-                [100., 125., 8.5].into(),
+                vec![
+                    (WorldVec3::new(100., 125., 8.5) - WorldVec3::new(70., 125., 8.5))
+                        .normalize_or_zero();
+                    10
+                ],
+                Side::A,
             )] {
-                commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
             }
         }
         TestCase::OneTraverseVolumes => {
-            for spawn in [SpawnProjectile::new(
+            for spawn in [SpawnProjectiles::new(
                 weapon1.index(),
                 ammunition.index(),
                 shot.index(),
                 1,
                 [120., 145., 1.0].into(),
-                [120., 245., 1.0].into(),
+                vec![
+                    (WorldVec3::new(120., 245., 1.0) - WorldVec3::new(120., 145., 1.0))
+                        .normalize_or_zero();
+                    10
+                ],
+                Side::A,
             )] {
-                commands.trigger(ToServerEvent(ToServer::SpawnProjectile(spawn)));
+                commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
             }
         }
     }

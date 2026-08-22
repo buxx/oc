@@ -6,7 +6,7 @@ use oc_geo::{
 };
 use oc_mod::nature::Traversability;
 use oc_mod::{Mod, nature::NatureIndex};
-use oc_physics::{Force, Physic, collision::Material, volume::Volume};
+use oc_physics::{Force, IgnoreSide, Physic, collision::Material, volume::Volume};
 use oc_root::{WcfgInto, WorldConfig, geo::WorldVec3, material::MaterialKind};
 use oc_utils::d2::Direction;
 
@@ -117,6 +117,14 @@ impl Physic for Tile {
             ),
         ]
     }
+
+    fn ignore_side(&self) -> IgnoreSide {
+        IgnoreSide::None
+    }
+
+    fn side(&self) -> Option<oc_root::side::Side> {
+        None
+    }
 }
 
 impl Walls for Vec<Tile> {
@@ -129,5 +137,131 @@ impl Walls for Vec<Tile> {
                     .deny(MaterialKind::Individual)
             })
             .collect::<Vec<bool>>()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::path::PathBuf;
+
+    use super::*;
+    use oc_root::{
+        WcfgFrom,
+        physics::{Meters, MetersSeconds},
+        side::Side,
+    };
+
+    struct MyObject(WorldVec3, Vec<Force>);
+    #[derive(Debug, Clone, serde::Serialize, PartialEq)]
+    struct MyObjectId(usize);
+
+    impl Physic for MyObject {
+        fn position(&self, _: &WorldConfig) -> WorldVec3 {
+            self.0
+        }
+        fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
+            &self.1
+        }
+
+        fn volumes(
+            &self,
+            ref_: WorldVec3,
+            _: &WorldConfig,
+            _: &Mod,
+        ) -> Vec<(Volume, Traversability, Direction)> {
+            vec![(
+                Volume::Point {
+                    x: ref_.x,
+                    y: ref_.y,
+                    z: ref_.z,
+                },
+                Traversability::all(),
+                Direction::NORTH,
+            )]
+        }
+
+        fn ignore_side(&self) -> IgnoreSide {
+            IgnoreSide::None
+        }
+
+        fn side(&self) -> Option<Side> {
+            None
+        }
+    }
+
+    impl Material for MyObject {
+        fn kind(&self) -> Option<MaterialKind> {
+            Some(MaterialKind::Projectile)
+        }
+    }
+    fn workspace_root() -> PathBuf {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf()
+    }
+
+    #[test]
+    fn test_collision_on_tile_zero_z() {
+        tracing_subscriber::fmt()
+            .with_target(false)
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::builder()
+                    .with_default_directive(tracing::level_filters::LevelFilter::TRACE.into())
+                    .from_env()
+                    .unwrap(),
+            )
+            .init();
+
+        // Given
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
+        let w = WorldConfig::new(10, 10, Meters(0.1))
+            .physics_coeff_per_tick(1.0)
+            .geo_pixels_per_meters(10.)
+            .geo_pixels_per_tile(5);
+        let delta = w.physics_coeff_per_tick;
+        let from = glam::Vec3::new(0., 0., 10.);
+        let to = glam::Vec3::new(10., 10., 0.);
+        let direction = (to - from).normalize_or_zero();
+        let direction = WorldVec3::new(direction.x, direction.y, direction.z);
+
+        let speed = MetersSeconds(1000.0);
+        let force = Force::Translation(direction, speed);
+        // Use `Tile` because we want test volumes
+        let tiles: Vec<Tile> = (0..(10 * 10))
+            .map(|i| Tile::new(WorldTileIndex(i), NatureIndex(0), 0, Traversability::all()))
+            .collect();
+        // let my_tile: Box<&dyn Physic> = Box::new(&my_tile);
+        let object = MyObject([0.0, 0.0, 10.0].into(), vec![force]);
+        let objects = |xy| -> Vec<(MyObjectId, Box<&dyn Physic>)> {
+            let tile = WorldTileIndex::from_(TileXy(xy), &w);
+            vec![(MyObjectId(1), Box::new(&tiles[tile.0 as usize]))]
+        };
+
+        // When
+        let (position, forces, events): (
+            WorldVec3,
+            Vec<Force>,
+            Vec<oc_physics::Event<MyObjectId>>,
+        ) = oc_physics::step(
+            &w,
+            &mod_,
+            delta,
+            (MyObjectId(0), &object),
+            objects,
+            0,
+            "test",
+        );
+
+        // Then
+        let expected_position: WorldVec3 = [10.0, 10.0, 0.0].into();
+        assert_eq!(position, expected_position); // x axis hit first, at MySubject (x) 2.0 (position) + 2.0 (width)
+        assert_eq!(forces, Vec::<Force>::new());
+        assert_eq!(
+            events,
+            vec![oc_physics::Event::Collision(MyObjectId(0), MyObjectId(1))]
+        );
     }
 }

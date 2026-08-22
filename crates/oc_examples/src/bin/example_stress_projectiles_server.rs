@@ -9,8 +9,8 @@ use bevy::prelude::*;
 use oc_examples::{logging, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
 use oc_network::ToServer;
-use oc_projectile::spawn::SpawnProjectile;
-use oc_root::{WorldConfig, physics::Meters, static_::StaticSource};
+use oc_projectile::spawn::SpawnProjectiles;
+use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side::Side, static_::StaticSource};
 use oc_world::meta::Meta;
 #[cfg(feature = "test")]
 use oc_world_server::tracker::Tracker;
@@ -91,16 +91,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         if counter < 100_000 {
             for _ in 0..100 {
+                let directions: Vec<WorldVec3> = vec![
+                    (WorldVec3::new(right, bottom, 500.) - WorldVec3::new(0., 0., 500.))
+                        .normalize_or_zero(),
+                ];
                 to_server_tx
                     .send(Event::Message(
                         (),
-                        ToServer::SpawnProjectile(SpawnProjectile::new(
+                        ToServer::ExplodeProjectile(SpawnProjectiles::new(
                             weapon.index(),
                             ammunition.index(),
                             shot.index(),
                             1,
                             [0., 0., 500.].into(),
-                            [right, bottom, 500.].into(),
+                            directions,
+                            Side::A,
                         )),
                     ))
                     .unwrap();
