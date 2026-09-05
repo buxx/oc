@@ -25,13 +25,13 @@ mod test {
             .to_path_buf()
     }
 
-    #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
     enum ObjectsId {
         Tile(WorldTileIndex),
         Object(ObjectId),
     }
 
-    #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
     struct ObjectId(usize);
     struct Object(WorldVec3, Vec<Force>);
 
@@ -146,6 +146,7 @@ mod test {
             delta,
             (ObjectsId::Object(object_i), &object),
             objects,
+            |_| vec![],
             0,
             "tests",
         );

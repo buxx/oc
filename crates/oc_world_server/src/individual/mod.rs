@@ -73,8 +73,10 @@ impl<'a> Processor<'a> {
     pub fn step(self) -> Vec<runner::update::Update> {
         tracing::trace!(name="individual-step", i=?self.i);
         let mut updates = vec![];
-
         let individual = self.world.individual(self.i);
+
+        self.suppress(&mut updates, individual);
+
         if !individual.status.can_step() {
             tracing::trace!(name="individual-step-cant-step", i=?self.i);
             return vec![];
@@ -137,6 +139,18 @@ impl<'a> Processor<'a> {
 
         tracing::trace!(name = "individual-step-updates", i=?self.i, updates=?updates);
         updates
+    }
+
+    fn suppress(&self, updates: &mut Vec<runner::update::Update>, individual: &Individual) {
+        let decrease = self.world.w.individual_tick_decrease_suppress;
+        let suppress_ = individual.suppress;
+        let suppress = individual.suppress.decrease(decrease);
+        if suppress_ != suppress {
+            updates.push(runner::update::Update::UpdateIndividual(
+                self.i,
+                oc_individual::Update::SetSuppress(suppress),
+            ));
+        }
     }
 
     /// Determine if current order (or order step) is accomplished
@@ -328,7 +342,6 @@ impl<'a> Processor<'a> {
         let order = individual.orders.first();
 
         let intent = match individual.can_follow_orders() {
-            // TODO: things which can prohibe follow order
             // FIXME BS NOW: suppress ?
             true => match order {
                 None | Some(Order::Idle) => self.resolve_idle_order(individual, situation),
@@ -910,6 +923,11 @@ impl<'a> Processor<'a> {
         tracing::trace!(name="individual-processor-resolve-idle-order", i=?self.i);
         let direction = individual.gesture.direction();
 
+        if individual.suppress >= self.world.w.individual_suppress_limit_hide {
+            tracing::trace!(name="individual-processor-resolve-idle-order-suppressed", i=?self.i);
+            return Intent::Hide(direction);
+        }
+
         // FIXME: introduce suppressed, etc (refactored way!)
         match &individual.intent {
             // If already engaging, continue try to engage this target
@@ -959,6 +977,11 @@ impl<'a> Processor<'a> {
     ) -> Intent {
         tracing::trace!(name="individual-processor-resolve-defend-order", i=?self.i);
 
+        if individual.suppress >= self.world.w.individual_suppress_limit_hide {
+            tracing::trace!(name="individual-processor-resolve-defend-order-suppressed", i=?self.i);
+            return Intent::Hide(direction);
+        }
+
         // FIXME: introduce suppressed, etc (refactored way!)
         match &individual.intent {
             Intent::Engage(target) => Intent::Engage(*target),
@@ -977,6 +1000,11 @@ impl<'a> Processor<'a> {
         direction: Direction,
     ) -> Intent {
         tracing::trace!(name="individual-processor-resolve-hide-order", i=?self.i);
+
+        if individual.suppress >= self.world.w.individual_suppress_limit_hide {
+            tracing::trace!(name="individual-processor-resolve-hide-order-suppressed", i=?self.i);
+            return Intent::Hide(direction);
+        }
 
         // FIXME: introduce suppressed, etc (refactored way!)
         match &individual.intent {
@@ -1003,6 +1031,12 @@ impl<'a> Processor<'a> {
         position: WorldVec2,
     ) -> Intent {
         tracing::trace!(name="individual-processor-resolve-move-to-order", i=?self.i);
+
+        if individual.suppress >= self.world.w.individual_suppress_limit_hide {
+            tracing::trace!(name="individual-processor-resolve-move-to-order-suppressed", i=?self.i);
+            let direction = individual.gesture.direction();
+            return Intent::Hide(direction);
+        }
 
         // FIXME BS NOW: sneak if tired (and can't run)
         // FIXME BS NOW: impact of suppress ?
@@ -1037,6 +1071,12 @@ impl<'a> Processor<'a> {
     ) -> Intent {
         tracing::trace!(name="individual-processor-resolve-move-fast-to-order", i=?self.i);
 
+        if individual.suppress >= self.world.w.individual_suppress_limit_hide {
+            tracing::trace!(name="individual-processor-resolve-move-fast-to-order-suppressed", i=?self.i);
+            let direction = individual.gesture.direction();
+            return Intent::Hide(direction);
+        }
+
         // FIXME BS NOW: sneak if tired (and can't run)
         // FIXME BS NOW: impact of suppress ?
         match self.resolve_path(individual, position) {
@@ -1063,6 +1103,12 @@ impl<'a> Processor<'a> {
     ) -> Intent {
         tracing::trace!(name="individual-processor-resolve-sneak-to-order", i=?self.i);
 
+        if individual.suppress >= self.world.w.individual_suppress_limit_hide {
+            tracing::trace!(name="individual-processor-resolve-sneak-to-order-suppressed", i=?self.i);
+            let direction = individual.gesture.direction();
+            return Intent::Hide(direction);
+        }
+
         match self.resolve_path(individual, position) {
             Some(path) => {
                 tracing::trace!(name="individual-processor-resolve-sneak-to-order-path", i=?self.i, position=?position, path=?path);
@@ -1087,6 +1133,12 @@ impl<'a> Processor<'a> {
         target: IndividualIndex,
     ) -> Intent {
         tracing::trace!(name="individual-processor-resolve-engage-order", i=?self.i, target=?target);
+
+        if individual.suppress >= self.world.w.individual_suppress_limit_hide {
+            tracing::trace!(name="individual-processor-resolve-engage-order-suppressed", i=?self.i, target=?target);
+            let direction = individual.gesture.direction();
+            return Intent::Hide(direction);
+        }
 
         match situation.visible(target) {
             // Target is visible, engage it
@@ -1122,11 +1174,18 @@ impl<'a> Processor<'a> {
     // FIXME BS NOW: impact of suppress ?
     fn resolve_suppress_order(
         &self,
-        _individual: &Individual,
+        individual: &Individual,
         _situation: &Situation,
         target: WorldVec2,
     ) -> Intent {
         tracing::trace!(name="individual-processor-resolve-suppress-order", i=?self.i);
+
+        if individual.suppress >= self.world.w.individual_suppress_limit_hide {
+            tracing::trace!(name="individual-processor-resolve-suppress-order-suppressed", i=?self.i);
+            let direction = individual.gesture.direction();
+            return Intent::Hide(direction);
+        }
+
         Intent::Suppress(target)
     }
 
@@ -1170,17 +1229,12 @@ mod tests {
         order::Order,
         squad::SquadIndex,
     };
-    use oc_mod::{
-        Mod, ammunition::AmmunitionIndex, armament::ShotModeIndex, magazine::MagazineIndex,
-        weapons::WeaponIndex,
-    };
-    use oc_projectile::spawn::SpawnProjectiles;
+    use oc_mod::{Mod, ammunition::AmmunitionIndex, magazine::MagazineIndex, weapons::WeaponIndex};
     use oc_root::{
-        U8Progress, WorldConfig,
+        Suppress, U8Progress, WorldConfig,
         geo::{WorldVec2, WorldVec3},
         opacity::CumulatedOpacity,
         physics::Meters,
-        side::Side,
     };
     use oc_utils::d2::Direction;
     use oc_world::{World, visibility::Visibility};
@@ -1227,23 +1281,18 @@ mod tests {
         let updates = processor.step();
 
         // Then
-        assert_eq!(
-            updates,
-            vec![
-                Update::UpdateIndividual(
-                    IndividualIndex(0),
-                    oc_individual::Update::SetOrders(vec![Order::MoveTo(
-                        expected_individual_1_move_to_position
-                    )])
-                ),
-                Update::UpdateIndividual(
-                    IndividualIndex(1),
-                    oc_individual::Update::SetOrders(vec![Order::MoveTo(
-                        expected_individual_2_move_to_position
-                    )])
-                )
-            ]
-        );
+        assert!(updates.contains(&Update::UpdateIndividual(
+            IndividualIndex(0),
+            oc_individual::Update::SetOrders(vec![Order::MoveTo(
+                expected_individual_1_move_to_position
+            )])
+        )));
+        assert!(updates.contains(&Update::UpdateIndividual(
+            IndividualIndex(1),
+            oc_individual::Update::SetOrders(vec![Order::MoveTo(
+                expected_individual_2_move_to_position
+            )])
+        )));
     }
 
     // Test orders distribution when squad have no order and squad member not at correct place
@@ -1274,15 +1323,12 @@ mod tests {
         let updates = processor.step();
 
         // Then
-        assert_eq!(
-            updates,
-            vec![Update::UpdateIndividual(
-                IndividualIndex(1),
-                oc_individual::Update::SetOrders(vec![Order::MoveTo(
-                    expected_individual_2_move_to_position
-                )])
-            )]
-        );
+        assert!(updates.contains(&Update::UpdateIndividual(
+            IndividualIndex(1),
+            oc_individual::Update::SetOrders(vec![Order::MoveTo(
+                expected_individual_2_move_to_position
+            )])
+        )),);
     }
 
     // Test update when individual have no order
@@ -1303,7 +1349,13 @@ mod tests {
         let updates = processor.step();
 
         // Then
-        assert_eq!(updates, vec![]);
+        assert_eq!(
+            updates,
+            vec![Update::UpdateIndividual(
+                IndividualIndex(0),
+                oc_individual::Update::SetSuppress(Suppress(0))
+            )]
+        );
     }
 
     // Test update when individual have idle order in other direction than current
@@ -1323,34 +1375,32 @@ mod tests {
         {
             let processor = Processor::new(&world, &index, 0.into());
             let updates = processor.step();
-            assert_eq!(
-                updates,
-                vec![Update::UpdateIndividual(
-                    IndividualIndex(0),
-                    oc_individual::Update::SetOrders(vec![Order::Idle])
-                )]
-            );
+            assert!(updates.contains(&Update::UpdateIndividual(
+                IndividualIndex(0),
+                oc_individual::Update::SetOrders(vec![Order::Idle])
+            )));
         }
 
         // When-Then
         world.individuals[0].orders = vec![Order::Idle];
         let processor = Processor::new(&world, &index, 0.into());
         let updates = processor.step();
-        assert_eq!(
-            updates,
-            vec![
-                Update::UpdateIndividual(IndividualIndex(0), oc_individual::Update::Accomplished),
-                Update::UpdateIndividual(
-                    IndividualIndex(0),
-                    oc_individual::Update::SetIntent(Intent::Idle(Direction::EST))
-                ),
-                Update::UpdateSquad(SquadIndex(0), oc_individual::squad::Update::Accomplished),
-                Update::UpdateSquad(
-                    SquadIndex(0),
-                    oc_individual::squad::Update::SetOrders(vec![])
-                ),
-            ]
-        );
+        assert!(updates.contains(&Update::UpdateIndividual(
+            IndividualIndex(0),
+            oc_individual::Update::Accomplished
+        )));
+        assert!(updates.contains(&Update::UpdateIndividual(
+            IndividualIndex(0),
+            oc_individual::Update::SetIntent(Intent::Idle(Direction::EST))
+        )));
+        assert!(updates.contains(&Update::UpdateSquad(
+            SquadIndex(0),
+            oc_individual::squad::Update::Accomplished
+        )));
+        assert!(updates.contains(&Update::UpdateSquad(
+            SquadIndex(0),
+            oc_individual::squad::Update::SetOrders(vec![])
+        )));
     }
 
     fn engage_test_gesture(

@@ -82,6 +82,9 @@ pub struct AccomplishedEvent(oc_individual::IndividualIndex);
 #[derive(Debug, Clone, Event, Deref)]
 pub struct MoveStepAccomplishedEvent(oc_individual::IndividualIndex);
 
+#[derive(Debug, Clone, Event)]
+pub struct SetSuppressEvent(oc_individual::IndividualIndex, oc_root::Suppress);
+
 #[derive(Debug, Deref, Component)]
 pub struct Status(pub oc_individual::Status);
 
@@ -90,6 +93,9 @@ pub struct Weapons(pub oc_individual::Weapons);
 
 #[derive(Debug, Deref, Component)]
 pub struct Gesture(pub oc_individual::Gesture);
+
+#[derive(Debug, Deref, Component)]
+pub struct Suppress(pub oc_root::Suppress);
 
 #[cfg(feature = "debug")]
 pub fn setup(mut config: ResMut<GizmoConfigStore>) {
@@ -176,6 +182,7 @@ pub fn on_insert_individual(
                 Intent(individual.1.intent.clone()),
                 Forces(individual.1.forces.clone()),
                 Status(individual.1.status),
+                Suppress(individual.1.suppress),
                 Orders(individual.1.orders.clone()),
                 Gesture(individual.1.gesture.clone()),
                 Direction(individual.1.gesture.direction()),
@@ -335,6 +342,10 @@ pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Com
             commands.trigger(SetWeaponsEvent(i, weapons.clone()));
             false
         }
+        oc_individual::Update::SetSuppress(value) => {
+            commands.trigger(SetSuppressEvent(i, *value));
+            false
+        }
     };
 
     if refresh {
@@ -366,6 +377,7 @@ impl Plugin for IndividualPlugin {
             .add_observer(on_set_weapons_event)
             .add_observer(on_accomplished_event)
             .add_observer(on_move_step_accomplished_event)
+            .add_observer(on_set_suppress_event)
             .add_observer(on_refresh_render)
             .add_observer(on_prepare_open_squad_contextual_menu)
             .add_systems(
@@ -558,6 +570,21 @@ fn on_set_weapons_event(
 
     weapons_.0 = weapons.1.clone();
     individual.weapons = weapons.1.clone();
+}
+
+fn on_set_suppress_event(
+    suppress: On<SetSuppressEvent>,
+    mut query: Query<&mut Suppress>,
+    state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut world: ResMut<crate::world::World>,
+) {
+    let_some!(entity = state.get(&suppress.0), return);
+    let_ok!(mut suppress_ = query.get_mut(*entity), return);
+    let_some!(individual = world.get_individual_mut(suppress.0), return);
+    tracing::trace!(name = "set-individual-suppress", i=?suppress.0, suppress=?suppress.1);
+
+    suppress_.0 = suppress.1;
+    individual.suppress = suppress.1;
 }
 
 // TODO: should be automatized (macro? derive ?)

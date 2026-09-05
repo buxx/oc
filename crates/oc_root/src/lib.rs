@@ -72,6 +72,16 @@ pub struct WorldConfig {
     pub ignore_firsts_lov_tiles: u8,
     /// To prevent problems due to "square 3d" (when gunner is close to the edge)
     pub ignore_firsts_physics_pixels: u8,
+    /// Consider individual proximity in this tile rayon
+    pub proximity_individual_rayon: u64,
+    /// When projectile near individual, increase individual suppress by this value at tick
+    pub proximity_projectile_fly_tick_increase_value: Suppress,
+    /// When projectile collision near individual, increase individual suppress by this value at tick
+    pub proximity_projectile_impact_tick_increase_value: Suppress,
+    /// Decrease each individual suppress value at tick by this value
+    pub individual_tick_decrease_suppress: Suppress,
+    /// Individual with this or more suppress will hide
+    pub individual_suppress_limit_hide: Suppress,
 }
 
 impl WorldConfig {
@@ -113,6 +123,12 @@ impl WorldConfig {
         let ignore_firsts_lov_tiles = 2;
         let ignore_firsts_physics_pixels = 8;
 
+        let proximity_individual_rayon = 4;
+        let proximity_projectile_fly_tick_increase_value = Suppress(1);
+        let proximity_projectile_impact_tick_increase_value = Suppress(5);
+        let individual_tick_decrease_suppress = Suppress(5);
+        let individual_suppress_limit_hide = Suppress(200);
+
         Self {
             world_width,
             world_height,
@@ -149,6 +165,11 @@ impl WorldConfig {
             opacity_inaccuracy,
             ignore_firsts_lov_tiles,
             ignore_firsts_physics_pixels,
+            proximity_individual_rayon,
+            proximity_projectile_fly_tick_increase_value,
+            proximity_projectile_impact_tick_increase_value,
+            individual_tick_decrease_suppress,
+            individual_suppress_limit_hide,
         }
     }
 
@@ -195,6 +216,11 @@ impl WorldConfig {
 
     pub fn visibilities_tick_each_seconds(mut self, value: f32) -> Self {
         self.visibilities_tick_interval_us = (1_000_000 as f32 / value) as u64;
+        self
+    }
+
+    pub fn proximity_individual_rayon(mut self, value: u64) -> Self {
+        self.proximity_individual_rayon = value;
         self
     }
 
@@ -269,9 +295,12 @@ pub struct Wcfg(pub Option<WorldConfig>);
     PartialEq,
     serde::Deserialize,
     serde::Serialize,
+    Eq,
+    PartialOrd,
+    Ord,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub struct Suppress(u8);
+pub struct Suppress(pub u8);
 
 impl Suppress {
     pub fn zero() -> Self {
@@ -280,6 +309,16 @@ impl Suppress {
 
     pub fn normalize(&self) -> f32 {
         self.0 as f32 / 255.0
+    }
+
+    pub fn increase(mut self, value: Suppress) -> Suppress {
+        self.0 = self.0.saturating_add(value.0);
+        self
+    }
+
+    pub fn decrease(mut self, value: Suppress) -> Suppress {
+        self.0 = self.0.saturating_sub(value.0);
+        self
     }
 }
 

@@ -49,6 +49,7 @@ impl Args {
             TestCase::Direct | TestCase::Direct2 | TestCase::FarMachineGun => {
                 Duration::from_secs(10)
             }
+            TestCase::Suppressed => Duration::from_secs(30),
         }
     }
 }
@@ -58,6 +59,7 @@ enum TestCase {
     Direct,
     Direct2,
     FarMachineGun,
+    Suppressed,
 }
 
 // FIXME BS NOW: set random precision (fire) and permit set precise at 100% for test
@@ -87,7 +89,10 @@ fn main() -> Result<(), anyhow::Error> {
 
     let w = match args.case {
         TestCase::Direct | TestCase::Direct2 => w,
-        TestCase::FarMachineGun => w.individual_tick_interval_us(1_000_000 / 10),
+        TestCase::FarMachineGun | TestCase::Suppressed => match args.test {
+            true => w.individual_tick_interval_us(1_000_000 / 10),
+            false => w,
+        },
     };
 
     let tiles = map_.tiles(&w, &mod__).unwrap();
@@ -181,6 +186,37 @@ fn individuals(
                 .build()
                 .make(&w),
         ],
+        TestCase::Suppressed => [
+            vec![
+                TestIndividual::builder()
+                    .side(side::Side::A)
+                    .position(WorldVec3::new(104., 311., 0.))
+                    .weapons(
+                        TestWeapons::builder()
+                            .primary(TestWeapon::filled(mod_, "Weapon3").make())
+                            .build()
+                            .make(),
+                    )
+                    .build()
+                    .make(&w),
+            ],
+            (0..10)
+                .map(|i| {
+                    TestIndividual::builder()
+                        .side(side::Side::B)
+                        .position(WorldVec3::new(387., 160. + i as f32 * 10., 0.))
+                        .weapons(
+                            TestWeapons::builder()
+                                .primary(TestWeapon::filled(mod_, "Weapon3").make())
+                                .build()
+                                .make(),
+                        )
+                        .build()
+                        .make(&w)
+                })
+                .collect::<Vec<_>>(),
+        ]
+        .concat(),
     }
 }
 
@@ -236,6 +272,27 @@ fn squads(
                 .build()
                 .make(),
         ],
+        TestCase::Suppressed => [
+            vec![
+                TestSquad::builder()
+                    .position(individuals.get(0).unwrap().position.into())
+                    .members(vec![oc_individual::IndividualIndex(0)])
+                    .orders(vec![])
+                    .build()
+                    .make(),
+            ],
+            (0..10)
+                .map(|i| {
+                    TestSquad::builder()
+                        .position(individuals.get(i + 1).unwrap().position.into())
+                        .members(vec![oc_individual::IndividualIndex(i as u64 + 1)])
+                        .orders(vec![])
+                        .build()
+                        .make()
+                })
+                .collect::<Vec<_>>(),
+        ]
+        .concat(),
     }
 }
 
@@ -260,7 +317,7 @@ fn install(app: &mut bevy::app::App) {
     app.init_resource::<State>();
 
     match args.case {
-        TestCase::Direct | TestCase::Direct2 | TestCase::FarMachineGun => {
+        TestCase::Direct | TestCase::Direct2 | TestCase::FarMachineGun | TestCase::Suppressed => {
             #[cfg(feature = "test")]
             app.add_systems(Update, tracking);
         }
@@ -323,6 +380,7 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Status, &
                 && I2_SEEN_DEAD.load(Ordering::Relaxed)
                 && I0_SEEN_PRONE.load(Ordering::Relaxed)
         }
+        TestCase::Suppressed => false,
     } {
         state.success = Some(Instant::now());
         SUCCESS.store(true, Ordering::Relaxed);

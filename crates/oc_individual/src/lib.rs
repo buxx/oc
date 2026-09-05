@@ -108,6 +108,7 @@ pub enum Update {
     Accomplished,
     MoveStepAccomplished,
     SetWeapons(Weapons),
+    SetSuppress(Suppress),
 }
 
 impl Region for Individual {
@@ -198,6 +199,13 @@ impl Individual {
     }
 
     pub fn can_follow_orders(&self) -> bool {
+        match self.status {
+            Status::Operational => true,
+            Status::Dead => false,
+        }
+    }
+
+    pub fn can_receive_proximity(&self) -> bool {
         match self.status {
             Status::Operational => true,
             Status::Dead => false,
@@ -297,6 +305,10 @@ impl Physic for Individual {
 
     fn side(&self) -> Option<Side> {
         Some(self.side)
+    }
+
+    fn receive_proximity(&self) -> bool {
+        self.can_receive_proximity()
     }
 }
 

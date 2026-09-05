@@ -16,6 +16,7 @@ use oc_utils::d2::{Xy, shape_cover_tiles};
 use oc_world::World;
 
 use crate::physics;
+use crate::utils::d2::shape_from_tile;
 
 pub struct SizedIndex<T>(Vec<Vec<T>>);
 
@@ -40,7 +41,10 @@ impl<T> DerefMut for SizedIndex<T> {
 }
 
 pub struct Indexes {
+    /// Individual presence on tiles (considering volume)
     tiles_individuals: SizedIndex<IndividualIndex>,
+    /// Same than tiles_individuals but considering individuals in larger area (for )
+    proximity_individuals: SizedIndex<IndividualIndex>,
     regions_individuals: SizedIndex<IndividualIndex>,
     regions_projectiles: SizedIndex<ProjectileId>,
     individuals_squad: Vec<SquadIndex>,
@@ -53,6 +57,7 @@ impl Indexes {
         let individuals = world.individuals();
 
         let mut tiles_individuals = SizedIndex::new(world.w.tiles_count as usize);
+        let mut proximity_individuals = SizedIndex::new(world.w.tiles_count as usize);
         let mut regions_individuals = SizedIndex::new(world.w.regions_count as usize);
         let mut regions_projectiles = SizedIndex::new(world.w.regions_count as usize);
         let mut individuals_squad = Vec::with_capacity(world.individuals.len());
@@ -66,6 +71,7 @@ impl Indexes {
             let tile: WorldTileIndex = individual.tile;
             let region: WorldRegionIndex = tile.into_(&world.w);
 
+            // List tiles covered by individual shape
             for tile_ in shape_cover_tiles(
                 [position.x, position.y],
                 INDIVIDUAL_INDEXATION_SHAPE.pixels(w),
@@ -79,6 +85,11 @@ impl Indexes {
                 }
                 let tile_ = WorldTileIndex::from_(tile_, w);
                 tiles_individuals[tile_.0 as usize].push(i.into());
+            }
+
+            // List tiles covered by "proximity" rule
+            for tile_ in shape_from_tile(tile, w.proximity_individual_rayon, w) {
+                proximity_individuals[tile_.0 as usize].push(i.into());
             }
 
             match individual.side {
@@ -111,6 +122,7 @@ impl Indexes {
 
         Self {
             tiles_individuals,
+            proximity_individuals,
             regions_individuals,
             regions_projectiles,
             individuals_squad,
@@ -136,6 +148,7 @@ impl Indexes {
         before: [f32; 2],
         w: &WorldConfig,
     ) {
+        // List tiles covered by individual shape before move
         for before in shape_cover_tiles(
             before,
             INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
@@ -151,6 +164,7 @@ impl Indexes {
             self.tiles_individuals[before.0 as usize].retain(|i_| *i_ != i);
         }
 
+        // List tiles covered by "proximity" rule after move
         for now in shape_cover_tiles(
             now,
             INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
@@ -164,6 +178,21 @@ impl Indexes {
             }
             let now = WorldTileIndex::from_(now, w);
             self.tiles_individuals[now.0 as usize].push(i);
+        }
+
+        let before = TileXy::from_(before, w);
+        let before = WorldTileIndex::from_(before, w);
+        let now = TileXy::from_(now, w);
+        let now = WorldTileIndex::from_(now, w);
+
+        // List tiles covered by "proximity" rule before move
+        for before in shape_from_tile(before, w.proximity_individual_rayon, w) {
+            self.proximity_individuals[before.0 as usize].retain(|i_| *i_ != i);
+        }
+
+        // List tiles covered by individual shape after move
+        for now in shape_from_tile(now, w.proximity_individual_rayon, w) {
+            self.proximity_individuals[now.0 as usize].push(i);
         }
     }
 
@@ -189,6 +218,10 @@ impl Indexes {
 
     pub fn tile_individuals(&self, tile: WorldTileIndex) -> &Vec<IndividualIndex> {
         &self.tiles_individuals[tile.0 as usize]
+    }
+
+    pub fn proximity_individuals(&self, tile: WorldTileIndex) -> &Vec<IndividualIndex> {
+        &self.proximity_individuals[tile.0 as usize]
     }
 
     pub fn region_individuals(&self, region: WorldRegionIndex) -> &Vec<IndividualIndex> {
@@ -273,7 +306,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_indexes_individuals() {
+    fn test_indexes_tile_individuals() {
         // Given
         let w = WorldConfig::new(2, 2, Meters(0.1));
         let individual = TestIndividual::builder()
@@ -301,7 +334,7 @@ mod tests {
     }
 
     #[test]
-    fn test_indexes_individuals_removed() {
+    fn test_indexes_tile_individuals_removed() {
         // Given
         let w = WorldConfig::new(2, 2, Meters(0.1));
         let individual = TestIndividual::builder()
@@ -327,5 +360,99 @@ mod tests {
         assert_eq!(x1y0, &Vec::<IndividualIndex>::new());
         assert_eq!(x0y1, &Vec::<IndividualIndex>::new());
         assert_eq!(x1y1, &vec![IndividualIndex(0)]);
+    }
+
+    #[test]
+    fn test_proximity_individuals() {
+        // Given
+        let w = WorldConfig::new(5, 5, Meters(0.1))
+            .geo_pixels_per_tile(1)
+            .proximity_individual_rayon(1);
+        let individual = TestIndividual::builder()
+            .position(WorldVec3::new(2., 2., 0.))
+            .build()
+            .make(&w);
+        let world = TestWorld::builder()
+            .individuals(vec![individual])
+            .build()
+            .make(&w);
+        let mut indexes = Indexes::new(&world, &w);
+        let before = indexes.proximity_individuals.clone();
+
+        // When
+        indexes.update_individual_position(IndividualIndex(0), [3., 3.], [2., 2.], &w);
+        let after = indexes.proximity_individuals.clone();
+
+        // Then
+        assert_eq!(
+            before,
+            vec![
+                // line 0
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+                // line 1
+                vec![],
+                vec![IndividualIndex(0)],
+                vec![IndividualIndex(0)],
+                vec![IndividualIndex(0)],
+                vec![],
+                // line 2
+                vec![],
+                vec![IndividualIndex(0)],
+                vec![IndividualIndex(0)],
+                vec![IndividualIndex(0)],
+                vec![],
+                // line 3
+                vec![],
+                vec![IndividualIndex(0)],
+                vec![IndividualIndex(0)],
+                vec![IndividualIndex(0)],
+                vec![],
+                // line 4
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+                vec![]
+            ]
+        );
+        assert_eq!(
+            after,
+            vec![
+                // line 0
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+                // line 1
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+                // line 2
+                vec![],
+                vec![],
+                vec![IndividualIndex(0)],
+                vec![IndividualIndex(0)],
+                vec![IndividualIndex(0)],
+                // line 3
+                vec![],
+                vec![],
+                vec![IndividualIndex(0)],
+                vec![IndividualIndex(0)],
+                vec![IndividualIndex(0)],
+                // line 4
+                vec![],
+                vec![],
+                vec![IndividualIndex(0)],
+                vec![IndividualIndex(0)],
+                vec![IndividualIndex(0)],
+            ]
+        );
     }
 }

@@ -10,6 +10,7 @@ use oc_projectile::ProjectileId;
 use oc_root::{Client, WcfgInto, WorldConfig, geo::WorldVec3};
 use oc_utils::collections::WithIds;
 use oc_world::World;
+use rustc_hash::FxHashSet;
 
 use crate::{
     index::{self, IntoIndexEffect},
@@ -67,8 +68,8 @@ impl<'x, E: Client> Processor<'x, E> {
             return (vec![], vec![]);
         };
 
-        // Move code (wich must take worl and indexes as ref because RwReadLockGuard lifetime)
-        let objects = |xy| {
+        // Move code (which must take world and indexes as ref because RwReadLockGuard lifetime)
+        let collision_objects = |xy| {
             #[cfg(feature = "perfs")]
             self.ctx.state.perf.increment_physic();
 
@@ -93,6 +94,25 @@ impl<'x, E: Client> Processor<'x, E> {
             objects
         };
 
+        // Move code (which must take world and indexes as ref because RwReadLockGuard lifetime)
+        let proximity_objects = |xy| {
+            #[cfg(feature = "perfs")]
+            self.ctx.state.perf.increment_physic();
+
+            let tile = TileXy(xy);
+            let i: WorldTileIndex = tile.into_(&self.ctx.state.w);
+            let individuals = indexes.proximity_individuals(i);
+
+            let mut objects = vec![];
+            for i in individuals {
+                let individual = world.individual(*i);
+                let individual: Box<&dyn Physic> = Box::new(individual);
+                objects.push((ObjectId::Individual(*i), individual));
+            }
+
+            objects
+        };
+
         let mut events = vec![];
         let updates = chunk
             .iter()
@@ -102,7 +122,8 @@ impl<'x, E: Client> Processor<'x, E> {
                     &self.ctx.state._mod,
                     self.ctx.state.w.physics_coeff_per_tick,
                     (*i, *subject),
-                    objects,
+                    collision_objects,
+                    proximity_objects,
                     self.ctx.state.w.ignore_firsts_physics_pixels as usize,
                     "server"
                 );
@@ -172,12 +193,12 @@ impl<'x, E: Client> Processor<'x, E> {
                         continue; // TODO: its possible ? What to do ? Simply log ?
                     };
 
-                    tracing::trace!(name="subject-update-write-broadast-insert", i=?i);
+                    tracing::trace!(name="subject-update-write-broadcast-insert", i=?i);
                     let filter = Listening::EnterBorder(before, after);
                     let messages = vec![subject.into_network_insert(i)];
                     self.ctx.broadcast(filter, messages);
 
-                    tracing::trace!(name="subject-update-write-broadast-forgot", i=?i);
+                    tracing::trace!(name="subject-update-write-broadcast-forgot", i=?i);
                     let filter = Listening::ExitBorder(before, after);
                     let messages = vec![subject.into_network_forgot(i)];
                     self.ctx.broadcast(filter, messages);
@@ -188,6 +209,7 @@ impl<'x, E: Client> Processor<'x, E> {
 
     fn react(&self, events: Vec<Event<ObjectId>>) -> Vec<crate::runner::update::Update> {
         let mut updates = vec![];
+        let mut proximity = FxHashSet::default();
 
         for event in events {
             tracing::trace!(name="physics-event", event=?event);
@@ -232,8 +254,39 @@ impl<'x, E: Client> Processor<'x, E> {
                         updates.push(crate::runner::update::Update::RemoveProjectile(id));
                     }
                 },
+                Event::Proximity(a, b) => {
+                    // We care only about proximity when projectile move near individual
+                    match (a, b) {
+                        (ObjectId::Projectile(_), ObjectId::Individual(individual_i)) => {
+                            proximity.insert(individual_i);
+                        }
+                        _ => {}
+                    }
+                    //
+                }
             }
         }
+
+        // Proximity to updates
+        let increase = self
+            .ctx
+            .state
+            .w
+            .proximity_projectile_fly_tick_increase_value;
+        let world = self.ctx.state.world();
+        let proximity = proximity
+            .iter()
+            .map(|i| {
+                let individual = world.individual(*i);
+                // FIXME BS NOW: il faut que ce soit proportionnel a la distance
+                let suppress = individual.suppress.increase(increase);
+                crate::runner::update::Update::UpdateIndividual(
+                    *i,
+                    oc_individual::Update::SetSuppress(suppress),
+                )
+            })
+            .collect::<Vec<_>>();
+        updates.extend(proximity);
 
         updates
     }

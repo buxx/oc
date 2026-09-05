@@ -44,6 +44,7 @@ pub fn write(
             }
         },
         Update::SetWeapons(weapons) => individual.weapons = weapons.clone(),
+        Update::SetSuppress(value) => individual.suppress = *value,
     }
 
     let region = individual.region;

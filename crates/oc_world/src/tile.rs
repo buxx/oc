@@ -152,7 +152,7 @@ mod test {
     };
 
     struct MyObject(WorldVec3, Vec<Force>);
-    #[derive(Debug, Clone, serde::Serialize, PartialEq)]
+    #[derive(Debug, Clone, Copy, serde::Serialize, PartialEq)]
     struct MyObjectId(usize);
 
     impl Physic for MyObject {
@@ -251,6 +251,7 @@ mod test {
             delta,
             (MyObjectId(0), &object),
             objects,
+            |_| vec![],
             0,
             "test",
         );

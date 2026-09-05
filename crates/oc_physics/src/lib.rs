@@ -24,8 +24,16 @@ pub trait Physic: Material {
         mod_: &Mod,
     ) -> Vec<(Volume, Traversability, Direction)>;
     fn ignore_side(&self) -> IgnoreSide;
-    fn side(&self) -> Option<Side>;
+    fn side(&self) -> Option<Side> {
+        None
+    }
     fn collision_ignorable(&self) -> bool {
+        false
+    }
+    fn emit_proximity(&self) -> bool {
+        false
+    }
+    fn receive_proximity(&self) -> bool {
         false
     }
 }
@@ -67,6 +75,8 @@ pub enum Event<T: serde::Serialize> {
     NoTile(T),
     /// Physics application result a collide between two objects
     Collision(T, T),
+    /// Object which emit proximity is on same tile than other
+    Proximity(T, T),
 }
 
 pub trait World<Z> {
@@ -74,20 +84,22 @@ pub trait World<Z> {
 }
 
 #[inline]
-pub fn step<'a, I, O, F, Z>(
+pub fn step<'a, I, O, C, P, Z>(
     w: &WorldConfig,
     mod_: &Mod,
     delta: f32,
     object: (I, &'a O),
-    at: F,
+    collision_at: C,
+    proximity_at: P,
     collision_ignore_pixels: usize,
     origin: &str,
 ) -> (WorldVec3, Vec<Force>, Vec<Event<Z>>)
 where
     I: Clone + Into<Z> + std::fmt::Debug,
     O: Physic,
-    F: Fn(Xy) -> Vec<(Z, Box<&'a dyn Physic>)>,
-    Z: std::fmt::Debug + serde::Serialize + PartialEq,
+    C: Fn(Xy) -> Vec<(Z, Box<&'a dyn Physic>)>,
+    P: Fn(Xy) -> Vec<(Z, Box<&'a dyn Physic>)>,
+    Z: std::fmt::Debug + serde::Serialize + PartialEq + std::marker::Copy,
 {
     let (i, object) = object;
     let mut events = vec![];
@@ -95,6 +107,7 @@ where
     let mut forces = vec![];
     let kind = object.kind();
     let mut collision_ignored_pixels = 0usize;
+    let emit_proximity = object.emit_proximity();
     tracing::trace!(name="physics-step-start", origin=origin, i=?i, p=?position, forces=?object.forces(w));
 
     'forces: for force in object.forces(w) {
@@ -148,13 +161,16 @@ where
                     tracing::trace!(name="physics-step-translation-line-pixel", origin=origin, i=?i, pixel=?pixel, xy=?xy);
                     let volumes = object.volumes(pixel, w, mod_);
 
-                    for (o, other) in at(xy) {
-                        // Do not test collision with itself (it is possible than `at` return it)
+                    for (o, other) in proximity_at(xy) {
+                        tracing::trace!(name="physics-step-translation-proximity-other", origin=origin, i=?i, o=?o);
+
+                        // Do not test proximity or else with itself (it is possible than `proximity_at` return it)
                         // NOTE: Maybe not the most optimized thing ?
                         if o == i.clone().into() {
                             continue;
                         }
 
+                        // Do not apply if object must be ignored
                         if other
                             .side()
                             .map(|s| object.ignore_side().ignore(s))
@@ -164,7 +180,31 @@ where
                             continue;
                         }
 
-                        tracing::trace!(name="physics-step-translation-other", origin=origin, i=?i, o=?o);
+                        // Emit proximity event if object emit and other receive
+                        // FIXME BS NOW: c'est pas assez près de se baser sur others :(
+                        if emit_proximity && other.receive_proximity() {
+                            events.push(Event::Proximity(i.clone().into(), o));
+                        }
+                    }
+
+                    for (o, other) in collision_at(xy) {
+                        tracing::trace!(name="physics-step-translation-collision-other", origin=origin, i=?i, o=?o);
+
+                        // Do not test collision or else with itself (it is possible than `collision_at` return it)
+                        // NOTE: Maybe not the most optimized thing ?
+                        if o == i.clone().into() {
+                            continue;
+                        }
+
+                        // Do not apply if object must be ignored
+                        if other
+                            .side()
+                            .map(|s| object.ignore_side().ignore(s))
+                            .unwrap_or_default()
+                        {
+                            tracing::trace!(name="physics-step-translation-collision-ignore-side", origin=origin, i=?i, o=?o);
+                            continue;
+                        }
 
                         let other_position = other.position(w);
                         // This permit to ignore some firsts tile collisions (z edge problem)
@@ -179,19 +219,19 @@ where
                             let volumes2 = other.volumes(other_position, w, mod_);
                             'other_volumes: for (volume2, traversability2, direction2) in volumes2 {
                                 // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
-                                tracing::trace!(name="physics-step-translation-prohibe-test", origin=origin, i=?i, traversability1=?traversability1, traversability2=?traversability2);
+                                tracing::trace!(name="physics-step-translation-collision-prohibe-test", origin=origin, i=?i, traversability1=?traversability1, traversability2=?traversability2);
                                 if kind.map(|kind| traversability2.allow(kind)).unwrap_or(true) {
-                                    tracing::trace!(name="physics-step-translation-prohibe-allow", origin=origin, i=?i);
+                                    tracing::trace!(name="physics-step-translation-collision-prohibe-allow", origin=origin, i=?i);
                                     continue 'other_volumes;
                                 }
 
-                                tracing::trace!(name="physics-step-translation-test-collide-with", origin=origin, i=?i, p=?position, xy=?xy, o=?o, op=?other_position, volume1=?volume1, volume2=?volume2);
+                                tracing::trace!(name="physics-step-translation-collision-test-collide-with", origin=origin, i=?i, p=?position, xy=?xy, o=?o, op=?other_position, volume1=?volume1, volume2=?volume2);
                                 if volume1.collide(
                                     direction1.quat(V::Server),
                                     &volume2,
                                     direction2.quat(V::Server),
                                 ) {
-                                    tracing::trace!(name="physics-step-translation-collide", origin=origin, i=?i, p=?position, xy=?xy);
+                                    tracing::trace!(name="physics-step-translation-collision-collide", origin=origin, i=?i, p=?position, xy=?xy);
 
                                     let left = i.clone().into();
                                     let collision = Event::Collision(left, o);
@@ -241,7 +281,7 @@ mod tests {
     }
 
     struct MyObject(WorldVec3, Vec<Force>);
-    #[derive(Debug, Clone, serde::Serialize, PartialEq)]
+    #[derive(Debug, Clone, Copy, serde::Serialize, PartialEq)]
     struct MyObjectId(usize);
 
     impl Physic for MyObject {
@@ -449,6 +489,7 @@ mod tests {
             delta,
             (MyObjectId(0), &object),
             |_| vec![],
+            |_| vec![],
             0,
             "test",
         );
@@ -477,6 +518,7 @@ mod tests {
             &mod_,
             delta,
             (MyObjectId(0), &object),
+            |_| vec![],
             |_| vec![],
             0,
             "test",
@@ -507,6 +549,7 @@ mod tests {
             &mod_,
             delta,
             (MyObjectId(0), &object),
+            |_| vec![],
             |_| vec![],
             0,
             "test",
@@ -548,6 +591,7 @@ mod tests {
             delta,
             (MyObjectId(0), &object),
             objects,
+            |_| vec![],
             0,
             "test",
         );
@@ -578,6 +622,7 @@ mod tests {
             &mod_,
             delta,
             (MyObjectId(0), &object),
+            |_| vec![],
             |_| vec![],
             0,
             "test",
@@ -619,6 +664,7 @@ mod tests {
             delta,
             (MyObjectId(0), &object),
             objects,
+            |_| vec![],
             0,
             "test",
         );
@@ -649,6 +695,7 @@ mod tests {
             &mod_,
             delta,
             (MyObjectId(0), &object),
+            |_| vec![],
             |_| vec![],
             0,
             "test",
@@ -691,6 +738,7 @@ mod tests {
             delta,
             (MyObjectId(0), &object),
             objects,
+            |_| vec![],
             0,
             "test",
         );
@@ -734,6 +782,7 @@ mod tests {
             delta,
             (MyObjectId(0), &object),
             objects,
+            |_| vec![],
             0,
             "test",
         );
@@ -780,6 +829,7 @@ mod tests {
                 delta,
                 (MyObjectId(0), &object),
                 objects,
+                |_| vec![],
                 5,
                 "test",
             );

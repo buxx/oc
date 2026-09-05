@@ -122,6 +122,10 @@ impl Physic for Projectile {
     fn side(&self) -> Option<oc_root::side::Side> {
         None
     }
+
+    fn emit_proximity(&self) -> bool {
+        true
+    }
 }
 
 impl UpdatePhysic for Projectile {
