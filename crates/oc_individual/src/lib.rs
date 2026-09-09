@@ -6,6 +6,7 @@ use oc_geo::Geo;
 use oc_geo::UpdateGeo;
 use oc_geo::region::Region;
 use oc_geo::region::WorldRegionIndex;
+use oc_geo::tile::TileXy;
 use oc_geo::tile::WorldTileIndex;
 use oc_mod::Mod;
 use oc_mod::ammunition::AmmunitionIndex;
@@ -20,6 +21,7 @@ use oc_physics::collision::Material;
 use oc_physics::volume::Volume;
 use oc_root::Suppress;
 use oc_root::U8Progress;
+use oc_root::WcfgFrom;
 use oc_root::WorldConfig;
 use oc_root::geo::WorldVec3;
 use oc_root::material::MaterialKind;
@@ -29,6 +31,7 @@ use oc_root::side::Side;
 use oc_root::y::V;
 use oc_utils::collections::WithIds;
 use oc_utils::d2::Direction;
+use oc_utils::d2::Xy;
 use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::behavior::Behavior;
@@ -94,6 +97,7 @@ pub struct Individual {
     pub intent: Intent,
     pub suppress: Suppress,
     pub weapons: Weapons,
+    pub magazines: Vec<MagazineIndex>,
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
@@ -109,6 +113,7 @@ pub enum Update {
     MoveStepAccomplished,
     SetWeapons(Weapons),
     SetSuppress(Suppress),
+    SetMagazines(Vec<MagazineIndex>),
 }
 
 impl Region for Individual {
@@ -148,12 +153,13 @@ impl From<i32> for IndividualIndex {
 }
 
 impl Individual {
-    pub fn fresh(
-        side: Side,
-        position: WorldVec3,
-        tile: WorldTileIndex,
-        region: WorldRegionIndex,
-    ) -> Self {
+    pub fn fresh(w: &WorldConfig, side: Side, position: WorldVec3) -> Self {
+        let tile_xy = TileXy(Xy(
+            position.x as u64 / w.geo_pixels_per_tile,
+            position.y as u64 / w.geo_pixels_per_tile,
+        ));
+        let tile = WorldTileIndex::from_(tile_xy, &w);
+        let region = WorldRegionIndex::from_(tile, w);
         Self::new(
             side,
             position,
@@ -167,6 +173,7 @@ impl Individual {
             Intent::Idle(Direction::default()),
             Suppress::zero(),
             Weapons::default(),
+            vec![],
         )
     }
 
@@ -187,6 +194,11 @@ impl Individual {
 
     pub fn with_weapons(mut self, value: Weapons) -> Self {
         self.weapons = value;
+        self
+    }
+
+    pub fn with_magazines(mut self, value: Vec<MagazineIndex>) -> Self {
+        self.magazines = value;
         self
     }
 

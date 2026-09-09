@@ -9,6 +9,7 @@ use oc_utils::let_some;
 
 use crate::ingame;
 use crate::ingame::individual::{Status, Suppress};
+use crate::window::debug::battle::component::ComponentDetails;
 use crate::world::World;
 use crate::{
     entity::{individual::IndividualIndex, projectile::ProjectileId},
@@ -64,7 +65,7 @@ pub fn on_refresh(
             .iter()
             .map(|(id, position, _, region, _, status, suppress)| {
                 Subject::new(
-                    id.0.clone(),
+                    id.0,
                     PhysicsRepr::new(
                         position.0.clone(),
                         // tile.0.clone(),
@@ -75,6 +76,7 @@ pub fn on_refresh(
                         ("Status".to_string(), format!("{:?}", status.0)),
                         ("Suppress".to_string(), format!("{:?}", suppress.0)),
                     ],
+                    ComponentDetails::Individual(id.0),
                 )
             })
             .collect();
@@ -82,7 +84,7 @@ pub fn on_refresh(
             .iter()
             .map(|(id, position, _, region, _)| {
                 Subject::new(
-                    id.0.clone(),
+                    id.0,
                     PhysicsRepr::new(
                         position.0.clone(),
                         // tile.0.clone(),
@@ -90,6 +92,7 @@ pub fn on_refresh(
                         // forces.0.clone(),
                     ),
                     vec![],
+                    ComponentDetails::Projectile(id.0),
                 )
             })
             .collect();

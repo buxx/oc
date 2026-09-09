@@ -53,6 +53,18 @@ pub struct Squad {
 }
 
 impl Squad {
+    pub fn fresh(side: Side, members: Vec<IndividualIndex>, position: WorldVec2) -> Self {
+        let actives = members.len() as u8;
+        Self {
+            side,
+            members,
+            actives,
+            formation: SquadFormation::Line,
+            orders: vec![],
+            position,
+        }
+    }
+
     pub fn leader(&self) -> IndividualIndex {
         *self
             .members

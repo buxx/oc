@@ -1,0 +1,10 @@
+squads:
+- count: 2
+  label: MySquad1
+  individuals:
+  - count: 3
+    weapons:
+      main: MosinNagantM1924
+    magazines:
+    - count: 10
+      name: MosinNagant5x

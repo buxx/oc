@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_spritesheet_animation::prelude::*;
 use oc_geo::region::WorldRegionIndex;
+use oc_mod::magazine::MagazineIndex;
 use oc_physics::Physic;
 use oc_physics::collision::{Material, Material_};
 use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volumes};
@@ -85,6 +86,9 @@ pub struct MoveStepAccomplishedEvent(oc_individual::IndividualIndex);
 #[derive(Debug, Clone, Event)]
 pub struct SetSuppressEvent(oc_individual::IndividualIndex, oc_root::Suppress);
 
+#[derive(Debug, Clone, Event)]
+pub struct SetMagazinesEvent(oc_individual::IndividualIndex, Vec<MagazineIndex>);
+
 #[derive(Debug, Deref, Component)]
 pub struct Status(pub oc_individual::Status);
 
@@ -96,6 +100,9 @@ pub struct Gesture(pub oc_individual::Gesture);
 
 #[derive(Debug, Deref, Component)]
 pub struct Suppress(pub oc_root::Suppress);
+
+#[derive(Debug, Deref, Component)]
+pub struct Magazines(pub Vec<MagazineIndex>);
 
 #[cfg(feature = "debug")]
 pub fn setup(mut config: ResMut<GizmoConfigStore>) {
@@ -185,6 +192,9 @@ pub fn on_insert_individual(
                 Suppress(individual.1.suppress),
                 Orders(individual.1.orders.clone()),
                 Gesture(individual.1.gesture.clone()),
+                Magazines(individual.1.magazines.clone()),
+            ),
+            (
                 Direction(individual.1.gesture.direction()),
                 Volumes(volumes),
                 Material_(individual.1.kind()),
@@ -346,6 +356,10 @@ pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Com
             commands.trigger(SetSuppressEvent(i, *value));
             false
         }
+        oc_individual::Update::SetMagazines(value) => {
+            commands.trigger(SetMagazinesEvent(i, value.clone()));
+            false
+        }
     };
 
     if refresh {
@@ -378,6 +392,7 @@ impl Plugin for IndividualPlugin {
             .add_observer(on_accomplished_event)
             .add_observer(on_move_step_accomplished_event)
             .add_observer(on_set_suppress_event)
+            .add_observer(on_set_magazines_event)
             .add_observer(on_refresh_render)
             .add_observer(on_prepare_open_squad_contextual_menu)
             .add_systems(
@@ -585,6 +600,21 @@ fn on_set_suppress_event(
 
     suppress_.0 = suppress.1;
     individual.suppress = suppress.1;
+}
+
+fn on_set_magazines_event(
+    magazines: On<SetMagazinesEvent>,
+    mut query: Query<&mut Magazines>,
+    state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut world: ResMut<crate::world::World>,
+) {
+    let_some!(entity = state.get(&magazines.0), return);
+    let_ok!(mut magazines_ = query.get_mut(*entity), return);
+    let_some!(individual = world.get_individual_mut(magazines.0), return);
+    tracing::trace!(name = "set-individual-magazines", i=?magazines.0, magazines=?magazines.1);
+
+    magazines_.0 = magazines.1.clone();
+    individual.magazines = magazines.1.clone();
 }
 
 // TODO: should be automatized (macro? derive ?)

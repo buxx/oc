@@ -6,6 +6,7 @@ edition = "2024"
 [features]
 bevy = ["dep:bevy"]
 debug = []
+clap = ["dep:clap"]
 
 [dependencies]
 rkyv = { workspace = true, features = ["uuid-1"] }
@@ -15,3 +16,4 @@ serde_derive = { workspace = true }
 glam.workspace = true
 bevy = { workspace = true, optional = true }
 uuid.workspace = true
+clap = { workspace = true, optional = true }

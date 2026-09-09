@@ -38,10 +38,13 @@ impl Window {
         commands: &mut Commands,
         mod_: &Mod,
         w: &WorldConfig,
+        world: &crate::world::World,
+        ingame: &crate::ingame::state::State,
     ) -> Result {
         let ctx = contexts.ctx_mut()?;
         let size = bevy_egui::egui::vec2(600.0, 400.0);
-        let mut context = super::InContext::new(&mut self.context, commands, mod_, w);
+        let mut context =
+            super::InContext::new(&mut self.context, commands, mod_, w, world, ingame);
         let mut shortcut = None;
 
         bevy_egui::egui::Window::new("Dock window")

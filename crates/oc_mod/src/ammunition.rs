@@ -15,6 +15,8 @@ pub const PROJECTILES_RON: &str = "amunitions.ron";
     rkyv::Deserialize,
     rkyv::Serialize,
     PartialEq,
+    Hash,
+    Eq,
     serde::Deserialize,
     serde::Serialize,
 )]
@@ -30,14 +32,7 @@ impl Deref for AmmunitionIndex {
 }
 
 #[derive(
-    Debug,
-    Clone,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
+    Debug, Clone, Archive, rkyv::Deserialize, rkyv::Serialize, serde::Deserialize, serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndexedAmmunition(pub AmmunitionIndex, pub Ammunition);
@@ -47,6 +42,20 @@ impl Deref for IndexedAmmunition {
 
     fn deref(&self) -> &Self::Target {
         &self.1
+    }
+}
+
+impl PartialEq for IndexedAmmunition {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl Eq for IndexedAmmunition {}
+
+impl std::hash::Hash for IndexedAmmunition {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
     }
 }
 
@@ -85,6 +94,12 @@ impl Ammunition {
     pub fn is_type(&self, type_: AmmunitionType) -> bool {
         match self {
             Ammunition::Cartridge(_) => matches!(type_, AmmunitionType::Cartridge),
+        }
+    }
+
+    pub fn model(&self) -> &String {
+        match self {
+            Ammunition::Cartridge(cartridge) => &cartridge.model,
         }
     }
 }

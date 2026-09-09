@@ -1,7 +1,7 @@
 [
     Rifle((
         name: "MosinNagantM1924",
-        amunitions: ["762x54R"],
+        amunitions: ["7,62x54"],
         magazines: ["MosinNagant5x"],
         shots: [
             Single(sounds:[
@@ -20,8 +20,8 @@
     )),
     Rifle((
         name: "Mauser G41",
-        amunitions: ["792x57"],
-        magazines: [],
+        amunitions: ["7,92x57"],
+        magazines: [],  // FIXME fill it
         shots: [
             Single(sounds:[
                 "MauserRiffleFire1.ogg",
@@ -37,8 +37,8 @@
     )),
     MachineGun((
         name: "Bren Mark2",
-        amunitions: ["303British"],
-        magazines: [],
+        amunitions: ["7,7x56"],
+        magazines: [],  // FIXME fill it
         shots: [
             Single(sounds:["BrenMark2x1.ogg"]),
             Burst3(interval:Seconds(0.2),sounds:["BrenMark2x3.ogg"])
@@ -51,8 +51,8 @@
     )),
     MachineGun((
         name: "Mg34",
-        amunitions: ["792x57"],
-        magazines: [],
+        amunitions: ["7,92x57"],
+        magazines: [],  // FIXME fill it
         shots: [
             Single(sounds:["Mg34x1.ogg"]),
             Burst3(interval:Seconds(0.2),sounds:["Mg34x3.ogg"])

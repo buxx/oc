@@ -7,6 +7,7 @@ use crate::{
     decor::Decor,
     flag::{Flag, FlagName},
     interior::Interior,
+    place::Place,
     spawn::{SpawnZone, SpawnZoneName},
 };
 
@@ -22,6 +23,7 @@ pub struct Map {
     // terrain_tiles: Vec<TerrainTile>,
     decor: Decor,
     flags: Vec<Flag>,
+    places: Vec<Place>,
 }
 
 impl Map {
@@ -36,6 +38,7 @@ impl Map {
         height: u32,
         decor: Decor,
         flags: Vec<Flag>,
+        places: Vec<Place>,
     ) -> Self {
         Self {
             background_image_path,
@@ -47,6 +50,7 @@ impl Map {
             height,
             decor,
             flags,
+            places,
         }
     }
 
@@ -80,6 +84,10 @@ impl Map {
 
     pub fn flags(&self) -> &Vec<Flag> {
         &self.flags
+    }
+
+    pub fn places(&self) -> &Vec<Place> {
+        &self.places
     }
 
     // TODO : Get flags by name is not clean way, it could be better to use indexes (like soldiers, etc)

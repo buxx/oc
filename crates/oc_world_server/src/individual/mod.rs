@@ -1265,7 +1265,7 @@ mod tests {
     };
     use oc_mod::{Mod, ammunition::AmmunitionIndex, magazine::MagazineIndex, weapons::WeaponIndex};
     use oc_root::{
-        Suppress, U8Progress, WorldConfig,
+        U8Progress, WorldConfig,
         geo::{WorldVec2, WorldVec3},
         opacity::CumulatedOpacity,
         physics::Meters,
