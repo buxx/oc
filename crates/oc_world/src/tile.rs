@@ -80,6 +80,7 @@ impl Physic for Tile {
     fn volumes(
         &self,
         ref_: WorldVec3,
+        include_underground: bool,
         w: &WorldConfig,
         mod_: &Mod,
     ) -> Vec<(Volume, Traversability, Direction)> {
@@ -87,35 +88,38 @@ impl Physic for Tile {
         let nature = mod_.nature(self.nature);
         let exceedance = nature.z.0 * w.geo_pixels_per_meters;
 
-        vec![
-            // Tile "ground". Always not traversable.
-            (
-                Volume::Cube {
-                    x: ref_.x,
-                    y: ref_.y,
-                    z: -DEPTH,
-                    width: w.geo_pixels_per_tile as f32,
-                    height: w.geo_pixels_per_tile as f32,
-                    depth: DEPTH + ref_.z,
-                },
-                Traversability::none(),
-                Direction::NORTH,
-            ),
-            // Tile nature (hedge part for example)
-            (
-                Volume::Cube {
-                    x: ref_.x,
-                    y: ref_.y,
-                    z: ref_.z,
-                    width: w.geo_pixels_per_tile as f32,
-                    height: w.geo_pixels_per_tile as f32,
-                    depth: exceedance,
-                },
-                // TODO: perf test with reference ?
-                nature.traversability.clone(),
-                Direction::NORTH,
-            ),
-        ]
+        // Tile "ground". Always not traversable.
+        let ground = (
+            Volume::Cube {
+                x: ref_.x,
+                y: ref_.y,
+                z: -DEPTH,
+                width: w.geo_pixels_per_tile as f32,
+                height: w.geo_pixels_per_tile as f32,
+                depth: DEPTH + ref_.z,
+            },
+            Traversability::none(),
+            Direction::NORTH,
+        );
+        // Tile nature (hedge part for example)
+        let nature = (
+            Volume::Cube {
+                x: ref_.x,
+                y: ref_.y,
+                z: ref_.z,
+                width: w.geo_pixels_per_tile as f32,
+                height: w.geo_pixels_per_tile as f32,
+                depth: exceedance,
+            },
+            // TODO: perf test with reference ?
+            nature.traversability.clone(),
+            Direction::NORTH,
+        );
+
+        match include_underground {
+            true => vec![ground, nature],
+            false => vec![nature],
+        }
     }
 
     fn ignore_side(&self) -> IgnoreSide {
@@ -124,6 +128,10 @@ impl Physic for Tile {
 
     fn side(&self) -> Option<oc_root::side::Side> {
         None
+    }
+
+    fn apply_z(&self, w: &WorldConfig) -> Option<f32> {
+        Some(self.z_pixels(w))
     }
 }
 
@@ -166,6 +174,7 @@ mod test {
         fn volumes(
             &self,
             ref_: WorldVec3,
+            _: bool,
             _: &WorldConfig,
             _: &Mod,
         ) -> Vec<(Volume, Traversability, Direction)> {

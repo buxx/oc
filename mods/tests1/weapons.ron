@@ -1,7 +1,7 @@
 [
     Rifle((
         name: "Weapon1",
-        amunitions: ["Ammo1"],
+        amunitions: ["model1"],
         magazines: ["Magazine1"],
         shots: [Single(sounds:[])],
         interval: Seconds(0.5),
@@ -12,7 +12,7 @@
     )),
     Rifle((
         name: "Weapon2",
-        amunitions: ["Ammo1"],
+        amunitions: ["model1"],
         magazines: ["Magazine1"],
         shots: [Single(sounds:[])],
         interval: Seconds(0.6),
@@ -23,7 +23,7 @@
     )),
     Rifle((
         name: "Weapon3",
-        amunitions: ["Ammo1"],
+        amunitions: ["model1"],
         magazines: ["Magazine1"],
         shots: [Single(sounds:[]),Burst3(interval:Seconds(0.2),sounds:[])],
         interval: Seconds(0.5),
@@ -34,7 +34,7 @@
     )),
     MachineGun((
         name: "Weapon4",
-        amunitions: ["Ammo1"],
+        amunitions: ["model1"],
         magazines: ["Magazine1"],
         shots: [Burst3(interval:Seconds(0.2),sounds:[])],
         interval: Seconds(0.1),
@@ -45,7 +45,7 @@
     )),
     MachineGun((
         name: "FullFast",
-        amunitions: ["Ammo1"],
+        amunitions: ["model1"],
         magazines: ["Magazine1"],
         shots: [Burst3(interval:Seconds(0.1),sounds:[])],
         interval: Seconds(0.1),

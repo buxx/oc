@@ -10,7 +10,7 @@ use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::tile::Tile;
 
-#[derive(Archive, Deserialize, Serialize, Constructor)]
+#[derive(Debug, Archive, Deserialize, Serialize, Constructor)]
 #[rkyv(compare(PartialEq))]
 pub struct Snapshot {
     pub w: WorldConfig,
@@ -21,6 +21,16 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
+    pub fn empty(w: WorldConfig) -> Self {
+        Self {
+            w,
+            tiles: vec![],
+            individuals: vec![],
+            squads: vec![],
+            projectiles: vec![],
+        }
+    }
+
     pub fn load(path: &PathBuf) -> Result<Self, LoadError> {
         tracing::info!("Load snapshot from {}", path.display());
         let bytes_ = std::fs::read(path);
@@ -32,6 +42,26 @@ impl Snapshot {
         let snapshot = rkyv::deserialize::<Snapshot, Error>(snapshot);
         let snapshot = snapshot.map_err(|e| LoadError::Format(path.clone(), e))?;
         Ok(snapshot)
+    }
+
+    pub fn with_tiles(mut self, tiles: Vec<Tile>) -> Self {
+        self.tiles = tiles;
+        self
+    }
+
+    pub fn with_individuals(mut self, individuals: Vec<Individual>) -> Self {
+        self.individuals = individuals;
+        self
+    }
+
+    pub fn with_squads(mut self, squads: Vec<Squad>) -> Self {
+        self.squads = squads;
+        self
+    }
+
+    pub fn with_projectiles(mut self, projectiles: Vec<Projectile>) -> Self {
+        self.projectiles = projectiles;
+        self
     }
 
     pub fn save(&self, to: &PathBuf) -> Result<(), SaveError> {

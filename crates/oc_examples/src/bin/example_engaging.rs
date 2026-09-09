@@ -128,9 +128,11 @@ fn main() -> Result<(), anyhow::Error> {
     let example = run::Example::builder()
         .world(map)
         .mod_(mod_)
-        .install(Box::new(install))
         .snapshot(snapshot)
         .test_app_exit_code(args.test);
+
+    #[cfg(feature = "test")]
+    let example = example.install(Box::new(install));
 
     example.build().run()?;
 
@@ -364,12 +366,12 @@ struct State {
     last_shoots: Vec<(oc_individual::IndividualIndex, Instant)>,
 }
 
+#[cfg(feature = "test")]
 fn install(app: &mut bevy::app::App) {
     let args = Args::parse();
 
     #[cfg(feature = "test")]
     if args.test {
-        dbg!("SETUP");
         app.add_systems(Update, test_tracker)
             .add_systems(Startup, setup);
     }

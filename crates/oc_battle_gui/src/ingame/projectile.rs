@@ -61,7 +61,7 @@ pub fn on_insert_projectile(
     let line = Polyline2d::new(vec![position_.into()]);
     let volumes = projectile
         .1
-        .volumes(position, &g.w, &g.mod_)
+        .volumes(position, false, &g.w, &g.mod_)
         .clone()
         .into_iter()
         .map(|(p, v, _)| (p, v))

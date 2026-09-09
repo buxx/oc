@@ -38,10 +38,10 @@ impl<'a> Processor<'a> {
 
             let p1 = individual1
                 .position
-                .with_z(individual1.gesture.body.weapon_z().pixels(w));
+                .add_z(individual1.gesture.body.weapon_z().pixels(w));
             let p2 = individual2
                 .position
-                .with_z(individual2.gesture.body.target_z().pixels(w));
+                .add_z(individual2.gesture.body.target_z().pixels(w));
 
             let visibility = visibility(w, at, p1, p2);
             visibilities.push((*i1, *i2, visibility));

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, path::PathBuf, str::FromStr, sync::Arc};
 
 use crate::{
+    place::{Place, PlaceName},
     spawn::{ParseOriginDirectionError, SpawnZoneName},
     tile::Tile,
 };
@@ -28,6 +29,7 @@ const BACKGROUND_IMAGE_LAYER_NAME: &str = "background_image";
 const INTERIORS_IMAGE_LAYER_NAME: &str = "interiors_image";
 const INTERIORS_ZONES_LAYER_NAME: &str = "interiors_zones";
 const SPAWN_ZONES_LAYER_NAME: &str = "spawn_zones";
+const PLACES_LAYER_NAME: &str = "places";
 const FLAGS_LAYER_NAME: &str = "flags";
 const DECOR_LAYER_NAME: &str = "decor";
 const TERRAIN_LAYER_NAME: &str = "terrain";
@@ -163,6 +165,16 @@ impl MapReader {
         }
     }
 
+    fn places_layer(&self) -> Result<ObjectLayer<'_>, MapReaderError> {
+        match self.layer(PLACES_LAYER_NAME)?.layer_type() {
+            LayerType::ObjectLayer(layer) => Ok(layer),
+            _ => Result::Err(MapReaderError::InvalidLayer(format!(
+                "Layer '{}' in map is not an object layer",
+                SPAWN_ZONES_LAYER_NAME,
+            ))),
+        }
+    }
+
     fn flags_layer(&self) -> Result<ObjectLayer<'_>, MapReaderError> {
         match self.layer(FLAGS_LAYER_NAME)?.layer_type() {
             LayerType::ObjectLayer(layer) => Ok(layer),
@@ -232,6 +244,30 @@ impl MapReader {
         }
 
         Ok(spawn_zones)
+    }
+
+    fn places(&self) -> Result<Vec<Place>, MapReaderError> {
+        let mut places = vec![];
+
+        for object in self.places_layer()?.objects() {
+            let name = PlaceName(if object.name.trim().is_empty() {
+                object.id().to_string()
+            } else {
+                object.name.clone()
+            });
+
+            places.push(match object.shape {
+                tiled::ObjectShape::Point(x, y) => Place::new(name, x, y),
+                _ => {
+                    return Result::Err(MapReaderError::InvalidLayer(format!(
+                        "Layer '{}' in map contains non point shape, this is not supported now",
+                        PLACES_LAYER_NAME,
+                    )));
+                }
+            })
+        }
+
+        Ok(places)
     }
 
     fn flags(&self) -> Result<Vec<Flag>, MapReaderError> {
@@ -551,6 +587,7 @@ impl MapReader {
         let height = self.height()?;
         let decor = self.decor()?;
         let flags = self.flags()?;
+        let places = self.places()?;
 
         Ok(Map::new(
             background_image_path,
@@ -562,6 +599,7 @@ impl MapReader {
             height,
             decor,
             flags,
+            places,
         ))
     }
 }

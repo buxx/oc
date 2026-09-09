@@ -20,6 +20,7 @@ pub trait Physic: Material {
     fn volumes(
         &self,
         ref_: WorldVec3,
+        include_underground: bool,
         w: &WorldConfig,
         mod_: &Mod,
     ) -> Vec<(Volume, Traversability, Direction)>;
@@ -34,6 +35,15 @@ pub trait Physic: Material {
         false
     }
     fn receive_proximity(&self) -> bool {
+        false
+    }
+    fn ignore_underground(&self) -> bool {
+        false
+    }
+    fn apply_z(&self, _: &WorldConfig) -> Option<f32> {
+        None
+    }
+    fn receive_z(&self) -> bool {
         false
     }
 }
@@ -114,6 +124,9 @@ where
     let kind = object.kind();
     let mut collision_ignored_pixels = 0usize;
     let emit_proximity = object.emit_proximity();
+    let ignore_underground = object.ignore_underground();
+    let receive_z = object.receive_z();
+    let mut apply_z: Option<f32> = None;
     tracing::trace!(name="physics-step-start", origin=origin, i=?i, p=?position, forces=?object.forces(w));
 
     'forces: for force in object.forces(w) {
@@ -138,6 +151,7 @@ where
                     z_ = z_,
                     speed = speed,
                     pixels = pixels,
+                    ignore_underground = ignore_underground,
                 );
 
                 let start = (x.ceil() as isize, y.ceil() as isize, z.ceil() as isize);
@@ -165,7 +179,7 @@ where
                     position = [pixel_x as f32, pixel_y as f32, pixel_z as f32].into();
 
                     tracing::trace!(name="physics-step-translation-line-pixel", origin=origin, i=?i, pixel=?pixel, xy=?xy);
-                    let volumes = object.volumes(pixel, w, mod_);
+                    let volumes = object.volumes(pixel, !ignore_underground, w, mod_);
 
                     let proximity_others = proximity_at(xy);
                     proximity_events(
@@ -188,6 +202,12 @@ where
                             continue;
                         }
 
+                        if receive_z {
+                            if let Some(z) = other.apply_z(w) {
+                                apply_z = Some(z);
+                            }
+                        }
+
                         // Do not apply if object must be ignored
                         if other
                             .side()
@@ -208,7 +228,8 @@ where
                         }
 
                         for (volume1, traversability1, direction1) in &volumes {
-                            let volumes2 = other.volumes(other_position, w, mod_);
+                            let volumes2 =
+                                other.volumes(other_position, !ignore_underground, w, mod_);
                             'other_volumes: for (volume2, traversability2, direction2) in volumes2 {
                                 // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
                                 tracing::trace!(name="physics-step-translation-collision-prohibe-test", origin=origin, i=?i, traversability1=?traversability1, traversability2=?traversability2);
@@ -252,6 +273,10 @@ where
                 if !interupted {
                     // If not interupted, position is now end of translation (bresenham3d accept only usize)
                     position = [x_, y_, z_].into();
+
+                    if let Some(z) = apply_z {
+                        position.z = z;
+                    }
                 }
 
                 tracing::trace!(name="physics-step-translation-updated", origin=origin, i=?i, p=?position);
@@ -338,6 +363,7 @@ mod tests {
         fn volumes(
             &self,
             ref_: WorldVec3,
+            _: bool,
             _: &WorldConfig,
             _: &Mod,
         ) -> Vec<(Volume, Traversability, Direction)> {
@@ -382,6 +408,7 @@ mod tests {
         fn volumes(
             &self,
             ref_: WorldVec3,
+            _: bool,
             w: &WorldConfig,
             _: &Mod,
         ) -> Vec<(Volume, Traversability, Direction)> {
@@ -429,6 +456,7 @@ mod tests {
         fn volumes(
             &self,
             ref_: WorldVec3,
+            _: bool,
             _w: &WorldConfig,
             _: &Mod,
         ) -> Vec<(Volume, Traversability, Direction)> {
@@ -476,6 +504,7 @@ mod tests {
         fn volumes(
             &self,
             ref_: WorldVec3,
+            _: bool,
             w: &WorldConfig,
             _: &Mod,
         ) -> Vec<(Volume, Traversability, Direction)> {

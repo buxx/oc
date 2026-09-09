@@ -29,7 +29,10 @@ use crate::{
         input::left_click::LeftClickModeType,
         lov::{LovClickMode, SpawnProjectileClickMode},
     },
-    window::{MountedWindow, UnmountedWindow, debug::subject::Subject},
+    window::{
+        MountedWindow, UnmountedWindow,
+        debug::{battle::component::ComponentDetails, subject::Subject},
+    },
 };
 
 /// Used to cache debug battle window when not displayed
@@ -52,6 +55,7 @@ pub struct Context {
     region: Option<RegionXy>,
     // Components
     component_view: component::View,
+    component_details: Option<ComponentDetails>,
     states_view: states::View,
     regions: Vec<Region>,
     individuals: Vec<Subject<IndividualIndex>>,
@@ -84,6 +88,7 @@ impl Default for Context {
             tile: Default::default(),
             region: Default::default(),
             component_view: Default::default(),
+            component_details: Default::default(),
             states_view: Default::default(),
             regions: Default::default(),
             individuals: Default::default(),
@@ -106,11 +111,13 @@ impl Default for Context {
 }
 
 #[derive(Constructor)]
-pub struct InContext<'a, 'b, 'w, 's, 'c> {
+pub struct InContext<'a, 'b, 'w, 's, 'c, 'z> {
     pub context: &'a mut Context,
     pub commands: &'b mut Commands<'w, 's>,
     pub mod_: &'a Mod,
     pub w: &'c WorldConfig,
+    pub world: &'z crate::world::World,
+    pub ingame: &'z crate::ingame::state::State,
 }
 
 #[derive(Debug, Clone, EnumIter, Default)]
@@ -135,7 +142,7 @@ impl Display for Tab {
     }
 }
 
-impl<'a, 'b, 'w, 's, 'c> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's, 'c> {
+impl<'a, 'b, 'w, 's, 'c, 'z> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's, 'c, 'z> {
     type Tab = Tab;
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui_dock::egui::WidgetText {
@@ -147,13 +154,15 @@ impl<'a, 'b, 'w, 's, 'c> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's, 'c> 
         let commands = &mut self.commands;
         let mod_ = self.mod_;
         let w = self.w;
+        let world = self.world;
+        let ingame = self.ingame;
 
         match tab {
-            Tab::States => context.ui_states(w, ui, commands, mod_),
-            Tab::Cursor => context.ui_cursor(w, ui, commands, mod_),
-            Tab::Components => context.ui_components(w, ui, commands, mod_),
-            Tab::Leftclick => context.ui_left_click(w, ui, commands, mod_),
-            Tab::Weapons => context.weapons(w, ui, commands, mod_),
+            Tab::States => context.ui_states(w, ui, commands, mod_, world, ingame),
+            Tab::Cursor => context.ui_cursor(w, ui, commands, mod_, world, ingame),
+            Tab::Components => context.ui_components(w, ui, commands, mod_, world, ingame),
+            Tab::Leftclick => context.ui_left_click(w, ui, commands, mod_, world, ingame),
+            Tab::Weapons => context.weapons(w, ui, commands, mod_, world, ingame),
         }
     }
 }

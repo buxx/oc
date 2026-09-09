@@ -3,10 +3,7 @@ use std::path::PathBuf;
 use anyhow::Context;
 use bevy::prelude::*;
 use bon::builder;
-use oc_geo::{
-    region::WorldRegionIndex,
-    tile::{TileXy, WorldTileIndex},
-};
+use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::{
     BodyGesture, Gesture, IndividualIndex,
     order::Order,
@@ -100,7 +97,7 @@ fn individuals(
                 let z = tile.z_pixels(w);
                 let position = [position[0], position[1], z].into();
 
-                oc_individual::Individual::fresh(Side::A, position, tile_i, WorldRegionIndex(0))
+                oc_individual::Individual::fresh(w, Side::A, position)
                     .with_gesture(Gesture::body(BodyGesture::StandUp(DIRECTION)))
             })
         })

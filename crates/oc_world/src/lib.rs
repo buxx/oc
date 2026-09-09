@@ -25,6 +25,7 @@ pub mod load;
 pub mod map;
 pub mod meta;
 pub mod navmesh;
+pub mod place;
 pub mod reader;
 pub mod resume;
 pub mod snapshot;

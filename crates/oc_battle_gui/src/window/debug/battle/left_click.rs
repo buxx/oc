@@ -18,6 +18,8 @@ impl super::Context {
         ui: &mut egui_dock::egui::Ui,
         commands: &mut Commands,
         mod_: &Mod,
+        _world: &crate::world::World,
+        _ingame: &crate::ingame::state::State,
     ) {
         let left_click_mode_before = self.left_click_mode.clone();
         let left_click_mode = &mut self.left_click_mode;

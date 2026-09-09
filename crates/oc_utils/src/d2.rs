@@ -374,6 +374,15 @@ impl AlmostEqual for WorldVec2 {
     }
 }
 
+impl AlmostEqual for WorldVec3 {
+    fn almost_equal(&self, other: impl Into<WorldVec3>, tolerance: f32) -> bool {
+        let other = other.into();
+        almost_equal(self.x, other.x, tolerance)
+            && almost_equal(self.y, other.y, tolerance)
+            && almost_equal(self.z, other.z, tolerance)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

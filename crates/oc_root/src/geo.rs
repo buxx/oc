@@ -198,6 +198,14 @@ impl WorldVec3 {
             z,
         }
     }
+
+    pub fn add_z(&self, z: f32) -> WorldVec3 {
+        WorldVec3 {
+            x: self.x,
+            y: self.y,
+            z: self.z + z,
+        }
+    }
 }
 
 impl std::ops::Sub for WorldVec3 {

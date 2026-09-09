@@ -138,6 +138,7 @@ pub mod test {
             10,
             Decor::new(vec![], vec![], Vec2::new(0., 0.)),
             flags,
+            vec![],
         )
     }
 

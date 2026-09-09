@@ -13,16 +13,12 @@ use oc_battle_gui::{
     states::Game,
 };
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
-use oc_geo::{
-    region::WorldRegionIndex,
-    tile::{TileXy, WorldTileIndex},
-};
 use oc_individual::{IndividualIndex, order::Order, squad::SquadFormation};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectiles;
-use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
-use oc_utils::d2::{Direction, Xy};
+use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
+use oc_utils::d2::Direction;
 use oc_world::{meta::Meta, tile::Tile};
 
 #[derive(Parser, Debug, Clone)]
@@ -153,13 +149,8 @@ fn individuals(
     let individuals = positions
         .iter()
         .map(|p| {
-            let tile_xy = TileXy(Xy(
-                p[0] as u64 / w.geo_pixels_per_tile,
-                p[1] as u64 / w.geo_pixels_per_tile,
-            ));
-            let tile = WorldTileIndex::from_(tile_xy, &w);
             let position = (*p).into();
-            oc_individual::Individual::fresh(Side::A, position, tile, WorldRegionIndex(0))
+            oc_individual::Individual::fresh(&w, Side::A, position)
         })
         .collect();
 

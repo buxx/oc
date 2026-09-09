@@ -194,6 +194,18 @@ impl WcfgFrom<TileXy> for WorldTileIndex {
     }
 }
 
+impl WcfgFrom<WorldVec2> for WorldTileIndex {
+    fn from_(value: WorldVec2, w: &WorldConfig) -> Self {
+        WorldTileIndex::from_(
+            TileXy(Xy(
+                value.x as u64 / w.geo_pixels_per_tile,
+                value.y as u64 / w.geo_pixels_per_tile,
+            )),
+            w,
+        )
+    }
+}
+
 impl WcfgFrom<[f32; 2]> for TileXy {
     fn from_(value: [f32; 2], w: &WorldConfig) -> Self {
         Self(Xy(

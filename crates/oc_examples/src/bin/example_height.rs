@@ -1,18 +1,61 @@
 use std::path::PathBuf;
+#[cfg(feature = "test")]
+use std::sync::Mutex;
+#[cfg(feature = "test")]
+use std::sync::atomic::AtomicBool;
+#[cfg(feature = "test")]
+use std::sync::atomic::Ordering;
+#[cfg(feature = "test")]
+use std::time::Instant;
 
 use anyhow::Context;
 use bevy::prelude::*;
+use clap::{Parser, ValueEnum};
+#[cfg(feature = "test")]
+use oc_battle_gui::entity::individual::IndividualIndex;
 use oc_battle_gui::ingame::GameConfigReceived;
 use oc_battle_gui::ingame::lov::{Lov, UpdateLovFor};
 use oc_battle_gui::world::InsertedTiles;
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
-use oc_root::Wcfg;
+use oc_individual::order::Order;
+#[cfg(feature = "test")]
+use oc_physics::update::bevy::Position;
 use oc_root::geo::{WorldVec2, WorldVec3};
+use oc_root::{Wcfg, side};
 use oc_root::{WorldConfig, physics::Meters};
+#[cfg(feature = "test")]
+use oc_utils::d2::AlmostEqual;
 use oc_world::meta::Meta;
+use tests::individual::TestIndividual;
+use tests::squad::TestSquad;
+
+#[cfg(feature = "test")]
+static SUCCESS: AtomicBool = AtomicBool::new(false);
+
+#[derive(Parser, Debug, Clone)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg()]
+    case: Case,
+
+    #[arg(long)]
+    test: bool,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum Case {
+    Visibilities,
+    Climb,
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
     logging::setup_logging()?;
+
+    #[cfg(not(feature = "test"))]
+    if args.test {
+        compile_error!("Execute with --test need `test` feature enabled")
+    }
 
     let mod_ = oc_mod::Mod::load(&PathBuf::from("mods/std1"), None)?;
     let meta = Meta::from_file(&PathBuf::from("examples/height/meta.toml"))?;
@@ -24,7 +67,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         map.height().unwrap() as u64,
         Meters(meta.geo_meters_per_z),
     );
-    let snapshot = SnapshotBuilder::new(map, vec![], vec![], vec![]).build(w, &mod_)?;
+
+    let (individuals, squads) = match args.case {
+        Case::Visibilities => (vec![], vec![]),
+        Case::Climb => (
+            vec![
+                TestIndividual::builder()
+                    .side(side::Side::A)
+                    .position(WorldVec3::new(85., 50., 0.))
+                    .build()
+                    .make(&w),
+            ],
+            vec![
+                TestSquad::builder()
+                    .position(WorldVec2::new(85., 50.))
+                    .members(vec![oc_individual::IndividualIndex(0)])
+                    .orders(vec![Order::MoveFastTo(WorldVec2 { x: 10., y: 50. })])
+                    .build()
+                    .make(),
+            ],
+        ),
+    };
+
+    let snapshot = SnapshotBuilder::new(map, individuals, squads, vec![]).build(w, &mod_)?;
 
     let example = run::Example::builder()
         .world(PathBuf::from("examples/height"))
@@ -34,6 +99,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     example.build().run()?;
 
+    #[cfg(feature = "test")]
+    match SUCCESS.load(Ordering::Relaxed) {
+        true => println!("✅ SUCCESS !"),
+        false => return Err("❌ FAILED !".into()),
+    }
+
     Ok(())
 }
 
@@ -41,9 +112,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 struct SetupLovs;
 
 fn setup(app: &mut bevy::app::App) {
-    app.add_observer(on_game_config_received)
-        .add_observer(on_inserted_tiles)
-        .add_observer(on_setup_lovs);
+    let args = Args::parse();
+
+    match args.case {
+        Case::Visibilities => {
+            app.add_observer(on_game_config_received)
+                .add_observer(on_inserted_tiles)
+                .add_observer(on_setup_lovs);
+        }
+        Case::Climb => {}
+    }
+
+    #[cfg(feature = "test")]
+    app.add_systems(Update, track);
 }
 
 fn on_game_config_received(
@@ -104,5 +185,44 @@ fn on_setup_lovs(_: On<SetupLovs>, _: Res<Wcfg>, mut commands: Commands) {
         let entity = commands.spawn(lov);
         let update = UpdateLovFor(entity.id(), WorldVec2::new(end.x, end.y));
         commands.trigger(update);
+    }
+}
+
+#[cfg(feature = "test")]
+fn track(individuals: Query<(&Position, &IndividualIndex)>, mut commands: Commands) {
+    static IO_REACH_POSITION: Mutex<Option<Instant>> = Mutex::new(None);
+
+    let i0_position = individuals
+        .iter()
+        .find(|(_, i)| i.0 == oc_individual::IndividualIndex(0))
+        .map(|(p, _)| p.0);
+
+    if i0_position
+        .map(|p| {
+            p.almost_equal(
+                WorldVec3 {
+                    x: 10.,
+                    y: 50.,
+                    z: 45.5,
+                },
+                10., // TODO: that a large "almost", but we need a more precise path step mechanism
+            )
+        })
+        .unwrap_or_default()
+    {
+        if IO_REACH_POSITION.lock().unwrap().is_none() {
+            *IO_REACH_POSITION.lock().unwrap() = Some(Instant::now());
+        }
+    }
+
+    // FIXME BS NOW: test z too ! (must update z in physics)
+    if IO_REACH_POSITION
+        .lock()
+        .unwrap()
+        .map(|i| i.elapsed().as_secs() >= 1)
+        .unwrap_or_default()
+    {
+        SUCCESS.store(true, Ordering::Relaxed);
+        commands.write_message(bevy::app::AppExit::from_code(0));
     }
 }

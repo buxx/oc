@@ -1,13 +1,9 @@
 use bon::Builder;
-use oc_geo::{
-    region::WorldRegionIndex,
-    tile::{TileXy, WorldTileIndex},
-};
 use oc_individual::{
     BodyGesture, Gesture, Individual, Weapons,
     behavior::{Behavior, Intent},
 };
-use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec3, side::Side};
+use oc_root::{WorldConfig, geo::WorldVec3, side::Side};
 use oc_utils::d2::Direction;
 
 #[derive(Debug, Builder)]
@@ -28,11 +24,7 @@ pub struct TestIndividual {
 
 impl TestIndividual {
     pub fn make(self, w: &WorldConfig) -> Individual {
-        let xy = TileXy::from_(self.position, w);
-        let tile = WorldTileIndex::from_(xy, w);
-        let region = WorldRegionIndex::from_(tile, w);
-
-        Individual::fresh(self.side, self.position, tile, region)
+        Individual::fresh(w, self.side, self.position)
             .with_gesture(self.gesture)
             .with_behavior(self.behavior)
             .with_intent(self.intent)

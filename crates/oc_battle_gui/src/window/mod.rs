@@ -28,11 +28,15 @@ impl Window {
         commands: &mut Commands,
         mod_: &Mod,
         w: &WorldConfig,
+        #[cfg_attr(not(feature = "debug"), allow(unused))] world: &crate::world::World,
+        #[cfg_attr(not(feature = "debug"), allow(unused))] ingame: &crate::ingame::state::State,
     ) -> Result {
         match self {
             Window::BattleMenu(window) => window.show(contexts, commands, mod_, w)?,
             #[cfg(feature = "debug")]
-            Window::BattleDebug(window) => window.show(contexts, commands, mod_, w)?,
+            Window::BattleDebug(window) => {
+                window.show(contexts, commands, mod_, w, world, ingame)?
+            }
         }
 
         Ok(())
@@ -88,11 +92,13 @@ fn show(
     mut commands: Commands,
     g: Res<states::GameConfig>,
     mut pointer: ResMut<NextState<PointerIn>>,
+    world: Res<crate::world::World>,
+    ingame: Res<crate::ingame::state::State>,
 ) -> Result {
     let_some!(window = &mut window.0, return Ok(()));
     let_some!(g = &g.0, return Ok(()));
 
-    window.show(&mut contexts, &mut commands, &g.mod_, &g.w)?;
+    window.show(&mut contexts, &mut commands, &g.mod_, &g.w, &world, &ingame)?;
 
     match contexts.ctx_mut()?.is_pointer_over_egui() {
         true => *pointer = NextState::Pending(PointerIn::Window),

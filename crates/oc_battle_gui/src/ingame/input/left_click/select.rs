@@ -65,6 +65,7 @@ pub fn area(
         let (camera, transform) = *camera;
         let end = camera.viewport_to_world_2d(transform, end);
         let_ok!(end = end, return);
+        let end_ = WorldVec2::from_(end, &g.w);
 
         let size = (end - start_).abs();
         let center = (start_ + end) * 0.5;
@@ -73,52 +74,53 @@ pub fn area(
 
         // Compute selection when left click is released
         if buttons.just_released(MouseButton::Left) {
-            let end = WorldVec2::from_(end, &g.w);
-            let mut individuals = vec![];
+            if end_ != start {
+                let mut individuals = vec![];
 
-            for (i, position, _) in &query {
-                let position = position.0;
+                for (i, position, _) in &query {
+                    let position = position.0;
 
-                // Avoid rectangle direction by taking min and max
-                let min_x = start.x.min(end.x);
-                let max_x = start.x.max(end.x);
-                let min_y = start.y.min(end.y);
-                let max_y = start.y.max(end.y);
+                    // Avoid rectangle direction by taking min and max
+                    let min_x = start.x.min(end_.x);
+                    let max_x = start.x.max(end_.x);
+                    let min_y = start.y.min(end_.y);
+                    let max_y = start.y.max(end_.y);
 
-                if position.x >= min_x
-                    && position.x <= max_x
-                    && position.y >= min_y
-                    && position.y <= max_y
-                {
-                    individuals.push(i.0);
-                }
-            }
-
-            // We want to know which squad are concerned by selected individuals
-            let squads = individuals
-                .iter()
-                .filter_map(|individual| world.individual_squad(*individual))
-                .map(|(squad, _)| squad)
-                .collect::<FxHashSet<SquadIndex>>();
-            let squad_members: Vec<oc_individual::IndividualIndex> = squads
-                .iter()
-                .filter_map(|squad| world.squad(*squad))
-                .map(|squad| squad.members.clone())
-                .flatten()
-                .collect();
-            let squads: Vec<SquadIndex> = squads.into_iter().collect();
-
-            // Set to "selected" the "Selected" component
-            for individual in &squad_members {
-                if let Some(entity) = mapping.get(individual) {
-                    if let Ok((_, _, mut selected)) = query.get_mut(*entity) {
-                        selected.0 = true;
+                    if position.x >= min_x
+                        && position.x <= max_x
+                        && position.y >= min_y
+                        && position.y <= max_y
+                    {
+                        individuals.push(i.0);
                     }
                 }
-            }
 
-            // Update the state too about who is selected
-            ingame.update_selected(squads, squad_members, vec![]);
+                // We want to know which squad are concerned by selected individuals
+                let squads = individuals
+                    .iter()
+                    .filter_map(|individual| world.individual_squad(*individual))
+                    .map(|(squad, _)| squad)
+                    .collect::<FxHashSet<SquadIndex>>();
+                let squad_members: Vec<oc_individual::IndividualIndex> = squads
+                    .iter()
+                    .filter_map(|squad| world.squad(*squad))
+                    .map(|squad| squad.members.clone())
+                    .flatten()
+                    .collect();
+                let squads: Vec<SquadIndex> = squads.into_iter().collect();
+
+                // Set to "selected" the "Selected" component
+                for individual in &squad_members {
+                    if let Some(entity) = mapping.get(individual) {
+                        if let Ok((_, _, mut selected)) = query.get_mut(*entity) {
+                            selected.0 = true;
+                        }
+                    }
+                }
+
+                // Update the state too about who is selected
+                ingame.update_selected(squads, squad_members, vec![]);
+            }
             state.first_left_press = None;
         }
     }

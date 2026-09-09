@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::Context;
 use derive_more::Constructor;
@@ -87,19 +87,50 @@ impl Mod {
         format!("{}.tar.gz", self.canonical())
     }
 
-    fn amunitions_from_names(
-        &self,
-        amunitions: Vec<String>,
-    ) -> Result<Vec<&IndexedAmmunition>, Error> {
-        amunitions
+    pub fn ammunitions_from_model_names(&self, models: &Vec<String>) -> Vec<&IndexedAmmunition> {
+        let mut ammunitions: HashSet<&IndexedAmmunition> = HashSet::default();
+
+        for model in models {
+            for ammunition_ in self
+                .ammunitions
+                .iter()
+                .filter(|a| a.model() == model)
+                .collect::<Vec<_>>()
+            {
+                ammunitions.insert(ammunition_);
+            }
+        }
+
+        ammunitions.into_iter().collect()
+    }
+
+    // fn amunitions_from_names(
+    //     &self,
+    //     amunitions: Vec<String>,
+    // ) -> Result<Vec<&IndexedAmmunition>, Error> {
+    //     amunitions
+    //         .iter()
+    //         .map(|amunition| {
+    //             self.ammunitions
+    //                 .iter()
+    //                 .find(|a| a.name() == amunition)
+    //                 .ok_or(Error::UnknownAmunitionName(amunition.clone()))
+    //         })
+    //         .collect::<Result<Vec<&IndexedAmmunition>, Error>>()
+    // }
+
+    pub fn ammunition_from_name(&self, name: &str) -> Result<&IndexedAmmunition, Error> {
+        self.ammunitions
             .iter()
-            .map(|amunition| {
-                self.ammunitions
-                    .iter()
-                    .find(|a| a.name() == amunition)
-                    .ok_or(Error::UnknownAmunitionName(amunition.clone()))
-            })
-            .collect::<Result<Vec<&IndexedAmmunition>, Error>>()
+            .find(|a| a.name() == name)
+            .ok_or(Error::UnknownAmmunitionName(name.to_string()))
+    }
+
+    pub fn weapon_from_name(&self, name: &str) -> Result<&IndexedWeapon, Error> {
+        self.weapons
+            .iter()
+            .find(|w| w.name() == name)
+            .ok_or(Error::UnknownWeaponName(name.to_string()))
     }
 
     fn magazines_from_names(&self, magazines: Vec<String>) -> Result<Vec<&IndexedMagazine>, Error> {
@@ -112,6 +143,13 @@ impl Mod {
                     .ok_or(Error::UnknownMagazineName(magazine.clone()))
             })
             .collect::<Result<Vec<&IndexedMagazine>, Error>>()
+    }
+
+    pub fn magazine_from_name(&self, name: &str) -> Result<&IndexedMagazine, Error> {
+        self.magazines
+            .iter()
+            .find(|m| m.name() == name)
+            .ok_or(Error::UnknownMagazineName(name.to_string()))
     }
 
     pub fn ammunition(&self, index: AmmunitionIndex) -> &Ammunition {
@@ -202,6 +240,10 @@ pub enum Error {
     Magazine(#[from] magazine::Error),
     #[error("Unknown amunitions name: {0}")]
     UnknownAmunitionName(String),
+    #[error("Unknown ammunition name: {0}")]
+    UnknownAmmunitionName(String),
+    #[error("Unknown weapon name: {0}")]
+    UnknownWeaponName(String),
     #[error("Unknown magazine name: {0}")]
     UnknownMagazineName(String),
     #[error("Unknown sound name: {0}")]

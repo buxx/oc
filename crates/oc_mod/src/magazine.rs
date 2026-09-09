@@ -93,6 +93,12 @@ impl Magazine {
             Magazine::Cartridge(cartridge) => cartridge.capacity,
         }
     }
+
+    pub fn accept(&self) -> &Vec<String> {
+        match self {
+            Magazine::Cartridge(cartridge) => &cartridge.accept,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter, Default)]
@@ -129,21 +135,21 @@ pub struct Cartridge {
 // TODO: use something generic here (bullet/weapon/etc)
 pub fn load(path: &PathBuf) -> Result<Vec<IndexedMagazine>, Error> {
     let path = path.join(MAGAZINES_RON);
-    let amunitions = std::fs::read_to_string(&path);
-    let amunitions = amunitions.context(format!("Read {}", path.display()))?;
-    let amunitions: Vec<Magazine> = ron::from_str(&amunitions)?;
+    let magazines = std::fs::read_to_string(&path);
+    let magazines = magazines.context(format!("Read {}", path.display()))?;
+    let magazines: Vec<Magazine> = ron::from_str(&magazines)?;
 
-    if amunitions.is_empty() {
+    if magazines.is_empty() {
         return Err(Error::Empty);
     }
 
-    let amunitions = amunitions
+    let magazines = magazines
         .into_iter()
         .enumerate()
         .map(|(i, p)| IndexedMagazine(MagazineIndex(i as u32), p))
         .collect();
 
-    Ok(amunitions)
+    Ok(magazines)
 }
 
 #[derive(Debug, Error)]

@@ -17,6 +17,8 @@ impl super::Context {
         ui: &mut egui_dock::egui::Ui,
         _commands: &mut Commands,
         _mod_: &Mod,
+        _world: &crate::world::World,
+        _ingame: &crate::ingame::state::State,
     ) {
         ui.horizontal(|ui| {
             if ui.button("Ingame").clicked() {

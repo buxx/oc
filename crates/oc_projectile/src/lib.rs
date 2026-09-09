@@ -106,6 +106,7 @@ impl Physic for Projectile {
     fn volumes(
         &self,
         ref_: WorldVec3,
+        _: bool,
         _: &WorldConfig,
         _mod_: &Mod,
     ) -> Vec<(Volume, Traversability, Direction)> {

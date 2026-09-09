@@ -164,6 +164,7 @@ test-e2e:
     just test-visibilities-hedge
     just test-engaging-direct
     just test-engaging-direct2
+    just test-height-climb
 
 test-projectiles-obstacles-one-wall:
     RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-against-wall --test
@@ -242,6 +243,9 @@ test-engaging-direct:
 
 test-engaging-direct2:
     RUST_LOG=ERROR cargo run --bin example_engaging --features test -- direct2 --test
+
+test-height-climb:
+    RUST_LOG=ERROR cargo run --bin example_height --features test -- climb --test
 
 test-all:
     just test

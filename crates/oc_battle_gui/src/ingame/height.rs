@@ -307,7 +307,7 @@ fn on_spawn(
                         let z = tile.z_pixels(&g.w);
                         let ref_ = [x, y, z].into();
                         let rotation = individual.gesture.rotation(V::Gui);
-                        for (volume, _, _) in individual.volumes(ref_, &g.w, &g.mod_) {
+                        for (volume, _, _) in individual.volumes(ref_, false, &g.w, &g.mod_) {
                             let alpha = 1.0;
                             if let Volume::Cube {
                                 x,
