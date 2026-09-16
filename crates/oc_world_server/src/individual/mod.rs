@@ -469,7 +469,8 @@ impl<'a> Processor<'a> {
                             // If already aiming, continue
                             oc_individual::HandsGesture::Aiming(progress) => {
                                 let weapon = self.world.mod_.weapon(weapon.i);
-                                let progress = progress.tick(interval, weapon.aim());
+                                // FIXME BS NOW: add random (according to multiple factor) to not have always same reload tick
+                                let (progress, exceedance) = progress.tick(interval, weapon.aim());
                                 tracing::trace!(name="individual-processor-engage-gesture-aiming", i=?self.i, progress=progress.0);
 
                                 match progress.finished() {
@@ -515,6 +516,7 @@ impl<'a> Processor<'a> {
                                                 weapon_kind,
                                                 target,
                                                 visible.visibility.opacity,
+                                                exceedance,
                                             ),
                                         )
                                     }
@@ -550,7 +552,8 @@ impl<'a> Processor<'a> {
                             // If already reloading, continue
                             oc_individual::HandsGesture::Reloading(progress) => {
                                 let weapon = self.world.mod_.weapon(weapon.i);
-                                let progress = progress.tick(interval, weapon.reload());
+                                // FIXME BS NOW: add random (according to multiple factor) to not have always same reload tick
+                                let (progress, _) = progress.tick(interval, weapon.reload());
                                 tracing::trace!(name="individual-processor-engage-gesture-weapon-reloading", i=?self.i, progress=progress.0);
 
                                 match progress.finished() {
@@ -637,8 +640,8 @@ impl<'a> Processor<'a> {
                             // If already aiming, continue
                             oc_individual::HandsGesture::Aiming(progress) => {
                                 let weapon = self.world.mod_.weapon(weapon.i);
-                                let progress = progress.tick(interval, weapon.aim());
-                                tracing::trace!(name="individual-processor-suppress-gesture-aiming", i=?self.i, progress=progress.0);
+                                let (progress, exceedance) = progress.tick(interval, weapon.aim());
+                                tracing::trace!(name="individual-processor-suppress-gesture-aiming", i=?self.i, progress=progress.0, exceedance=exceedance.0);
 
                                 match progress.finished() {
                                     // If aiming is finished, spawn projectile
@@ -660,6 +663,7 @@ impl<'a> Processor<'a> {
                                                         WeaponKind::Primary,
                                                         target,
                                                         visibility.opacity,
+                                                        exceedance,
                                                     ),
                                                 )
                                             }
@@ -697,7 +701,7 @@ impl<'a> Processor<'a> {
                             // If already reloading, continue
                             oc_individual::HandsGesture::Reloading(progress) => {
                                 let weapon = self.world.mod_.weapon(weapon.i);
-                                let progress = progress.tick(interval, weapon.reload());
+                                let (progress, _) = progress.tick(interval, weapon.reload());
                                 tracing::trace!(name="individual-processor-suppress-gesture-weapon-reloading", i=?self.i, progress=progress.0);
 
                                 match progress.finished() {
@@ -776,9 +780,12 @@ impl<'a> Processor<'a> {
         kind: WeaponKind,
         target: WorldVec3,
         opacity: CumulatedOpacity,
+        exceedance: U8Progress,
     ) -> Vec<runner::update::Update> {
         // FIXME BS NOW: how choose mode ?
         let_some!(shot = weapon.shots().first(), return vec![]);
+        let default_lag_us = self.world.w.individual_tick_interval_us as f32;
+        let lag_us = (default_lag_us - (default_lag_us * exceedance.f32())) as u64;
         let repeat = 1;
 
         let mut weapons = individual.weapons.clone();
@@ -791,7 +798,6 @@ impl<'a> Processor<'a> {
             }
         };
 
-        // FIXME BS NOW: must ensure the individual z is updated according to tile z
         let plus_z = individual.gesture.body.weapon_z().pixels(&self.world.w);
         let from = WorldVec3 {
             x: individual.position.x,
@@ -824,13 +830,11 @@ impl<'a> Processor<'a> {
             // FIXME BS NOW: berk, create Direction3d
             directions,
             side: individual.side,
+            lag_us,
             #[cfg(feature = "debug")]
             shooter: Some(self.i),
         };
         tracing::trace!(name="individual-processor-spawn-projectiles", i=?self.i, spawn=?spawn, weapons=?weapons);
-
-        // FIXME BS NOW
-        // self.broadcast
 
         vec![
             runner::update::Update::SpawnProjectiles(spawn),
@@ -1264,6 +1268,7 @@ mod tests {
         squad::SquadIndex,
     };
     use oc_mod::{Mod, ammunition::AmmunitionIndex, magazine::MagazineIndex, weapons::WeaponIndex};
+    use oc_projectile::spawn::SpawnProjectiles;
     use oc_root::{
         U8Progress, WorldConfig,
         geo::{WorldVec2, WorldVec3},
@@ -1526,7 +1531,7 @@ mod tests {
     fn test_engage_aiming_finished() {
         // When-Then
         let mod_ = Mod::load(&workspace_root().join(MOD), None).unwrap();
-        let w = WorldConfig::new(100, 100, Meters(0.1));
+        let w = WorldConfig::new(100, 100, Meters(0.1)).individual_tick_interval_us(1_000_000);
         let gesture = engage_test_gesture(w, |individual1| {
             individual1.gesture = individual1
                 .gesture
@@ -1543,7 +1548,21 @@ mod tests {
         // Then
         assert_eq!(gesture.0.hands, HandsGesture::Idle);
         assert_eq!(gesture.1.len(), 2);
-        assert_matches!(gesture.1[0], Update::SpawnProjectiles(_));
+        assert_matches!(
+            gesture.1[0],
+            Update::SpawnProjectiles(SpawnProjectiles {
+                weapon: _,
+                ammunition: _,
+                shot: _,
+                repeat: _,
+                from: _,
+                directions: _,
+                side: _,
+                lag_us: 3921,
+                #[cfg(feature = "debug")]
+                shooter: _
+            })
+        );
         assert_eq!(
             gesture.1[1],
             Update::UpdateIndividual(

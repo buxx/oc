@@ -333,15 +333,21 @@ impl U8Progress {
         Self(0)
     }
 
-    pub fn tick(&self, interval_micros: u64, total: Seconds) -> Self {
+    pub fn tick(&self, interval_micros: u64, total: Seconds) -> (Self, Self) {
         let total_micros = (total.0 * 1_000_000.0) as u64;
         let total_ticks = (total_micros / interval_micros).max(1); // avoid div-by-zero
         let increment = (255u32 / total_ticks as u32) as u8;
-        Self(self.0.saturating_add(increment))
+        let add = increment.min(255 - self.0);
+        let new = self.0 + add;
+        let exceedance = increment - add;
+        (Self(new), Self(exceedance))
     }
 
     pub fn finished(&self) -> bool {
         self.0 == 255
+    }
+    pub fn f32(&self) -> f32 {
+        self.0 as f32 / 255.
     }
 }
 
@@ -355,7 +361,7 @@ mod tests {
     #[test]
     fn single_tick_2s_at_10tps() {
         let p = U8Progress(0);
-        let p = p.tick(100_000, Seconds(2.0));
+        let (p, _) = p.tick(100_000, Seconds(2.0));
         assert_eq!(p.0, 12);
     }
 
@@ -364,7 +370,7 @@ mod tests {
     #[test]
     fn single_tick_1s_at_10tps() {
         let p = U8Progress(0);
-        let p = p.tick(100_000, Seconds(1.0));
+        let (p, _) = p.tick(100_000, Seconds(1.0));
         assert_eq!(p.0, 25);
     }
 
@@ -374,7 +380,7 @@ mod tests {
     fn full_duration_does_not_reach_max_due_to_truncation() {
         let mut p = U8Progress(0);
         for _ in 0..20 {
-            p = p.tick(100_000, Seconds(2.0));
+            p = p.tick(100_000, Seconds(2.0)).0;
         }
         assert_eq!(p.0, 240);
         assert!(p.0 < 255);
@@ -385,7 +391,7 @@ mod tests {
     fn saturates_at_max() {
         let mut p = U8Progress(0);
         for _ in 0..100 {
-            p = p.tick(100_000, Seconds(1.0)); // increment 25 each time
+            p = p.tick(100_000, Seconds(1.0)).0; // increment 25 each time
         }
         assert_eq!(p.0, 255);
     }
@@ -394,7 +400,7 @@ mod tests {
     #[test]
     fn saturating_add_does_not_wrap() {
         let p = U8Progress(250);
-        let p = p.tick(100_000, Seconds(1.0)); // increment 25 -> would be 275
+        let (p, _) = p.tick(100_000, Seconds(1.0)); // increment 25 -> would be 275
         assert_eq!(p.0, 255);
     }
 
@@ -403,7 +409,7 @@ mod tests {
     #[test]
     fn interval_larger_than_total_clamped_to_one_tick() {
         let p = U8Progress(0);
-        let p = p.tick(5_000_000, Seconds(1.0)); // 5s interval, 1s total
+        let (p, _) = p.tick(5_000_000, Seconds(1.0)); // 5s interval, 1s total
         assert_eq!(p.0, 255);
     }
 
@@ -411,7 +417,7 @@ mod tests {
     #[test]
     fn zero_duration_does_not_panic() {
         let p = U8Progress(0);
-        let p = p.tick(100_000, Seconds(0.0));
+        let (p, _) = p.tick(100_000, Seconds(0.0));
         assert_eq!(p.0, 255); // total_ticks clamped to 1 -> full jump
     }
 
@@ -419,7 +425,29 @@ mod tests {
     #[test]
     fn tick_from_nonzero_start() {
         let p = U8Progress(100);
-        let p = p.tick(100_000, Seconds(2.0)); // increment 12
+        let (p, _) = p.tick(100_000, Seconds(2.0)); // increment 12
         assert_eq!(p.0, 112);
+    } // interval_micros = 1_000_000 (1s), total = 10s => total_ticks = 10,
+    // increment = 255 / 10 = 25 per tick.
+
+    #[test]
+    fn tick_without_exceedance() {
+        let progress = U8Progress(0);
+        let (new, exceedance) = progress.tick(1_000_000, Seconds(10.0));
+
+        assert_eq!(new.0, 25);
+        assert_eq!(exceedance.0, 0);
+    }
+
+    #[test]
+    fn tick_with_exceedance() {
+        // Only 10 units of room left before hitting 255, but increment is 25,
+        // so the bar caps out and the leftover 15 becomes the exceedance.
+        let progress = U8Progress(245);
+        let (new, exceedance) = progress.tick(1_000_000, Seconds(10.0));
+
+        assert_eq!(new.0, 255);
+        assert!(new.finished());
+        assert_eq!(exceedance.0, 15);
     }
 }

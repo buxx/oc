@@ -8,6 +8,7 @@ pub struct Perf {
     pub individual_ticks: AtomicU64,
     pub individual_percents: Mutex<Vec<f32>>,
     pub visibilities_ticks: AtomicU64,
+    #[allow(unused)]
     pub visibilities_percents: Mutex<Vec<f32>>,
     pub squad_ticks: AtomicU64,
     pub squad_percents: Mutex<Vec<f32>>,
@@ -30,16 +31,12 @@ impl Perf {
         self.individual_percents.lock().expect("Assume available")[i] = value;
     }
 
-    pub fn visibilities_ticks(&self) -> u64 {
-        self.visibilities_ticks
-            .load(std::sync::atomic::Ordering::Relaxed)
-    }
-
     pub fn increment_visibilities(&self) {
         self.visibilities_ticks
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     }
 
+    #[allow(unused)]
     pub fn set_visibilities_percent(&self, i: usize, value: f32) {
         self.visibilities_percents.lock().expect("Assume available")[i] = value;
     }

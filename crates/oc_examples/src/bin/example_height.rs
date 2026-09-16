@@ -54,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     #[cfg(not(feature = "test"))]
     if args.test {
-        compile_error!("Execute with --test need `test` feature enabled")
+        panic!("Execute with --test need `test` feature enabled")
     }
 
     let mod_ = oc_mod::Mod::load(&PathBuf::from("mods/std1"), None)?;
@@ -215,7 +215,6 @@ fn track(individuals: Query<(&Position, &IndividualIndex)>, mut commands: Comman
         }
     }
 
-    // FIXME BS NOW: test z too ! (must update z in physics)
     if IO_REACH_POSITION
         .lock()
         .unwrap()

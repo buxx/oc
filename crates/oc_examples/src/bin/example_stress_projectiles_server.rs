@@ -106,6 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             [0., 0., 500.].into(),
                             directions,
                             Side::A,
+                            0,
                             #[cfg(feature = "debug")]
                             None,
                         )),

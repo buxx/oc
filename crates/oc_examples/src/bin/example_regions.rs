@@ -235,6 +235,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 [450., 248., 8.5].into(),
                 directions,
                 Side::A,
+                0,
                 #[cfg(feature = "debug")]
                 None,
             );
@@ -253,6 +254,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 [250., 248., 8.5].into(),
                 directions,
                 Side::A,
+                0,
                 #[cfg(feature = "debug")]
                 None,
             );

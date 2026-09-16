@@ -289,6 +289,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 start.into(),
                 vec![direction],
                 Side::B,
+                0,
                 #[cfg(feature = "debug")]
                 None,
             ),

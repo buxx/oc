@@ -47,6 +47,7 @@ mod test {
         fn volumes(
             &self,
             ref_: WorldVec3,
+            _: bool,
             _: &WorldConfig,
             _: &Mod,
         ) -> Vec<(Volume, Traversability, Direction)> {

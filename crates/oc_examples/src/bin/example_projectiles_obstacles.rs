@@ -183,6 +183,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                         10
                     ],
                     Side::A,
+                    0,
                     #[cfg(feature = "debug")]
                     None,
                 ),
@@ -198,6 +199,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                         10
                     ],
                     Side::A,
+                    0,
                     #[cfg(feature = "debug")]
                     None,
                 ),
@@ -213,6 +215,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                         10
                     ],
                     Side::A,
+                    0,
                     #[cfg(feature = "debug")]
                     None,
                 ),
@@ -233,6 +236,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                     10
                 ],
                 Side::A,
+                0,
                 #[cfg(feature = "debug")]
                 None,
             )] {
@@ -253,6 +257,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                         10
                     ],
                     Side::A,
+                    0,
                     #[cfg(feature = "debug")]
                     None,
                 ),
@@ -268,6 +273,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                         10
                     ],
                     Side::A,
+                    0,
                     #[cfg(feature = "debug")]
                     None,
                 ),
@@ -283,6 +289,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                         10
                     ],
                     Side::A,
+                    0,
                     #[cfg(feature = "debug")]
                     None,
                 ),
@@ -303,6 +310,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                     10
                 ],
                 Side::A,
+                0,
                 #[cfg(feature = "debug")]
                 None,
             )] {
@@ -322,6 +330,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                     10
                 ],
                 Side::A,
+                0,
                 #[cfg(feature = "debug")]
                 None,
             )] {

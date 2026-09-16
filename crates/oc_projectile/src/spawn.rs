@@ -15,6 +15,7 @@ pub struct SpawnProjectiles {
     pub from: WorldVec3,
     pub directions: Vec<WorldVec3>,
     pub side: Side,
+    pub lag_us: u64, // FIXME Use strong type "Lag"
     #[cfg(feature = "debug")]
     pub shooter: Option<IndividualIndex>,
 }

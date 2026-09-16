@@ -47,7 +47,7 @@ impl Schedule<&Mod, (Instant, bool)> for SpawnProjectiles {
         let repeat = self.repeat;
         let shot = weapon.shot(self.shot);
         let rounds = shot.rounds();
-        let mut instant = Instant::now();
+        let mut instant = Instant::now() + Duration::from_micros(self.lag_us);
         let mut instants = vec![];
 
         for _ in 0..repeat {

@@ -197,6 +197,7 @@ impl super::Context {
                         *repeat,
                         *plus_z,
                         *side,
+                        0,
                     );
                     commands.trigger(SetLeftClick(LeftClickMode::SpawnProjectile(spawn)));
                 }

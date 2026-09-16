@@ -24,6 +24,7 @@ impl IntoSpawnProjectile for SpawnProjectileProfile {
             start,
             vec![direction],
             side,
+            self.lag_us,
             #[cfg(feature = "debug")]
             None,
         )

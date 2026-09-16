@@ -140,6 +140,7 @@ fn orbit(
                 [orbiter.center.x, orbiter.center.y, 500.].into(),
                 directions,
                 Side::A,
+                0,
                 #[cfg(feature = "debug")]
                 None,
             ),
