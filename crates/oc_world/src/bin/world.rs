@@ -4,7 +4,7 @@ use ::image::{ImageBuffer, Rgba};
 use anyhow::Context;
 use clap::Parser;
 use oc_mod::Mod;
-use oc_root::{WorldConfig, physics::Meters};
+use oc_root::WorldConfig;
 use oc_utils::image;
 use oc_world::{reader, snapshot::Snapshot, terrain::Terrain};
 use tracing::level_filters::LevelFilter;
@@ -99,7 +99,7 @@ fn main() -> Result<(), anyhow::Error> {
     let background_path = args.path.join("background.png");
     let interiors_path = args.path.join("interiors.png");
     let (width, height) = background(&args, &background_path)?;
-    let w = WorldConfig::new(width, height, Meters(0.1));
+    let w = WorldConfig::new(width, height);
 
     tracing::info!("Assuming width of {} (tiles)", width);
     tracing::info!("Assuming height of {} (tiles)", height);

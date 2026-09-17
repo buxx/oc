@@ -19,7 +19,7 @@ use oc_battle_gui::{
     states::Game,
 };
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
-use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side};
+use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side, utils::Frequency};
 use oc_world::{meta::Meta, tile::Tile};
 use tests::{
     individual::TestIndividual,
@@ -57,6 +57,8 @@ impl Args {
     }
 }
 
+// FIXME BS NOW: seems target not correct pixel (top left instead center ?)
+// il faut changer le système pour considérer le pixel de position d'un individual comme son centre et plus son to left
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum TestCase {
     Direct,
@@ -72,9 +74,9 @@ fn main() -> Result<(), anyhow::Error> {
 
     let args = Args::parse();
     if args.test {
-        #[cfg(not(feature = "test"))]
+        #[cfg(any(not(feature = "test"), not(feature = "debug")))]
         {
-            panic!("To enable test, feature `test` must be enabled too")
+            panic!("To enable test, feature `test` and `debug` must be enabled too")
         }
     }
 
@@ -84,28 +86,22 @@ fn main() -> Result<(), anyhow::Error> {
     let meta = Meta::from_file(&map.join("meta.toml"))?;
     let map_ = oc_world::reader::MapReader::new(&map);
     let map_ = map_.context(format!("Read map_ {}", map.display()))?;
-    let w = WorldConfig::new(
-        map_.width().unwrap() as u64,
-        map_.height().unwrap() as u64,
-        Meters(meta.geo_meters_per_z),
-    )
-    .visibilities_tick_each_seconds(0.5); // To ensure one shot and test it
+    let w = WorldConfig::new(map_.width().unwrap() as u64, map_.height().unwrap() as u64)
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z))
+        .with_visibilities_tick(Frequency::new(2.0)); // To ensure one shot and test it
 
     // For som cases, apply perfect accuracy
     #[cfg(feature = "debug")]
-    match args.case {
-        TestCase::Direct | TestCase::Direct2 | TestCase::FarMachineGun => {}
-        TestCase::Suppressed | TestCase::Hedge => {
-            WorldConfig::set_inaccuracy_spread_enabled(true);
-            WorldConfig::set_inaccuracy_spread(0.0);
-        }
-    };
+    if args.test || args.precise {
+        WorldConfig::set_inaccuracy_spread_enabled(true);
+        WorldConfig::set_inaccuracy_spread(0.0);
+    }
 
     // For some case (and when test) increase the individual tick rate
     let w = match args.case {
         TestCase::Direct | TestCase::Direct2 => w,
         TestCase::FarMachineGun | TestCase::Suppressed | TestCase::Hedge => match args.test {
-            true => w.individual_tick_interval_us(1_000_000 / 10),
+            true => w.with_individual_tick(Frequency::new(10.0)),
             false => w,
         },
     };

@@ -30,6 +30,9 @@ impl Volume {
         }
     }
 
+    /// Repositions the volume so that `value` is its center (for `Cube`,
+    /// `x/y/z` is stored as the min corner, so it is offset back by half the
+    /// size on each axis; for `Point`, center and position are the same).
     pub fn with_ref(mut self, value: impl Into<[f32; 3]>) -> Self {
         let value: [f32; 3] = value.into();
         match &mut self {
@@ -42,12 +45,12 @@ impl Volume {
                 x,
                 y,
                 z,
-                width: _,
-                height: _,
+                width,
+                height,
                 depth: _,
             } => {
-                *x = value[0];
-                *y = value[1];
+                *x = value[0] - *width / 2.0;
+                *y = value[1] - *height / 2.0;
                 *z = value[2];
             }
         };

@@ -21,7 +21,7 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
             all: vec![],
             side_identitides: FxHashMap::default(),
             identities: FxHashMap::default(),
-            regions_listeners: vec![vec![]; w.regions_count as usize],
+            regions_listeners: vec![vec![]; w.regions_count() as usize],
             listeners_regions: FxHashMap::default(),
         }
     }

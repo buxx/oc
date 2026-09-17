@@ -8,11 +8,11 @@ use polyanya::*;
 pub fn navmesh(w: &WorldConfig, grid: &[bool]) -> Mesh {
     // 1. Define the outer boundary (the full walkable world)
     //    Points go counter-clockwise around the perimeter.
-    let width = w.world_width_pixels as f32;
-    let cols = w.world_width;
-    let height = w.world_height_pixels as f32;
-    let rows = w.world_width;
-    let tile_size = w.geo_pixels_per_tile as f32;
+    let width = w.world_width_pixels() as f32;
+    let cols = w.world_width();
+    let height = w.world_height_pixels() as f32;
+    let rows = w.world_width();
+    let tile_size = w.geo_pixels_per_tile() as f32;
 
     let mut triangulation = Triangulation::from_outer_edges(&[
         [0.0, 0.0].into(),

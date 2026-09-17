@@ -119,12 +119,12 @@ impl<'x, E: Client> Processor<'x, E> {
             .map(|(i, subject)| {
                 let (position, forces, events_) = oc_physics::step(
                     &self.ctx.state.w,
+                    self.ctx.state.w.physics_tick().period(),
                     &self.ctx.state._mod,
-                    self.ctx.state.w.physics_coeff_per_tick,
                     (*i, *subject),
                     collision_objects,
                     proximity_objects,
-                    self.ctx.state.w.ignore_firsts_physics_pixels as usize,
+                    self.ctx.state.w.ignore_firsts_physics_pixels() as usize,
                     "server"
                 );
                 tracing::trace!(name="physics-subject", i=?i, position=?position, forces=?forces);
@@ -296,14 +296,16 @@ impl<'x, E: Client> Processor<'x, E> {
     fn increase_suppress(
         &self,
         w: &WorldConfig,
-        suppress: oc_root::Suppress,
+        suppress: oc_root::behavior::Suppress,
         kind: oc_physics::ProximityKind,
         position_reference: WorldVec3,
         position: WorldVec3,
-    ) -> oc_root::Suppress {
+    ) -> oc_root::behavior::Suppress {
         let (maximum_distance, increment) = match kind {
-            oc_physics::ProximityKind::Fly => w.proximity_projectile_fly_tick_increase_value,
-            oc_physics::ProximityKind::Impact => w.proximity_projectile_impact_tick_increase_value,
+            oc_physics::ProximityKind::Fly => w.proximity_projectile_fly_tick_increase_value(),
+            oc_physics::ProximityKind::Impact => {
+                w.proximity_projectile_impact_tick_increase_value()
+            }
         };
         let maximum_distance = maximum_distance.pixels(w);
 
@@ -321,7 +323,7 @@ impl<'x, E: Client> Processor<'x, E> {
         let proximity = maximum_distance - event_distance;
         let factor = proximity / maximum_distance;
         let value = (increment.0 as f32 * factor).round() as u8;
-        oc_root::Suppress(suppress.0.saturating_add(value))
+        oc_root::behavior::Suppress(suppress.0.saturating_add(value))
     }
 }
 

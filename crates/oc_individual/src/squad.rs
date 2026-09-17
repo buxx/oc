@@ -124,7 +124,7 @@ impl SquadFormation {
                     V::Gui => -f32::sin(angle.0),
                 };
                 let space =
-                    w.formation_tiles_between_positions as f32 * w.geo_pixels_per_tile as f32;
+                    w.formation_tiles_between_positions() as f32 * w.geo_pixels_per_tile() as f32;
 
                 // Leader is already at `reference`. Remaining members fan out
                 // alternately left/right, one rank further out each pair:
@@ -148,7 +148,7 @@ impl SquadFormation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use oc_root::{physics::Meters, y::V};
+    use oc_root::y::V;
     use oc_utils::d2::Direction;
     use rstest::rstest;
 
@@ -169,7 +169,7 @@ mod tests {
         #[case] expected: Vec<Vec2>,
     ) {
         // Given
-        let w = WorldConfig::new(100, 100, Meters(0.1)).geo_pixels_per_tile(10);
+        let w = WorldConfig::new(100, 100).with_geo_pixels_per_tile(10);
         let reference = Vec2::new(100., 100.);
         let formation = SquadFormation::Line;
 

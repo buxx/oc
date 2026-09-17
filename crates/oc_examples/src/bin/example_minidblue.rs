@@ -42,11 +42,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let map__ = map.build().unwrap();
     let world = Meta::from_file(&map_.meta());
     let world = world.context(format!("Read file {}", map_.meta().display()))?;
-    let w = WorldConfig::new(
-        map.width().unwrap() as u64,
-        map.height().unwrap() as u64,
-        Meters(world.geo_meters_per_z),
-    );
+    let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
+        .with_geo_meters_per_z(Meters(world.geo_meters_per_z));
 
     let deployments = match args.case {
         Case::Empty => deployment::Deployments::default(),

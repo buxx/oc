@@ -3,9 +3,7 @@ use bevy::prelude::*;
 use oc_geo::region::{Region as _, WorldRegionIndex};
 use oc_physics::Physic;
 use oc_physics::collision::Material_;
-use oc_physics::update::bevy::{
-    Forces, PhysicsPlugin, Position, Region, SetPositionEvent, Tile, Volumes,
-};
+use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volumes};
 use oc_root::WcfgFrom;
 use oc_root::geo::ScreenVec2;
 use oc_root::y::Y;
@@ -17,7 +15,7 @@ use crate::ingame;
 use crate::ingame::draw::Z_PROJECTILE;
 use crate::ingame::input::individual::UpdateProjectilePhysicsEvent;
 use crate::ingame::input::projectile::InsertProjectileEvent;
-use crate::ingame::physics::Direction;
+use crate::ingame::physics::{Direction, PhysicsUpdatedPosition};
 use crate::ingame::region::ForgottenRegion;
 use crate::states::{AppState, GameConfig};
 
@@ -85,15 +83,16 @@ pub fn on_insert_projectile(
     state.insert(projectile.0, entity);
 }
 
+// FIXME BS NOW: ne plus être attaché aux update de position du serveur mais du gui
 fn on_update_position(
-    position: On<SetPositionEvent<oc_projectile::ProjectileId>>,
+    event: On<PhysicsUpdatedPosition<oc_projectile::ProjectileId>>,
     g: Res<GameConfig>,
     projectiles: Res<EntityMapping<oc_projectile::ProjectileId>>,
     mut meshes: ResMut<Assets<Mesh>>,
     query: Query<&Mesh2d>,
 ) {
     let_some!(g = &g.0, return);
-    let (i, position, previous) = (position.0, position.1, position.2);
+    let (i, position, previous) = (event.0, event.1, event.2);
     let_some!(entity = projectiles.get(&i), return);
     let_ok!(mesh = query.get(*entity), return);
     let_some!(mut mesh = meshes.get_mut(mesh), return);

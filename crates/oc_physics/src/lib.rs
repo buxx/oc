@@ -102,8 +102,8 @@ pub trait World<Z> {
 #[inline]
 pub fn step<'a, I, O, C, P, Z>(
     w: &WorldConfig,
-    mod_: &Mod,
     delta: f32,
+    mod_: &Mod,
     object: (I, &'a O),
     collision_at: C,
     proximity_at: P,
@@ -133,7 +133,7 @@ where
         match force {
             Force::Translation(direction, speed) => {
                 let speed = speed.0 * delta;
-                let pixels = speed * w.geo_pixels_per_meters;
+                let pixels = speed * w.geo_pixels_per_meters();
                 let [x, y, z] = position.into();
                 let (x_, y_, z_) = (
                     x + direction.x * pixels,
@@ -156,8 +156,8 @@ where
 
                 let start = (x.ceil() as isize, y.ceil() as isize, z.ceil() as isize);
                 let end = (x_.ceil() as isize, y_.ceil() as isize, z_.ceil() as isize);
-                let world_width = w.world_width_pixels as u64;
-                let world_height = w.world_width_pixels as u64;
+                let world_width = w.world_width_pixels() as u64;
+                let world_height = w.world_width_pixels() as u64;
                 let mut interupted = false;
 
                 'pixels: for (pixel_x, pixel_y, pixel_z) in Bresenham3d::new(start, end) {
@@ -335,7 +335,7 @@ mod tests {
     use std::path::PathBuf;
 
     use oc_geo::tile::TileXy;
-    use oc_root::{WcfgInto, material::MaterialKind, physics::Meters};
+    use oc_root::{WcfgInto, material::MaterialKind, utils::Frequency};
 
     use super::*;
 
@@ -417,8 +417,8 @@ mod tests {
                     x: ref_.x,
                     y: ref_.y,
                     z: ref_.z,
-                    width: w.geo_pixels_per_tile as f32,
-                    height: w.geo_pixels_per_tile as f32,
+                    width: w.geo_pixels_per_tile() as f32,
+                    height: w.geo_pixels_per_tile() as f32,
                     depth: f32::MAX,
                 },
                 self.1.clone(),
@@ -513,8 +513,8 @@ mod tests {
                     x: ref_.x,
                     y: ref_.y,
                     z: ref_.z,
-                    width: w.geo_pixels_per_tile as f32,
-                    height: w.geo_pixels_per_tile as f32,
+                    width: w.geo_pixels_per_tile() as f32,
+                    height: w.geo_pixels_per_tile() as f32,
                     depth: f32::MAX,
                 },
                 self.1.clone(),
@@ -545,10 +545,9 @@ mod tests {
     fn test_unidirectional_translation_x() {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000, Meters(0.1))
-            .physics_coeff_per_tick(0.5)
-            .geo_pixels_per_meters(10.);
-        let delta = w.physics_coeff_per_tick;
+        let w = WorldConfig::new(1000, 1000)
+            .with_physics_tick(Frequency::new(2.0))
+            .with_geo_pixels_per_meters(10.);
         let direction = [1.0, 0.0, 0.0].into();
         let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction, speed);
@@ -557,8 +556,8 @@ mod tests {
         // When
         let (new_position, _, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
+            w.physics_tick().period(),
             &mod_,
-            delta,
             (MyObjectId(0), &object),
             |_| vec![],
             |_| vec![],
@@ -575,10 +574,9 @@ mod tests {
     fn test_unidirectional_translation_outside() {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(10, 10, Meters(0.1))
-            .physics_coeff_per_tick(1.0)
-            .geo_pixels_per_meters(10.);
-        let delta = w.physics_coeff_per_tick;
+        let w = WorldConfig::new(10, 10)
+            .with_physics_tick(Frequency::new(1.0))
+            .with_geo_pixels_per_meters(10.);
         let direction = [1.0, 0.0, 0.0];
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction.into(), speed);
@@ -587,8 +585,8 @@ mod tests {
         // When
         let (new_position, _, events): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
+            w.physics_tick().period(),
             &mod_,
-            delta,
             (MyObjectId(0), &object),
             |_| vec![],
             |_| vec![],
@@ -606,10 +604,9 @@ mod tests {
     fn test_unidirectional_translation_multisteps() {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000, Meters(0.1))
-            .physics_coeff_per_tick(1.0)
-            .geo_pixels_per_meters(10.);
-        let delta = w.physics_coeff_per_tick;
+        let w = WorldConfig::new(1000, 1000)
+            .with_physics_tick(Frequency::new(1.0))
+            .with_geo_pixels_per_meters(10.);
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(0.01); // 1% of 10 pixels = 0.1 pixel
         let force = Force::Translation(direction.into(), speed);
@@ -618,8 +615,8 @@ mod tests {
         // When
         let (new_position, _, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
+            w.physics_tick().period(),
             &mod_,
-            delta,
             (MyObjectId(0), &object),
             |_| vec![],
             |_| vec![],
@@ -636,10 +633,9 @@ mod tests {
     fn test_unidirectional_translation_collision() {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000, Meters(0.1))
-            .physics_coeff_per_tick(0.5)
-            .geo_pixels_per_meters(10.);
-        let delta = w.physics_coeff_per_tick;
+        let w = WorldConfig::new(1000, 1000)
+            .with_physics_tick(Frequency::new(2.0))
+            .with_geo_pixels_per_meters(10.);
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction.into(), speed);
@@ -659,8 +655,8 @@ mod tests {
         // When
         let (new_position, new_forces, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
+            w.physics_tick().period(),
             &mod_,
-            delta,
             (MyObjectId(0), &object),
             objects,
             |_| vec![],
@@ -679,10 +675,9 @@ mod tests {
     fn test_unidirectional_translation_high_speed() {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000, Meters(0.1))
-            .physics_coeff_per_tick(0.5)
-            .geo_pixels_per_meters(10.);
-        let delta = w.physics_coeff_per_tick;
+        let w = WorldConfig::new(1000, 1000)
+            .with_physics_tick(Frequency::new(1.0))
+            .with_geo_pixels_per_meters(10.);
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(10.0);
         let force = Force::Translation(direction.into(), speed);
@@ -691,8 +686,8 @@ mod tests {
         // When
         let (new_position, _, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
+            w.physics_tick().period(),
             &mod_,
-            delta,
             (MyObjectId(0), &object),
             |_| vec![],
             |_| vec![],
@@ -701,7 +696,7 @@ mod tests {
         );
 
         // Then
-        let expected_new_position: WorldVec3 = [50.0, 0.0, 0.0].into();
+        let expected_new_position: WorldVec3 = [100.0, 0.0, 0.0].into();
         assert_eq!(new_position, expected_new_position);
     }
 
@@ -709,10 +704,9 @@ mod tests {
     fn test_unidirectional_translation_high_speed_collision() {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000, Meters(0.1))
-            .physics_coeff_per_tick(0.5)
-            .geo_pixels_per_meters(10.);
-        let delta = w.physics_coeff_per_tick;
+        let w = WorldConfig::new(1000, 1000)
+            .with_physics_tick(Frequency::new(1.0))
+            .with_geo_pixels_per_meters(10.);
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction.into(), speed);
@@ -732,8 +726,8 @@ mod tests {
         // When
         let (new_position, new_forces, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
+            w.physics_tick().period(),
             &mod_,
-            delta,
             (MyObjectId(0), &object),
             objects,
             |_| vec![],
@@ -752,10 +746,9 @@ mod tests {
     fn test_bidirectional_translation() {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000, Meters(0.1))
-            .physics_coeff_per_tick(0.5)
-            .geo_pixels_per_meters(10.);
-        let delta = w.physics_coeff_per_tick;
+        let w = WorldConfig::new(1000, 1000)
+            .with_physics_tick(Frequency::new(1.0))
+            .with_geo_pixels_per_meters(10.);
         let direction = [1.0, 1.0, 0.0]; // South
         let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction.into(), speed);
@@ -764,8 +757,8 @@ mod tests {
         // When
         let (new_position, _, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
+            w.physics_tick().period(),
             &mod_,
-            delta,
             (MyObjectId(0), &object),
             |_| vec![],
             |_| vec![],
@@ -774,7 +767,7 @@ mod tests {
         );
 
         // Then
-        let expected_new_position: WorldVec3 = [5.0, 5.0, 0.0].into();
+        let expected_new_position: WorldVec3 = [10.0, 10.0, 0.0].into();
         assert_eq!(new_position, expected_new_position);
     }
 
@@ -782,11 +775,10 @@ mod tests {
     fn test_collision_with_volume_on_same_tile_centered() {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000, Meters(0.1))
-            .physics_coeff_per_tick(0.5)
-            .geo_pixels_per_meters(10.)
-            .geo_pixels_per_tile(5);
-        let delta = w.physics_coeff_per_tick;
+        let w = WorldConfig::new(1000, 1000)
+            .with_physics_tick(Frequency::new(1.0))
+            .with_geo_pixels_per_meters(10.)
+            .with_geo_pixels_per_tile(5);
         let direction = [-1.0, 0.0, 0.0]; // West
         let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction.into(), speed);
@@ -806,8 +798,8 @@ mod tests {
         // When
         let (position, forces, events): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
+            w.physics_tick().period(),
             &mod_,
-            delta,
             (MyObjectId(0), &object),
             objects,
             |_| vec![],
@@ -826,11 +818,10 @@ mod tests {
     fn test_collision_with_volume_on_same_tile_decal() {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000, Meters(0.1))
-            .physics_coeff_per_tick(0.5)
-            .geo_pixels_per_meters(10.)
-            .geo_pixels_per_tile(5);
-        let delta = w.physics_coeff_per_tick;
+        let w = WorldConfig::new(1000, 1000)
+            .with_physics_tick(Frequency::new(1.0))
+            .with_geo_pixels_per_meters(10.)
+            .with_geo_pixels_per_tile(5);
         let direction = [-1.0, 0.0, 0.0]; // West
         let speed = MetersSeconds(1.0);
         let force = Force::Translation(direction.into(), speed);
@@ -850,8 +841,8 @@ mod tests {
         // When
         let (position, forces, events): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
             &w,
+            w.physics_tick().period(),
             &mod_,
-            delta,
             (MyObjectId(0), &object),
             objects,
             |_| vec![],
@@ -870,10 +861,9 @@ mod tests {
     fn test_unidirectional_translation_collision_ignore() {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000, Meters(0.1))
-            .physics_coeff_per_tick(0.5)
-            .geo_pixels_per_meters(10.);
-        let delta = w.physics_coeff_per_tick;
+        let w = WorldConfig::new(1000, 1000)
+            .with_physics_tick(Frequency::new(1.0))
+            .with_geo_pixels_per_meters(10.);
         let direction = [1.0, 0.0, 0.0]; // South
         let speed = MetersSeconds(100.0);
         let force = Force::Translation(direction.into(), speed);
@@ -897,8 +887,8 @@ mod tests {
         let (new_position, new_forces, events): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) =
             step(
                 &w,
+                w.physics_tick().period(),
                 &mod_,
-                delta,
                 (MyObjectId(0), &object),
                 objects,
                 |_| vec![],

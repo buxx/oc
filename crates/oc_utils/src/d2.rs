@@ -43,8 +43,8 @@ impl From<Vec3> for Xy {
 impl WcfgFrom<(f32, f32)> for Xy {
     fn from_(value: (f32, f32), w: &oc_root::WorldConfig) -> Self {
         Self(
-            value.0 as u64 / w.geo_pixels_per_tile,
-            value.1 as u64 / w.geo_pixels_per_tile,
+            value.0 as u64 / w.geo_pixels_per_tile(),
+            value.1 as u64 / w.geo_pixels_per_tile(),
         )
     }
 }
@@ -52,8 +52,8 @@ impl WcfgFrom<(f32, f32)> for Xy {
 impl WcfgFrom<(isize, isize)> for Xy {
     fn from_(value: (isize, isize), w: &oc_root::WorldConfig) -> Self {
         Self(
-            value.0 as u64 / w.geo_pixels_per_tile,
-            value.1 as u64 / w.geo_pixels_per_tile,
+            value.0 as u64 / w.geo_pixels_per_tile(),
+            value.1 as u64 / w.geo_pixels_per_tile(),
         )
     }
 }
@@ -61,8 +61,8 @@ impl WcfgFrom<(isize, isize)> for Xy {
 impl WcfgFrom<(usize, usize)> for Xy {
     fn from_(value: (usize, usize), w: &oc_root::WorldConfig) -> Self {
         Self(
-            value.0 as u64 / w.geo_pixels_per_tile,
-            value.1 as u64 / w.geo_pixels_per_tile,
+            value.0 as u64 / w.geo_pixels_per_tile(),
+            value.1 as u64 / w.geo_pixels_per_tile(),
         )
     }
 }

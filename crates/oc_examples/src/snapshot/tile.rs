@@ -11,7 +11,7 @@ pub struct SameTileFiller(pub NatureIndex);
 
 impl TilesGenerator for SameTileFiller {
     fn tiles(&self, w: &WorldConfig, mod_: &Mod) -> Vec<Tile> {
-        (0..w.tiles_count)
+        (0..w.tiles_count())
             .map(|i| {
                 let prohibe = mod_.nature(self.0).traversability.clone();
                 Tile::new(WorldTileIndex(i), self.0, 0, prohibe)

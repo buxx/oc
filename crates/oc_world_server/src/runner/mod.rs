@@ -73,7 +73,6 @@ impl<E: Client> Runner<E> {
                 .lock()
                 .expect("Assume available") = vec![0.; ctx.cpus];
         }
-        let interval = ctx.state.w.physics_tick_interval_us;
 
         (0..ctx.cpus).for_each(|i| {
             let ctx = ctx.clone();
@@ -82,20 +81,21 @@ impl<E: Client> Runner<E> {
                 let mut last = Instant::now();
 
                 loop {
-                    let elapsed = last.elapsed().as_micros() as u64;
+                    let elapsed = last.elapsed();
+                    let interval = ctx.state.w.physics_tick().interval();
                     let wait = interval - elapsed.min(interval);
                     #[cfg(feature = "perfs")]
                     {
-                        let percent = wait as f32 / interval as f32;
+                        let percent = wait.as_micros() as f32 / interval.as_micros() as f32;
                         ctx.state.perf.set_physic_percent(i, 1. - percent);
                     }
 
                     tracing::trace!(
                         name = "runner-physics-sleep",
                         i = i,
-                        wait = wait as f32 / 1_000_000.0
+                        wait = ?wait
                     );
-                    std::thread::sleep(Duration::from_micros(wait));
+                    std::thread::sleep(wait);
                     last = Instant::now();
 
                     for update_ in physics::Processor::new(&ctx).step(i) {
@@ -132,7 +132,6 @@ impl<E: Client> Runner<E> {
                 .lock()
                 .expect("Assume available") = vec![0.; ctx.cpus];
         }
-        let interval = ctx.state.w.individual_tick_interval_us;
 
         (0..individuals_count)
             .collect::<Vec<usize>>()
@@ -146,15 +145,16 @@ impl<E: Client> Runner<E> {
                     let mut last = Instant::now();
 
                     loop {
-                        let elapsed = last.elapsed().as_micros() as u64;
+                        let elapsed = last.elapsed();
+                        let interval = ctx.state.w.individual_tick().interval();
                         let wait = interval - elapsed.min(interval);
                         #[cfg(feature = "perfs")]
                         {
-                            let percent = wait as f32 / interval as f32;
+                            let percent = wait.as_micros() as f32 / interval.as_micros() as f32;
                             ctx.state.perf.set_individual_percent(_i, 1. - percent);
                         }
 
-                        std::thread::sleep(Duration::from_micros(wait));
+                        std::thread::sleep(wait);
                         last = Instant::now();
 
                         for i in &indexes {
@@ -203,14 +203,14 @@ impl<E: Client> Runner<E> {
                 .lock()
                 .expect("Assume available") = vec![0.; ctx.cpus];
         }
-        let interval = ctx.state.w.visibilities_tick_interval_us;
         let ctx = ctx.clone();
 
         std::thread::spawn(move || {
             let mut last = Instant::now();
 
             loop {
-                let elapsed = last.elapsed().as_micros() as u64;
+                let elapsed = last.elapsed();
+                let interval = ctx.state.w.visibilities_tick().interval();
                 let wait = interval - elapsed.min(interval);
                 #[cfg(feature = "perfs")]
                 {
@@ -219,7 +219,7 @@ impl<E: Client> Runner<E> {
                 }
 
                 tracing::trace!(name = "runner-visibilities-sleep", wait=?wait);
-                std::thread::sleep(Duration::from_micros(wait));
+                std::thread::sleep(wait);
                 last = Instant::now();
 
                 let visibilities = {
@@ -263,7 +263,6 @@ impl<E: Client> Runner<E> {
                 .lock()
                 .expect("Assume available") = vec![0.; ctx.cpus];
         }
-        let interval = ctx.state.w.squad_tick_interval_us;
 
         (0..squads_count)
             .collect::<Vec<usize>>()
@@ -277,15 +276,16 @@ impl<E: Client> Runner<E> {
                     let mut last = Instant::now();
 
                     loop {
-                        let elapsed = last.elapsed().as_micros() as u64;
+                        let elapsed = last.elapsed();
+                        let interval = ctx.state.w.squad_tick().interval();
                         let wait = interval - elapsed.min(interval);
                         #[cfg(feature = "perfs")]
                         {
-                            let percent = wait as f32 / interval as f32;
+                            let percent = wait.as_micros() as f32 / interval.as_micros() as f32;
                             ctx.state.perf.set_squad_percent(_i, 1. - percent);
                         }
 
-                        std::thread::sleep(Duration::from_micros(wait));
+                        std::thread::sleep(wait);
                         last = Instant::now();
 
                         for i in &indexes {

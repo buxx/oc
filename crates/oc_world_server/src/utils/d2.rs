@@ -8,8 +8,8 @@ pub fn shape_from_tile(i: WorldTileIndex, radius: u64, w: &WorldConfig) -> Vec<W
     let min_y = xy.0.1.saturating_sub(radius);
     let max_x = xy.0.0 + radius;
     let max_y = xy.0.1 + radius;
-    let clamped_max_x = max_x.min(w.world_width.saturating_sub(1));
-    let clamped_max_y = max_y.min(w.world_height.saturating_sub(1));
+    let clamped_max_x = max_x.min(w.world_width().saturating_sub(1));
+    let clamped_max_y = max_y.min(w.world_height().saturating_sub(1));
 
     let mut result =
         Vec::with_capacity(((clamped_max_x - min_x + 1) * (clamped_max_y - min_y + 1)) as usize);
@@ -26,14 +26,12 @@ pub fn shape_from_tile(i: WorldTileIndex, radius: u64, w: &WorldConfig) -> Vec<W
 
 #[cfg(test)]
 mod tests {
-    use oc_root::physics::Meters;
-
     use super::*;
 
     #[test]
     fn test_shape_from_tile_top_left_corner() {
         // Given
-        let w = WorldConfig::new(5, 5, Meters(0.1));
+        let w = WorldConfig::new(5, 5);
         let i = WorldTileIndex(0);
 
         // When
@@ -59,7 +57,7 @@ mod tests {
     #[test]
     fn test_shape_from_tile_bottom_right_corner() {
         // Given
-        let w = WorldConfig::new(5, 5, Meters(0.1));
+        let w = WorldConfig::new(5, 5);
         let i = WorldTileIndex(24);
 
         // When
@@ -85,7 +83,7 @@ mod tests {
     #[test]
     fn test_shape_from_tile_center() {
         // Given
-        let w = WorldConfig::new(5, 5, Meters(0.1));
+        let w = WorldConfig::new(5, 5);
         let i = WorldTileIndex(12);
 
         // When

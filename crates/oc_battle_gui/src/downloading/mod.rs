@@ -37,13 +37,13 @@ fn download(
     let files = files::Files::new(mod__, world).into_gui(g.static_.clone(), connect.into());
 
     tracing::info!("Download");
-    let region_width = g.w.region_width;
-    let region_height = g.w.region_height;
+    let region_width = g.w.region_width();
+    let region_height = g.w.region_height();
 
     ensure_file(&files, files::File::Mod, region_width, region_height).unwrap(); // TODO
     ensure_file(&files, files::File::World, region_width, region_height).unwrap(); // TODO
     ensure_file(&files, files::File::Minimap, region_width, region_height).unwrap(); // TODO
-    for region in 0..g.w.regions_count {
+    for region in 0..g.w.regions_count() {
         ensure_file(
             &files,
             files::File::Region(region),

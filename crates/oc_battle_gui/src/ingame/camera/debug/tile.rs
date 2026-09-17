@@ -187,8 +187,8 @@ pub fn on_spawn_region<'a, E, I, T, S>(
             // TODO (map terrain should be checked to avoid manage missing terrain here)
             let index = tileset.index(&tile).unwrap();
             // let index = (*tileset.natures.get(&tile.nature).unwrap()) as usize;
-            let x = xy.0 * g.w.geo_pixels_per_tile;
-            let y = xy.1 * g.w.geo_pixels_per_tile;
+            let x = xy.0 * g.w.geo_pixels_per_tile();
+            let y = xy.1 * g.w.geo_pixels_per_tile();
             let z = tileset.z();
             let point = Vec3::new(x as f32, (y as f32).to_gui_y(&g.w), z);
 

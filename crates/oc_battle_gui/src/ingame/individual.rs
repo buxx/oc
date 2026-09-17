@@ -84,7 +84,7 @@ pub struct AccomplishedEvent(oc_individual::IndividualIndex);
 pub struct MoveStepAccomplishedEvent(oc_individual::IndividualIndex);
 
 #[derive(Debug, Clone, Event)]
-pub struct SetSuppressEvent(oc_individual::IndividualIndex, oc_root::Suppress);
+pub struct SetSuppressEvent(oc_individual::IndividualIndex, oc_root::behavior::Suppress);
 
 #[derive(Debug, Clone, Event)]
 pub struct SetMagazinesEvent(oc_individual::IndividualIndex, Vec<MagazineIndex>);
@@ -99,7 +99,7 @@ pub struct Weapons(pub oc_individual::Weapons);
 pub struct Gesture(pub oc_individual::Gesture);
 
 #[derive(Debug, Deref, Component)]
-pub struct Suppress(pub oc_root::Suppress);
+pub struct Suppress(pub oc_root::behavior::Suppress);
 
 #[derive(Debug, Deref, Component)]
 pub struct Magazines(pub Vec<MagazineIndex>);

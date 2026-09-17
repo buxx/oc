@@ -12,10 +12,10 @@ pub fn cache_region_background(
     i: WorldRegionIndex,
 ) -> Result<(), CacheRegionBackgroundError> {
     let xy: RegionXy = i.into_(w);
-    let x = xy.0.0 * w.region_width_pixels;
-    let y = xy.0.1 * w.region_height_pixels;
-    let width = w.region_width_pixels as u32;
-    let height = w.region_height_pixels as u32;
+    let x = xy.0.0 * w.region_width_pixels();
+    let y = xy.0.1 * w.region_height_pixels();
+    let width = w.region_width_pixels() as u32;
+    let height = w.region_height_pixels() as u32;
     let region = image.crop_imm(x as u32, y as u32, width, height);
     region.save(output)?;
     Ok(())

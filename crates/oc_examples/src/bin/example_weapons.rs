@@ -11,6 +11,7 @@ use oc_root::{
     geo::{WorldVec2, WorldVec3},
     physics::Meters,
     side,
+    utils::Frequency,
 };
 use oc_world::{meta::Meta, tile::Tile};
 use tests::{
@@ -49,15 +50,12 @@ fn main() -> Result<(), anyhow::Error> {
     let meta = Meta::from_file(&map.join("meta.toml"))?;
     let map_ = oc_world::reader::MapReader::new(&map);
     let map_ = map_.context(format!("Read map_ {}", map.display()))?;
-    let w = WorldConfig::new(
-        map_.width().unwrap() as u64,
-        map_.height().unwrap() as u64,
-        Meters(meta.geo_meters_per_z),
-    );
+    let w = WorldConfig::new(map_.width().unwrap() as u64, map_.height().unwrap() as u64)
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
 
     let w = match args.case {
         TestCase::InaccuracyFastAndFar | TestCase::Stress => {
-            w.individual_tick_interval_us(1_000_000 / 10)
+            w.with_individual_tick(Frequency::new(10.0))
         }
     };
 
@@ -102,7 +100,7 @@ fn individuals(
                 .position(WorldVec3::new(
                     497.,
                     4510.,
-                    99. * meta.geo_meters_per_z * w.geo_pixels_per_meters,
+                    99. * meta.geo_meters_per_z * w.geo_pixels_per_meters(),
                 ))
                 .weapons(
                     TestWeapons::builder()

@@ -8,10 +8,16 @@ use oc_physics::{
     update::bevy::{Forces, Position, Volumes},
 };
 use oc_projectile::ProjectileId;
-use oc_root::{WcfgFrom, geo::ScreenVec2};
+use oc_root::{
+    WcfgFrom,
+    geo::{ScreenVec2, WorldVec3},
+};
 use oc_utils::{d2::Xy, let_some};
 
 use crate::{ingame::projectile::ForgotProjectile, states::GameConfig, world::World};
+
+#[derive(Debug, Clone, Event)]
+pub struct PhysicsUpdatedPosition<I>(pub I, pub WorldVec3, pub WorldVec3);
 
 #[derive(Debug, Clone, Event)]
 pub struct PhysicEvent(oc_physics::Event<ObjectId>);
@@ -39,8 +45,7 @@ pub fn physics_step<I, C>(
 {
     let_some!(g = &g.0, return);
 
-    // tracing::trace!(name = "projectile-physics-start");
-    let delta = time.delta_secs() / 1.;
+    tracing::trace!(name = "projectile-physics-start");
 
     for (object, mut position, mut forces, material, volume, direction, mut transform) in query {
         let i = object.as_ref();
@@ -52,6 +57,8 @@ pub fn physics_step<I, C>(
             // let region: WorldRegionIndex = TileXy(xy).into();
             index.at(&g.w, TileXy(xy))
         };
+
+        let position_before = position.0;
 
         // TODO: test perf with references in Corps
         let corps = Corps::new(
@@ -66,12 +73,12 @@ pub fn physics_step<I, C>(
         );
         let (position_, forces_, events) = oc_physics::step(
             &g.w,
+            time.delta_secs(),
             &g.mod_,
-            delta,
             (i.clone(), &corps),
             objects,
             |_| vec![],
-            g.w.ignore_firsts_physics_pixels as usize,
+            g.w.ignore_firsts_physics_pixels() as usize,
             "gui",
         );
 
@@ -80,6 +87,12 @@ pub fn physics_step<I, C>(
         let position__ = ScreenVec2::from_(position_, &g.w);
         transform.translation.x = position__.x;
         transform.translation.y = position__.y;
+
+        commands.trigger(PhysicsUpdatedPosition(
+            i.clone(),
+            position_before,
+            position_,
+        ));
 
         for event in events {
             commands.trigger(PhysicEvent(event))

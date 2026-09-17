@@ -56,10 +56,10 @@ impl Indexes {
     pub fn new(world: &World, w: &WorldConfig) -> Self {
         let individuals = world.individuals();
 
-        let mut tiles_individuals = SizedIndex::new(world.w.tiles_count as usize);
-        let mut proximity_individuals = SizedIndex::new(world.w.tiles_count as usize);
-        let mut regions_individuals = SizedIndex::new(world.w.regions_count as usize);
-        let mut regions_projectiles = SizedIndex::new(world.w.regions_count as usize);
+        let mut tiles_individuals = SizedIndex::new(world.w.tiles_count() as usize);
+        let mut proximity_individuals = SizedIndex::new(world.w.tiles_count() as usize);
+        let mut regions_individuals = SizedIndex::new(world.w.regions_count() as usize);
+        let mut regions_projectiles = SizedIndex::new(world.w.regions_count() as usize);
         let mut individuals_squad = Vec::with_capacity(world.individuals.len());
         let side_a_count = individuals.iter().filter(|i| i.side == Side::A).count();
         let mut side_a_individuals = Vec::with_capacity(side_a_count);
@@ -76,11 +76,11 @@ impl Indexes {
                 [position.x, position.y],
                 INDIVIDUAL_INDEXATION_SHAPE.pixels(w),
                 INDIVIDUAL_INDEXATION_SHAPE.pixels(w),
-                w.geo_pixels_per_tile as f32,
-                w.geo_pixels_per_tile as f32,
+                w.geo_pixels_per_tile() as f32,
+                w.geo_pixels_per_tile() as f32,
             ) {
                 let tile_ = TileXy(Xy(tile_[0] as u64, tile_[1] as u64));
-                if tile_.0.0 >= w.world_width || tile_.0.1 >= w.world_height {
+                if tile_.0.0 >= w.world_width() || tile_.0.1 >= w.world_height() {
                     continue;
                 }
                 let tile_ = WorldTileIndex::from_(tile_, w);
@@ -88,7 +88,7 @@ impl Indexes {
             }
 
             // List tiles covered by "proximity" rule
-            for tile_ in shape_from_tile(tile, w.proximity_individual_rayon, w) {
+            for tile_ in shape_from_tile(tile, w.proximity_individual_rayon(), w) {
                 proximity_individuals[tile_.0 as usize].push(i.into());
             }
 
@@ -153,11 +153,11 @@ impl Indexes {
             before,
             INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
             INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
-            w.geo_pixels_per_tile as f32,
-            w.geo_pixels_per_tile as f32,
+            w.geo_pixels_per_tile() as f32,
+            w.geo_pixels_per_tile() as f32,
         ) {
             let before = TileXy(Xy(before[0] as u64, before[1] as u64));
-            if before.0.0 >= w.world_width || before.0.1 >= w.world_height {
+            if before.0.0 >= w.world_width() || before.0.1 >= w.world_height() {
                 continue;
             }
             let before = WorldTileIndex::from_(before, w);
@@ -169,11 +169,11 @@ impl Indexes {
             now,
             INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
             INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
-            w.geo_pixels_per_tile as f32,
-            w.geo_pixels_per_tile as f32,
+            w.geo_pixels_per_tile() as f32,
+            w.geo_pixels_per_tile() as f32,
         ) {
             let now = TileXy(Xy(now[0] as u64, now[1] as u64));
-            if now.0.0 >= w.world_width || now.0.1 >= w.world_height {
+            if now.0.0 >= w.world_width() || now.0.1 >= w.world_height() {
                 continue;
             }
             let now = WorldTileIndex::from_(now, w);
@@ -186,12 +186,12 @@ impl Indexes {
         let now = WorldTileIndex::from_(now, w);
 
         // List tiles covered by "proximity" rule before move
-        for before in shape_from_tile(before, w.proximity_individual_rayon, w) {
+        for before in shape_from_tile(before, w.proximity_individual_rayon(), w) {
             self.proximity_individuals[before.0 as usize].retain(|i_| *i_ != i);
         }
 
         // List tiles covered by individual shape after move
-        for now in shape_from_tile(now, w.proximity_individual_rayon, w) {
+        for now in shape_from_tile(now, w.proximity_individual_rayon(), w) {
             self.proximity_individuals[now.0 as usize].push(i);
         }
     }
@@ -301,14 +301,14 @@ pub trait IntoIndexEffect<T> {
 #[cfg(test)]
 mod tests {
     use ::tests::{individual::TestIndividual, world::TestWorld};
-    use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters};
+    use oc_root::{WorldConfig, geo::WorldVec3};
 
     use super::*;
 
     #[test]
     fn test_indexes_tile_individuals() {
         // Given
-        let w = WorldConfig::new(2, 2, Meters(0.1));
+        let w = WorldConfig::new(2, 2);
         let individual = TestIndividual::builder()
             .position(WorldVec3::new(4., 4., 0.))
             .build()
@@ -336,7 +336,7 @@ mod tests {
     #[test]
     fn test_indexes_tile_individuals_removed() {
         // Given
-        let w = WorldConfig::new(2, 2, Meters(0.1));
+        let w = WorldConfig::new(2, 2);
         let individual = TestIndividual::builder()
             .position(WorldVec3::new(4., 4., 0.))
             .build()
@@ -365,9 +365,9 @@ mod tests {
     #[test]
     fn test_proximity_individuals() {
         // Given
-        let w = WorldConfig::new(5, 5, Meters(0.1))
-            .geo_pixels_per_tile(1)
-            .proximity_individual_rayon(1);
+        let w = WorldConfig::new(5, 5)
+            .with_geo_pixels_per_tile(1)
+            .with_proximity_individual_rayon(1);
         let individual = TestIndividual::builder()
             .position(WorldVec3::new(2., 2., 0.))
             .build()

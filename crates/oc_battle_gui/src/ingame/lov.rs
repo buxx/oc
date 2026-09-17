@@ -110,7 +110,7 @@ fn on_spawn_beginning_lov(
     tracing::trace!(name = "lov-spawn-beginning", spawn=?spawn);
     let_some!(w = &w.0, return);
     let_some!(tile = world.tile_at(w, spawn.start), return);
-    let z = tile.z_pixels(w) + spawn.start_plus_z.0 * w.geo_pixels_per_meters;
+    let z = tile.z_pixels(w) + spawn.start_plus_z.0 * w.geo_pixels_per_meters();
     let start = spawn.start.extend(z);
 
     tracing::trace!(name = "lov-spawn-beginning", start=?start);
@@ -207,7 +207,7 @@ fn path_objects_at(
     world
         .tile(w, TileXy(at))
         .map(|t| {
-            let tile_z = t.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters;
+            let tile_z = t.z as f32 * w.geo_meters_per_z().0 * w.geo_pixels_per_meters();
             let relative_z = z - tile_z;
             let opacity = mod_.nature(t.nature).opacity(w, relative_z);
             vec![oc_lov::Step { opacity }]

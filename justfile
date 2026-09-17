@@ -239,10 +239,10 @@ test-visibilities-hedge:
     RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- hedge --test
 
 test-engaging-direct:
-    RUST_LOG=ERROR cargo run --bin example_engaging --features test -- direct --test
+    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- direct --test
 
 test-engaging-direct2:
-    RUST_LOG=ERROR cargo run --bin example_engaging --features test -- direct2 --test
+    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- direct2 --test
 
 test-height-climb:
     RUST_LOG=ERROR cargo run --bin example_height --features test -- climb --test

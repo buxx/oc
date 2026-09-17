@@ -56,8 +56,8 @@ pub fn on_spawn_minimap(
 
     let x = display.center.x;
     let y = display.center.y;
-    let scale_x = display.size.x / w.minimap_width_pixels as f32;
-    let scale_y = display.size.y / w.minimap_height_pixels as f32;
+    let scale_x = display.size.x / w.minimap_width_pixels() as f32;
+    let scale_y = display.size.y / w.minimap_height_pixels() as f32;
     commands.spawn((
         Minimap,
         Sprite::from_image(assets.load(minimap)),
@@ -80,8 +80,8 @@ pub fn on_adjust_minimap(
     let display = WorldMapDisplay::from_env(w, window.size());
     let x = display.center.x;
     let y = display.center.y;
-    let scale_x = display.size.x / w.minimap_width_pixels as f32;
-    let scale_y = display.size.y / w.minimap_height_pixels as f32;
+    let scale_x = display.size.x / w.minimap_width_pixels() as f32;
+    let scale_y = display.size.y / w.minimap_height_pixels() as f32;
 
     minimap.translation.x = x;
     minimap.translation.y = y;

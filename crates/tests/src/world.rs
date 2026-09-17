@@ -37,7 +37,7 @@ pub struct TestWorld {
 impl TestWorld {
     pub fn make(self, w: &WorldConfig) -> World {
         let tiles = self.tiles.unwrap_or_else(|| {
-            (0..w.tiles_count)
+            (0..w.tiles_count())
                 .map(|i| {
                     let nature = NatureIndex(0);
                     let traversability = self.mod_.nature(nature).traversability.clone();

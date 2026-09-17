@@ -35,11 +35,11 @@ pub fn on_listening_region(
     let files = files::Files::new(mod_, world).into_gui(g.static_.clone(), connect.clone().into());
 
     let region: RegionXy = region_.into_(&g.w);
-    let region_width = g.w.region_width;
-    let region_height = g.w.region_height;
+    let region_width = g.w.region_width();
+    let region_height = g.w.region_height();
 
-    let width = g.w.region_width_pixels as f32;
-    let height = g.w.region_height_pixels as f32;
+    let width = g.w.region_width_pixels() as f32;
+    let height = g.w.region_height_pixels() as f32;
     let x = region.0.0 as f32 * width;
     let y = region.0.1 as f32 * height;
     let x = x + width / 2.;

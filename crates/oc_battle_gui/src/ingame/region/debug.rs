@@ -33,8 +33,8 @@ pub fn on_spawn_region_wire_frame_debug(
     let_some!(w = &w.0, return);
 
     // Battle display
-    let width = w.region_width as f32 * w.geo_pixels_per_tile as f32;
-    let height = w.region_height as f32 * w.geo_pixels_per_tile as f32;
+    let width = w.region_width() as f32 * w.geo_pixels_per_tile() as f32;
+    let height = w.region_height() as f32 * w.geo_pixels_per_tile() as f32;
     let rectangle = Rectangle::new(width, height);
     let rectangle = rectangle.to_ring(1.0);
     let color = Color::srgba(1., 1., 0., 0.5);
@@ -52,8 +52,8 @@ pub fn on_spawn_region_wire_frame_debug(
 
     // World display
     let display = WorldMapDisplay::from_env(w, window.size());
-    let width = w.region_width_pixels as f32 * display.ratio.x;
-    let height = w.region_height_pixels as f32 * display.ratio.y;
+    let width = w.region_width_pixels() as f32 * display.ratio.x;
+    let height = w.region_height_pixels() as f32 * display.ratio.y;
     let rectangle = Rectangle::new(width, height);
     let rectangle = rectangle.to_ring(1.0);
     let color = Color::srgba(1., 1., 0., 0.5);

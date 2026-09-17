@@ -20,6 +20,22 @@ use crate::WorldConfig;
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Seconds(pub f32);
 
+impl std::ops::Div<f32> for Seconds {
+    type Output = Seconds;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        Self(self.0 / rhs)
+    }
+}
+
+impl std::ops::Mul<f32> for Seconds {
+    type Output = Seconds;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self(self.0 * rhs)
+    }
+}
+
 #[derive(
     Archive,
     rkyv::Deserialize,
@@ -39,6 +55,14 @@ pub struct Meters(pub f32);
 impl Meters {
     pub const fn pixels(&self, w: &WorldConfig) -> f32 {
         self.0 * w.geo_pixels_per_meters
+    }
+}
+
+impl std::ops::Mul<f32> for Meters {
+    type Output = Meters;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self(self.0 * rhs)
     }
 }
 

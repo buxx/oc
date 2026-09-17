@@ -111,9 +111,10 @@ mod test {
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let geo_meters_per_z = Meters(0.1);
-        let w = WorldConfig::new(1000, 1000, geo_meters_per_z)
-            .geo_pixels_per_tile(5)
-            .geo_pixels_per_meters(5.);
+        let w = WorldConfig::new(1000, 1000)
+            .with_geo_pixels_per_tile(5)
+            .with_geo_pixels_per_meters(5.)
+            .with_geo_meters_per_z(geo_meters_per_z);
 
         let tile_i = WorldTileIndex(0);
         let tile_z = (tile_meters.0 / geo_meters_per_z.0) as u8;
@@ -127,7 +128,7 @@ mod test {
         let object_i = ObjectId(0);
         let object_x = object_pos.0;
         let object_y = object_pos.1;
-        let object_z = object_pos.2.0 * w.geo_pixels_per_meters;
+        let object_z = object_pos.2.0 * w.geo_pixels_per_meters();
         let object = Object(WorldVec3::new(object_x, object_y, object_z), object_forces);
         let tile: Box<&dyn Physic> = Box::new(&tile);
 
@@ -143,8 +144,8 @@ mod test {
         let delta = 1.0;
         let result = oc_physics::step(
             &w,
-            &mod_,
             delta,
+            &mod_,
             (ObjectsId::Object(object_i), &object),
             objects,
             |_| vec![],

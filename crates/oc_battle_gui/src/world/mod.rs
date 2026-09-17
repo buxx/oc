@@ -267,7 +267,8 @@ impl World {
     pub fn d2_to_d3(&self, w: &WorldConfig, p: WorldVec2, plus_z: Meters) -> Option<WorldVec3> {
         let tile = TileXy::from_(p, w);
         let_some!(tile = self.tile(w, tile), return None);
-        let z = (tile.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters) + plus_z.pixels(w);
+        let z =
+            (tile.z as f32 * w.geo_meters_per_z().0 * w.geo_pixels_per_meters()) + plus_z.pixels(w);
         let p = [p.x, p.y, z];
         Some(p.into())
     }

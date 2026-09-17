@@ -190,7 +190,7 @@ impl Nature {
 
         // Above means in the air, so no opacity
         // TODO: this should be computed once (do it al mod load ? need WorldConfig ...)
-        let height = self.z.0 * w.geo_pixels_per_meters;
+        let height = self.z.0 * w.geo_pixels_per_meters();
         if z > height {
             return Opacity(0.0);
         }

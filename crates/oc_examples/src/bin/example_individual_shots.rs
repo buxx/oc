@@ -58,11 +58,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let meta = Meta::from_file(&map.join("meta.toml"))?;
     let map_ = oc_world::reader::MapReader::new(&map);
     let map_ = map_.context(format!("Read map_ {}", map.display()))?;
-    let w = WorldConfig::new(
-        map_.width().unwrap() as u64,
-        map_.height().unwrap() as u64,
-        Meters(meta.geo_meters_per_z),
-    );
+    let w = WorldConfig::new(map_.width().unwrap() as u64, map_.height().unwrap() as u64)
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
     let tiles = map_.tiles(&w, &mod__).unwrap();
     let (individuals, squads) = individuals(&args, &w, &tiles);
     let snapshot = SnapshotBuilder::new(map_, individuals, squads, vec![]).build(w, &mod__)?;
@@ -140,11 +137,8 @@ fn individuals(
     let meta = Meta::from_file(&PathBuf::from("examples/meadow1/meta.toml")).unwrap();
     let map_ = PathBuf::from("examples/meadow1");
     let map = oc_world::reader::MapReader::new(&map_).unwrap();
-    let w = WorldConfig::new(
-        map.width().unwrap() as u64,
-        map.height().unwrap() as u64,
-        Meters(meta.geo_meters_per_z),
-    );
+    let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
 
     let individuals = positions
         .iter()
@@ -280,6 +274,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
         let direction = (WorldVec3::new(end[0], end[1], end[2])
             - WorldVec3::new(start[0], start[1], start[2]))
         .normalize_or_zero();
+
         commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(
             SpawnProjectiles::new(
                 weapon1.index(),
@@ -289,7 +284,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 start.into(),
                 vec![direction],
                 Side::B,
-                0,
+                Duration::ZERO,
                 #[cfg(feature = "debug")]
                 None,
             ),

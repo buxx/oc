@@ -56,15 +56,15 @@ impl World {
     pub fn region_tiles(&self, region: WorldRegionIndex) -> Vec<(WorldTileIndex, &Tile)> {
         let region_: RegionXy = region.into_(&self.w);
         let start: TileXy = region_.into_(&self.w);
-        let count = self.w.region_width * self.w.region_height;
+        let count = self.w.region_width() * self.w.region_height();
         let mut tiles = Vec::with_capacity(count as usize);
 
         tracing::debug!("Extract region {} tiles", region.0,);
-        for y in 0..self.w.region_height {
+        for y in 0..self.w.region_height() {
             let line_start = TileXy(Xy(start.0.0, start.0.1 + y));
             let line_start: WorldTileIndex = line_start.into_(&self.w);
             let line_start = line_start.0;
-            let line_end = line_start + self.w.region_width;
+            let line_end = line_start + self.w.region_width();
             let tiles_ = &self.tiles[line_start as usize..line_end as usize];
             let tiles_: Vec<(WorldTileIndex, &Tile)> = tiles_
                 .iter()
@@ -143,7 +143,6 @@ mod tests {
     use std::collections::HashMap;
 
     use oc_mod::nature::{NatureIndex, Traversability};
-    use oc_root::physics::Meters;
 
     use super::*;
 
@@ -151,7 +150,7 @@ mod tests {
     #[test]
     fn test_region_tiles() {
         // Given
-        let w = WorldConfig::new(1000, 1000, Meters(0.1));
+        let w = WorldConfig::new(1000, 1000);
         let mod_ = Mod::new(
             "MyMod".to_string(),
             1,
@@ -162,8 +161,8 @@ mod tests {
             vec![],
             1.5,
         );
-        let meta = Meta::new("MyWorld".to_string(), 0, w.geo_meters_per_z.0);
-        let tiles: Vec<Tile> = (0..w.tiles_count)
+        let meta = Meta::new("MyWorld".to_string(), 0, w.geo_meters_per_z().0);
+        let tiles: Vec<Tile> = (0..w.tiles_count())
             .map(|i| {
                 Tile::new(
                     WorldTileIndex(i as u64),
@@ -192,8 +191,8 @@ mod tests {
 
         // Then
         let mut expected = vec![];
-        for y in 0..w.region_height as usize {
-            for x in 0..w.region_width as usize {
+        for y in 0..w.region_height() as usize {
+            for x in 0..w.region_width() as usize {
                 let i: WorldTileIndex = TileXy(Xy(x as u64, y as u64)).into_(&w);
                 expected.push((i, Tile::new(i, NatureIndex(0), 0, Traversability::all())));
             }

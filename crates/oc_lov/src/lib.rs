@@ -128,14 +128,12 @@ pub struct Step {
 
 #[cfg(test)]
 mod test {
-    use oc_root::physics::Meters;
-
     use super::*;
 
     #[test]
     fn test_short_path() {
         // Given
-        let w = WorldConfig::new(3, 1, Meters(0.1)).geo_pixels_per_tile(5);
+        let w = WorldConfig::new(3, 1).with_geo_pixels_per_tile(5);
         let start = [0., 0., 0.];
         let end = [14., 0., 0.];
         let at = |_, _| {
@@ -176,7 +174,7 @@ mod test {
     #[test]
     fn test_path_with_space() {
         // Given
-        let w = WorldConfig::new(6, 1, Meters(0.1)).geo_pixels_per_tile(5);
+        let w = WorldConfig::new(6, 1).with_geo_pixels_per_tile(5);
         let start = [0., 0., 0.];
         let end = [29., 0., 0.];
         let at = |xy, _| match xy {
@@ -221,7 +219,7 @@ mod test {
     #[test]
     fn test_opaque_path() {
         // Given
-        let w = WorldConfig::new(3, 1, Meters(0.1)).geo_pixels_per_tile(5);
+        let w = WorldConfig::new(3, 1).with_geo_pixels_per_tile(5);
         let start = [0., 0., 0.];
         let end = [14., 0., 0.];
         let at = |_, _| {
@@ -262,7 +260,7 @@ mod test {
     #[test]
     fn test_opaque_path_but_ignore() {
         // Given
-        let w = WorldConfig::new(3, 1, Meters(0.1)).geo_pixels_per_tile(5);
+        let w = WorldConfig::new(3, 1).with_geo_pixels_per_tile(5);
         let start = [0., 0., 0.];
         let end = [14., 0., 0.];
         let at = |_, _| {

@@ -28,11 +28,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let map_ = PathBuf::from("examples/world1");
     let map = oc_world::reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
-    let w = WorldConfig::new(
-        map.width().unwrap() as u64,
-        map.height().unwrap() as u64,
-        Meters(meta.geo_meters_per_z),
-    );
+    let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
     let snapshot =
         SnapshotBuilder::new(map.clone(), vec![], vec![], vec![]).build(w.clone(), &mod__)?;
     let config = ServerConfig::builder()
@@ -84,8 +81,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .find(|s| s.name() == "Single")
         .unwrap();
 
-    let right = map.width().unwrap() as f32 * w.geo_pixels_per_tile as f32;
-    let bottom = map.height().unwrap() as f32 * w.geo_pixels_per_tile as f32;
+    let right = map.width().unwrap() as f32 * w.geo_pixels_per_tile() as f32;
+    let bottom = map.height().unwrap() as f32 * w.geo_pixels_per_tile() as f32;
 
     let mut counter = 0;
     loop {
@@ -106,7 +103,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             [0., 0., 500.].into(),
                             directions,
                             Side::A,
-                            0,
+                            Duration::ZERO,
                             #[cfg(feature = "debug")]
                             None,
                         )),

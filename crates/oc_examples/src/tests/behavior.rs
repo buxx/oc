@@ -38,11 +38,8 @@ pub fn run(
     let meta = Meta::from_file(&map.join("meta.toml"))?;
     let map_ = oc_world::reader::MapReader::new(&map);
     let map_ = map_.context(format!("Read map_ {}", map.display()))?;
-    let w = WorldConfig::new(
-        map_.width().unwrap() as u64,
-        map_.height().unwrap() as u64,
-        Meters(meta.geo_meters_per_z),
-    );
+    let w = WorldConfig::new(map_.width().unwrap() as u64, map_.height().unwrap() as u64)
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
     let tiles = map_.tiles(&w, &mod__).unwrap();
 
     let individuals = individuals(&w, &tiles, &setup, count);
@@ -89,8 +86,8 @@ fn individuals(
         .map(|(_, _, positions)| {
             positions.into_iter().map(|position| {
                 let tile_xy = TileXy(Xy(
-                    position[0] as u64 / w.geo_pixels_per_tile,
-                    position[1] as u64 / w.geo_pixels_per_tile,
+                    position[0] as u64 / w.geo_pixels_per_tile(),
+                    position[1] as u64 / w.geo_pixels_per_tile(),
                 ));
                 let tile_i = WorldTileIndex::from_(tile_xy, &w);
                 let tile = &tiles[tile_i.0 as usize];

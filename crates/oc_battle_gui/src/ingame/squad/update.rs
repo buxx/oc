@@ -115,15 +115,15 @@ mod tests {
     use super::*;
     use ::tests::squad::TestSquad;
     use oc_individual::squad::SquadIndex;
-    use oc_root::{WorldConfig, geo::WorldVec2, physics::Meters};
+    use oc_root::{WorldConfig, geo::WorldVec2};
 
     #[test]
     fn test_update_squad_change_region() {
         // Given
-        let w = WorldConfig::new(100, 100, Meters(0.1))
-            .geo_pixels_per_tile(5)
-            .region_width(10)
-            .region_height(10);
+        let w = WorldConfig::new(100, 100)
+            .with_geo_pixels_per_tile(5)
+            .with_region_width(10)
+            .with_region_height(10);
         let squad = TestSquad::builder()
             .position(WorldVec2::new(0., 0.))
             .members(vec![oc_individual::IndividualIndex(0)])

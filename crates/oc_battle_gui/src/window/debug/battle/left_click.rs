@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy_egui::prelude::*;
 use oc_mod::{Mod, weapons::WeaponType};
@@ -197,7 +199,7 @@ impl super::Context {
                         *repeat,
                         *plus_z,
                         *side,
-                        0,
+                        Duration::ZERO,
                     );
                     commands.trigger(SetLeftClick(LeftClickMode::SpawnProjectile(spawn)));
                 }

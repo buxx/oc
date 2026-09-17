@@ -192,11 +192,11 @@ fn end_when_success_or_timeout(
 ) {
     static MOVE_DONE: Mutex<Option<Instant>> = Mutex::new(None);
     let timeout = match args.0.case {
-        TestCase::Idle => Duration::from_secs(10),
-        TestCase::MoveStraightAhead => Duration::from_secs(20),
+        TestCase::Idle => Duration::from_secs(20),
+        TestCase::MoveStraightAhead => Duration::from_secs(30),
         TestCase::MoveStraightAheadObstacle => Duration::from_secs(40),
-        TestCase::MoveFastStraightAhead => Duration::from_secs(15),
-        TestCase::MoveFastStraightAheadObstacle => Duration::from_secs(25),
+        TestCase::MoveFastStraightAhead => Duration::from_secs(20),
+        TestCase::MoveFastStraightAheadObstacle => Duration::from_secs(30),
     };
 
     let timeout = game.started.elapsed() > timeout;

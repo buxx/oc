@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use derive_more::Constructor;
 #[cfg(feature = "debug")]
 use oc_individual::IndividualIndex;
@@ -15,7 +17,7 @@ pub struct SpawnProjectiles {
     pub from: WorldVec3,
     pub directions: Vec<WorldVec3>,
     pub side: Side,
-    pub lag_us: u64, // FIXME Use strong type "Lag"
+    pub lag: Duration,
     #[cfg(feature = "debug")]
     pub shooter: Option<IndividualIndex>,
 }

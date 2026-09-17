@@ -55,6 +55,7 @@ backtrace = "0.3"
 derive_is_enum_variant = "0.1"
 rand = "0.10"
 serde_yaml = "0.9"
+getset = "0.1"
 
 # derive
 proc-macro2 = "1"

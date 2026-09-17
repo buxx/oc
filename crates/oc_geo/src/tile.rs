@@ -14,15 +14,15 @@ pub struct TileXy(pub Xy);
 impl TileXy {
     pub fn clamped(&self, w: &WorldConfig) -> Self {
         Self(Xy(
-            self.0.0.min(w.world_width - 1),
-            self.0.1.min(w.world_height - 1),
+            self.0.0.min(w.world_width() - 1),
+            self.0.1.min(w.world_height() - 1),
         ))
     }
 
     pub fn point(&self, w: &WorldConfig) -> [f32; 2] {
         [
-            self.0.0 as f32 * w.geo_pixels_per_tile as f32,
-            self.0.1 as f32 * w.geo_pixels_per_tile as f32,
+            self.0.0 as f32 * w.geo_pixels_per_tile() as f32,
+            self.0.1 as f32 * w.geo_pixels_per_tile() as f32,
         ]
     }
 }
@@ -36,8 +36,8 @@ impl From<TileXy> for (u64, u64) {
 impl WcfgFrom<TileXy> for WorldVec2 {
     fn from_(value: TileXy, w: &WorldConfig) -> Self {
         WorldVec2::new(
-            value.0.0 as f32 * w.geo_pixels_per_tile as f32,
-            value.0.1 as f32 * w.geo_pixels_per_tile as f32,
+            value.0.0 as f32 * w.geo_pixels_per_tile() as f32,
+            value.0.1 as f32 * w.geo_pixels_per_tile() as f32,
         )
     }
 }
@@ -51,8 +51,8 @@ impl WcfgFrom<WorldVec2> for TileXy {
 impl WcfgFrom<TileXy> for WorldVec3 {
     fn from_(value: TileXy, w: &WorldConfig) -> Self {
         WorldVec3::new(
-            value.0.0 as f32 * w.geo_pixels_per_tile as f32,
-            value.0.1 as f32 * w.geo_pixels_per_tile as f32,
+            value.0.0 as f32 * w.geo_pixels_per_tile() as f32,
+            value.0.1 as f32 * w.geo_pixels_per_tile() as f32,
             0.,
         )
     }
@@ -68,8 +68,8 @@ impl WcfgFrom<WorldVec3> for TileXy {
 impl WcfgFrom<TileXy> for [f32; 2] {
     fn from_(value: TileXy, w: &WorldConfig) -> Self {
         [
-            value.0.0 as f32 * w.geo_pixels_per_tile as f32,
-            value.0.1 as f32 * w.geo_pixels_per_tile as f32,
+            value.0.0 as f32 * w.geo_pixels_per_tile() as f32,
+            value.0.1 as f32 * w.geo_pixels_per_tile() as f32,
         ]
     }
 }
@@ -78,8 +78,8 @@ impl WcfgFrom<TileXy> for [f32; 2] {
 impl WcfgFrom<(f32, f32)> for TileXy {
     fn from_(value: (f32, f32), w: &WorldConfig) -> Self {
         TileXy(Xy(
-            value.0 as u64 / w.geo_pixels_per_tile,
-            value.1 as u64 / w.geo_pixels_per_tile,
+            value.0 as u64 / w.geo_pixels_per_tile(),
+            value.1 as u64 / w.geo_pixels_per_tile(),
         ))
     }
 }
@@ -88,8 +88,8 @@ impl WcfgFrom<(f32, f32)> for TileXy {
 impl WcfgFrom<glam::Vec2> for TileXy {
     fn from_(value: glam::Vec2, w: &WorldConfig) -> Self {
         TileXy(Xy(
-            value.x as u64 / w.geo_pixels_per_tile,
-            value.y as u64 / w.geo_pixels_per_tile,
+            value.x as u64 / w.geo_pixels_per_tile(),
+            value.y as u64 / w.geo_pixels_per_tile(),
         ))
     }
 }
@@ -98,8 +98,8 @@ impl WcfgFrom<glam::Vec2> for TileXy {
 impl WcfgFrom<glam::Vec3> for TileXy {
     fn from_(value: glam::Vec3, w: &WorldConfig) -> Self {
         TileXy(Xy(
-            value.x as u64 / w.geo_pixels_per_tile,
-            value.y as u64 / w.geo_pixels_per_tile,
+            value.x as u64 / w.geo_pixels_per_tile(),
+            value.y as u64 / w.geo_pixels_per_tile(),
         ))
     }
 }
@@ -108,8 +108,8 @@ impl WcfgFrom<glam::Vec3> for TileXy {
 impl WcfgFrom<TileXy> for [f32; 3] {
     fn from_(value: TileXy, w: &WorldConfig) -> Self {
         [
-            value.0.0 as f32 * w.geo_pixels_per_tile as f32,
-            value.0.1 as f32 * w.geo_pixels_per_tile as f32,
+            value.0.0 as f32 * w.geo_pixels_per_tile() as f32,
+            value.0.1 as f32 * w.geo_pixels_per_tile() as f32,
             0.0,
         ]
     }
@@ -166,31 +166,31 @@ impl WcfgFrom<WorldTileIndex> for WorldHeightIndex {
 
 impl WcfgFrom<WorldTileIndex> for TileXy {
     fn from_(WorldTileIndex(i): WorldTileIndex, w: &WorldConfig) -> Self {
-        let x = i % w.world_width;
-        let y = i / w.world_width;
+        let x = i % w.world_width();
+        let y = i / w.world_width();
         Self(Xy(x, y))
     }
 }
 
 impl WcfgFrom<WorldTileIndex> for Xy {
     fn from_(WorldTileIndex(i): WorldTileIndex, w: &WorldConfig) -> Self {
-        let x = i % w.world_width;
-        let y = i / w.world_width;
+        let x = i % w.world_width();
+        let y = i / w.world_width();
         Xy(x, y)
     }
 }
 
 impl WcfgFrom<WorldHeightIndex> for Xy {
     fn from_(WorldHeightIndex(i): WorldHeightIndex, w: &WorldConfig) -> Self {
-        let x = i % w.world_width;
-        let y = i / w.world_width;
+        let x = i % w.world_width();
+        let y = i / w.world_width();
         Xy(x, y)
     }
 }
 
 impl WcfgFrom<TileXy> for WorldTileIndex {
     fn from_(TileXy(Xy(x, y)): TileXy, w: &WorldConfig) -> Self {
-        Self(y * w.world_width + x)
+        Self(y * w.world_width() + x)
     }
 }
 
@@ -198,8 +198,8 @@ impl WcfgFrom<WorldVec2> for WorldTileIndex {
     fn from_(value: WorldVec2, w: &WorldConfig) -> Self {
         WorldTileIndex::from_(
             TileXy(Xy(
-                value.x as u64 / w.geo_pixels_per_tile,
-                value.y as u64 / w.geo_pixels_per_tile,
+                value.x as u64 / w.geo_pixels_per_tile(),
+                value.y as u64 / w.geo_pixels_per_tile(),
             )),
             w,
         )
@@ -209,8 +209,8 @@ impl WcfgFrom<WorldVec2> for WorldTileIndex {
 impl WcfgFrom<[f32; 2]> for TileXy {
     fn from_(value: [f32; 2], w: &WorldConfig) -> Self {
         Self(Xy(
-            value[0] as u64 / w.geo_pixels_per_tile,
-            value[1] as u64 / w.geo_pixels_per_tile,
+            value[0] as u64 / w.geo_pixels_per_tile(),
+            value[1] as u64 / w.geo_pixels_per_tile(),
         ))
     }
 }
@@ -218,16 +218,16 @@ impl WcfgFrom<[f32; 2]> for TileXy {
 impl WcfgFrom<[f32; 3]> for TileXy {
     fn from_(value: [f32; 3], w: &WorldConfig) -> Self {
         Self(Xy(
-            value[0] as u64 / w.geo_pixels_per_tile,
-            value[1] as u64 / w.geo_pixels_per_tile,
+            value[0] as u64 / w.geo_pixels_per_tile(),
+            value[1] as u64 / w.geo_pixels_per_tile(),
         ))
     }
 }
 
 impl WcfgFrom<RegionXy> for TileXy {
     fn from_(value: RegionXy, w: &WorldConfig) -> Self {
-        let x = value.0.0 * w.region_width;
-        let y = value.0.1 * w.region_height;
+        let x = value.0.0 * w.region_width();
+        let y = value.0.1 * w.region_height();
         Self(Xy(x, y))
     }
 }
@@ -246,8 +246,7 @@ mod tests {
     pub fn test_world_tile_index(#[case] x: u64, #[case] y: u64, #[case] i: u64) {
         // Given
 
-        use oc_root::physics::Meters;
-        let w = WorldConfig::new(1000, 1000, Meters(0.1));
+        let w = WorldConfig::new(1000, 1000);
 
         // When
         let index = WorldTileIndex::from_(TileXy(Xy(x, y)), &w);

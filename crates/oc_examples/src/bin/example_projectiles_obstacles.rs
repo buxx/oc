@@ -50,11 +50,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let map = map.context(format!("Read map {}", map_.display()))?;
     let world = Meta::from_file(&map_.meta());
     let world = world.context(format!("Read file {}", map_.meta().display()))?;
-    let w = WorldConfig::new(
-        map.width().unwrap() as u64,
-        map.height().unwrap() as u64,
-        Meters(world.geo_meters_per_z),
-    );
+    let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
+        .with_geo_meters_per_z(Meters(world.geo_meters_per_z));
     let snapshot = SnapshotBuilder::new(map, vec![], vec![], vec![]).build(w, &mod_)?;
 
     #[allow(unused)]
@@ -183,7 +180,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                         10
                     ],
                     Side::A,
-                    0,
+                    Duration::ZERO,
                     #[cfg(feature = "debug")]
                     None,
                 ),
@@ -199,7 +196,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                         10
                     ],
                     Side::A,
-                    0,
+                    Duration::ZERO,
                     #[cfg(feature = "debug")]
                     None,
                 ),
@@ -215,7 +212,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                         10
                     ],
                     Side::A,
-                    0,
+                    Duration::ZERO,
                     #[cfg(feature = "debug")]
                     None,
                 ),
@@ -236,7 +233,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                     10
                 ],
                 Side::A,
-                0,
+                Duration::ZERO,
                 #[cfg(feature = "debug")]
                 None,
             )] {
@@ -257,7 +254,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                         10
                     ],
                     Side::A,
-                    0,
+                    Duration::ZERO,
                     #[cfg(feature = "debug")]
                     None,
                 ),
@@ -273,7 +270,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                         10
                     ],
                     Side::A,
-                    0,
+                    Duration::ZERO,
                     #[cfg(feature = "debug")]
                     None,
                 ),
@@ -289,7 +286,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                         10
                     ],
                     Side::A,
-                    0,
+                    Duration::ZERO,
                     #[cfg(feature = "debug")]
                     None,
                 ),
@@ -310,7 +307,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                     10
                 ],
                 Side::A,
-                0,
+                Duration::ZERO,
                 #[cfg(feature = "debug")]
                 None,
             )] {
@@ -330,7 +327,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                     10
                 ],
                 Side::A,
-                0,
+                Duration::ZERO,
                 #[cfg(feature = "debug")]
                 None,
             )] {

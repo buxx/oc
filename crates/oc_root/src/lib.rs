@@ -1,16 +1,16 @@
 #[cfg(feature = "debug")]
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::time::Duration;
 
 #[cfg(feature = "bevy")]
 use bevy::prelude::*;
 
+use getset::{CopyGetters, Getters, WithSetters};
 use rkyv::{Archive, Deserialize, Serialize};
 
-use crate::{
-    opacity::CumulatedOpacity,
-    physics::{Meters, Seconds},
-};
+use crate::{behavior::Suppress, opacity::CumulatedOpacity, physics::Meters, utils::Frequency};
 
+pub mod behavior;
 pub mod end;
 pub mod files;
 pub mod geo;
@@ -31,75 +31,116 @@ static INACCURACY_SPREAD_ENABLED: AtomicBool = AtomicBool::new(false);
 #[cfg(feature = "debug")]
 static IMMORTALITY: AtomicBool = AtomicBool::new(false);
 
-#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
+#[derive(
+    Debug, Clone, Archive, Deserialize, Serialize, PartialEq, WithSetters, Getters, CopyGetters,
+)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct WorldConfig {
-    pub world_width: u64,
-    pub world_height: u64,
-    pub region_width: u64,
-    pub region_height: u64,
-    pub tiles_count: u64,
-    pub regions_count: u64,
-    pub regions_width: u64,
-    pub regions_height: u64,
-    pub world_width_pixels: u64,
-    pub world_height_pixels: u64,
-    pub region_width_pixels: u64,
-    pub region_height_pixels: u64,
-    pub individual_tick_interval_us: u64,
-    pub visibilities_tick_interval_us: u64,
-    pub squad_tick_interval_us: u64,
-    pub physics_tick_per_seconds: u64,
-    pub physics_tick_interval_us: u64,
-    pub physics_coeff_per_tick: f32,
-    pub geo_pixels_per_meters: f32,
-    pub geo_pixels_per_tile: u64,
-    pub geo_meters_per_z: Meters,
-    pub minimap_width_pixels: u64,
-    pub minimap_height_pixels: u64,
-    pub formation_tiles_between_positions: u64,
-    pub individual_visibility_until: CumulatedOpacity,
+    #[getset(get_copy = "pub")]
+    world_width: u64,
+    #[getset(get_copy = "pub")]
+    world_height: u64,
+    #[getset(get_copy = "pub")]
+    region_width: u64,
+    #[getset(get_copy = "pub")]
+    region_height: u64,
+    #[getset(get_copy = "pub")]
+    tiles_count: u64,
+    #[getset(get_copy = "pub")]
+    regions_count: u64,
+    #[getset(get_copy = "pub")]
+    regions_width: u64,
+    #[getset(get_copy = "pub")]
+    regions_height: u64,
+    #[getset(get_copy = "pub")]
+    world_width_pixels: u64,
+    #[getset(get_copy = "pub")]
+    world_height_pixels: u64,
+    #[getset(get_copy = "pub")]
+    region_width_pixels: u64,
+    #[getset(get_copy = "pub")]
+    region_height_pixels: u64,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    speed: f32,
+    #[getset(set_with = "pub")]
+    individual_tick: Frequency,
+    #[getset(set_with = "pub")]
+    visibilities_tick: Frequency,
+    #[getset(set_with = "pub")]
+    squad_tick: Frequency,
+    #[getset(set_with = "pub")]
+    physics_tick: Frequency,
+    #[getset(set_with = "pub")]
+    scheduler_tick: Frequency,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    geo_pixels_per_meters: f32,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    geo_pixels_per_tile: u64,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    geo_meters_per_z: Meters,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    minimap_width_pixels: u64,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    minimap_height_pixels: u64,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    formation_tiles_between_positions: u64,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    individual_visibility_until: CumulatedOpacity,
     /// Inaccuracy start value
-    pub base_inaccuracy: f32,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    base_inaccuracy: f32,
     /// Inaccuracy value for 100% suppressed (50% suppressed will by 50% of this value)
-    pub suppress_inaccuracy: f32,
-    pub standup_inaccuracy: f32,
-    pub walking_inaccuracy: f32,
-    pub running_inaccuracy: f32,
-    pub crawling_inaccuracy: f32,
-    pub prone_inaccuracy: f32,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    suppress_inaccuracy: f32,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    standup_inaccuracy: f32,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    walking_inaccuracy: f32,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    running_inaccuracy: f32,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    crawling_inaccuracy: f32,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    prone_inaccuracy: f32,
     /// Inaccuracy value for 100% opacity (50% opacity will by 50% of this value)
-    pub opacity_inaccuracy: f32,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    opacity_inaccuracy: f32,
     /// To prevent problems due to "square 3d" (when gunner is close to the edge)
-    pub ignore_firsts_lov_tiles: u8,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    ignore_firsts_lov_tiles: u8,
     /// To prevent problems due to "square 3d" (when gunner is close to the edge)
-    pub ignore_firsts_physics_pixels: u8,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    ignore_firsts_physics_pixels: u8,
     /// Consider individual proximity in this tile rayon
-    pub proximity_individual_rayon: u64,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    proximity_individual_rayon: u64,
     /// When projectile near individual, increase individual suppress by this value at tick
     /// A proportional value of given distance will be used.
-    pub proximity_projectile_fly_tick_increase_value: (Meters, Suppress),
+    #[getset(get_copy = "pub", set_with = "pub")]
+    proximity_projectile_fly_tick_increase_value: (Meters, Suppress),
     /// When projectile collision near individual, increase individual suppress by this value at tick
     /// A proportional value of given distance will be used.
-    pub proximity_projectile_impact_tick_increase_value: (Meters, Suppress),
+    #[getset(get_copy = "pub", set_with = "pub")]
+    proximity_projectile_impact_tick_increase_value: (Meters, Suppress),
     /// Decrease each individual suppress value at tick by this value
-    pub individual_tick_decrease_suppress: Suppress,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    individual_tick_decrease_suppress: Suppress,
     /// Individual with this or more suppress will hide (instead of make other things)
-    pub individual_suppress_limit_hide: Suppress,
+    #[getset(get_copy = "pub")]
+    individual_suppress_limit_hide: Suppress,
 }
 
 impl WorldConfig {
-    pub fn new(world_width: u64, world_height: u64, geo_meters_per_z: Meters) -> Self {
+    pub fn new(world_width: u64, world_height: u64) -> Self {
         let region_width = 1000.min(world_width);
         let region_height = 1000.min(world_height);
-        let individual_tick_interval_us: u64 = 1_000_000 / 1;
-        let visibilities_tick_interval_us: u64 = (1_000_000 as f32 / 0.2) as u64;
-        let squad_tick_interval_us: u64 = (1_000_000 as f32 / 0.5) as u64;
-        // FIXME: delta is computed statically here (physics_coeff_per_tick) but maybe should
-        // be computed from real eslapsec time between physics iterations
-        let physics_tick_per_seconds: u64 = 10;
-        let physics_tick_interval_us: u64 = 1_000_000 / physics_tick_per_seconds;
-        let physics_coeff_per_tick: f32 = 1. / physics_tick_per_seconds as f32;
+
+        let speed = 1.0;
+        let individual_tick = Frequency::each(Duration::from_secs(1));
+        let visibilities_tick = Frequency::each(Duration::from_secs(2));
+        let squad_tick = Frequency::each(Duration::from_secs(5));
+        let physics_tick = Frequency::each(Duration::from_millis(500));
+        let scheduler_tick = Frequency::each(Duration::from_millis(5));
         let geo_pixels_per_meters: f32 = 5.;
         let geo_pixels_per_tile: u64 = geo_pixels_per_meters as u64;
 
@@ -113,6 +154,7 @@ impl WorldConfig {
         let region_height_pixels = region_height * geo_pixels_per_tile;
         let minimap_width_pixels: u64 = 2048;
         let minimap_height_pixels: u64 = 2048;
+        let geo_meters_per_z = Meters(0.1);
 
         let formation_tiles_between_positions = 2;
         let individual_visibility_until = CumulatedOpacity(0.6);
@@ -146,12 +188,12 @@ impl WorldConfig {
             world_height_pixels,
             region_width_pixels,
             region_height_pixels,
-            individual_tick_interval_us,
-            visibilities_tick_interval_us,
-            squad_tick_interval_us,
-            physics_tick_per_seconds,
-            physics_tick_interval_us,
-            physics_coeff_per_tick,
+            speed,
+            individual_tick,
+            visibilities_tick,
+            squad_tick,
+            physics_tick,
+            scheduler_tick,
             geo_pixels_per_meters,
             geo_pixels_per_tile,
             geo_meters_per_z,
@@ -177,55 +219,40 @@ impl WorldConfig {
         }
     }
 
-    pub fn region_width(mut self, value: u64) -> Self {
+    pub fn with_region_width(mut self, value: u64) -> Self {
         self.region_width = value;
         self.regions_count = self.tiles_count / (self.region_width * self.region_height);
-        self.regions_width = self.world_width / self.region_width;
+        self.regions_width = self.world_width / self.region_width();
         self.region_width_pixels = self.region_width * self.geo_pixels_per_tile;
         self
     }
 
-    pub fn region_height(mut self, value: u64) -> Self {
+    pub fn with_region_height(mut self, value: u64) -> Self {
         self.region_height = value;
         self.regions_count = self.tiles_count / (self.region_width * self.region_height);
-        self.regions_height = self.world_height / self.region_height;
+        self.regions_height = self.world_height / self.region_height();
         self.region_height_pixels = self.region_height * self.geo_pixels_per_tile;
         self
     }
 
-    pub fn individual_tick_interval_us(mut self, value: u64) -> Self {
-        self.individual_tick_interval_us = value;
-        self
+    pub fn individual_tick(&self) -> Frequency {
+        self.individual_tick * self.speed
     }
 
-    pub fn physics_coeff_per_tick(mut self, value: f32) -> Self {
-        self.physics_coeff_per_tick = value;
-        self
+    pub fn visibilities_tick(&self) -> Frequency {
+        self.visibilities_tick * self.speed
     }
 
-    pub fn geo_pixels_per_meters(mut self, value: f32) -> Self {
-        self.geo_pixels_per_meters = value;
-        self
+    pub fn squad_tick(&self) -> Frequency {
+        self.squad_tick * self.speed
     }
 
-    pub fn geo_pixels_per_tile(mut self, value: u64) -> Self {
-        self.geo_pixels_per_tile = value;
-        self
+    pub fn physics_tick(&self) -> Frequency {
+        self.physics_tick * self.speed
     }
 
-    pub fn formation_tiles_between_positions(mut self, value: u64) -> Self {
-        self.formation_tiles_between_positions = value;
-        self
-    }
-
-    pub fn visibilities_tick_each_seconds(mut self, value: f32) -> Self {
-        self.visibilities_tick_interval_us = (1_000_000 as f32 / value) as u64;
-        self
-    }
-
-    pub fn proximity_individual_rayon(mut self, value: u64) -> Self {
-        self.proximity_individual_rayon = value;
-        self
+    pub fn scheduler_tick(&self) -> Frequency {
+        self.scheduler_tick * self.speed
     }
 
     #[cfg(feature = "debug")]
@@ -281,173 +308,3 @@ where
 #[cfg(feature = "bevy")]
 #[derive(Debug, Resource, Deref, Default)]
 pub struct Wcfg(pub Option<WorldConfig>);
-
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-    Eq,
-    PartialOrd,
-    Ord,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct Suppress(pub u8);
-
-impl Suppress {
-    pub fn zero() -> Self {
-        Self(0)
-    }
-
-    pub fn normalize(&self) -> f32 {
-        self.0 as f32 / 255.0
-    }
-
-    pub fn decrease(mut self, value: Suppress) -> Suppress {
-        self.0 = self.0.saturating_sub(value.0);
-        self
-    }
-}
-
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct U8Progress(pub u8);
-
-impl U8Progress {
-    pub fn zero() -> Self {
-        Self(0)
-    }
-
-    pub fn tick(&self, interval_micros: u64, total: Seconds) -> (Self, Self) {
-        let total_micros = (total.0 * 1_000_000.0) as u64;
-        let total_ticks = (total_micros / interval_micros).max(1); // avoid div-by-zero
-        let increment = (255u32 / total_ticks as u32) as u8;
-        let add = increment.min(255 - self.0);
-        let new = self.0 + add;
-        let exceedance = increment - add;
-        (Self(new), Self(exceedance))
-    }
-
-    pub fn finished(&self) -> bool {
-        self.0 == 255
-    }
-    pub fn f32(&self) -> f32 {
-        self.0 as f32 / 255.
-    }
-}
-
-// WARN: U8Progress tests AI generated
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // 2s action, 10 ticks/sec -> interval = 100_000 µs, total_ticks = 20
-    // increment = 255 / 20 = 12 (integer division)
-    #[test]
-    fn single_tick_2s_at_10tps() {
-        let p = U8Progress(0);
-        let (p, _) = p.tick(100_000, Seconds(2.0));
-        assert_eq!(p.0, 12);
-    }
-
-    // 1s action, 10 ticks/sec -> interval = 100_000 µs, total_ticks = 10
-    // increment = 255 / 10 = 25  (this matches your original expected example)
-    #[test]
-    fn single_tick_1s_at_10tps() {
-        let p = U8Progress(0);
-        let (p, _) = p.tick(100_000, Seconds(1.0));
-        assert_eq!(p.0, 25);
-    }
-
-    // Accumulation over the full duration of a 2s/10tps action.
-    // 20 ticks * 12 = 240, NOT 255 -- documents the truncation issue.
-    #[test]
-    fn full_duration_does_not_reach_max_due_to_truncation() {
-        let mut p = U8Progress(0);
-        for _ in 0..20 {
-            p = p.tick(100_000, Seconds(2.0)).0;
-        }
-        assert_eq!(p.0, 240);
-        assert!(p.0 < 255);
-    }
-
-    // Progress must never exceed 255 (u8::MAX) even with excess ticks.
-    #[test]
-    fn saturates_at_max() {
-        let mut p = U8Progress(0);
-        for _ in 0..100 {
-            p = p.tick(100_000, Seconds(1.0)).0; // increment 25 each time
-        }
-        assert_eq!(p.0, 255);
-    }
-
-    // Starting near the top should saturate, not wrap around.
-    #[test]
-    fn saturating_add_does_not_wrap() {
-        let p = U8Progress(250);
-        let (p, _) = p.tick(100_000, Seconds(1.0)); // increment 25 -> would be 275
-        assert_eq!(p.0, 255);
-    }
-
-    // interval longer than total duration -> total_ticks clamped to 1,
-    // increment = 255 / 1 = 255 (jumps straight to max in one tick).
-    #[test]
-    fn interval_larger_than_total_clamped_to_one_tick() {
-        let p = U8Progress(0);
-        let (p, _) = p.tick(5_000_000, Seconds(1.0)); // 5s interval, 1s total
-        assert_eq!(p.0, 255);
-    }
-
-    // Sanity check: zero-length action still doesn't panic (div-by-zero guarded).
-    #[test]
-    fn zero_duration_does_not_panic() {
-        let p = U8Progress(0);
-        let (p, _) = p.tick(100_000, Seconds(0.0));
-        assert_eq!(p.0, 255); // total_ticks clamped to 1 -> full jump
-    }
-
-    // Progress from non-zero starting point still respects saturating add.
-    #[test]
-    fn tick_from_nonzero_start() {
-        let p = U8Progress(100);
-        let (p, _) = p.tick(100_000, Seconds(2.0)); // increment 12
-        assert_eq!(p.0, 112);
-    } // interval_micros = 1_000_000 (1s), total = 10s => total_ticks = 10,
-    // increment = 255 / 10 = 25 per tick.
-
-    #[test]
-    fn tick_without_exceedance() {
-        let progress = U8Progress(0);
-        let (new, exceedance) = progress.tick(1_000_000, Seconds(10.0));
-
-        assert_eq!(new.0, 25);
-        assert_eq!(exceedance.0, 0);
-    }
-
-    #[test]
-    fn tick_with_exceedance() {
-        // Only 10 units of room left before hitting 255, but increment is 25,
-        // so the bar caps out and the leftover 15 becomes the exceedance.
-        let progress = U8Progress(245);
-        let (new, exceedance) = progress.tick(1_000_000, Seconds(10.0));
-
-        assert_eq!(new.0, 255);
-        assert!(new.finished());
-        assert_eq!(exceedance.0, 15);
-    }
-}

@@ -1,7 +1,10 @@
 use std::{ops::Deref, path::PathBuf};
 
 use anyhow::Context;
-use oc_root::physics::{MetersSeconds, Seconds};
+use oc_root::{
+    WorldConfig,
+    physics::{MetersSeconds, Seconds},
+};
 use rkyv::Archive;
 use strum_macros::EnumIter;
 use thiserror::Error;
@@ -210,17 +213,17 @@ impl Weapon {
         }
     }
 
-    pub fn reload(&self) -> Seconds {
+    pub fn reload(&self, w: &WorldConfig) -> Seconds {
         match self {
-            Weapon::Rifle(rifle) => rifle.reload,
-            Weapon::MachineGun(machine_gun) => machine_gun.reload,
+            Weapon::Rifle(rifle) => rifle.reload / w.speed(),
+            Weapon::MachineGun(machine_gun) => machine_gun.reload / w.speed(),
         }
     }
 
-    pub fn aim(&self) -> Seconds {
+    pub fn aim(&self, w: &WorldConfig) -> Seconds {
         match self {
-            Weapon::Rifle(rifle) => rifle.aim,
-            Weapon::MachineGun(machine_gun) => machine_gun.aim,
+            Weapon::Rifle(rifle) => rifle.aim / w.speed(),
+            Weapon::MachineGun(machine_gun) => machine_gun.aim / w.speed(),
         }
     }
 

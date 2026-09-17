@@ -39,23 +39,23 @@ impl WorldRegionIndex {
 
 impl WcfgFrom<WorldRegionIndex> for RegionXy {
     fn from_(WorldRegionIndex(i): WorldRegionIndex, w: &WorldConfig) -> Self {
-        let x = i % w.regions_width;
-        let y = i / w.regions_width;
+        let x = i % w.regions_width();
+        let y = i / w.regions_width();
         Self(Xy(x, y))
     }
 }
 
 impl WcfgFrom<WorldRegionIndex> for Xy {
     fn from_(WorldRegionIndex(i): WorldRegionIndex, w: &WorldConfig) -> Self {
-        let x = i % w.regions_width;
-        let y = i / w.regions_width;
+        let x = i % w.regions_width();
+        let y = i / w.regions_width();
         Xy(x, y)
     }
 }
 
 impl WcfgFrom<RegionXy> for WorldRegionIndex {
     fn from_(RegionXy(Xy(x, y)): RegionXy, w: &WorldConfig) -> Self {
-        Self(y * w.regions_width + x)
+        Self(y * w.regions_width() + x)
     }
 }
 
@@ -69,7 +69,10 @@ impl WcfgFrom<WorldTileIndex> for WorldRegionIndex {
 
 impl WcfgFrom<TileXy> for RegionXy {
     fn from_(value: TileXy, w: &WorldConfig) -> Self {
-        Self(Xy(value.0.0 / w.region_width, value.0.1 / w.region_height))
+        Self(Xy(
+            value.0.0 / w.region_width(),
+            value.0.1 / w.region_height(),
+        ))
     }
 }
 
@@ -103,10 +106,9 @@ mod tests {
     ) {
         // Given
 
-        use oc_root::physics::Meters;
-        let w = WorldConfig::new(1000, 1000, Meters(0.1))
-            .region_width(100)
-            .region_height(100);
+        let w = WorldConfig::new(1000, 1000)
+            .with_region_width(100)
+            .with_region_height(100);
 
         // When
         let index = WorldRegionIndex::from_(RegionXy(Xy(x, y)), &w);
@@ -127,10 +129,9 @@ mod tests {
     ) {
         // Given
 
-        use oc_root::physics::Meters;
-        let w = WorldConfig::new(1000, 1000, Meters(0.1))
-            .region_width(100)
-            .region_height(100);
+        let w = WorldConfig::new(1000, 1000)
+            .with_region_width(100)
+            .with_region_height(100);
 
         // When
         let tile_index = WorldTileIndex::from_(TileXy(Xy(x as u64, y)), &w);

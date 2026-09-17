@@ -79,11 +79,8 @@ fn main() -> Result<(), anyhow::Error> {
     let meta = Meta::from_file(&map.join("meta.toml"))?;
     let map_ = oc_world::reader::MapReader::new(&map);
     let map_ = map_.context(format!("Read map_ {}", map.display()))?;
-    let w = WorldConfig::new(
-        map_.width().unwrap() as u64,
-        map_.height().unwrap() as u64,
-        Meters(meta.geo_meters_per_z),
-    );
+    let w = WorldConfig::new(map_.width().unwrap() as u64, map_.height().unwrap() as u64)
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
     let tiles = map_.tiles(&w, &mod__).unwrap();
 
     let individuals = individuals(&w, &tiles, &args);

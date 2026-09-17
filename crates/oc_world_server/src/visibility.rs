@@ -69,7 +69,7 @@ pub fn visibility(
     p1: oc_root::geo::WorldVec3,
     p2: oc_root::geo::WorldVec3,
 ) -> Visibility {
-    let ignore = w.ignore_firsts_lov_tiles as usize;
+    let ignore = w.ignore_firsts_lov_tiles() as usize;
     let lov = oc_lov::PathBuilder::new(w, at).build(p1, p2, ignore);
 
     let opacity = lov
@@ -77,7 +77,7 @@ pub fn visibility(
         .last()
         .map(|s| s.opacity)
         .unwrap_or(CumulatedOpacity(1.0));
-    let visible = opacity <= w.individual_visibility_until;
+    let visible = opacity <= w.individual_visibility_until();
 
     tracing::trace!(
         name="visibility-processor-compute-result",
@@ -110,7 +110,7 @@ pub fn path_objects_at(
     world
         .tile(WorldTileIndex::from_(TileXy(at), w))
         .map(|t| {
-            let tile_z = t.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters;
+            let tile_z = t.z as f32 * w.geo_meters_per_z().0 * w.geo_pixels_per_meters();
             let relative_z = z - tile_z;
             let nature = mod_.nature(t.nature);
             let opacity = nature.opacity(w, relative_z);

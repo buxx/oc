@@ -1,5 +1,5 @@
-use std::f32::consts::TAU;
 use std::path::PathBuf;
+use std::{f32::consts::TAU, time::Duration};
 
 use anyhow::Context;
 use bevy::prelude::*;
@@ -22,11 +22,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let map_ = PathBuf::from("examples/world1");
     let map = oc_world::reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
-    let w = WorldConfig::new(
-        map.width().unwrap() as u64,
-        map.height().unwrap() as u64,
-        Meters(meta.geo_meters_per_z),
-    );
+    let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
     let snapshot = SnapshotBuilder::new(map, vec![], vec![], vec![]).build(w, &mod__)?;
 
     let example = run::Example::builder()
@@ -60,15 +57,12 @@ fn install(app: &mut bevy::app::App) {
     let meta = Meta::from_file(&PathBuf::from("examples/world1/meta.toml")).unwrap();
     let map_ = PathBuf::from("examples/world1");
     let map = oc_world::reader::MapReader::new(&map_).unwrap();
-    let w = WorldConfig::new(
-        map.width().unwrap() as u64,
-        map.height().unwrap() as u64,
-        Meters(meta.geo_meters_per_z),
-    );
+    let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
     let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
     // Move at the center of the world
-    let center_x = (map.width().unwrap() as f32 * w.geo_pixels_per_tile as f32) / 2.;
-    let center_y = (map.height().unwrap() as f32 * w.geo_pixels_per_tile as f32) / 2.;
+    let center_x = (map.width().unwrap() as f32 * w.geo_pixels_per_tile() as f32) / 2.;
+    let center_y = (map.height().unwrap() as f32 * w.geo_pixels_per_tile() as f32) / 2.;
 
     let config = Config {
         mod_,
@@ -140,7 +134,7 @@ fn orbit(
                 [orbiter.center.x, orbiter.center.y, 500.].into(),
                 directions,
                 Side::A,
-                0,
+                Duration::ZERO,
                 #[cfg(feature = "debug")]
                 None,
             ),

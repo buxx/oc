@@ -17,7 +17,7 @@ pub struct SpawnProjectileProfile {
     pub repeat: u8,
     pub plus_z: Meters,
     pub side: Side,
-    pub lag_us: u64,
+    pub lag: Duration,
 }
 
 #[derive(Default, Reflect, GizmoConfigGroup)]

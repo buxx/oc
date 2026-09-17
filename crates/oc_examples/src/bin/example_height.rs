@@ -62,11 +62,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let map_ = PathBuf::from("examples/height");
     let map = oc_world::reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
-    let w = WorldConfig::new(
-        map.width().unwrap() as u64,
-        map.height().unwrap() as u64,
-        Meters(meta.geo_meters_per_z),
-    );
+    let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
 
     let (individuals, squads) = match args.case {
         Case::Visibilities => (vec![], vec![]),

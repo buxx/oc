@@ -19,14 +19,14 @@ use oc_physics::Physic;
 use oc_physics::UpdatePhysic;
 use oc_physics::collision::Material;
 use oc_physics::volume::Volume;
-use oc_root::Suppress;
-use oc_root::U8Progress;
 use oc_root::WcfgFrom;
 use oc_root::WorldConfig;
+use oc_root::behavior::Suppress;
 use oc_root::geo::WorldVec3;
 use oc_root::material::MaterialKind;
 use oc_root::physics::Meters;
 use oc_root::side::Side;
+use oc_root::utils::U8Progress;
 #[cfg(feature = "bevy")]
 use oc_root::y::V;
 use oc_utils::collections::WithIds;
@@ -155,8 +155,8 @@ impl From<i32> for IndividualIndex {
 impl Individual {
     pub fn fresh(w: &WorldConfig, side: Side, position: WorldVec3) -> Self {
         let tile_xy = TileXy(Xy(
-            position.x as u64 / w.geo_pixels_per_tile,
-            position.y as u64 / w.geo_pixels_per_tile,
+            position.x as u64 / w.geo_pixels_per_tile(),
+            position.y as u64 / w.geo_pixels_per_tile(),
         ));
         let tile = WorldTileIndex::from_(tile_xy, &w);
         let region = WorldRegionIndex::from_(tile, w);
@@ -260,7 +260,7 @@ impl Individual {
     }
 
     pub fn suppress_inaccuracy(&self, w: &WorldConfig) -> f32 {
-        self.suppress.normalize() * w.suppress_inaccuracy
+        self.suppress.normalize() * w.suppress_inaccuracy()
     }
 }
 
@@ -285,22 +285,24 @@ impl Physic for Individual {
         let cube = match self.gesture.body {
             BodyGesture::StandUp(_) | BodyGesture::Walking(_) | BodyGesture::Running(_) => {
                 Volume::Cube {
-                    x: ref_.x,
-                    y: ref_.y,
-                    z: ref_.z,
+                    x: 0.,
+                    y: 0.,
+                    z: 0.,
                     width: INDIVIDUAL_STAND_UP_VOLUME_WIDTH.pixels(w),
                     height: INDIVIDUAL_STAND_UP_VOLUME_HEIGHT.pixels(w),
                     depth: INDIVIDUAL_STAND_UP_VOLUME_DEPTH.pixels(w),
                 }
+                .with_ref(ref_)
             }
             BodyGesture::Crawling(_direction) | BodyGesture::Prone(_direction) => Volume::Cube {
-                x: ref_.x,
-                y: ref_.y,
-                z: ref_.z,
+                x: 0.,
+                y: 0.,
+                z: 0.,
                 width: INDIVIDUAL_PRONE_VOLUME_WIDTH.pixels(w),
                 height: INDIVIDUAL_PRONE_VOLUME_HEIGHT.pixels(w),
                 depth: INDIVIDUAL_PRONE_VOLUME_DEPTH.pixels(w),
-            },
+            }
+            .with_ref(ref_),
         };
         vec![(
             cube,
@@ -416,11 +418,11 @@ impl Gesture {
 
     pub fn inaccuracy(&self, w: &WorldConfig) -> f32 {
         match self.body {
-            BodyGesture::StandUp(_) => w.standup_inaccuracy,
-            BodyGesture::Walking(_) => w.walking_inaccuracy,
-            BodyGesture::Running(_) => w.running_inaccuracy,
-            BodyGesture::Crawling(_) => w.crawling_inaccuracy,
-            BodyGesture::Prone(_) => w.prone_inaccuracy,
+            BodyGesture::StandUp(_) => w.standup_inaccuracy(),
+            BodyGesture::Walking(_) => w.walking_inaccuracy(),
+            BodyGesture::Running(_) => w.running_inaccuracy(),
+            BodyGesture::Crawling(_) => w.crawling_inaccuracy(),
+            BodyGesture::Prone(_) => w.prone_inaccuracy(),
         }
     }
 }

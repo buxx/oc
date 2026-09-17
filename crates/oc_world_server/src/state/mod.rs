@@ -107,8 +107,8 @@ pub fn init<E: Client>(config: ServerConfig) -> Result<State<E>, anyhow::Error> 
     let w = snapshot
         .w
         .clone()
-        .region_width(config.region_width)
-        .region_height(config.region_height);
+        .with_region_width(config.region_width)
+        .with_region_height(config.region_height);
     let world = WorldLoader::new(w.clone(), mod_.clone(), world.clone(), cache.clone());
     let world = world.load(&ids, snapshot)?;
 

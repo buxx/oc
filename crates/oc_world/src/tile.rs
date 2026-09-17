@@ -29,7 +29,7 @@ pub struct Tile {
 
 impl Tile {
     pub fn z_pixels(&self, w: &WorldConfig) -> f32 {
-        self.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters
+        self.z as f32 * w.geo_meters_per_z().0 * w.geo_pixels_per_meters()
     }
 }
 
@@ -68,7 +68,7 @@ impl Physic for Tile {
         WorldVec3::new(
             point[0],
             point[1],
-            self.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters,
+            self.z as f32 * w.geo_meters_per_z().0 * w.geo_pixels_per_meters(),
         )
     }
 
@@ -86,7 +86,7 @@ impl Physic for Tile {
     ) -> Vec<(Volume, Traversability, Direction)> {
         tracing::trace!(name = "tile-volume", ref_ = ?ref_);
         let nature = mod_.nature(self.nature);
-        let exceedance = nature.z.0 * w.geo_pixels_per_meters;
+        let exceedance = nature.z.0 * w.geo_pixels_per_meters();
 
         // Tile "ground". Always not traversable.
         let ground = (
@@ -94,8 +94,8 @@ impl Physic for Tile {
                 x: ref_.x,
                 y: ref_.y,
                 z: -DEPTH,
-                width: w.geo_pixels_per_tile as f32,
-                height: w.geo_pixels_per_tile as f32,
+                width: w.geo_pixels_per_tile() as f32,
+                height: w.geo_pixels_per_tile() as f32,
                 depth: DEPTH + ref_.z,
             },
             Traversability::none(),
@@ -107,8 +107,8 @@ impl Physic for Tile {
                 x: ref_.x,
                 y: ref_.y,
                 z: ref_.z,
-                width: w.geo_pixels_per_tile as f32,
-                height: w.geo_pixels_per_tile as f32,
+                width: w.geo_pixels_per_tile() as f32,
+                height: w.geo_pixels_per_tile() as f32,
                 depth: exceedance,
             },
             // TODO: perf test with reference ?
@@ -153,11 +153,7 @@ mod test {
     use std::path::PathBuf;
 
     use super::*;
-    use oc_root::{
-        WcfgFrom,
-        physics::{Meters, MetersSeconds},
-        side::Side,
-    };
+    use oc_root::{WcfgFrom, physics::MetersSeconds, side::Side, utils::Frequency};
 
     struct MyObject(WorldVec3, Vec<Force>);
     #[derive(Debug, Clone, Copy, serde::Serialize, PartialEq)]
@@ -226,11 +222,10 @@ mod test {
 
         // Given
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(10, 10, Meters(0.1))
-            .physics_coeff_per_tick(1.0)
-            .geo_pixels_per_meters(10.)
-            .geo_pixels_per_tile(5);
-        let delta = w.physics_coeff_per_tick;
+        let w = WorldConfig::new(10, 10)
+            .with_physics_tick(Frequency::new(1.0))
+            .with_geo_pixels_per_meters(10.)
+            .with_geo_pixels_per_tile(5);
         let from = glam::Vec3::new(0., 0., 10.);
         let to = glam::Vec3::new(10., 10., 0.);
         let direction = (to - from).normalize_or_zero();
@@ -256,8 +251,8 @@ mod test {
             Vec<oc_physics::Event<MyObjectId>>,
         ) = oc_physics::step(
             &w,
+            w.physics_tick().period(),
             &mod_,
-            delta,
             (MyObjectId(0), &object),
             objects,
             |_| vec![],

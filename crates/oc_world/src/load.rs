@@ -39,7 +39,7 @@ impl WorldLoader {
         let meta = Meta::from_file(&self.world.meta()).map_err(MetaError::Load)?;
 
         // TODO: centralize caching at server startup
-        self.cache(&meta, self.w.region_width, self.w.region_height)?;
+        self.cache(&meta, self.w.region_width(), self.w.region_height())?;
         tracing::debug!("Cache finished");
 
         let w = self.w.clone();
@@ -93,13 +93,14 @@ impl WorldLoader {
         }
 
         let (width, height) = image::image_dimensions(self.world.background())?;
-        if width != self.w.world_width_pixels as u32 || height != self.w.world_height_pixels as u32
+        if width != self.w.world_width_pixels() as u32
+            || height != self.w.world_height_pixels() as u32
         {
             return Err(BackgroundError::Dimensions(
                 width,
                 height,
-                self.w.world_width_pixels as u32,
-                self.w.world_height_pixels as u32,
+                self.w.world_width_pixels() as u32,
+                self.w.world_height_pixels() as u32,
             ));
         }
 
@@ -136,8 +137,8 @@ impl WorldLoader {
             }
             false => {
                 // TODO: size in config/args ?
-                let width = self.w.minimap_width_pixels as f32;
-                let height = self.w.minimap_height_pixels as f32;
+                let width = self.w.minimap_width_pixels() as f32;
+                let height = self.w.minimap_height_pixels() as f32;
                 tracing::info!(
                     "Prepare cache for minimap {} ({}x{})",
                     minimap.display(),
@@ -157,7 +158,7 @@ impl WorldLoader {
         let counter = Arc::new(AtomicU32::new(0));
         tracing::info!("Prepare cache for regions");
 
-        (0..self.w.regions_count)
+        (0..self.w.regions_count())
             .into_par_iter()
             .map(|i| {
                 let i = WorldRegionIndex(i);
@@ -177,7 +178,7 @@ impl WorldLoader {
             .collect::<Result<Vec<()>, CacheRegionBackgroundError>>()?;
 
         let cached = counter.load(std::sync::atomic::Ordering::Relaxed);
-        let already = self.w.regions_count - cached as u64;
+        let already = self.w.regions_count() - cached as u64;
         tracing::info!("{} cached, {} already cached", cached, already);
 
         if !std::fs::exists(&archive)? {

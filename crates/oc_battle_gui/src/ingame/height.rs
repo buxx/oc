@@ -170,7 +170,7 @@ fn on_spawn(
     tracing::trace!(name="ingame-height-on-spawn-center", center=?center);
 
     let regions: Vec<WorldRegionIndex> = world.tiles.keys().cloned().collect();
-    let grid_size = UVec2::new(g.w.region_width as u32, g.w.region_height as u32);
+    let grid_size = UVec2::new(g.w.region_width() as u32, g.w.region_height() as u32);
 
     for region in regions {
         // FIXME Files
@@ -199,11 +199,11 @@ fn on_spawn(
                 // So, add 0.5 to have something relative from 0.0 to 1.0,
                 // then, * region_width/ieght to find point is.
                 let p_ = Vec2::new(
-                    (p.x + 0.5) * g.w.region_width as f32,
-                    (p.y + 0.5) * g.w.region_height as f32,
+                    (p.x + 0.5) * g.w.region_width() as f32,
+                    (p.y + 0.5) * g.w.region_height() as f32,
                 );
                 // Remove region_height to adapt to inverted y
-                let (x, y) = (p_.x as u64, (g.w.region_height as f32 - p_.y) as u64);
+                let (x, y) = (p_.x as u64, (g.w.region_height() as f32 - p_.y) as u64);
                 let tile = TileXy(Xy(x, y));
                 let tile_i: WorldTileIndex = tile.into_(&g.w);
 
@@ -217,8 +217,8 @@ fn on_spawn(
 
         tracing::trace!(name = "ingame-height-on-spawn-spawn");
 
-        let width = g.w.region_width_pixels as f32;
-        let height = g.w.region_height_pixels as f32;
+        let width = g.w.region_width_pixels() as f32;
+        let height = g.w.region_height_pixels() as f32;
 
         let region_: RegionXy = region.into_(&g.w);
         let x = region_.0.0 as f32 * width;
@@ -245,7 +245,7 @@ fn on_spawn(
                 scale: Vec3::new(
                     width,
                     height,
-                    z_max as f32 * g.w.geo_meters_per_z.0 * g.w.geo_pixels_per_meters,
+                    z_max as f32 * g.w.geo_meters_per_z().0 * g.w.geo_pixels_per_meters(),
                 ),
                 // .extend(z_max as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters),
                 ..default()
@@ -264,14 +264,14 @@ fn on_spawn(
 
             let xy = TileXy::from_(*i, &g.w);
             let (x, y) = (
-                xy.0.0 * g.w.geo_pixels_per_tile + g.w.geo_pixels_per_tile / 2,
-                xy.0.1 * g.w.geo_pixels_per_tile + g.w.geo_pixels_per_tile / 2,
+                xy.0.0 * g.w.geo_pixels_per_tile() + g.w.geo_pixels_per_tile() / 2,
+                xy.0.1 * g.w.geo_pixels_per_tile() + g.w.geo_pixels_per_tile() / 2,
             );
             let z = tile.z_pixels(&g.w);
             let alpha = nature.opacity.min(0.5);
-            let x_length = g.w.geo_pixels_per_tile as f32;
-            let y_length = g.w.geo_pixels_per_tile as f32;
-            let z_length = nature_z * g.w.geo_pixels_per_meters;
+            let x_length = g.w.geo_pixels_per_tile() as f32;
+            let y_length = g.w.geo_pixels_per_tile() as f32;
+            let z_length = nature_z * g.w.geo_pixels_per_meters();
             let x = x as f32;
             let y = (y as f32).to_gui_y(&g.w);
             tracing::trace!(
@@ -301,8 +301,8 @@ fn on_spawn(
                 for (_, individual) in individuals {
                     if let Some(tile) = tiles.get(tile) {
                         let tile_xy = TileXy::from_(tile.i, &g.w);
-                        let x = tile_xy.0.0 as f32 * g.w.geo_pixels_per_tile as f32;
-                        let y = tile_xy.0.1 as f32 * g.w.geo_pixels_per_tile as f32;
+                        let x = tile_xy.0.0 as f32 * g.w.geo_pixels_per_tile() as f32;
+                        let y = tile_xy.0.1 as f32 * g.w.geo_pixels_per_tile() as f32;
                         let y = y.to_gui_y(&g.w);
                         let z = tile.z_pixels(&g.w);
                         let ref_ = [x, y, z].into();
@@ -321,8 +321,9 @@ fn on_spawn(
                                 let x_length = width;
                                 let y_length = height;
                                 let z_length = depth;
-                                let x = x as f32;
-                                let y = y as f32;
+                                let x = x as f32 + width / 2.0;
+                                let y = y as f32 + height / 2.0;
+                                let z = z + depth;
                                 tracing::trace!(
                                     name = "ingame-height-on-spawn-individuals-individual",
                                     x_length = x_length,
@@ -438,8 +439,8 @@ fn update_cursor_circle_transform(
 /// If you don't need the circle to hug the terrain, just return 0.0.
 fn sample_terrain_z(w: &WorldConfig, world: &World, pos: &Vec3) -> f32 {
     let (x, y) = (
-        (pos.x / w.geo_pixels_per_tile as f32) as u64,
-        (pos.y.to_gui_y(w) / w.geo_pixels_per_tile as f32) as u64,
+        (pos.x / w.geo_pixels_per_tile() as f32) as u64,
+        (pos.y.to_gui_y(w) / w.geo_pixels_per_tile() as f32) as u64,
     );
     let tile = TileXy(Xy(x, y));
     let tile = WorldTileIndex::from_(tile, w);
@@ -451,7 +452,7 @@ fn sample_terrain_z(w: &WorldConfig, world: &World, pos: &Vec3) -> f32 {
         .and_then(|tiles| {
             tiles
                 .get(&tile)
-                .map(|tile| tile.z as f32 * w.geo_meters_per_z.0 * w.geo_pixels_per_meters)
+                .map(|tile| tile.z as f32 * w.geo_meters_per_z().0 * w.geo_pixels_per_meters())
         })
         .unwrap_or_default()
 }
