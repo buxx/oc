@@ -3,7 +3,7 @@ use std::{
         Arc,
         mpsc::{Receiver, Sender},
     },
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use derive_more::Constructor;
@@ -415,7 +415,7 @@ impl<E: Client> Runner<E> {
                 }
 
                 // TODO: This is a very basic system of scheduler ...
-                std::thread::sleep(Duration::from_millis(10));
+                std::thread::sleep(ctx.state.w.scheduler_tick().interval());
             }
         });
     }

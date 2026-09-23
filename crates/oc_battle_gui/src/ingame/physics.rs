@@ -73,7 +73,7 @@ pub fn physics_step<I, C>(
         );
         let (position_, forces_, events) = oc_physics::step(
             &g.w,
-            time.delta_secs(),
+            time.delta_secs() * g.w.speed(),
             &g.mod_,
             (*i, &corps),
             objects,

@@ -162,7 +162,7 @@ impl<E: Client> super::State<E> {
     }
 
     fn spawn_projectiles(&self, spawns: SpawnProjectiles) -> Vec<(Listening, Vec<ToClient>)> {
-        for (i, (instant, fx)) in spawns.schedule(&self._mod).iter().enumerate() {
+        for (i, (instant, fx)) in spawns.schedule((&self.w, &self._mod)).iter().enumerate() {
             let direction = match spawns.directions.get(i) {
                 Some(direction) => *direction,
                 None => match spawns.directions.first() {

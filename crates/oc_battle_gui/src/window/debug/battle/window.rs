@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use bevy::prelude::*;
-use bevy_egui::EguiContexts;
+use bevy_egui::{EguiContexts, egui};
 use egui_dock::{DockArea, DockState, Style, TabIndex};
 use oc_mod::{Mod, weapons::WeaponType};
 use oc_root::WorldConfig;
@@ -54,6 +54,7 @@ impl Window {
                     let show_tiles = &mut context.context.show_tiles;
                     let show_formation_positions = &mut context.context.show_formation_positions;
                     let show_visibilities = &mut context.context.show_visibilities;
+                    let mut speed = w.speed();
 
                     bevy_egui::egui::ComboBox::from_label("Refresh every")
                         .selected_text(format!("{:?}", context.context.refresh))
@@ -89,6 +90,19 @@ impl Window {
                     if ui.checkbox(show_visibilities, "Visibility").changed() {
                         context.commands.trigger(ToggleShowVisibility);
                     }
+
+                    egui::ComboBox::from_label("Speed")
+                        .selected_text(speed.to_string())
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(&mut speed, 0.1, "0.1");
+                            ui.selectable_value(&mut speed, 0.5, "0.5");
+                            ui.selectable_value(&mut speed, 1.0, "1.0");
+                            ui.selectable_value(&mut speed, 2.0, "2.0");
+                            ui.selectable_value(&mut speed, 5.0, "5.0");
+                            ui.selectable_value(&mut speed, 10.0, "10.0");
+                        });
+
+                    WorldConfig::set_speed((speed * 10.) as u8);
 
                     ui.separator();
 

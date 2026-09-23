@@ -1,5 +1,5 @@
 #[cfg(feature = "debug")]
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU32, Ordering};
 use std::time::Duration;
 
 #[cfg(feature = "bevy")]
@@ -30,6 +30,8 @@ static INACCURACY_SPREAD_RAW: AtomicU32 = AtomicU32::new(0);
 static INACCURACY_SPREAD_ENABLED: AtomicBool = AtomicBool::new(false);
 #[cfg(feature = "debug")]
 static IMMORTALITY: AtomicBool = AtomicBool::new(false);
+#[cfg(feature = "debug")]
+static SPEED_RAW: AtomicU8 = AtomicU8::new(10);
 
 #[derive(
     Debug, Clone, Archive, Deserialize, Serialize, PartialEq, WithSetters, Getters, CopyGetters,
@@ -60,7 +62,7 @@ pub struct WorldConfig {
     region_width_pixels: u64,
     #[getset(get_copy = "pub")]
     region_height_pixels: u64,
-    #[getset(get_copy = "pub", set_with = "pub")]
+    #[getset(set_with = "pub")]
     speed: f32,
     #[getset(set_with = "pub")]
     individual_tick: Frequency,
@@ -219,6 +221,14 @@ impl WorldConfig {
         }
     }
 
+    pub fn speed(&self) -> f32 {
+        #[cfg(feature = "debug")]
+        return (SPEED_RAW.load(Ordering::Relaxed) as f32 / 10.).max(0.1);
+
+        #[cfg(not(feature = "debug"))]
+        self.speed
+    }
+
     pub fn with_region_width(mut self, value: u64) -> Self {
         self.region_width = value;
         self.regions_count = self.tiles_count / (self.region_width * self.region_height);
@@ -282,6 +292,11 @@ impl WorldConfig {
     #[cfg(feature = "debug")]
     pub fn set_immortality(value: bool) {
         IMMORTALITY.store(value, Ordering::Relaxed);
+    }
+
+    #[cfg(feature = "debug")]
+    pub fn set_speed(value: u8) {
+        SPEED_RAW.store(value, Ordering::Relaxed);
     }
 }
 

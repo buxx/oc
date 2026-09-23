@@ -41,8 +41,8 @@ impl<'a, 'b> Builder<'a, 'b> {
     }
 }
 
-impl Schedule<&Mod, (Instant, bool)> for SpawnProjectiles {
-    fn schedule(&self, mod_: &Mod) -> Scheduling<(Instant, bool)> {
+impl Schedule<(&WorldConfig, &Mod), (Instant, bool)> for SpawnProjectiles {
+    fn schedule(&self, (w, mod_): (&WorldConfig, &Mod)) -> Scheduling<(Instant, bool)> {
         let weapon = mod_.weapon(self.weapon);
         let repeat = self.repeat;
         let shot = weapon.shot(self.shot);
@@ -54,11 +54,11 @@ impl Schedule<&Mod, (Instant, bool)> for SpawnProjectiles {
             let mut fx = true;
             for _ in 0..rounds {
                 instants.push((instant, fx));
-                instant += Duration::from_millis((shot.interval().0 * 1000.0) as u64);
+                instant += Duration::from_millis((shot.interval().0 / w.speed() * 1000.0) as u64);
                 fx = false;
             }
 
-            instant += Duration::from_millis((weapon.interval().0 * 1000.0) as u64);
+            instant += Duration::from_millis((weapon.interval().0 / w.speed() * 1000.0) as u64);
         }
 
         Scheduling(instants)

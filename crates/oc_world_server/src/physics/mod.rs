@@ -119,7 +119,7 @@ impl<'x, E: Client> Processor<'x, E> {
             .map(|(i, subject)| {
                 let (position, forces, events_) = oc_physics::step(
                     &self.ctx.state.w,
-                    self.ctx.state.w.physics_tick().period(),
+                    self.ctx.state.w.physics_tick().period() * self.ctx.state.w.speed(),
                     &self.ctx.state._mod,
                     (*i, *subject),
                     collision_objects,
