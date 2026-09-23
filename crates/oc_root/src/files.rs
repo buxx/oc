@@ -126,11 +126,11 @@ impl FilesAsGui {
         match &self.sources {
             StaticSource::Remote(_) => {
                 let name = remove_numeric_suffix(&self.mod_);
-                PathBuf::from(format!("cache/mods/{}/{}", &self.mod_, name))
+                PathBuf::from(format!("cache/mods/{}/{}", self.mod_, name))
             }
             StaticSource::Local { mod_: _, world: _ } => {
                 let name = remove_numeric_suffix(&self.mod_);
-                PathBuf::from("mods_").join(&name)
+                PathBuf::from("mods_").join(name)
             }
         }
     }
@@ -139,7 +139,7 @@ impl FilesAsGui {
         match &self.sources {
             StaticSource::Remote(_) => {
                 let name = remove_numeric_suffix(&self.world);
-                PathBuf::from(format!("cache/worlds/{}/{}", &self.world, name))
+                PathBuf::from(format!("cache/worlds/{}/{}", self.world, name))
             }
             StaticSource::Local { mod_: _, world } => PathBuf::from(world).join("UNUSED"),
         }
@@ -149,11 +149,11 @@ impl FilesAsGui {
         match &self.sources {
             StaticSource::Remote(_) => {
                 let name = remove_numeric_suffix(&self.mod_);
-                PathBuf::from(format!("cache/mods/{}/{}/sprites", &self.mod_, name))
+                PathBuf::from(format!("cache/mods/{}/{}/sprites", self.mod_, name))
             }
             StaticSource::Local { mod_: _, world: _ } => {
                 let name = remove_numeric_suffix(&self.mod_);
-                PathBuf::from("mods_").join(&name).join("sprites")
+                PathBuf::from("mods_").join(name).join("sprites")
             }
         }
     }
@@ -164,7 +164,7 @@ impl FilesAsGui {
                 let name = remove_numeric_suffix(&self.world);
                 PathBuf::from(format!(
                     "assets/cache/worlds/{}/{}/terrain.png",
-                    &self.world, &name
+                    self.world, name
                 ))
             }
             StaticSource::Local { mod_: _, world } => {
@@ -179,7 +179,7 @@ impl FilesAsGui {
                 let name = remove_numeric_suffix(&self.world);
                 PathBuf::from(format!(
                     "assets/cache/worlds/{}/{}/height.png",
-                    &self.world, &name
+                    self.world, name
                 ))
             }
             StaticSource::Local { mod_: _, world } => {
@@ -194,7 +194,7 @@ impl FilesAsGui {
                 let name = remove_numeric_suffix(&self.world);
                 PathBuf::from(format!(
                     "assets/cache/worlds/{}/{}/terrain.tsx",
-                    &self.world, &name
+                    self.world, name
                 ))
             }
             StaticSource::Local { mod_: _, world } => PathBuf::from("assets")
@@ -207,13 +207,13 @@ impl FilesAsGui {
     pub fn minimap(&self) -> PathBuf {
         self.sources
             .cache()
-            .join(format!("worlds/{}/minimap.png", &self.world))
+            .join(format!("worlds/{}/minimap.png", self.world))
     }
 
     pub fn region(&self, region: u64, region_width: u64, region_height: u64) -> PathBuf {
         self.sources.cache().join(format!(
             "worlds/{}/region_{region_width}_{region_height}_{region}.png",
-            &self.world
+            self.world
         ))
     }
 

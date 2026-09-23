@@ -54,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .unwrap(),
     };
-    let tiles = map.tiles(&w, &mod_).context(format!("Read map tiles"))?;
+    let tiles = map.tiles(&w, &mod_).context("Read map tiles".to_string())?;
     let places: HashMap<PlaceName, WorldVec2> = map__
         .places()
         .iter()
@@ -95,7 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // sur la carte ? qui pourrait service à l'ia ?)
         // Sinon, créer les mécanique de la phase "deployment"
         .mobilize(&w, &mod_, &mut snapshot, &placer, &tiles)
-        .context(format!("Generate snapshot from deployment files"))?;
+        .context("Generate snapshot from deployment files".to_string())?;
 
     let (_, snapshot_path) = tempfile::NamedTempFile::new()?.keep()?;
     snapshot

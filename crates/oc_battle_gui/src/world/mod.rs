@@ -313,7 +313,7 @@ fn on_world_resume(
         world
             .squads
             .entry(region)
-            .or_insert_with(|| FxHashMap::default())
+            .or_default()
             .insert(*i, squad.clone());
         world.squads_refs.insert(*i, region);
         for member in &squad.members {

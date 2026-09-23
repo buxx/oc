@@ -10,6 +10,12 @@ pub struct Individual {
     pub magazines: Vec<Magazine>,
 }
 
+impl Default for Individual {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Individual {
     pub fn new() -> Self {
         Self {

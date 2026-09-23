@@ -268,9 +268,9 @@ impl From<BevyVec2> for ScreenVec2 {
 }
 
 #[cfg(feature = "bevy")]
-impl Into<BevyVec2> for ScreenVec2 {
-    fn into(self) -> BevyVec2 {
-        BevyVec2::new(self.x, self.y)
+impl From<ScreenVec2> for BevyVec2 {
+    fn from(val: ScreenVec2) -> Self {
+        BevyVec2::new(val.x, val.y)
     }
 }
 
@@ -285,8 +285,8 @@ impl WcfgFrom<WorldVec3> for ScreenVec3 {
 }
 
 #[cfg(feature = "bevy")]
-impl Into<BevyVec3> for ScreenVec3 {
-    fn into(self) -> BevyVec3 {
-        BevyVec3::new(self.x, self.y, self.z)
+impl From<ScreenVec3> for BevyVec3 {
+    fn from(val: ScreenVec3) -> Self {
+        BevyVec3::new(val.x, val.y, val.z)
     }
 }

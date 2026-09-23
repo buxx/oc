@@ -112,7 +112,7 @@ impl Map {
     ) -> bool {
         for spawn_zone_name in spawn_zone_names {
             // FIXME: algo moche ?!
-            let found = self.find_spawn_zones(&[spawn_zone_name.clone()]);
+            let found = self.find_spawn_zones(std::slice::from_ref(spawn_zone_name));
             let spawn_zone = found.first().unwrap(); // FIXME: manage error
 
             if spawn_zone.contains(&flag.shape()) {

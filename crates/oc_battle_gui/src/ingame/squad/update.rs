@@ -3,7 +3,6 @@ use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_geo::tile::TileXy;
 use oc_root::{WcfgFrom, WorldConfig};
 use oc_utils::let_some;
-use rustc_hash::FxHashMap;
 
 use crate::ingame::behavior::RefreshSquadsOrdersEvent;
 use crate::ingame::input::individual::UpdateSquadEvent;
@@ -91,16 +90,15 @@ fn update_squad(
     // If squad now in new region
     if let Some(now_region) = new_region {
         // Remove squad from ol region
-        if let Some(squads) = world.squads.get_mut(&region) {
-            if let Some(squad) = squads.remove(&i) {
+        if let Some(squads) = world.squads.get_mut(&region)
+            && let Some(squad) = squads.remove(&i) {
                 // And put it in new region
                 world
                     .squads
                     .entry(now_region)
-                    .or_insert_with(|| FxHashMap::default())
+                    .or_default()
                     .insert(i, squad.clone());
             }
-        }
 
         world.squads_refs.insert(i, now_region);
     }

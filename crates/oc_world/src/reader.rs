@@ -220,7 +220,7 @@ impl MapReader {
             if !spawn_zone_name.allowed_for_zone_object() {
                 return Err(MapReaderError::InvalidLayer(format!(
                     "Spawn zone name is not allowed : '{}'",
-                    &object.name
+                    object.name
                 )));
             }
 

@@ -258,11 +258,8 @@ impl<'x, E: Client> Processor<'x, E> {
                 },
                 Event::Proximity(kind, a, b, p) => {
                     // We care only about proximity when projectile move near individual
-                    match (a, b) {
-                        (ObjectId::Projectile(_), ObjectId::Individual(i)) => {
-                            proximity.insert(i, (kind, p.into()));
-                        }
-                        _ => {}
+                    if let (ObjectId::Projectile(_), ObjectId::Individual(i)) = (a, b) {
+                        proximity.insert(i, (kind, p.into()));
                     }
                     //
                 }

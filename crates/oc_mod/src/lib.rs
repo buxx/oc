@@ -213,12 +213,12 @@ fn cache(mod_: &Mod, path: &PathBuf, cache: &PathBuf) -> Result<(), CacheError> 
 
         builder.append_dir_all(&mod_.name, path).context(format!(
             "Create archive from under '{}' from '{}'",
-            &mod_.name,
-            &path.display()
+            mod_.name,
+            path.display()
         ))?;
         builder
             .finish()
-            .context(format!("Finish builder ({})", &path.display()))?;
+            .context(format!("Finish builder ({})", path.display()))?;
     }
 
     Ok(())

@@ -31,7 +31,7 @@ pub fn context_item<T: Choice<E>, E: Event + Clone + std::fmt::Debug>(
     image: ImageNode,
 ) -> impl Bundle {
     (
-        Name::new(format!("item-{}", &item.name())),
+        Name::new(format!("item-{}", item.name())),
         item,
         Button,
         Node {

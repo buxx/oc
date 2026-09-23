@@ -115,16 +115,16 @@ impl<'a, E: Client> Dealer<'a, E> {
     fn squad_message(&self, squad: SquadIndex, message: SquadMessage) -> Vec<Update> {
         match message {
             SquadMessage::SetOrders(orders) => {
-                return vec![Update::UpdateSquad(
+                vec![Update::UpdateSquad(
                     squad,
                     oc_individual::squad::Update::SetOrders(orders),
-                )];
+                )]
             }
             SquadMessage::SetPositionOrderPosition(index, position) => {
-                return vec![Update::UpdateSquad(
+                vec![Update::UpdateSquad(
                     squad,
                     oc_individual::squad::Update::SetOrderPosition(index, position),
-                )];
+                )]
             }
         }
     }

@@ -160,12 +160,12 @@ fn individuals(
                         .make(),
                 )
                 .build()
-                .make(&w),
+                .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
                 .position(WorldVec3::new(250., 150., 0.))
                 .build()
-                .make(&w),
+                .make(w),
         ],
         TestCase::Direct2 => vec![
             TestIndividual::builder()
@@ -178,17 +178,17 @@ fn individuals(
                         .make(),
                 )
                 .build()
-                .make(&w),
+                .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
                 .position(WorldVec3::new(250., 150., 0.))
                 .build()
-                .make(&w),
+                .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
                 .position(WorldVec3::new(260., 150., 0.))
                 .build()
-                .make(&w),
+                .make(w),
         ],
         TestCase::FarMachineGun => vec![
             TestIndividual::builder()
@@ -201,12 +201,12 @@ fn individuals(
                         .make(),
                 )
                 .build()
-                .make(&w),
+                .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
                 .position(WorldVec3::new(50., 50., 0.))
                 .build()
-                .make(&w),
+                .make(w),
         ],
         TestCase::Suppressed => [
             vec![
@@ -220,7 +220,7 @@ fn individuals(
                             .make(),
                     )
                     .build()
-                    .make(&w),
+                    .make(w),
             ],
             (0..10)
                 .map(|i| {
@@ -234,7 +234,7 @@ fn individuals(
                                 .make(),
                         )
                         .build()
-                        .make(&w)
+                        .make(w)
                 })
                 .collect::<Vec<_>>(),
         ]
@@ -245,7 +245,7 @@ fn individuals(
                     .side(side::Side::A)
                     .position(WorldVec3::new(104., 311., 0.))
                     .build()
-                    .make(&w),
+                    .make(w),
                 TestIndividual::builder()
                     .side(side::Side::B)
                     .position(WorldVec3::new(387., 160., 0.))
@@ -256,7 +256,7 @@ fn individuals(
                             .make(),
                     )
                     .build()
-                    .make(&w),
+                    .make(w),
             ]
         }
     }
@@ -271,7 +271,7 @@ fn squads(
     match args.case {
         TestCase::Direct => vec![
             TestSquad::builder()
-                .position(individuals.get(0).unwrap().position.into())
+                .position(individuals.first().unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
                 .orders(vec![])
                 .build()
@@ -285,7 +285,7 @@ fn squads(
         ],
         TestCase::Direct2 => vec![
             TestSquad::builder()
-                .position(individuals.get(0).unwrap().position.into())
+                .position(individuals.first().unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
                 .orders(vec![])
                 .build()
@@ -302,7 +302,7 @@ fn squads(
         ],
         TestCase::FarMachineGun => vec![
             TestSquad::builder()
-                .position(individuals.get(0).unwrap().position.into())
+                .position(individuals.first().unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
                 .orders(vec![])
                 .build()
@@ -317,7 +317,7 @@ fn squads(
         TestCase::Suppressed => [
             vec![
                 TestSquad::builder()
-                    .position(individuals.get(0).unwrap().position.into())
+                    .position(individuals.first().unwrap().position.into())
                     .members(vec![oc_individual::IndividualIndex(0)])
                     .orders(vec![])
                     .build()
@@ -337,7 +337,7 @@ fn squads(
         .concat(),
         TestCase::Hedge => vec![
             TestSquad::builder()
-                .position(individuals.get(0).unwrap().position.into())
+                .position(individuals.first().unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
                 .orders(vec![])
                 .build()

@@ -54,8 +54,10 @@ pub fn run(
 
     let example = example.install(tests.0);
 
-    #[allow(unused)]
+    #[cfg(feature = "test")]
     let tracker = example.build().run()?;
+    #[cfg(not(feature = "test"))]
+    example.build().run()?;
 
     #[cfg(feature = "test")]
     {
@@ -83,13 +85,13 @@ fn individuals(
             );
             (position, orders, positions)
         })
-        .map(|(_, _, positions)| {
+        .flat_map(|(_, _, positions)| {
             positions.into_iter().map(|position| {
                 let tile_xy = TileXy(Xy(
                     position[0] as u64 / w.geo_pixels_per_tile(),
                     position[1] as u64 / w.geo_pixels_per_tile(),
                 ));
-                let tile_i = WorldTileIndex::from_(tile_xy, &w);
+                let tile_i = WorldTileIndex::from_(tile_xy, w);
                 let tile = &tiles[tile_i.0 as usize];
                 let z = tile.z_pixels(w);
                 let position = [position[0], position[1], z].into();
@@ -98,7 +100,6 @@ fn individuals(
                     .with_gesture(Gesture::body(BodyGesture::StandUp(DIRECTION)))
             })
         })
-        .flatten()
         .collect()
 }
 
@@ -115,7 +116,7 @@ fn squads(
         .map(|(position, orders)| (position, orders))
         .map(|(position, orders)| Squad {
             side: Side::A,
-            position: position.clone().into(),
+            position: (*position).into(),
             members: (0..count)
                 .into_iter()
                 .map(|i| IndividualIndex(i as u64))

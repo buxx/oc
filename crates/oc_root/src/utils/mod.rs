@@ -4,11 +4,10 @@ use rkyv::Archive;
 
 pub fn remove_numeric_suffix(s: &str) -> &str {
     // Find last '_' followed by only digits until end of string
-    if let Some(pos) = s.rfind('_') {
-        if s[pos + 1..].chars().all(|c| c.is_ascii_digit()) && !s[pos + 1..].is_empty() {
+    if let Some(pos) = s.rfind('_')
+        && s[pos + 1..].chars().all(|c| c.is_ascii_digit()) && !s[pos + 1..].is_empty() {
             return &s[..pos];
         }
-    }
     s
 }
 

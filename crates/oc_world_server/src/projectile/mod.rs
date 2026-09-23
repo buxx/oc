@@ -24,7 +24,7 @@ impl<'a, 'b> Builder<'a, 'b> {
         let weapon = self.mod_.weapon(self.spawn.weapon);
         let ammunition = self.mod_.ammunition(self.spawn.ammunition);
         let from = self.spawn.from;
-        let direction = self.spawn.direction.into();
+        let direction = self.spawn.direction;
         let speed = weapon.velocity();
         let forces = vec![Force::Translation(direction, speed)];
 

@@ -113,72 +113,72 @@ fn individuals(w: &WorldConfig, _tiles: &Vec<Tile>, args: &Args) -> Vec<oc_indiv
                 .side(side::Side::A)
                 .position(WorldVec3::new(250., 250., 0.))
                 .build()
-                .make(&w),
+                .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
                 .position(WorldVec3::new(250., 150., 0.))
                 .build()
-                .make(&w),
+                .make(w),
         ],
         TestCase::Through => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
                 .position(WorldVec3::new(250., 250., 0.))
                 .build()
-                .make(&w),
+                .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
                 .position(WorldVec3::new(450., 250., 0.))
                 .build()
-                .make(&w),
+                .make(w),
         ],
         TestCase::Hidden => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
                 .position(WorldVec3::new(250., 250., 0.))
                 .build()
-                .make(&w),
+                .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
                 .position(WorldVec3::new(450., 150., 0.))
                 .build()
-                .make(&w),
+                .make(w),
         ],
         TestCase::Discover => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
                 .position(WorldVec3::new(250., 175., 0.))
                 .build()
-                .make(&w),
+                .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
                 .position(WorldVec3::new(450., 150., 0.))
                 .build()
-                .make(&w),
+                .make(w),
         ],
         TestCase::MoveThenEnemyVisible => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
                 .position(WorldVec3::new(250., 175., 0.))
                 .build()
-                .make(&w),
+                .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
                 .position(WorldVec3::new(450., 150., 0.))
                 .build()
-                .make(&w),
+                .make(w),
         ],
         TestCase::Hedge => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
                 .position(WorldVec3::new(104., 311., 0.))
                 .build()
-                .make(&w),
+                .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
                 .position(WorldVec3::new(387., 160., 0.))
                 .build()
-                .make(&w),
+                .make(w),
         ],
     }
 }
@@ -192,7 +192,7 @@ fn squads(
     match args.case {
         TestCase::Direct | TestCase::Through | TestCase::Hidden | TestCase::Hedge => vec![
             TestSquad::builder()
-                .position(individuals.get(0).unwrap().position.into())
+                .position(individuals.first().unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
                 .orders(vec![])
                 .build()
@@ -206,7 +206,7 @@ fn squads(
         ],
         TestCase::Discover => vec![
             TestSquad::builder()
-                .position(individuals.get(0).unwrap().position.into())
+                .position(individuals.first().unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
                 .orders(vec![Order::MoveFastTo(WorldVec2::new(250., 150.))])
                 .build()
@@ -220,7 +220,7 @@ fn squads(
         ],
         TestCase::MoveThenEnemyVisible => vec![
             TestSquad::builder()
-                .position(individuals.get(0).unwrap().position.into())
+                .position(individuals.first().unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
                 .orders(vec![Order::MoveTo(WorldVec2::new(250., 100.))])
                 .build()

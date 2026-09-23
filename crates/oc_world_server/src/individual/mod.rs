@@ -294,17 +294,17 @@ impl<'a> Processor<'a> {
             // According to order, choose appropriate order to distribute (move if move, move fast if move fast, etc.)
             let orders = match order {
                 Some(order) => match order {
-                    Order::Idle => vec![Order::MoveTo(position.into())],
-                    Order::MoveTo(_) => vec![Order::MoveTo(position.into())],
-                    Order::MoveFastTo(_) => vec![Order::MoveFastTo(position.into())],
-                    Order::SneakTo(_) => vec![Order::SneakTo(position.into())],
-                    Order::Defend(_) => vec![Order::MoveFastTo(position.into())],
-                    Order::Hide(_) => vec![Order::SneakTo(position.into())],
-                    Order::Engage(_) => vec![Order::MoveFastTo(position.into())],
-                    Order::Suppress(_) => vec![Order::MoveFastTo(position.into())],
+                    Order::Idle => vec![Order::MoveTo(position)],
+                    Order::MoveTo(_) => vec![Order::MoveTo(position)],
+                    Order::MoveFastTo(_) => vec![Order::MoveFastTo(position)],
+                    Order::SneakTo(_) => vec![Order::SneakTo(position)],
+                    Order::Defend(_) => vec![Order::MoveFastTo(position)],
+                    Order::Hide(_) => vec![Order::SneakTo(position)],
+                    Order::Engage(_) => vec![Order::MoveFastTo(position)],
+                    Order::Suppress(_) => vec![Order::MoveFastTo(position)],
                 },
                 None => {
-                    vec![Order::MoveTo(position.into())]
+                    vec![Order::MoveTo(position)]
                 }
             };
             tracing::trace!(name="individual-step-distribute-to", i=?self.i, squad_i=?squad_i, order=?order, member=?member, orders=?orders);
@@ -325,15 +325,13 @@ impl<'a> Processor<'a> {
             .for_(self.i)
             .iter()
             .enumerate()
-            .filter_map(|(i, v)| {
-                v.visible.then(|| {
+            .filter(|&(_i, v)| v.visible).map(|(i, v)| {
                     let target = IndividualIndex(i as u64);
                     let target_ = self.world.individual(target);
                     let distance = reference.distance(target_.position);
                     let distance = Meters(distance / self.world.w.geo_pixels_per_meters());
                     Visible::new(target, v, distance)
                 })
-            })
             .collect();
         visibles.sort_unstable_by(|a, b| a.distance.0.total_cmp(&b.distance.0));
 
@@ -805,7 +803,7 @@ impl<'a> Processor<'a> {
 
         let spawn = SpawnProjectiles {
             weapon: weapon.index(),
-            ammunition: ammunition,
+            ammunition,
             shot: shot.index(),
             repeat: repeat as u8,
             from,
@@ -890,7 +888,7 @@ impl<'a> Processor<'a> {
                 let arrival_factor = self.arrival_factor(intent);
                 let direction = WorldVec3::new(direction.x, direction.y, 0.);
                 vec![Force::Translation(
-                    direction.into(),
+                    direction,
                     nominal_speed * move_disability_factor * arrival_factor,
                 )]
             }
@@ -1032,11 +1030,7 @@ impl<'a> Processor<'a> {
             Intent::Engage(target) => Intent::Engage(*target),
             _ => match situation
                 .visibles
-                .iter()
-                // FIXME BS NOW: must engage if squad already engaging near (to avoid not engage "just" near)
-                // maybe a second distance ?
-                .filter(|v| v.distance <= HIDE_ENGAGE_DISTANCE)
-                .next()
+                .iter().find(|v| v.distance <= HIDE_ENGAGE_DISTANCE)
             {
                 Some(visible) => Intent::Engage(visible.individual),
                 None => Intent::Hide(direction),
@@ -1211,11 +1205,10 @@ impl<'a> Processor<'a> {
 
     /// Compute path to target, or reuse current if already known path
     fn resolve_path(&self, individual: &Individual, target: WorldVec2) -> Option<MovePath> {
-        if let Some((current_target, current_path)) = individual.intent.path() {
-            if current_target == target && current_path.iter().next().is_some() {
+        if let Some((current_target, current_path)) = individual.intent.path()
+            && current_target == target && current_path.iter().next().is_some() {
                 return Some(current_path.clone());
             }
-        }
 
         let from = (individual.position.x, individual.position.y);
         let to = (target.x, target.y);

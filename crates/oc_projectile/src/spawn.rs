@@ -38,12 +38,12 @@ pub struct SpawnProjectile {
 impl SpawnProjectiles {
     pub fn from_spawns(spawns: &SpawnProjectiles, direction: WorldVec3) -> SpawnProjectile {
         SpawnProjectile {
-            weapon: spawns.weapon.clone(),
-            ammunition: spawns.ammunition.clone(),
-            shot: spawns.shot.clone(),
-            from: spawns.from.clone(),
+            weapon: spawns.weapon,
+            ammunition: spawns.ammunition,
+            shot: spawns.shot,
+            from: spawns.from,
             direction,
-            side: spawns.side.clone(),
+            side: spawns.side,
             #[cfg(feature = "debug")]
             shooter: spawns.shooter.clone(),
         }

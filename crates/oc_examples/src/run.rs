@@ -57,8 +57,8 @@ impl Example {
 
         let map = oc_world::reader::MapReader::new(&self.world)
             .context(format!("Read map {}", self.world.display()))?;
-        let map_width = map.width().context(format!("Read map width"))?;
-        let map_height = map.height().context(format!("Read map height"))?;
+        let map_width = map.width().context("Read map width".to_string())?;
+        let map_height = map.height().context("Read map height".to_string())?;
 
         tracing::info!("Start server");
 
@@ -113,12 +113,11 @@ impl Example {
             .logging(false)
             .call();
 
-        if self.test_app_exit_code {
-            if let AppExit::Error(code) = app_exit {
+        if self.test_app_exit_code
+            && let AppExit::Error(code) = app_exit {
                 let exit_code: u8 = code.into();
                 std::process::exit(exit_code as i32);
             }
-        }
 
         #[cfg(feature = "test")]
         {

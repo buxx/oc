@@ -8,6 +8,12 @@ pub struct Squad {
     pub individuals: Vec<super::individual::Individual>,
 }
 
+impl Default for Squad {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Squad {
     pub fn new() -> Self {
         Self {

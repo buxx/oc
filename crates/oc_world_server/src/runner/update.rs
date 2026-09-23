@@ -146,7 +146,7 @@ impl<E: Client> super::State<E> {
                 update.clone()
             }
             oc_individual::squad::Update::SetPosition(position) => {
-                squad.position = position.clone();
+                squad.position = *position;
                 update.clone()
             }
             oc_individual::squad::Update::SetActives(actives) => {

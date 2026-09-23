@@ -8,7 +8,7 @@ pub trait InvertedIndex<T> {
 
 impl<T> InvertedIndex<T> for Vec<T> {
     fn get_r(&self, i: usize) -> Option<&T> {
-        let index = self.len() - 1 - i as usize;
+        let index = self.len() - 1 - i;
         self.get(index)
     }
 }

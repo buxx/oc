@@ -158,7 +158,7 @@ impl Individual {
             position.x as u64 / w.geo_pixels_per_tile(),
             position.y as u64 / w.geo_pixels_per_tile(),
         ));
-        let tile = WorldTileIndex::from_(tile_xy, &w);
+        let tile = WorldTileIndex::from_(tile_xy, w);
         let region = WorldRegionIndex::from_(tile, w);
         Self::new(
             side,
@@ -498,7 +498,7 @@ impl Gesture {
             | BodyGesture::Walking(direction)
             | BodyGesture::Running(direction)
             | BodyGesture::Crawling(direction)
-            | BodyGesture::Prone(direction) => direction.clone(),
+            | BodyGesture::Prone(direction) => direction,
         }
     }
 }

@@ -71,8 +71,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .test_app_exit_code(args.test)
         .snapshot(snapshot);
 
-    #[allow(unused)]
+    #[cfg(feature = "test")]
     let tracker = example.build().run()?;
+    #[cfg(not(feature = "test"))]
+    example.build().run()?;
 
     if args.test {
         #[cfg(feature = "test")]
@@ -225,7 +227,7 @@ fn install(app: &mut bevy::app::App) {
                 }
 
                 if (*status_as_expected_since)
-                    .and_then(|s| Some(s.elapsed() >= expected_duration))
+                    .map(|s| s.elapsed() >= expected_duration)
                     .unwrap_or_default()
                 {
                     println!("✅ (GUI) Individual is in expected status");

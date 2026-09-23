@@ -299,7 +299,7 @@ fn on_refresh_render(
     let animation_ = SoldierAnimationInfos::new(side.0, status.0, gesture.0.clone());
     let animation_ = animation_.animation(&animations);
     let rotation = gesture.rotation(V::Gui);
-    let visibility__ = visibility(identity, i, &individual, &world);
+    let visibility__ = visibility(identity, i, individual, &world);
 
     tracing::trace!(name = "ingame-individual-on-refresh-render", i=?i, animation=?animation_, rotation=?rotation, visibility=?visibility__);
     // Only switch (and thus reset frame/repetition indices) if the target animation actually changed.

@@ -79,7 +79,7 @@ pub fn on_compute_display_paths(
     let paths_: Vec<(SpawnPathProfileKey, Path)> = profiles
         .iter()
         .filter_map(|profile| {
-            let path = world.path(profile.start.into(), profile.end.into());
+            let path = world.path(profile.start, profile.end);
             let_some!(path = path, return None);
             let segments = path.path.iter().map(|p| [p.x, p.y].into()).collect();
             Some((

@@ -19,7 +19,7 @@ fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
 
     let mod_ = Mod::load(&args.r#mod, None);
-    let mod_ = mod_.context(format!("Load mod from {}", &args.r#mod.display()))?;
+    let mod_ = mod_.context(format!("Load mod from {}", args.r#mod.display()))?;
 
     let path = args.profile.display();
     let raw = read_to_string(&args.profile).context(format!("Read {}", path))?;

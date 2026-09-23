@@ -54,16 +54,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_geo_meters_per_z(Meters(world.geo_meters_per_z));
     let snapshot = SnapshotBuilder::new(map, vec![], vec![], vec![]).build(w, &mod_)?;
 
-    #[allow(unused)]
-    let tracker = run::Example::builder()
+    let example = run::Example::builder()
         .world(map_)
         .mod_(PathBuf::from("mods/tests1"))
         .install(Box::new(install))
         .snapshot(snapshot)
         .test_app_exit_code(args.test)
-        .build()
-        .run()
-        .unwrap();
+        .build();
+
+    #[cfg(feature = "test")]
+    let tracker = example.run().unwrap();
+    #[cfg(not(feature = "test"))]
+    example.run().unwrap();
 
     if args.test {
         #[cfg(feature = "test")]
@@ -221,7 +223,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
             }
         }
         TestCase::OneAgainstHill => {
-            for spawn in [SpawnProjectiles::new(
+            let spawn = SpawnProjectiles::new(
                 weapon1.index(),
                 ammunition.index(),
                 shot.index(),
@@ -236,9 +238,8 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 Duration::ZERO,
                 #[cfg(feature = "debug")]
                 None,
-            )] {
-                commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
-            }
+            );
+            commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
         }
         TestCase::MultipleAgainstWall => {
             for spawn in [
@@ -295,7 +296,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
             }
         }
         TestCase::OneAgainstWall => {
-            for spawn in [SpawnProjectiles::new(
+            let spawn = SpawnProjectiles::new(
                 weapon1.index(),
                 ammunition.index(),
                 shot.index(),
@@ -310,12 +311,11 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 Duration::ZERO,
                 #[cfg(feature = "debug")]
                 None,
-            )] {
-                commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
-            }
+            );
+            commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
         }
         TestCase::OneTraverseVolumes => {
-            for spawn in [SpawnProjectiles::new(
+            let spawn = SpawnProjectiles::new(
                 weapon1.index(),
                 ammunition.index(),
                 shot.index(),
@@ -330,9 +330,8 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 Duration::ZERO,
                 #[cfg(feature = "debug")]
                 None,
-            )] {
-                commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
-            }
+            );
+            commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
         }
     }
 }

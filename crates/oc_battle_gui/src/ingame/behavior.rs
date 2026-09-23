@@ -367,7 +367,7 @@ fn on_spawn_individual_order(
     let rect = event.1.individual_sprite().rect();
     let x = position.x;
     let y = position.y;
-    let translation = Vec3::new(x as f32, (y as f32).to_gui_y(&g.w), draw::Z_INDIV_ORDER);
+    let translation = Vec3::new(x, y.to_gui_y(&g.w), draw::Z_INDIV_ORDER);
 
     tracing::trace!(name = "ingame-behavior-on-spawn-individual-order-spawn", i=?event.0, position=?position, rect=?rect, translation=?translation);
 
@@ -381,7 +381,7 @@ fn on_spawn_individual_order(
 
     orders
         .entry(event.0)
-        .or_insert_with(|| vec![])
+        .or_default()
         .push((event.1.clone(), entity));
 }
 
@@ -391,12 +391,11 @@ fn on_despawn_individual_order(
     mut commands: Commands,
 ) {
     tracing::trace!(name = "ingame-behavior-on-despawn-individual-order", i=?event.0, order=?event.1);
-    if let Some(orders) = orders.get_mut(&event.0) {
-        if let Some(x) = orders.iter().position(|(o, _)| o == &event.1) {
+    if let Some(orders) = orders.get_mut(&event.0)
+        && let Some(x) = orders.iter().position(|(o, _)| o == &event.1) {
             let (_, entity) = orders.remove(x);
             commands.entity(entity).despawn();
         }
-    }
 }
 
 fn on_despawn_individual_orders(
@@ -424,7 +423,7 @@ fn on_listening_region(region: On<ListeningRegion>, world: Res<World>, mut comma
 /// Despawn squad orders in forgotten region
 fn on_forgotten_region(region: On<ForgottenRegion>, world: Res<World>, mut commands: Commands) {
     if let Some(squads) = world.squads.get(&region.0) {
-        for (i, _) in squads {
+        for i in squads.keys() {
             commands.trigger(DespawnSquadOrders(*i))
         }
     }
@@ -457,7 +456,7 @@ fn on_spawn_squad_order(
             let_some!(position = order.position(), return);
             let x = position.x;
             let y = position.y;
-            let translation = Vec3::new(x as f32, (y as f32).to_gui_y(&g.w), draw::Z_SQUAD_ORDER);
+            let translation = Vec3::new(x, y.to_gui_y(&g.w), draw::Z_SQUAD_ORDER);
             let transform = Transform::from_translation(translation);
 
             tracing::trace!(name = "ingame-behavior-on-spawn-squad-orders-spawn-position", i=?squad, order=?order);
@@ -522,7 +521,7 @@ fn on_spawn_squad_order(
 
     orders
         .entry(squad)
-        .or_insert_with(|| vec![])
+        .or_default()
         .push((order.clone(), entity));
 }
 
@@ -556,12 +555,11 @@ fn on_despawn_squad_order(
     mut commands: Commands,
 ) {
     tracing::trace!(name = "ingame-behavior-on-despawn-squad-order", i=?event.0, event=?event);
-    if let Some(orders) = orders.get_mut(&event.0) {
-        if let Some(x) = orders.iter().position(|(o, _)| o == &event.1) {
+    if let Some(orders) = orders.get_mut(&event.0)
+        && let Some(x) = orders.iter().position(|(o, _)| o == &event.1) {
             let (_, entity) = orders.remove(x);
             commands.entity(entity).despawn();
         }
-    }
 }
 
 fn on_despawn_squad_orders(

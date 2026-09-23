@@ -83,8 +83,8 @@ pub fn on_click(
     let point = Vec2::new(point.x, point.y);
     let point = cursor_to!(point, camera, &g.w, WorldVec2);
 
-    if !ingame.selected_squads().is_empty() {
-        if click.button == PointerButton::Secondary {
+    if !ingame.selected_squads().is_empty()
+        && click.button == PointerButton::Secondary {
             // Close possible menu before open new one
             commands.trigger(CloseContextMenu::<contextual::Menu>::default());
 
@@ -103,7 +103,6 @@ pub fn on_click(
                 commands.trigger(PrepareOpenSquadContextualMenu(point));
             }
         }
-    }
 
     click.propagate(false);
 }

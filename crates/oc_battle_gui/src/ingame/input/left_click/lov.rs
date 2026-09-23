@@ -29,7 +29,7 @@ pub fn system(
 
     tracing::trace!(name = "ingame-input-left-click-lov-system", profile=?profile);
     return_if!(maybe_cancel(&mut commands, &buttons, &keys));
-    show(w, point, &mut commands, &buttons, &mut state, &profile);
+    show(w, point, &mut commands, &buttons, &mut state, profile);
 }
 
 pub fn show(

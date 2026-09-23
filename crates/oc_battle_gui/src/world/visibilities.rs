@@ -27,7 +27,7 @@ impl Visibilities {
     ) -> Self {
         let visible = visibilities
             .iter()
-            .filter_map(|(_, i2, v)| v.visible.then(|| *i2))
+            .filter_map(|(_, i2, v)| v.visible.then_some(*i2))
             .collect::<Vec<_>>();
 
         #[cfg(not(feature = "debug"))]
@@ -62,7 +62,7 @@ pub fn on_visibilities_updated(
         // Change visibility only on other side individuals
         if side.0 != identity.side {
             let_some!(individual = world.get_individual(i.0), continue);
-            *visibility = crate::ingame::individual::visibility(identity, i.0, &individual, &world);
+            *visibility = crate::ingame::individual::visibility(identity, i.0, individual, &world);
         }
     }
 }

@@ -95,11 +95,11 @@ fn show(
             rotate_direction_markers(point, world, direction_markers);
         }
         OrderType::MoveTo | OrderType::MoveFastTo | OrderType::SneakTo => {
-            let spawns = path_profiles(w, point, mode, ingame, world, &drag, &position_markers);
+            let spawns = path_profiles(w, point, mode, ingame, world, drag, position_markers);
             commands.trigger(ComputeDisplayPaths(spawns));
         }
         OrderType::Engage | OrderType::Suppress => {
-            let spawns = lov_profiles(&ingame, &world, &drag, &position_markers);
+            let spawns = lov_profiles(ingame, world, drag, position_markers);
             for spawn in spawns {
                 commands.trigger(SpawnBeginningLov(spawn));
             }
@@ -203,24 +203,22 @@ fn path_profiles(
                 } else {
                     let index = index.0 + 1;
                     let mut orders = orders.iter().rev();
-                    if let Some(order) = orders.nth(index as usize) {
-                        if let Some(position) = order.position() {
+                    if let Some(order) = orders.nth(index as usize)
+                        && let Some(position) = order.position() {
                             let paths = paths_from(w, i, vec![point], position);
                             profiles.extend(paths.unwrap_or_default())
                         }
-                    }
                 }
 
                 // There is another marker after it
                 if index.0 != 0 {
                     let index = index.0 - 1;
                     let mut orders = orders.iter().rev();
-                    if let Some(order) = orders.nth(index as usize) {
-                        if let Some(position) = order.position() {
+                    if let Some(order) = orders.nth(index as usize)
+                        && let Some(position) = order.position() {
                             let paths = paths_from(w, i, vec![point], position);
                             profiles.extend(paths.unwrap_or_default())
                         }
-                    }
                 }
 
                 Some(profiles)
@@ -418,8 +416,8 @@ pub fn on_set_left_click(
     mut commands: Commands,
     state: Res<crate::ingame::state::State>,
 ) {
-    if let Some(order) = event.0.order() {
-        if let Some(order) = match order {
+    if let Some(order) = event.0.order()
+        && let Some(order) = match order {
             OrderType::Defend => Some(Order::Defend(Direction::NORTH)),
             OrderType::Hide => Some(Order::Hide(Direction::NORTH)),
             OrderType::Idle
@@ -434,5 +432,4 @@ pub fn on_set_left_click(
                 commands.trigger(SpawnSquadOrder::Direction(*squad, order.clone(), true));
             }
         }
-    }
 }

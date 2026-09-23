@@ -176,7 +176,7 @@ fn on_update_lov_for(
     let_ok!(mut lov = lovs.get_mut(lov), return);
 
     let start = lov.start;
-    let stop_tile = world.tile_at(&g.w, position.into());
+    let stop_tile = world.tile_at(&g.w, position);
     let_some!(stop_tile = stop_tile, return);
     tracing::trace!(name = "on-update-lov-for");
 

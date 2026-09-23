@@ -156,8 +156,8 @@ where
 
                 let start = (x.ceil() as isize, y.ceil() as isize, z.ceil() as isize);
                 let end = (x_.ceil() as isize, y_.ceil() as isize, z_.ceil() as isize);
-                let world_width = w.world_width_pixels() as u64;
-                let world_height = w.world_width_pixels() as u64;
+                let world_width = w.world_width_pixels();
+                let world_height = w.world_width_pixels();
                 let mut interupted = false;
 
                 'pixels: for (pixel_x, pixel_y, pixel_z) in Bresenham3d::new(start, end) {
@@ -202,11 +202,10 @@ where
                             continue;
                         }
 
-                        if receive_z {
-                            if let Some(z) = other.apply_z(w) {
+                        if receive_z
+                            && let Some(z) = other.apply_z(w) {
                                 apply_z = Some(z);
                             }
-                        }
 
                         // Do not apply if object must be ignored
                         if other

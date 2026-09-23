@@ -62,7 +62,7 @@ pub fn physics_step<I, C>(
 
         // TODO: test perf with references in Corps
         let corps = Corps::new(
-            i.clone(),
+            *i,
             position.0,
             direction.0,
             forces.0.clone(),
@@ -75,7 +75,7 @@ pub fn physics_step<I, C>(
             &g.w,
             time.delta_secs(),
             &g.mod_,
-            (i.clone(), &corps),
+            (*i, &corps),
             objects,
             |_| vec![],
             g.w.ignore_firsts_physics_pixels() as usize,
@@ -89,7 +89,7 @@ pub fn physics_step<I, C>(
         transform.translation.y = position__.y;
 
         commands.trigger(PhysicsUpdatedPosition(
-            i.clone(),
+            *i,
             position_before,
             position_,
         ));

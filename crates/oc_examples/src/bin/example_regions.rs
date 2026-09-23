@@ -115,19 +115,19 @@ fn individuals(w: &WorldConfig, _tiles: &Vec<Tile>, args: &Args) -> Vec<oc_indiv
             TestIndividual::builder()
                 .position(WorldVec3::new(375., 248., 0.))
                 .build()
-                .make(&w),
+                .make(w),
         ],
         TestCase::IndividualMoveOut => vec![
             TestIndividual::builder()
                 .position(WorldVec3::new(210., 248., 0.))
                 .build()
-                .make(&w),
+                .make(w),
         ],
         TestCase::IndividualAtCross => vec![
             TestIndividual::builder()
                 .position(WorldVec3::new(250., 250., 0.))
                 .build()
-                .make(&w),
+                .make(w),
         ],
     }
 }

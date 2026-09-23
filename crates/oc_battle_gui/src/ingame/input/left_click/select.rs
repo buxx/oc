@@ -104,18 +104,16 @@ pub fn area(
                 let squad_members: Vec<oc_individual::IndividualIndex> = squads
                     .iter()
                     .filter_map(|squad| world.squad(*squad))
-                    .map(|squad| squad.members.clone())
-                    .flatten()
+                    .flat_map(|squad| squad.members.clone())
                     .collect();
                 let squads: Vec<SquadIndex> = squads.into_iter().collect();
 
                 // Set to "selected" the "Selected" component
                 for individual in &squad_members {
-                    if let Some(entity) = mapping.get(individual) {
-                        if let Ok((_, _, mut selected)) = query.get_mut(*entity) {
+                    if let Some(entity) = mapping.get(individual)
+                        && let Ok((_, _, mut selected)) = query.get_mut(*entity) {
                             selected.0 = true;
                         }
-                    }
                 }
 
                 // Update the state too about who is selected
@@ -161,7 +159,7 @@ fn select_individual(
 
     state.update_selected(squads, squad.members.clone(), vec![i]);
     for individual in &squad.members {
-        let_some!(individual = individuals.get(&individual), continue);
+        let_some!(individual = individuals.get(individual), continue);
         let_ok!((_, mut selected) = query.get_mut(*individual), continue);
         selected.0 = true;
     }

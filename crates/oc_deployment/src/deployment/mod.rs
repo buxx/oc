@@ -164,7 +164,7 @@ fn fill_weapon(
             if let Some(ammunition) = weapon
                 .ammunitions()
                 .iter()
-                .find(|a| magazine_ammunitions.contains(&a))
+                .find(|a| magazine_ammunitions.contains(a))
             {
                 return Ok((
                     Some((magazine.index(), ammunition.index())),
@@ -174,5 +174,5 @@ fn fill_weapon(
         }
     }
 
-    return Ok((None, 0));
+    Ok((None, 0))
 }

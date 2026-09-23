@@ -46,7 +46,7 @@ impl TestWorld {
                 .collect()
         });
         let walls = tiles.as_walls(&self.mod_);
-        let navmesh = navmesh(&w, &walls);
+        let navmesh = navmesh(w, &walls);
         let squads = self.squads.unwrap_or_else(|| {
             self.individuals
                 .iter()
@@ -66,7 +66,7 @@ impl TestWorld {
             w: w.clone(),
             mod_: self.mod_,
             meta: self.meta,
-            tiles: tiles,
+            tiles,
             navmesh,
             individuals: self.individuals,
             visibilities: Visibilities::empty(individuals_count),

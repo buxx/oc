@@ -321,8 +321,8 @@ fn on_spawn(
                                 let x_length = width;
                                 let y_length = height;
                                 let z_length = depth;
-                                let x = x as f32 + width / 2.0;
-                                let y = y as f32 + height / 2.0;
+                                let x = x + width / 2.0;
+                                let y = y + height / 2.0;
                                 let z = z + depth;
                                 tracing::trace!(
                                     name = "ingame-height-on-spawn-individuals-individual",

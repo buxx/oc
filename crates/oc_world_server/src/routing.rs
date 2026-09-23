@@ -34,7 +34,7 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
         self.identities.insert(listener.clone(), identity.clone());
         self.side_identitides
             .entry(identity.side)
-            .or_insert_with(|| vec![])
+            .or_default()
             .push(listener);
     }
 
@@ -46,11 +46,10 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
     // TODO: test me
     pub fn remove(&mut self, listener: &T) {
         self.all.retain(|l| l != listener);
-        if let Some(identity) = self.identities.remove(listener) {
-            if let Some(identities) = self.side_identitides.get_mut(&identity.side) {
+        if let Some(identity) = self.identities.remove(listener)
+            && let Some(identities) = self.side_identitides.get_mut(&identity.side) {
                 identities.retain(|l| l != listener);
             }
-        }
 
         let regions = self.listener_regions(listener).clone();
         for region in regions {

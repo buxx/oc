@@ -94,7 +94,7 @@ fn individuals(
                         .make(),
                 )
                 .build()
-                .make(&w),
+                .make(w),
             TestIndividual::builder()
                 .side(side::Side::A)
                 .position(WorldVec3::new(
@@ -109,7 +109,7 @@ fn individuals(
                         .make(),
                 )
                 .build()
-                .make(&w),
+                .make(w),
         ],
         TestCase::Stress => {
             let mut individuals = vec![];
@@ -130,7 +130,7 @@ fn individuals(
                                     .make(),
                             )
                             .build()
-                            .make(&w),
+                            .make(w),
                     );
                 }
             }
@@ -148,7 +148,7 @@ fn squads(
     match args.case {
         TestCase::InaccuracyFastAndFar => vec![
             TestSquad::builder()
-                .position(individuals.get(0).unwrap().position.into())
+                .position(individuals.first().unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
                 .orders(vec![Order::Suppress(WorldVec2::new(255., 4100.))])
                 .build()

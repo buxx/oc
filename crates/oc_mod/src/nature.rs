@@ -107,7 +107,7 @@ impl From<NatureRaw> for Nature {
         Self {
             name: value.name.clone(),
             opacity: value.opacity,
-            z: value.z.clone(),
+            z: value.z,
             traversability: Traversability::from_deny_list(value.deny),
         }
     }
@@ -205,7 +205,7 @@ pub fn load(path: &PathBuf) -> Result<Vec<IndexedNature>, Error> {
     let natures = std::fs::read_to_string(&path);
     let natures = natures.context(format!("Read {}", path.display()))?;
     let natures: Vec<NatureRaw> = ron::from_str(&natures)?;
-    let natures: Vec<Nature> = natures.into_iter().map(|n| Nature::from(n)).collect();
+    let natures: Vec<Nature> = natures.into_iter().map(Nature::from).collect();
 
     if natures.is_empty() {
         return Err(Error::Empty);

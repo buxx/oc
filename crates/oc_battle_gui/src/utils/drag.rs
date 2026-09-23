@@ -153,7 +153,7 @@ fn update_positions<T: Dragging + std::fmt::Debug + Send + Sync + 'static>(
     let_some!((cursor, _) = cursor.0, return);
     let cursor = Vec2::new(cursor.x, cursor.y);
     let offset = (point - cursor).extend(0.);
-    let offset: Vec3 = offset.into();
+    let offset: Vec3 = offset;
 
     for (phantom, mut phantom_transform) in phantoms.iter_mut() {
         let_ok!((_, origin) = origins.get_mut(phantom.0), continue);

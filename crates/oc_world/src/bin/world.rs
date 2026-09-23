@@ -180,7 +180,7 @@ fn snapshot_(
     mod_: &Mod,
     replace: bool,
 ) -> Result<(), anyhow::Error> {
-    if std::fs::exists(path).context(format!("Test if {} exists", path.display()))? == true {
+    if std::fs::exists(path).context(format!("Test if {} exists", path.display()))? {
         if replace {
             std::fs::remove_file(path).context(format!("Remove file {}", path.display()))?;
         } else {
