@@ -31,7 +31,7 @@ static INACCURACY_SPREAD_ENABLED: AtomicBool = AtomicBool::new(false);
 #[cfg(feature = "debug")]
 static IMMORTALITY: AtomicBool = AtomicBool::new(false);
 #[cfg(feature = "debug")]
-static SPEED_RAW: AtomicU8 = AtomicU8::new(10);
+static SPEED_RAW: AtomicU8 = AtomicU8::new(10); // Will be divided by ten
 
 #[derive(
     Debug, Clone, Archive, Deserialize, Serialize, PartialEq, WithSetters, Getters, CopyGetters,
@@ -138,6 +138,14 @@ impl WorldConfig {
         let region_height = 1000.min(world_height);
 
         let speed = 1.0;
+
+        #[cfg(feature = "debug")]
+        if let Ok(speed) = std::env::var("OC_SPEED") {
+            if let Ok(speed) = speed.parse::<f32>() {
+                SPEED_RAW.store((speed * 10.) as u8, Ordering::Relaxed);
+            }
+        }
+
         let individual_tick = Frequency::each(Duration::from_secs(1));
         let visibilities_tick = Frequency::each(Duration::from_secs(2));
         let squad_tick = Frequency::each(Duration::from_secs(5));
