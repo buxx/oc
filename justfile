@@ -6,6 +6,7 @@ check:
     cargo check
     cargo check --tests
     cargo check --features debug,perfs,tracker,test
+    cargo clippy
 
 make-caches:
     cargo build

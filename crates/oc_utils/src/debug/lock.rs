@@ -350,7 +350,7 @@ impl StallReport {
     pub fn log(&self) -> String {
         format!(
             "Stalled {} lock since {}ms. Stalled call: \n\n {:?}\n\nBlockers:\n\n{}",
-            self.waiting_kind.to_string(),
+            self.waiting_kind,
             self.waiting_since.elapsed().as_millis(),
             self.waiting_backtrace,
             self.blockers

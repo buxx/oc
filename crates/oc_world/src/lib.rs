@@ -35,6 +35,7 @@ pub mod tile;
 pub mod visibility;
 
 #[derive(Constructor)]
+#[allow(clippy::too_many_arguments)]
 pub struct World {
     pub w: WorldConfig,
     pub mod_: Mod, // Maybe its place is not in world (when want to access, need to read lock World, but Mod never change)
@@ -163,14 +164,7 @@ mod tests {
         );
         let meta = Meta::new("MyWorld".to_string(), 0, w.geo_meters_per_z().0);
         let tiles: Vec<Tile> = (0..w.tiles_count())
-            .map(|i| {
-                Tile::new(
-                    WorldTileIndex(i as u64),
-                    NatureIndex(0),
-                    0,
-                    Traversability::all(),
-                )
-            })
+            .map(|i| Tile::new(WorldTileIndex(i), NatureIndex(0), 0, Traversability::all()))
             .collect();
         let world = World::new(
             w.clone(),

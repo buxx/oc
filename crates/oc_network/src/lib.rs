@@ -19,7 +19,7 @@ use rkyv::{Archive, Deserialize, Serialize};
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum ToClient {
-    GameConfig(GameConfig),
+    GameConfig(Box<GameConfig>),
     WorldResume(WorldResume),
     Individual(Individual),
     Squad(Squad),

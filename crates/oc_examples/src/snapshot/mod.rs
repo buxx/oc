@@ -88,55 +88,55 @@ impl<T> EmptyGenerator<T> {
 }
 
 impl individual::IndividualsGenerator for EmptyGenerator<Individual> {
-    fn individuals(&self, _: &WorldConfig, _: &Vec<Tile>) -> Vec<Individual> {
+    fn individuals(&self, _: &WorldConfig, _: &[Tile]) -> Vec<Individual> {
         vec![]
     }
 }
 
 impl squad::SquadsGenerator for EmptyGenerator<Squad> {
-    fn squads(&self, _: &WorldConfig, _: &Vec<Individual>) -> Vec<Squad> {
+    fn squads(&self, _: &WorldConfig, _: &[Individual]) -> Vec<Squad> {
         vec![]
     }
 }
 
 impl projectile::ProjectilesGenerator for EmptyGenerator<Projectile> {
-    fn projectiles(&self, _: &WorldConfig, _: &Vec<Tile>) -> Vec<Projectile> {
+    fn projectiles(&self, _: &WorldConfig, _: &[Tile]) -> Vec<Projectile> {
         vec![]
     }
 }
 
 impl individual::IndividualsGenerator for Vec<Individual> {
-    fn individuals(&self, _: &WorldConfig, _: &Vec<Tile>) -> Vec<Individual> {
+    fn individuals(&self, _: &WorldConfig, _: &[Tile]) -> Vec<Individual> {
         self.clone()
     }
 }
 
 impl projectile::ProjectilesGenerator for Vec<Projectile> {
-    fn projectiles(&self, _: &WorldConfig, _: &Vec<Tile>) -> Vec<Projectile> {
+    fn projectiles(&self, _: &WorldConfig, _: &[Tile]) -> Vec<Projectile> {
         self.clone()
     }
 }
 
 impl squad::SquadsGenerator for Vec<Squad> {
-    fn squads(&self, _: &WorldConfig, _: &Vec<Individual>) -> Vec<Squad> {
+    fn squads(&self, _: &WorldConfig, _: &[Individual]) -> Vec<Squad> {
         self.clone()
     }
 }
 
-impl<T: Fn(&WorldConfig, &Vec<Tile>) -> Vec<Individual>> individual::IndividualsGenerator for T {
-    fn individuals(&self, w: &WorldConfig, tiles: &Vec<Tile>) -> Vec<Individual> {
+impl<T: Fn(&WorldConfig, &[Tile]) -> Vec<Individual>> individual::IndividualsGenerator for T {
+    fn individuals(&self, w: &WorldConfig, tiles: &[Tile]) -> Vec<Individual> {
         self(w, tiles)
     }
 }
 
-impl<T: Fn(&WorldConfig, &Vec<Individual>) -> Vec<Squad>> squad::SquadsGenerator for T {
-    fn squads(&self, w: &WorldConfig, individuals: &Vec<Individual>) -> Vec<Squad> {
+impl<T: Fn(&WorldConfig, &[Individual]) -> Vec<Squad>> squad::SquadsGenerator for T {
+    fn squads(&self, w: &WorldConfig, individuals: &[Individual]) -> Vec<Squad> {
         self(w, individuals)
     }
 }
 
-impl<T: Fn(&WorldConfig, &Vec<Tile>) -> Vec<Projectile>> projectile::ProjectilesGenerator for T {
-    fn projectiles(&self, w: &WorldConfig, tiles: &Vec<Tile>) -> Vec<Projectile> {
+impl<T: Fn(&WorldConfig, &[Tile]) -> Vec<Projectile>> projectile::ProjectilesGenerator for T {
+    fn projectiles(&self, w: &WorldConfig, tiles: &[Tile]) -> Vec<Projectile> {
         self(w, tiles)
     }
 }

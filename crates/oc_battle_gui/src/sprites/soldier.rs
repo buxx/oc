@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use bevy::prelude::*;
 use bevy_spritesheet_animation::prelude::*;
@@ -38,7 +38,7 @@ pub struct SoldierAnimations {
 
 impl SoldierAnimations {
     pub fn init(
-        sprites: &PathBuf,
+        sprites: &Path,
         assets: &AssetServer,
         animations: &mut Assets<Animation>,
         atlas_layouts: &mut Assets<TextureAtlasLayout>,

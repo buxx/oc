@@ -73,64 +73,55 @@ fn listen_(
 }
 
 pub trait IntoNetworkUpdate {
-    fn into_network_update(
-        &self,
-        update: oc_physics::update::Update,
-    ) -> impl Clone + Into<ToClient>;
+    fn to_network_update(&self, update: oc_physics::update::Update) -> impl Clone + Into<ToClient>;
 }
 
 // TODO: Derive on IndividualIndex
 impl IntoNetworkUpdate for IndividualIndex {
-    fn into_network_update(
-        &self,
-        update: oc_physics::update::Update,
-    ) -> impl Clone + Into<ToClient> {
+    fn to_network_update(&self, update: oc_physics::update::Update) -> impl Clone + Into<ToClient> {
         oc_individual::network::Individual::Physics(*self, update)
     }
 }
 
 // TODO: Derive on ProjectileId
 impl IntoNetworkUpdate for ProjectileId {
-    fn into_network_update(
-        &self,
-        update: oc_physics::update::Update,
-    ) -> impl Clone + Into<ToClient> {
+    fn to_network_update(&self, update: oc_physics::update::Update) -> impl Clone + Into<ToClient> {
         oc_projectile::network::Projectile::Physics(*self, update)
     }
 }
 
 pub trait IntoNetworkInsert<I> {
-    fn into_network_insert(&self, i: I) -> impl Clone + Into<ToClient>;
+    fn to_network_insert(&self, i: I) -> impl Clone + Into<ToClient>;
 }
 
 // TODO: Derive on oc_individual::Individual
 impl IntoNetworkInsert<IndividualIndex> for oc_individual::Individual {
-    fn into_network_insert(&self, i: IndividualIndex) -> impl Clone + Into<ToClient> {
+    fn to_network_insert(&self, i: IndividualIndex) -> impl Clone + Into<ToClient> {
         oc_individual::network::Individual::Insert(i, self.clone())
     }
 }
 
 // TODO: Derive on oc_projectile::Projectile
 impl IntoNetworkInsert<ProjectileId> for oc_projectile::Projectile {
-    fn into_network_insert(&self, i: ProjectileId) -> impl Clone + Into<ToClient> {
+    fn to_network_insert(&self, i: ProjectileId) -> impl Clone + Into<ToClient> {
         oc_projectile::network::Projectile::Insert(i, self.clone())
     }
 }
 
 pub trait IntoNetworkForgot<I> {
-    fn into_network_forgot(&self, i: I) -> impl Clone + Into<ToClient>;
+    fn to_network_forgot(&self, i: I) -> impl Clone + Into<ToClient>;
 }
 
 // TODO: Derive on oc_individual::Individual
 impl IntoNetworkForgot<IndividualIndex> for oc_individual::Individual {
-    fn into_network_forgot(&self, i: IndividualIndex) -> impl Clone + Into<ToClient> {
+    fn to_network_forgot(&self, i: IndividualIndex) -> impl Clone + Into<ToClient> {
         oc_individual::network::Individual::Forgot(i)
     }
 }
 
 // TODO: Derive on oc_projectile::Projectile
 impl IntoNetworkForgot<ProjectileId> for oc_projectile::Projectile {
-    fn into_network_forgot(&self, i: ProjectileId) -> impl Clone + Into<ToClient> {
+    fn to_network_forgot(&self, i: ProjectileId) -> impl Clone + Into<ToClient> {
         oc_projectile::network::Projectile::Forgot(i)
     }
 }

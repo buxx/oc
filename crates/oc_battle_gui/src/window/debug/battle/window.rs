@@ -115,13 +115,12 @@ impl Window {
                     self.context.spawn_weapon = mod_
                         .weapons
                         .iter()
-                        .filter(|weapon| weapon.is_type(WeaponType::Rifle))
-                        .next()
+                        .find(|weapon| weapon.is_type(WeaponType::Rifle))
                         .cloned();
                     self.context.spawn_ammunition = mod_
                         .ammunitions
                         .iter()
-                        .filter(|ammunition| {
+                        .find(|ammunition| {
                             self.context
                                 .spawn_weapon
                                 .as_ref()
@@ -129,14 +128,12 @@ impl Window {
                                 .unwrap_or_default()
                                 .contains(ammunition)
                         })
-                        .next()
                         .cloned();
                     self.context.spawn_shot = self
                         .context
                         .spawn_weapon
                         .as_ref()
-                        .map(|weapon| weapon.shots().first().cloned())
-                        .flatten();
+                        .and_then(|weapon| weapon.shots().first().cloned());
                 }
                 Shortcut::LineOfView => {
                     self.focus_tab("Left click");
@@ -161,16 +158,15 @@ impl Window {
             .find(|(_, t)| t.to_string() == tab_name)
             .map(|(path, _)| path); // path is now a TabPath, not a (SurfaceIndex, NodeIndex) tuple
 
-        if let Some(path) = found {
-            if let Some(node_tabs) = self.tree[path.surface][path.node].tabs() {
-                if let Some(tab_index) = node_tabs.iter().position(|t| t.to_string() == tab_name) {
-                    let _ = self.tree.set_active_tab(egui_dock::TabPath {
-                        surface: path.surface,
-                        node: path.node,
-                        tab: TabIndex(tab_index),
-                    });
-                }
-            }
+        if let Some(path) = found
+            && let Some(node_tabs) = self.tree[path.surface][path.node].tabs()
+            && let Some(tab_index) = node_tabs.iter().position(|t| t.to_string() == tab_name)
+        {
+            let _ = self.tree.set_active_tab(egui_dock::TabPath {
+                surface: path.surface,
+                node: path.node,
+                tab: TabIndex(tab_index),
+            });
         }
     }
 }

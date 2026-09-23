@@ -37,6 +37,7 @@ use crate::utils::drag::Phantom;
 #[derive(Debug, Clone, Component)]
 pub struct PendingOrder;
 
+#[allow(clippy::too_many_arguments)]
 pub fn system(
     mut commands: Commands,
     w: Res<Wcfg>,
@@ -76,6 +77,7 @@ pub fn system(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 fn show(
     w: &WorldConfig,
     point: WorldVec2,
@@ -204,10 +206,11 @@ fn path_profiles(
                     let index = index.0 + 1;
                     let mut orders = orders.iter().rev();
                     if let Some(order) = orders.nth(index as usize)
-                        && let Some(position) = order.position() {
-                            let paths = paths_from(w, i, vec![point], position);
-                            profiles.extend(paths.unwrap_or_default())
-                        }
+                        && let Some(position) = order.position()
+                    {
+                        let paths = paths_from(w, i, vec![point], position);
+                        profiles.extend(paths.unwrap_or_default())
+                    }
                 }
 
                 // There is another marker after it
@@ -215,10 +218,11 @@ fn path_profiles(
                     let index = index.0 - 1;
                     let mut orders = orders.iter().rev();
                     if let Some(order) = orders.nth(index as usize)
-                        && let Some(position) = order.position() {
-                            let paths = paths_from(w, i, vec![point], position);
-                            profiles.extend(paths.unwrap_or_default())
-                        }
+                        && let Some(position) = order.position()
+                    {
+                        let paths = paths_from(w, i, vec![point], position);
+                        profiles.extend(paths.unwrap_or_default())
+                    }
                 }
 
                 Some(profiles)
@@ -278,6 +282,7 @@ fn cancel(commands: &mut Commands, ingame: &mut crate::ingame::state::State) {
     ingame.clear_pending_orders();
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn on_click(
     mut click: On<Pointer<Click>>,
     g: Res<GameConfig>,
@@ -426,10 +431,11 @@ pub fn on_set_left_click(
             | OrderType::SneakTo
             | OrderType::Engage
             | OrderType::Suppress => None,
-        } {
-            for squad in state.selected_squads() {
-                tracing::trace!(name="ingame-input-left-click-order-on-set-left-click-trigger", squad=?squad, order=?order);
-                commands.trigger(SpawnSquadOrder::Direction(*squad, order.clone(), true));
-            }
         }
+    {
+        for squad in state.selected_squads() {
+            tracing::trace!(name="ingame-input-left-click-order-on-set-left-click-trigger", squad=?squad, order=?order);
+            commands.trigger(SpawnSquadOrder::Direction(*squad, order.clone(), true));
+        }
+    }
 }

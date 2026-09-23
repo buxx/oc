@@ -14,8 +14,6 @@ use crate::window::ToggleWindow;
 use crate::window::Window;
 #[cfg(feature = "debug")]
 use crate::window::debug::battle::DebugBattleWindow;
-#[cfg(feature = "debug")]
-use crate::window::debug::battle::window::Window as DebugWindow;
 use crate::window::menu::battle::{BattleMenuWindow, Window as BattleMenu};
 
 pub fn on_key_press(
@@ -73,8 +71,8 @@ pub fn on_key_press(
             }
             #[cfg(feature = "debug")]
             (ButtonState::Released, KeyCode::F12) => {
-                let window = debug.0.clone().unwrap_or(DebugWindow::default());
-                commands.trigger(ToggleWindow(Window::BattleDebug(window)));
+                let window = debug.0.clone().unwrap_or_default();
+                commands.trigger(ToggleWindow(Window::BattleDebug(Box::new(window))));
             }
             _ => {}
         }

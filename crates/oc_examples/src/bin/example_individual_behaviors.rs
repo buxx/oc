@@ -100,6 +100,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .count(args.count);
 
     let run = {
+        #[cfg_attr(not(feature = "test"), allow(clippy::let_unit_value))]
         let test_track = {
             #[cfg(feature = "test")]
             {
@@ -128,9 +129,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 })
             }
             #[cfg(not(feature = "test"))]
-            {
-                ()
-            }
+            {}
         };
 
         run.tests((
@@ -209,7 +208,7 @@ fn end_when_success_or_timeout(
             | TestCase::MoveStraightAheadObstacle
             | TestCase::MoveFastStraightAhead
             | TestCase::MoveFastStraightAheadObstacle => {
-                (tracking.accomplished.len() == 2).then(|| Instant::now())
+                (tracking.accomplished.len() == 2).then(Instant::now)
             }
         },
         Some(value) => {

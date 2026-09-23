@@ -20,12 +20,14 @@ type Result_ = Result<Tracker, anyhow::Error>;
 #[cfg(not(feature = "test"))]
 type Result_ = Result<(), anyhow::Error>;
 
+type InstallFn = Box<dyn Fn(&mut bevy::app::App)>;
+
 #[derive(Builder)]
 pub struct Example {
     mod_: PathBuf,
     world: PathBuf,
     snapshot: PathBuf,
-    install: Option<Box<dyn Fn(&mut bevy::app::App)>>,
+    install: Option<InstallFn>,
     #[builder(default)]
     test_app_exit_code: bool,
     #[builder(default = 10)]
@@ -114,10 +116,11 @@ impl Example {
             .call();
 
         if self.test_app_exit_code
-            && let AppExit::Error(code) = app_exit {
-                let exit_code: u8 = code.into();
-                std::process::exit(exit_code as i32);
-            }
+            && let AppExit::Error(code) = app_exit
+        {
+            let exit_code: u8 = code.into();
+            std::process::exit(exit_code as i32);
+        }
 
         #[cfg(feature = "test")]
         {

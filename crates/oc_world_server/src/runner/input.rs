@@ -90,10 +90,10 @@ impl<'a, E: Client> Dealer<'a, E> {
         let world = self.state.world();
 
         for i in subjects {
-            let Some(subject) = i.into_subject(&world) else {
+            let Some(subject) = i.to_subject(&world) else {
                 continue; // TODO: Possible ?
             };
-            let subject = subject.into_network_insert(i.clone());
+            let subject = subject.to_network_insert(i.clone());
             let message = (self.endpoint.clone(), subject.into());
             self.output.send(message).ok_or_log();
         }
@@ -101,7 +101,7 @@ impl<'a, E: Client> Dealer<'a, E> {
 
     fn send_tiles(&self, region: WorldRegionIndex) {
         let world = self.state.world();
-        let tiles = region.into_tiles(&world);
+        let tiles = region.to_tiles(&world);
         let tiles = ToClient::Tiles(region, tiles);
         let message = (self.endpoint.clone(), tiles);
         self.output.send(message).ok_or_log();

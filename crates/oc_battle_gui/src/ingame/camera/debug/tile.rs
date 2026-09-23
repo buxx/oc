@@ -142,7 +142,8 @@ pub fn on_insert_tiles(tiles: On<InsertedTiles>, mut commands: Commands, showing
 
 // TODO: L'idée, a terme, est que ce generique soit utilisé pour afficher les decors aussi
 // FIXME: use associated types to simplify
-pub fn on_spawn_region<'a, E, I, T, S>(
+#[allow(clippy::too_many_arguments)]
+pub fn on_spawn_region<E, I, T, S>(
     event: On<E>,
     mut commands: Commands,
     g: Res<GameConfig>,
@@ -185,7 +186,7 @@ pub fn on_spawn_region<'a, E, I, T, S>(
             let i: WorldTileIndex = (i.clone()).into_(&g.w);
             let xy: Xy = i.into_(&g.w);
             // TODO (map terrain should be checked to avoid manage missing terrain here)
-            let index = tileset.index(&tile).unwrap();
+            let index = tileset.index(tile).unwrap();
             // let index = (*tileset.natures.get(&tile.nature).unwrap()) as usize;
             let x = xy.0 * g.w.geo_pixels_per_tile();
             let y = xy.1 * g.w.geo_pixels_per_tile();
@@ -244,32 +245,32 @@ pub fn tile_under_cursor(
 ) {
     let_some!(g = &g.0, return);
     let (camera, transform) = *camera_;
-    if let Some(cursor) = window_.cursor_position() {
-        if let Ok(cursor) = camera.viewport_to_world_2d(transform, cursor) {
-            let point = Vec2::new(cursor.x, cursor.y.to_gui_y(&g.w));
-            let tile: TileXy = [point.x, point.y].into_(&g.w);
-            let current: WorldTileIndex = tile.into_(&g.w);
+    if let Some(cursor) = window_.cursor_position()
+        && let Ok(cursor) = camera.viewport_to_world_2d(transform, cursor)
+    {
+        let point = Vec2::new(cursor.x, cursor.y.to_gui_y(&g.w));
+        let tile: TileXy = [point.x, point.y].into_(&g.w);
+        let current: WorldTileIndex = tile.into_(&g.w);
 
-            match state.tile {
-                Some(previous) => {
-                    if previous != current {
-                        if let Some(previous) = entities.get(&previous) {
-                            if let Ok((_, mut sprite)) = tiles.get_mut(*previous) {
-                                sprite.color = Color::WHITE;
-                            }
-                        }
-
-                        if let Some(current) = entities.get(&current) {
-                            if let Ok((_, mut sprite)) = tiles.get_mut(*current) {
-                                sprite.color = Color::BLACK;
-                            }
-                        }
-
-                        state.tile = Some(current);
+        match state.tile {
+            Some(previous) => {
+                if previous != current {
+                    if let Some(previous) = entities.get(&previous)
+                        && let Ok((_, mut sprite)) = tiles.get_mut(*previous)
+                    {
+                        sprite.color = Color::WHITE;
                     }
+
+                    if let Some(current) = entities.get(&current)
+                        && let Ok((_, mut sprite)) = tiles.get_mut(*current)
+                    {
+                        sprite.color = Color::BLACK;
+                    }
+
+                    state.tile = Some(current);
                 }
-                None => state.tile = Some(current),
             }
-        };
-    };
+            None => state.tile = Some(current),
+        }
+    }
 }

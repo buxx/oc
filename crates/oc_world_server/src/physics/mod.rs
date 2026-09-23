@@ -25,6 +25,8 @@ use crate::{
 
 pub mod collision;
 
+type StepForResult<I> = (Vec<(I, Vec<Update>)>, Vec<Event<ObjectId>>);
+
 #[derive(Constructor)]
 pub struct Processor<'x, E: Client> {
     ctx: &'x Context<E>,
@@ -49,7 +51,7 @@ impl<'x, E: Client> Processor<'x, E> {
         updates
     }
 
-    fn step_for<F, I, T>(&self, i: usize, all: F) -> (Vec<(I, Vec<Update>)>, Vec<Event<ObjectId>>)
+    fn step_for<F, I, T>(&self, i: usize, all: F) -> StepForResult<I>
     where
         for<'a> F: Fn(&'a World) -> Vec<(I, &'a T)>,
         I: Copy + Into<ObjectId> + std::fmt::Debug,
@@ -81,13 +83,12 @@ impl<'x, E: Client> Processor<'x, E> {
             let mut objects = vec![];
 
             for i in individuals {
-                let individual = world.individual(*i);
-                let individual: Box<&dyn Physic> = Box::new(individual);
+                let individual: &dyn Physic = world.individual(*i);
                 objects.push((ObjectId::Individual(*i), individual));
             }
 
             if let Some(tile_) = world.tile(tile.into_(&self.ctx.state.w)) {
-                let tile: Box<&dyn Physic> = Box::new(tile_);
+                let tile: &dyn Physic = tile_;
                 objects.push((ObjectId::Tile(tile_.i), tile));
             }
 
@@ -105,8 +106,7 @@ impl<'x, E: Client> Processor<'x, E> {
 
             let mut objects = vec![];
             for i in individuals {
-                let individual = world.individual(*i);
-                let individual: Box<&dyn Physic> = Box::new(individual);
+                let individual: &dyn Physic = world.individual(*i);
                 objects.push((ObjectId::Individual(*i), individual));
             }
 
@@ -158,7 +158,7 @@ impl<'x, E: Client> Processor<'x, E> {
             .flat_map(|(i, updates)| updates.into_iter().map(move |update| (i, update)))
             .filter_map(|(i, update)| {
                 let mut world = self.ctx.state.world_mut();
-                let Some(subject) = i.into_subject_mut(&mut world) else {
+                let Some(subject) = i.subject_mut(&mut world) else {
                     return None; // TODO: its possible ? What to do ? Simply log ?
                 };
                 let effect = write(&update, subject);
@@ -168,39 +168,39 @@ impl<'x, E: Client> Processor<'x, E> {
             .collect()
     }
 
-    fn apply<'a, I, T: 'a>(&self, effects: Vec<(I, (WorldRegionIndex, Option<Effect>), Update)>)
+    fn apply<'a, I, T>(&self, effects: Vec<(I, (WorldRegionIndex, Option<Effect>), Update)>)
     where
         I: Copy + IntoSubject<T> + IntoNetworkUpdate + IntoIndexEffect<Effect> + std::fmt::Debug,
-        T: IntoNetworkInsert<I> + IntoNetworkForgot<I>,
+        T: 'a + IntoNetworkInsert<I> + IntoNetworkForgot<I>,
     {
         for (i, (region, effect), update) in effects {
             // Broadcast the update
             let filter = Listening::Regions(vec![region]);
-            let messages = vec![i.into_network_update(update)];
+            let messages = vec![i.to_network_update(update)];
             self.ctx.broadcast(filter, messages);
 
             if let Some(effect) = effect {
                 // Update indexes
                 {
                     let mut indexes = self.ctx.state.indexes_mut();
-                    indexes.react(i.into_index_effect(effect.clone()), &self.ctx.state.w);
+                    indexes.react(i.to_index_effect(effect.clone()), &self.ctx.state.w);
                 }
 
                 // Broadcast to new listener if required
                 if let Effect::Region { before, after } = effect {
                     let world = self.ctx.state.world();
-                    let Some(subject) = i.into_subject(&world) else {
+                    let Some(subject) = i.to_subject(&world) else {
                         continue; // TODO: its possible ? What to do ? Simply log ?
                     };
 
                     tracing::trace!(name="subject-update-write-broadcast-insert", i=?i);
                     let filter = Listening::EnterBorder(before, after);
-                    let messages = vec![subject.into_network_insert(i)];
+                    let messages = vec![subject.to_network_insert(i)];
                     self.ctx.broadcast(filter, messages);
 
                     tracing::trace!(name="subject-update-write-broadcast-forgot", i=?i);
                     let filter = Listening::ExitBorder(before, after);
-                    let messages = vec![subject.into_network_forgot(i)];
+                    let messages = vec![subject.to_network_forgot(i)];
                     self.ctx.broadcast(filter, messages);
                 }
             }
@@ -220,17 +220,13 @@ impl<'x, E: Client> Processor<'x, E> {
             {
                 use oc_network::ToClient;
 
-                match event {
-                    Event::Collision(ObjectId::Projectile(projectile_id), _) => {
-                        if let Some(projectile) = self.ctx.state.world().projectile(&projectile_id)
-                        {
-                            let position = projectile.position();
-                            let debug = oc_network::Debug::Collision(position);
-                            let messages = vec![ToClient::Debug(debug)];
-                            self.ctx.broadcast(Listening::Any, messages);
-                        }
-                    }
-                    _ => {}
+                if let Event::Collision(ObjectId::Projectile(projectile_id), _) = event
+                    && let Some(projectile) = self.ctx.state.world().projectile(&projectile_id)
+                {
+                    let position = projectile.position();
+                    let debug = oc_network::Debug::Collision(position);
+                    let messages = vec![ToClient::Debug(debug)];
+                    self.ctx.broadcast(Listening::Any, messages);
                 }
             }
 
@@ -436,14 +432,14 @@ pub enum Effect {
 }
 
 impl IntoIndexEffect<Effect> for IndividualIndex {
-    fn into_index_effect(&self, effect: Effect) -> index::Effect {
+    fn to_index_effect(&self, effect: Effect) -> index::Effect {
         let effect = index::IndividualEffect::Physic(effect.clone());
         index::Effect::Individual(*self, effect)
     }
 }
 
 impl IntoIndexEffect<Effect> for ProjectileId {
-    fn into_index_effect(&self, effect: Effect) -> index::Effect {
+    fn to_index_effect(&self, effect: Effect) -> index::Effect {
         let effect = index::ProjectileEffect::Physic(effect.clone());
         index::Effect::Projectile(*self, effect)
     }

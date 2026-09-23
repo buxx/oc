@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use derive_more::{Constructor, Deref};
 use rkyv::Archive;
@@ -67,7 +67,7 @@ pub struct Sound {
     pub name: String,
 }
 
-pub fn load(path: &PathBuf) -> Result<Vec<IndexedSound>, Error> {
+pub fn load(path: &Path) -> Result<Vec<IndexedSound>, Error> {
     let path = path.join(SOUNDS_FOLDER);
     let mut sounds = vec![];
     let files = std::fs::read_dir(&path);

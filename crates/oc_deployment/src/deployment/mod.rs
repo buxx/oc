@@ -50,7 +50,7 @@ impl Deployments {
         mod_: &Mod,
         snapshot: &mut Snapshot,
         placer: &Placer,
-        tiles: &Vec<Tile>,
+        tiles: &[Tile],
     ) -> Result<(), anyhow::Error> {
         snapshot.squads.clear();
         snapshot.individuals.clear();
@@ -71,6 +71,7 @@ impl Deployments {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn fill_squad(
     w: &WorldConfig,
     mod_: &Mod,
@@ -79,7 +80,7 @@ fn fill_squad(
     i: &mut u64,
     side: Side,
     squad: &squad::Squad,
-    tiles: &Vec<Tile>,
+    tiles: &[Tile],
 ) -> Result<(), anyhow::Error> {
     let mut individuals = vec![];
     let position = placer.place(squad.uuid);
@@ -103,7 +104,7 @@ fn fill_individual(
     side: Side,
     individual_: &individual::Individual,
     squad_position: WorldVec2,
-    tiles: &Vec<Tile>,
+    tiles: &[Tile],
 ) -> Result<Individual, anyhow::Error> {
     // FIXME BS NOW: z; and according to formation (and according to best opacity tile)
     let tile = WorldTileIndex::from_(squad_position, w);

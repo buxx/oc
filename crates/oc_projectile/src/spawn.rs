@@ -9,6 +9,7 @@ use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq, Constructor)]
 #[rkyv(compare(PartialEq), derive(Debug))]
+#[allow(clippy::too_many_arguments)]
 pub struct SpawnProjectiles {
     pub weapon: WeaponIndex,
     pub ammunition: AmmunitionIndex,
@@ -45,7 +46,7 @@ impl SpawnProjectiles {
             direction,
             side: spawns.side,
             #[cfg(feature = "debug")]
-            shooter: spawns.shooter.clone(),
+            shooter: spawns.shooter,
         }
     }
 }

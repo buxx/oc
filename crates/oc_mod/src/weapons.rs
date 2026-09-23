@@ -1,4 +1,4 @@
-use std::{ops::Deref, path::PathBuf};
+use std::{ops::Deref, path::Path};
 
 use anyhow::Context;
 use oc_root::{
@@ -359,7 +359,7 @@ impl From<MachineGunRaw> for MachineGun {
 }
 
 // TODO: use something generic here (bullet/weapon/etc)
-pub fn load(path: &PathBuf, mod_: &Mod) -> Result<Vec<IndexedWeapon>, Error> {
+pub fn load(path: &Path, mod_: &Mod) -> Result<Vec<IndexedWeapon>, Error> {
     let path = path.join(WEAPONS_RON);
     let weapons = std::fs::read_to_string(&path);
     let weapons = weapons.context(format!("Read {}", path.display()))?;

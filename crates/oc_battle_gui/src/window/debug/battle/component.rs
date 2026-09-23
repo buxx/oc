@@ -86,7 +86,7 @@ impl super::Context {
         ui.vertical(|ui| {
             for region in regions {
                 let region: RegionXy = region.0.into_(w);
-                ui.label(&format!("{}.{}", region.0.0, region.0.1));
+                ui.label(format!("{}.{}", region.0.0, region.0.1));
             }
         });
         None
@@ -174,12 +174,10 @@ impl super::Context {
         world: &crate::world::World,
         _ingame: &crate::ingame::state::State,
     ) -> Option<Action> {
-        let Some(individual) = world.get_individual(i) else {
-            return None;
-        };
+        let individual = world.get_individual(i)?;
 
         egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.add(egui::Label::new(&format!("{individual:#?}")).wrap());
+            ui.add(egui::Label::new(format!("{individual:#?}")).wrap());
         });
 
         None

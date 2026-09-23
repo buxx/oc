@@ -61,6 +61,7 @@ impl UpdatePhysicsEvent<ProjectileId> for UpdateProjectilePhysicsEvent {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn on_click(
     mut click: On<Pointer<Click>>,
     g: Res<GameConfig>,

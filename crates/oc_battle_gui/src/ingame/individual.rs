@@ -268,19 +268,23 @@ fn on_click(
     event.propagate(false);
 }
 
+type RefreshRenderQuery<'w, 's> = Query<
+    'w,
+    's,
+    (
+        &'static Status,
+        &'static Side,
+        &'static Gesture,
+        &'static mut SpritesheetAnimation,
+        &'static mut Transform,
+        &'static mut Visibility,
+    ),
+    With<IndividualIndex>,
+>;
+
 fn on_refresh_render(
     individual: On<RefreshRender>,
-    mut query: Query<
-        (
-            &Status,
-            &Side,
-            &Gesture,
-            &mut SpritesheetAnimation,
-            &mut Transform,
-            &mut Visibility,
-        ),
-        With<IndividualIndex>,
-    >,
+    mut query: RefreshRenderQuery,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
     animations: Res<SoldierAnimations>,
     world: Res<crate::world::World>,

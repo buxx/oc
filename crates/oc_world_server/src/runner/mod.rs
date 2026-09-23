@@ -376,7 +376,7 @@ impl<E: Client> Runner<E> {
                         let config =
                             GameConfig::new(w.clone(), mod_.clone(), meta.clone(), static_.clone());
                         output
-                            .send((endpoint.clone(), ToClient::GameConfig(config)))
+                            .send((endpoint.clone(), ToClient::GameConfig(Box::new(config))))
                             .unwrap(); // TODO
                     }
                     Event::Disconnected(endpoint) => state.listeners_mut().remove(&endpoint),

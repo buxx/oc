@@ -130,11 +130,11 @@ mod test {
         let object_y = object_pos.1;
         let object_z = object_pos.2.0 * w.geo_pixels_per_meters();
         let object = Object(WorldVec3::new(object_x, object_y, object_z), object_forces);
-        let tile: Box<&dyn Physic> = Box::new(&tile);
+        let tile: &dyn Physic = &tile;
 
         let objects = |xy| {
             if xy == Xy(0, 0) {
-                vec![(ObjectsId::Tile(tile_i), tile.clone())]
+                vec![(ObjectsId::Tile(tile_i), tile)]
             } else {
                 vec![]
             }

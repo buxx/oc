@@ -9,6 +9,7 @@ use crate::ingame::lov::{
 };
 use crate::{cursor_to, ingame};
 
+#[allow(clippy::too_many_arguments)]
 pub fn system(
     mut commands: Commands,
     w: Res<Wcfg>,

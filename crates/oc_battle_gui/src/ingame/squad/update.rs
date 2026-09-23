@@ -147,7 +147,6 @@ mod tests {
                 .cloned()
                 .unwrap_or_default()
                 .keys()
-                .into_iter()
                 .collect::<Vec<&SquadIndex>>(),
             Vec::<&SquadIndex>::new(),
         );
@@ -159,7 +158,6 @@ mod tests {
                 .cloned()
                 .unwrap_or_default()
                 .keys()
-                .into_iter()
                 .collect::<Vec<&SquadIndex>>(),
             vec![&SquadIndex(0)],
         );

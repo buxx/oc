@@ -20,6 +20,7 @@ use oc_world::visibility::Visibilities;
 use oc_world::visibility::Visibility;
 
 #[derive(Debug, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 pub enum Update {
     // Schedule(Instant, Box<Update>),
     SpawnProjectiles(SpawnProjectiles),

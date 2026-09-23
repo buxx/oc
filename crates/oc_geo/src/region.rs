@@ -134,7 +134,7 @@ mod tests {
             .with_region_height(100);
 
         // When
-        let tile_index = WorldTileIndex::from_(TileXy(Xy(x as u64, y)), &w);
+        let tile_index = WorldTileIndex::from_(TileXy(Xy(x, y)), &w);
         let region_index = WorldRegionIndex::from_(tile_index, &w);
 
         // Then

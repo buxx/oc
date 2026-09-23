@@ -69,8 +69,8 @@ pub fn run(
 
 fn individuals(
     w: &WorldConfig,
-    tiles: &Vec<Tile>,
-    setup: &Vec<([f32; 2], Vec<Order>)>,
+    tiles: &[Tile],
+    setup: &[([f32; 2], Vec<Order>)],
     count: usize,
 ) -> Vec<oc_individual::Individual> {
     setup
@@ -105,8 +105,8 @@ fn individuals(
 
 fn squads(
     _w: &WorldConfig,
-    _individuals: &Vec<oc_individual::Individual>,
-    setup: &Vec<([f32; 2], Vec<Order>)>,
+    _individuals: &[oc_individual::Individual],
+    setup: &[([f32; 2], Vec<Order>)],
     count: usize,
 ) -> Vec<Squad> {
     // For this test, all individual are alone in their squad

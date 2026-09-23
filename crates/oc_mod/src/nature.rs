@@ -1,4 +1,4 @@
-use std::{ops::Deref, path::PathBuf};
+use std::{ops::Deref, path::Path};
 
 use anyhow::Context;
 use oc_root::{WorldConfig, material::MaterialKind, opacity::Opacity, physics::Meters};
@@ -200,7 +200,7 @@ impl Nature {
 }
 
 // TODO: use something generic here (bullet/weapon/etc)
-pub fn load(path: &PathBuf) -> Result<Vec<IndexedNature>, Error> {
+pub fn load(path: &Path) -> Result<Vec<IndexedNature>, Error> {
     let path = path.join(NATURES_RON);
     let natures = std::fs::read_to_string(&path);
     let natures = natures.context(format!("Read {}", path.display()))?;

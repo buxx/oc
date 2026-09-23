@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use ::image::{ImageBuffer, Rgba};
 use anyhow::Context;
@@ -175,7 +175,7 @@ fn analyze_terrain(w: &WorldConfig, path: &PathBuf, mod_: &Mod) -> Result<(), an
 
 fn snapshot_(
     w: WorldConfig,
-    map: &PathBuf,
+    map: &Path,
     path: &PathBuf,
     mod_: &Mod,
     replace: bool,

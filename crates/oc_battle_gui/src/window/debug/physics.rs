@@ -17,7 +17,7 @@ impl<T: Geo + Physic + Region> WcfgFrom<T> for PhysicsRepr {
     fn from_(value: T, w: &WorldConfig) -> Self {
         Self {
             position: value.position(w),
-            region: value.region().clone().into_(w),
+            region: value.region().into_(w),
         }
     }
 }

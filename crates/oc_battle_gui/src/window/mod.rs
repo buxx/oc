@@ -18,7 +18,7 @@ pub mod menu;
 pub enum Window {
     BattleMenu(menu::battle::Window),
     #[cfg(feature = "debug")]
-    BattleDebug(debug::battle::window::Window),
+    BattleDebug(Box<debug::battle::window::Window>),
 }
 
 impl Window {
@@ -81,7 +81,7 @@ impl Plugin for WindowPlugin {
 
         #[cfg(feature = "debug")]
         {
-            app.add_plugins(debug::battle::DebugBattleWindowPlugin::default());
+            app.add_plugins(debug::battle::DebugBattleWindowPlugin);
         }
     }
 }

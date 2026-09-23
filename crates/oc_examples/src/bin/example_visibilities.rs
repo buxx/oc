@@ -186,7 +186,7 @@ fn individuals(w: &WorldConfig, _tiles: &Vec<Tile>, args: &Args) -> Vec<oc_indiv
 fn squads(
     _w: &WorldConfig,
     _tiles: &Vec<Tile>,
-    individuals: &Vec<oc_individual::Individual>,
+    individuals: &[oc_individual::Individual],
     args: &Args,
 ) -> Vec<oc_individual::squad::Squad> {
     match args.case {
@@ -288,17 +288,17 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Visibilit
 
     let i1_visible = query
         .iter()
-        .any(|(i, v, _)| i.0 == oc_individual::IndividualIndex(0) && v == &Visibility::Visible);
+        .any(|(i, v, _)| i.0 == oc_individual::IndividualIndex(0) && v == Visibility::Visible);
     let i1_gesture = query
         .iter()
-        .filter_map(|(i, _, g)| (i.0 == oc_individual::IndividualIndex(0)).then(|| &g.0.body))
+        .filter_map(|(i, _, g)| (i.0 == oc_individual::IndividualIndex(0)).then_some(&g.0.body))
         .next();
     let i2_visible = query
         .iter()
-        .any(|(i, v, _)| i.0 == oc_individual::IndividualIndex(1) && v == &Visibility::Visible);
+        .any(|(i, v, _)| i.0 == oc_individual::IndividualIndex(1) && v == Visibility::Visible);
     let i2_gesture = query
         .iter()
-        .filter_map(|(i, _, g)| (i.0 == oc_individual::IndividualIndex(1)).then(|| &g.0.body))
+        .filter_map(|(i, _, g)| (i.0 == oc_individual::IndividualIndex(1)).then_some(&g.0.body))
         .next();
 
     if match args.case {

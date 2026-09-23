@@ -295,7 +295,7 @@ pub enum ProjectileEffect {
 }
 
 pub trait IntoIndexEffect<T> {
-    fn into_index_effect(&self, value: T) -> Effect;
+    fn to_index_effect(&self, value: T) -> Effect;
 }
 
 #[cfg(test)]

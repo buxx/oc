@@ -41,6 +41,7 @@ pub fn setup(mut config: ResMut<GizmoConfigStore>) {
     gizmos.line.width = 2.0;
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn draw_formations(
     g: Res<GameConfig>,
     show: Res<ShowFormationPositions>,

@@ -19,11 +19,11 @@ pub struct Visibilities {
 
 impl Visibilities {
     pub fn from_visibilities(
-        visibilities: &Vec<(
+        visibilities: &[(
             oc_individual::IndividualIndex,
             oc_individual::IndividualIndex,
             oc_world::visibility::Visibility,
-        )>,
+        )],
     ) -> Self {
         let visible = visibilities
             .iter()
@@ -36,7 +36,7 @@ impl Visibilities {
         #[cfg(feature = "debug")]
         return Self {
             visible,
-            all: visibilities.clone(),
+            all: visibilities.to_vec(),
         };
     }
 }

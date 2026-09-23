@@ -20,7 +20,7 @@ pub enum NetworkMessage {
     Connected,
     FailToConnect,
     Disconnected,
-    Message(ToClient),
+    Message(Box<ToClient>),
 }
 
 pub fn network_message_router(mut commands: Commands, messages: Res<NetworkMessageReceiver>) {
@@ -45,7 +45,7 @@ pub fn on_network_message(message: On<NetWorkMessageEvent>, mut commands: Comman
             commands.trigger(Disconnected);
         }
         NetworkMessage::Message(message) => {
-            commands.trigger(ToClientEvent(message.clone()));
+            commands.trigger(ToClientEvent((**message).clone()));
         }
     }
 }

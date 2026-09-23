@@ -325,13 +325,14 @@ impl<'a> Processor<'a> {
             .for_(self.i)
             .iter()
             .enumerate()
-            .filter(|&(_i, v)| v.visible).map(|(i, v)| {
-                    let target = IndividualIndex(i as u64);
-                    let target_ = self.world.individual(target);
-                    let distance = reference.distance(target_.position);
-                    let distance = Meters(distance / self.world.w.geo_pixels_per_meters());
-                    Visible::new(target, v, distance)
-                })
+            .filter(|&(_i, v)| v.visible)
+            .map(|(i, v)| {
+                let target = IndividualIndex(i as u64);
+                let target_ = self.world.individual(target);
+                let distance = reference.distance(target_.position);
+                let distance = Meters(distance / self.world.w.geo_pixels_per_meters());
+                Visible::new(target, v, distance)
+            })
             .collect();
         visibles.sort_unstable_by(|a, b| a.distance.0.total_cmp(&b.distance.0));
 
@@ -754,6 +755,7 @@ impl<'a> Processor<'a> {
         runner::update::Update::UpdateIndividual(self.i, oc_individual::Update::SetWeapons(weapons))
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn spawn_projectile(
         &self,
         individual: &Individual,
@@ -875,7 +877,7 @@ impl<'a> Processor<'a> {
         individual: &'w Individual,
         _target: WorldVec2,
     ) -> Option<&'w oc_individual::Weapon> {
-        individual.weapons.primary.as_ref().map(|w| w)
+        individual.weapons.primary.as_ref()
     }
 
     /// Compute forces for the current behavior.
@@ -1030,7 +1032,8 @@ impl<'a> Processor<'a> {
             Intent::Engage(target) => Intent::Engage(*target),
             _ => match situation
                 .visibles
-                .iter().find(|v| v.distance <= HIDE_ENGAGE_DISTANCE)
+                .iter()
+                .find(|v| v.distance <= HIDE_ENGAGE_DISTANCE)
             {
                 Some(visible) => Intent::Engage(visible.individual),
                 None => Intent::Hide(direction),
@@ -1206,9 +1209,11 @@ impl<'a> Processor<'a> {
     /// Compute path to target, or reuse current if already known path
     fn resolve_path(&self, individual: &Individual, target: WorldVec2) -> Option<MovePath> {
         if let Some((current_target, current_path)) = individual.intent.path()
-            && current_target == target && current_path.iter().next().is_some() {
-                return Some(current_path.clone());
-            }
+            && current_target == target
+            && current_path.iter().next().is_some()
+        {
+            return Some(current_path.clone());
+        }
 
         let from = (individual.position.x, individual.position.y);
         let to = (target.x, target.y);
@@ -1677,9 +1682,8 @@ mod tests {
         let world = TestWorld::builder();
         let world = world.individuals(vec![individual1, individual2]);
         let world = world.squads(vec![squad]);
-        let world = world.build().make(w);
 
-        world
+        world.build().make(w)
     }
 
     // Refactored function which generate a world with one squad composed of one member.
@@ -1702,9 +1706,8 @@ mod tests {
         let world = TestWorld::builder();
         let world = world.individuals(vec![individual]);
         let world = world.squads(vec![squad]);
-        let world = world.build().make(&w);
 
-        world
+        world.build().make(w)
     }
 
     // Refactored function which generate a world with one squad composed of one member.
@@ -1747,8 +1750,7 @@ mod tests {
         let world = TestWorld::builder();
         let world = world.individuals(vec![individual1, individual2]);
         let world = world.squads(vec![squad1, squad2]);
-        let world = world.build().make(&w);
 
-        world
+        world.build().make(w)
     }
 }

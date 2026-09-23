@@ -29,6 +29,7 @@ pub fn setup(mut config: ResMut<GizmoConfigStore>) {
     gizmos.line.width = 1.0;
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn area(
     g: Res<GameConfig>,
     mut state: ResMut<crate::ingame::input::State>,
@@ -111,9 +112,10 @@ pub fn area(
                 // Set to "selected" the "Selected" component
                 for individual in &squad_members {
                     if let Some(entity) = mapping.get(individual)
-                        && let Ok((_, _, mut selected)) = query.get_mut(*entity) {
-                            selected.0 = true;
-                        }
+                        && let Ok((_, _, mut selected)) = query.get_mut(*entity)
+                    {
+                        selected.0 = true;
+                    }
                 }
 
                 // Update the state too about who is selected

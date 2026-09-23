@@ -265,7 +265,7 @@ fn individuals(
 fn squads(
     _w: &WorldConfig,
     _tiles: &Vec<Tile>,
-    individuals: &Vec<oc_individual::Individual>,
+    individuals: &[oc_individual::Individual],
     args: &Args,
 ) -> Vec<oc_individual::squad::Squad> {
     match args.case {
@@ -426,20 +426,26 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Status, &
     let i0_body = query
         .iter()
         .filter_map(|(i, _, gesture)| {
-            (i.0 == oc_individual::IndividualIndex(0)).then(|| &gesture.0.body)
+            (i.0 == oc_individual::IndividualIndex(0)).then_some(&gesture.0.body)
         })
         .next();
     let i0_status = query
         .iter()
-        .filter_map(|(i, status, _)| (i.0 == oc_individual::IndividualIndex(0)).then(|| &status.0))
+        .filter_map(|(i, status, _)| {
+            (i.0 == oc_individual::IndividualIndex(0)).then_some(&status.0)
+        })
         .next();
     let i1_status = query
         .iter()
-        .filter_map(|(i, status, _)| (i.0 == oc_individual::IndividualIndex(1)).then(|| &status.0))
+        .filter_map(|(i, status, _)| {
+            (i.0 == oc_individual::IndividualIndex(1)).then_some(&status.0)
+        })
         .next();
     let i2_status = query
         .iter()
-        .filter_map(|(i, status, _)| (i.0 == oc_individual::IndividualIndex(2)).then(|| &status.0))
+        .filter_map(|(i, status, _)| {
+            (i.0 == oc_individual::IndividualIndex(2)).then_some(&status.0)
+        })
         .next();
 
     if matches!(i0_body, Some(&oc_individual::BodyGesture::Prone(_))) {
@@ -476,11 +482,8 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Status, &
             .unwrap_or_default(),
         TestCase::Hedge => I0_SEEN_DEAD.load(Ordering::Relaxed),
     } {
-        match state.success {
-            None => {
-                state.success = Some(Instant::now());
-            }
-            _ => {}
+        if state.success.is_none() {
+            state.success = Some(Instant::now());
         };
 
         SUCCESS.store(true, Ordering::Relaxed);

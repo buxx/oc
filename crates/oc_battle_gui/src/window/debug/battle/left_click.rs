@@ -23,14 +23,14 @@ impl super::Context {
         _world: &crate::world::World,
         _ingame: &crate::ingame::state::State,
     ) {
-        let left_click_mode_before = self.left_click_mode.clone();
+        let left_click_mode_before = self.left_click_mode;
         let left_click_mode = &mut self.left_click_mode;
 
         egui::ComboBox::from_label("Left click mode")
             .selected_text(left_click_mode.name())
             .show_ui(ui, |ui| {
                 for item in LeftClickModeType::iter() {
-                    let item_ = item.clone();
+                    let item_ = item;
                     let name = item_.name();
                     ui.selectable_value(left_click_mode, item, name);
                 }
@@ -63,14 +63,14 @@ impl super::Context {
                 ui.horizontal(|ui| {
                     ui.add(
                         egui::DragValue::new(&mut start_plus_z.0)
-                            .range((0.0)..=(5.0))
+                            .range((0.0)..=5.0)
                             .speed(0.1),
                     );
                     ui.label("+ start z");
                     ui.separator();
                     ui.add(
                         egui::DragValue::new(&mut end_plus_z.0)
-                            .range((0.0)..=(5.0))
+                            .range((0.0)..=5.0)
                             .speed(0.1),
                     );
                     ui.label("+ end z");
@@ -88,7 +88,7 @@ impl super::Context {
                 }
             }
             LeftClickModeType::SpawnProjectile => {
-                let weapon_type_before = self.spawn_weapon_type.clone();
+                let weapon_type_before = self.spawn_weapon_type;
                 let weapon_type = &mut self.spawn_weapon_type;
                 let weapon_before = self.spawn_weapon.clone();
                 let weapon = &mut self.spawn_weapon;
@@ -162,7 +162,7 @@ impl super::Context {
 
                     ui.add(
                         egui::DragValue::new(&mut plus_z.0)
-                            .range((0.0)..=(5.0))
+                            .range((0.0)..=5.0)
                             .speed(0.1),
                     );
                     ui.label("+z");

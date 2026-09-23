@@ -36,6 +36,7 @@ impl Refresh {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn on_refresh(
     _: On<super::Refresh>,
     w: Res<Wcfg>,
@@ -67,9 +68,9 @@ pub fn on_refresh(
                 Subject::new(
                     id.0,
                     PhysicsRepr::new(
-                        position.0.clone(),
+                        position.0,
                         // tile.0.clone(),
-                        region.0.clone().into_(w),
+                        region.0.into_(w),
                         // forces.0.clone(),
                     ),
                     vec![
@@ -86,9 +87,9 @@ pub fn on_refresh(
                 Subject::new(
                     id.0,
                     PhysicsRepr::new(
-                        position.0.clone(),
+                        position.0,
                         // tile.0.clone(),
-                        region.0.clone().into_(w),
+                        region.0.into_(w),
                         // forces.0.clone(),
                     ),
                     vec![],
@@ -98,20 +99,20 @@ pub fn on_refresh(
             .collect();
 
         let (camera, transform) = *camera_;
-        if let Some(cursor) = window_.cursor_position() {
-            if let Ok(bevyp) = camera.viewport_to_world_2d(transform, cursor) {
-                let point = Vec2::new(bevyp.x, bevyp.y.to_world_y(w));
-                let tile: TileXy = [point.x, point.y].into_(w);
-                let tile_ = world.tile(w, tile);
-                let tile_ = tile_.map(|t| format!("{t:?}")).unwrap_or_default();
-                let region: RegionXy = tile.into_(w);
+        if let Some(cursor) = window_.cursor_position()
+            && let Ok(bevyp) = camera.viewport_to_world_2d(transform, cursor)
+        {
+            let point = Vec2::new(bevyp.x, bevyp.y.to_world_y(w));
+            let tile: TileXy = [point.x, point.y].into_(w);
+            let tile_ = world.tile(w, tile);
+            let tile_ = tile_.map(|t| format!("{t:?}")).unwrap_or_default();
+            let region: RegionXy = tile.into_(w);
 
-                window.context.cursor = Some(cursor);
-                window.context.point = Some(point);
-                window.context.tile = Some((tile, tile_));
-                window.context.region = Some(region);
-            };
-        };
+            window.context.cursor = Some(cursor);
+            window.context.point = Some(point);
+            window.context.tile = Some((tile, tile_));
+            window.context.region = Some(region);
+        }
 
         window.context.ingame = ingame.clone();
 
@@ -121,9 +122,9 @@ pub fn on_refresh(
 
 pub fn trigger_refresh(window: Res<states::Window>, mut commands: Commands) {
     #[allow(irrefutable_let_patterns)] // TODO: no more irrefutable when more windows
-    if let Some(crate::window::Window::BattleDebug(window)) = &window.0 {
-        if window.last.elapsed().as_millis() > window.context.refresh.as_millis() {
-            commands.trigger(super::Refresh);
-        }
+    if let Some(crate::window::Window::BattleDebug(window)) = &window.0
+        && window.last.elapsed().as_millis() > window.context.refresh.as_millis()
+    {
+        commands.trigger(super::Refresh);
     }
 }

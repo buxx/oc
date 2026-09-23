@@ -437,7 +437,7 @@ mod tests {
         let distance = a.distance(b);
 
         // Then
-        assert_eq!(distance, 1.4142135);
+        assert_eq!(distance, std::f32::consts::SQRT_2);
     }
 
     #[rstest]

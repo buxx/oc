@@ -1,4 +1,4 @@
-use std::{ops::Deref, path::PathBuf};
+use std::{ops::Deref, path::Path};
 
 use anyhow::Context;
 use rkyv::Archive;
@@ -135,7 +135,7 @@ pub struct Cartridge {
 }
 
 // TODO: use something generic here (bullet/weapon/etc)
-pub fn load(path: &PathBuf) -> Result<Vec<IndexedAmmunition>, Error> {
+pub fn load(path: &Path) -> Result<Vec<IndexedAmmunition>, Error> {
     let path = path.join(PROJECTILES_RON);
     let amunitions = std::fs::read_to_string(&path);
     let amunitions = amunitions.context(format!("Read {}", path.display()))?;

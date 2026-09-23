@@ -79,6 +79,7 @@ impl Display for IndividualIndex {
 
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
+#[allow(clippy::too_many_arguments)]
 pub struct Individual {
     pub side: Side,
     pub position: WorldVec3,

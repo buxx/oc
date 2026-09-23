@@ -18,6 +18,7 @@ pub struct Corps<I: Clone + std::fmt::Debug> {
 }
 
 impl<I: Clone + std::fmt::Debug> Corps<I> {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         i: I,
         position: WorldVec3,

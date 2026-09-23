@@ -44,11 +44,11 @@ impl AsTiles for WorldRegionIndex {
 }
 
 pub trait IntoTiles {
-    fn into_tiles(&self, world: &World) -> Vec<(WorldTileIndex, Tile)>;
+    fn to_tiles(&self, world: &World) -> Vec<(WorldTileIndex, Tile)>;
 }
 
 impl IntoTiles for WorldRegionIndex {
-    fn into_tiles(&self, world: &World) -> Vec<(WorldTileIndex, Tile)> {
+    fn to_tiles(&self, world: &World) -> Vec<(WorldTileIndex, Tile)> {
         let tiles = self.as_tiles(world);
         tiles.into_iter().map(|(i, t)| (i, t.clone())).collect()
     }
@@ -237,11 +237,10 @@ mod test {
         let tiles: Vec<Tile> = (0..(10 * 10))
             .map(|i| Tile::new(WorldTileIndex(i), NatureIndex(0), 0, Traversability::all()))
             .collect();
-        // let my_tile: Box<&dyn Physic> = Box::new(&my_tile);
         let object = MyObject([0.0, 0.0, 10.0].into(), vec![force]);
-        let objects = |xy| -> Vec<(MyObjectId, Box<&dyn Physic>)> {
+        let objects = |xy| -> Vec<(MyObjectId, &dyn Physic)> {
             let tile = WorldTileIndex::from_(TileXy(xy), &w);
-            vec![(MyObjectId(1), Box::new(&tiles[tile.0 as usize]))]
+            vec![(MyObjectId(1), &tiles[tile.0 as usize] as &dyn Physic)]
         };
 
         // When

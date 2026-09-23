@@ -142,7 +142,7 @@ fn individuals(
 fn squads(
     _w: &WorldConfig,
     _tiles: &Vec<Tile>,
-    individuals: &Vec<oc_individual::Individual>,
+    individuals: &[oc_individual::Individual],
     args: &Args,
 ) -> Vec<oc_individual::squad::Squad> {
     match args.case {

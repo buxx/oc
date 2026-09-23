@@ -34,16 +34,15 @@ fn generate_perlin_map(width: usize, height: usize, scale: f64) -> Vec<Vec<f64>>
     let mut map = vec![vec![0.0; width]; height];
 
     map.par_iter_mut().enumerate().for_each(|(y, row)| {
-        for x in 0..width {
-            let value = perlin.get([(x as f64 / scale), (y as f64 / scale)]);
-            row[x] = value;
+        for (x, cell) in row.iter_mut().enumerate() {
+            *cell = perlin.get([(x as f64 / scale), (y as f64 / scale)]);
         }
     });
 
     map
 }
 
-fn save_map_as_image(map: &Vec<Vec<f64>>, filename: &PathBuf) {
+fn save_map_as_image(map: &[Vec<f64>], filename: &PathBuf) {
     let width = map[0].len() as u32;
     let height = map.len() as u32;
 

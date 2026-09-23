@@ -1,4 +1,9 @@
-use std::{collections::HashMap, path::PathBuf, str::FromStr, sync::Arc};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::Arc,
+};
 
 use crate::{
     place::{Place, PlaceName},
@@ -69,7 +74,7 @@ pub struct MapReader {
 }
 
 impl MapReader {
-    pub fn new(path: &PathBuf) -> Result<Self, MapReaderError> {
+    pub fn new(path: &Path) -> Result<Self, MapReaderError> {
         let mut loader = Loader::new();
 
         let map = match loader.load_tmx_map(path.join("world.tmx")) {
@@ -84,7 +89,7 @@ impl MapReader {
         };
 
         Ok(Self {
-            folder: path.clone(),
+            folder: path.to_path_buf(),
             map,
         })
     }

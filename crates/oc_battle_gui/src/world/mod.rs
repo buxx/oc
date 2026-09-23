@@ -172,9 +172,7 @@ impl World {
     }
 
     pub fn get_individual(&self, i: IndividualIndex) -> Option<&Individual> {
-        let Some((region, tile)) = self.individuals_refs.get(&i) else {
-            return None;
-        };
+        let (region, tile) = self.individuals_refs.get(&i)?;
 
         self.individuals
             .get(region)
@@ -187,9 +185,7 @@ impl World {
     }
 
     pub fn get_individual_mut(&mut self, i: IndividualIndex) -> Option<&mut Individual> {
-        let Some((region, tile)) = self.individuals_refs.get(&i) else {
-            return None;
-        };
+        let (region, tile) = self.individuals_refs.get(&i)?;
 
         self.individuals
             .get_mut(region)
@@ -213,7 +209,7 @@ impl World {
         self.insert_individual(w, i, individual.clone());
     }
 
-    pub fn at(&self, w: &WorldConfig, tile: TileXy) -> Vec<(ObjectId, Box<&dyn Physic>)> {
+    pub fn at(&self, w: &WorldConfig, tile: TileXy) -> Vec<(ObjectId, &dyn Physic)> {
         let region: WorldRegionIndex = tile.into_(w);
         let tile: WorldTileIndex = tile.into_(w);
 
@@ -227,15 +223,15 @@ impl World {
                 individuals
                     .iter()
                     .map(|(i, individual)| {
-                        let individual: Box<&dyn Physic> = Box::new(individual);
+                        let individual: &dyn Physic = individual;
                         (ObjectId::Individual(*i), individual)
                     })
-                    .collect::<Vec<(ObjectId, Box<&dyn Physic>)>>()
+                    .collect::<Vec<(ObjectId, &dyn Physic)>>()
             })
             .unwrap_or_default();
 
         if let Some(tile_) = self.tiles.get(&region).and_then(|tiles| tiles.get(&tile)) {
-            let tile_: Box<&dyn Physic> = Box::new(tile_);
+            let tile_: &dyn Physic = tile_;
             objects.push((ObjectId::Tile(tile), tile_));
         }
 
@@ -266,7 +262,7 @@ impl World {
     #[cfg(feature = "debug")]
     pub fn d2_to_d3(&self, w: &WorldConfig, p: WorldVec2, plus_z: Meters) -> Option<WorldVec3> {
         let tile = TileXy::from_(p, w);
-        let_some!(tile = self.tile(w, tile), return None);
+        let tile = self.tile(w, tile)?;
         let z =
             (tile.z as f32 * w.geo_meters_per_z().0 * w.geo_pixels_per_meters()) + plus_z.pixels(w);
         let p = [p.x, p.y, z];

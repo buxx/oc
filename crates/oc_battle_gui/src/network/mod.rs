@@ -94,7 +94,9 @@ fn listen(
                     "Deserialize message from server"
                 );
                 tracing::trace!(name="network-received", message = ?message);
-                input.send(NetworkMessage::Message(message)).ok_or_log();
+                input
+                    .send(NetworkMessage::Message(Box::new(message)))
+                    .ok_or_log();
             }
             NetEvent::Disconnected(_endpoint) => {
                 tracing::info!("Disconnected from server ({host})");

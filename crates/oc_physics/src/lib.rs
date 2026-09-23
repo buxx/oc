@@ -100,6 +100,7 @@ pub trait World<Z> {
 }
 
 #[inline]
+#[allow(clippy::too_many_arguments)]
 pub fn step<'a, I, O, C, P, Z>(
     w: &WorldConfig,
     delta: f32,
@@ -113,8 +114,8 @@ pub fn step<'a, I, O, C, P, Z>(
 where
     I: Clone + Into<Z> + std::fmt::Debug,
     O: Physic,
-    C: Fn(Xy) -> Vec<(Z, Box<&'a dyn Physic>)>,
-    P: Fn(Xy) -> Vec<(Z, Box<&'a dyn Physic>)>,
+    C: Fn(Xy) -> Vec<(Z, &'a dyn Physic)>,
+    P: Fn(Xy) -> Vec<(Z, &'a dyn Physic)>,
     Z: std::fmt::Debug + serde::Serialize + PartialEq + std::marker::Copy,
 {
     let (i, object) = object;
@@ -202,10 +203,9 @@ where
                             continue;
                         }
 
-                        if receive_z
-                            && let Some(z) = other.apply_z(w) {
-                                apply_z = Some(z);
-                            }
+                        if receive_z && let Some(z) = other.apply_z(w) {
+                            apply_z = Some(z);
+                        }
 
                         // Do not apply if object must be ignored
                         if other
@@ -289,13 +289,14 @@ where
     (position, forces, events)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn proximity_events<I, O, Z>(
     origin: &str,
     i: &I,
     object: &O,
     events: &mut Vec<Event<Z>>,
     emit_proximity: bool,
-    proximity_others: &Vec<(Z, Box<&dyn Physic>)>,
+    proximity_others: &[(Z, &dyn Physic)],
     kind: ProximityKind,
     p: WorldVec3,
 ) where
@@ -640,14 +641,14 @@ mod tests {
         let force = Force::Translation(direction.into(), speed);
         let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
         let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Traversability::all());
-        let my_traversable_tile: Box<&dyn Physic> = Box::new(&my_traversable_tile);
+        let my_traversable_tile: &dyn Physic = &my_traversable_tile;
         let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
-        let my_solid_tile: Box<&dyn Physic> = Box::new(&my_solid_tile);
+        let my_solid_tile: &dyn Physic = &my_solid_tile;
         let objects = |xy| {
             if xy == Xy(0, 0) {
-                return vec![(MyObjectId(1), my_traversable_tile.clone())];
+                vec![(MyObjectId(1), my_traversable_tile)]
             } else {
-                return vec![(MyObjectId(2), my_solid_tile.clone())];
+                vec![(MyObjectId(2), my_solid_tile)]
             }
         };
 
@@ -711,14 +712,14 @@ mod tests {
         let force = Force::Translation(direction.into(), speed);
         let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
         let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Traversability::all());
-        let my_traversable_tile: Box<&dyn Physic> = Box::new(&my_traversable_tile);
+        let my_traversable_tile: &dyn Physic = &my_traversable_tile;
         let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
-        let my_solid_tile: Box<&dyn Physic> = Box::new(&my_solid_tile);
+        let my_solid_tile: &dyn Physic = &my_solid_tile;
         let objects = |xy| {
             if xy == Xy(0, 0) {
-                return vec![(MyObjectId(1), my_traversable_tile.clone())];
+                vec![(MyObjectId(1), my_traversable_tile)]
             } else {
-                return vec![(MyObjectId(2), my_solid_tile.clone())];
+                vec![(MyObjectId(2), my_solid_tile)]
             }
         };
 
@@ -783,12 +784,12 @@ mod tests {
         let force = Force::Translation(direction.into(), speed);
         let object = MyObject([7.0, 2.0, 5.0].into(), vec![force]);
         let individual = MyIndividual([2.0, 2.0, 0.0].into()); // MyIndividual volume is 2 px !
-        let individual: Box<&dyn Physic> = Box::new(&individual);
+        let individual: &dyn Physic = &individual;
 
         let objects = |xy| {
             // Expect collision when on tile 0,0
             if xy == Xy(0, 0) {
-                vec![(MyObjectId(1), individual.clone())]
+                vec![(MyObjectId(1), individual)]
             } else {
                 vec![]
             }
@@ -826,12 +827,12 @@ mod tests {
         let force = Force::Translation(direction.into(), speed);
         let object = MyObject([7.5, 2.5, 5.0].into(), vec![force]); // Tile 1 (.5) on x; tile 0 (0.5) on y
         let individual = MyIndividual([1.0, 1.0, 0.0].into()); // MyIndividual volume size (see MyIndividual Physics impl) should be impacted
-        let individual: Box<&dyn Physic> = Box::new(&individual);
+        let individual: &dyn Physic = &individual;
 
         let objects = |xy| {
             // Expect collision when on tile 0,0
             if xy == Xy(0, 0) {
-                vec![(MyObjectId(1), individual.clone())]
+                vec![(MyObjectId(1), individual)]
             } else {
                 vec![]
             }
@@ -869,15 +870,15 @@ mod tests {
         let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
         // Tile 0 is solid but ignorable (should be crossed thanks to collision_ignore)
         let my_ignorable_solid_tile = MyIgnorableTile(TileXy(Xy(0, 0)), Traversability::none());
-        let my_ignorable_solid_tile: Box<&dyn Physic> = Box::new(&my_ignorable_solid_tile);
+        let my_ignorable_solid_tile: &dyn Physic = &my_ignorable_solid_tile;
         // Tile 1 is solid and NOT ignorable (should still block the object)
         let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
-        let my_solid_tile: Box<&dyn Physic> = Box::new(&my_solid_tile);
+        let my_solid_tile: &dyn Physic = &my_solid_tile;
         let objects = |xy| {
             if xy == Xy(0, 0) {
-                return vec![(MyObjectId(1), my_ignorable_solid_tile.clone())];
+                vec![(MyObjectId(1), my_ignorable_solid_tile)]
             } else {
-                return vec![(MyObjectId(2), my_solid_tile.clone())];
+                vec![(MyObjectId(2), my_solid_tile)]
             }
         };
 

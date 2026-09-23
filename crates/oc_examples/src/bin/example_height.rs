@@ -206,10 +206,9 @@ fn track(individuals: Query<(&Position, &IndividualIndex)>, mut commands: Comman
             )
         })
         .unwrap_or_default()
+        && IO_REACH_POSITION.lock().unwrap().is_none()
     {
-        if IO_REACH_POSITION.lock().unwrap().is_none() {
-            *IO_REACH_POSITION.lock().unwrap() = Some(Instant::now());
-        }
+        *IO_REACH_POSITION.lock().unwrap() = Some(Instant::now());
     }
 
     if IO_REACH_POSITION

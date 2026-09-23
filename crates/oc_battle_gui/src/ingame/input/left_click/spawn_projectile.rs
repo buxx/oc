@@ -16,6 +16,7 @@ use crate::projectile::IntoSpawnProjectile;
 use crate::world::World;
 use crate::{cursor_to, ingame};
 
+#[allow(clippy::too_many_arguments)]
 pub fn system(
     mut commands: Commands,
     w: Res<Wcfg>,
@@ -44,10 +45,11 @@ pub fn system(
         &spawn,
         &mut state,
         &world,
-        &profile,
+        profile,
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn show(
     w: &WorldConfig,
     point: WorldVec2,
@@ -91,15 +93,15 @@ pub fn show(
             }
 
             if buttons.just_released(MouseButton::Left) {
-                if let Some(start) = state.clicks.first() {
-                    if let (Some(start), Some(end)) = (
+                if let Some(start) = state.clicks.first()
+                    && let (Some(start), Some(end)) = (
                         world.d2_to_d3(w, *start, profile.plus_z),
                         world.d2_to_d3(w, point, Meters(0.)),
-                    ) {
-                        let spawn = profile.spawn(start, end);
-                        tracing::debug!("Spawn projectile {spawn:?}");
-                        commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
-                    }
+                    )
+                {
+                    let spawn = profile.spawn(start, end);
+                    tracing::debug!("Spawn projectile {spawn:?}");
+                    commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
                 }
 
                 commands.trigger(DespawnClicksLine);

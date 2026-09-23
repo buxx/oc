@@ -23,7 +23,7 @@ pub fn bridge(
     std::thread::spawn(move || {
         let _ = server_tx2.send(NetworkMessage::Connected);
         while let Ok((_, message)) = server_rx.recv() {
-            let _ = server_tx2.send(NetworkMessage::Message(message));
+            let _ = server_tx2.send(NetworkMessage::Message(Box::new(message)));
         }
     });
 

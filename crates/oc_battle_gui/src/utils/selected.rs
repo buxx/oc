@@ -33,6 +33,8 @@ pub fn draw<T: Selection + Send + Sync + 'static>(
 }
 
 /// Un select all. Observer which select must stop propagation to avoid execute this observer.
+// `T` is unused in the body but keeps `unselect::<T>` a distinct Bevy system per `SelectedPlugin<T>`.
+#[allow(clippy::extra_unused_type_parameters)]
 fn unselect<T: Selection + Send + Sync + 'static>(
     click: On<Pointer<Click>>,
     mut query: Query<&mut Selected>,

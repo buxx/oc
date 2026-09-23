@@ -78,12 +78,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let collisions = tracker
                         .physics
                         .iter()
-                        .filter(|e| match e {
-                            oc_physics::Event::Collision(
-                                ObjectId::Projectile(_),
-                                ObjectId::Tile(_),
-                            ) => true,
-                            _ => false,
+                        .filter(|e| {
+                            matches!(
+                                e,
+                                oc_physics::Event::Collision(
+                                    ObjectId::Projectile(_),
+                                    ObjectId::Tile(_),
+                                )
+                            )
                         })
                         .count();
 
@@ -95,12 +97,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let collisions = tracker
                         .physics
                         .iter()
-                        .filter(|e| match e {
-                            oc_physics::Event::Collision(
-                                ObjectId::Projectile(_),
-                                ObjectId::Tile(_),
-                            ) => true,
-                            _ => false,
+                        .filter(|e| {
+                            matches!(
+                                e,
+                                oc_physics::Event::Collision(
+                                    ObjectId::Projectile(_),
+                                    ObjectId::Tile(_),
+                                )
+                            )
                         })
                         .count();
 
@@ -111,12 +115,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let collisions = tracker
                         .physics
                         .iter()
-                        .filter(|e| match e {
-                            oc_physics::Event::Collision(
-                                ObjectId::Projectile(_),
-                                ObjectId::Tile(_),
-                            ) => true,
-                            _ => false,
+                        .filter(|e| {
+                            matches!(
+                                e,
+                                oc_physics::Event::Collision(
+                                    ObjectId::Projectile(_),
+                                    ObjectId::Tile(_),
+                                )
+                            )
                         })
                         .count();
 

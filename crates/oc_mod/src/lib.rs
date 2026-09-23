@@ -1,4 +1,7 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Context;
 use derive_more::Constructor;
@@ -39,6 +42,7 @@ pub const DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS: Meters = Meters(1.5);
     Constructor,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
+#[allow(clippy::too_many_arguments)]
 pub struct Mod {
     name: String,
     version: u32,
@@ -192,7 +196,7 @@ impl Mod {
     }
 }
 
-fn load_mod(path: &PathBuf) -> Result<Mod, ModError> {
+fn load_mod(path: &Path) -> Result<Mod, ModError> {
     let path = path.join(MOD_RON);
     let mod_ = std::fs::read_to_string(&path);
     let mod_ = mod_.context(format!("Read {}", path.display()))?;
@@ -200,8 +204,9 @@ fn load_mod(path: &PathBuf) -> Result<Mod, ModError> {
 }
 
 // TODO: centralize caching at server startup
-fn cache(mod_: &Mod, path: &PathBuf, cache: &PathBuf) -> Result<(), CacheError> {
-    let files = files::Files::new(mod_.canonical(), "".to_string()).into_server(cache.clone());
+fn cache(mod_: &Mod, path: &PathBuf, cache: &Path) -> Result<(), CacheError> {
+    let files =
+        files::Files::new(mod_.canonical(), "".to_string()).into_server(cache.to_path_buf());
     let cache = files.mod_archive();
     if !std::fs::exists(&cache).context(format!("Test if {} exists", cache.display()))? {
         tracing::info!("Caching {} to {}", &mod_.name, cache.display());

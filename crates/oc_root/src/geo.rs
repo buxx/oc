@@ -88,14 +88,6 @@ impl WorldVec2 {
     }
 
     #[inline]
-    pub fn sub(self, rhs: Self) -> Self {
-        Self {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-        }
-    }
-
-    #[inline]
     pub fn normalize_or_zero(&self) -> Self {
         let vec = Vec2::new(self.x, self.y).normalize_or_zero();
         Self::new(vec.x, vec.y)
@@ -107,7 +99,10 @@ impl std::ops::Sub for WorldVec2 {
 
     #[inline]
     fn sub(self, rhs: Self) -> Self {
-        WorldVec2::sub(self, rhs)
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
     }
 }
 
@@ -168,15 +163,6 @@ impl From<WorldVec2> for Vec2 {
 
 impl WorldVec3 {
     #[inline]
-    pub fn sub(self, rhs: Self) -> Self {
-        Self {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
-        }
-    }
-
-    #[inline]
     pub fn normalize_or_zero(&self) -> Self {
         let vec = Vec3::new(self.x, self.y, self.z).normalize_or_zero();
         Self::new(vec.x, vec.y, vec.z)
@@ -213,7 +199,11 @@ impl std::ops::Sub for WorldVec3 {
 
     #[inline]
     fn sub(self, rhs: Self) -> Self {
-        WorldVec3::sub(self, rhs)
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
     }
 }
 

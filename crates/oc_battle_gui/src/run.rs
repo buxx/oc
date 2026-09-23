@@ -24,13 +24,15 @@ use crate::{ingame, setup, states, window};
 /// audio.
 const AUDIO_SCALE: f32 = 1. / 100.0;
 
+type InstallFn = Box<dyn Fn(&mut App)>;
+
 #[cfg(feature = "debug")]
 use debug::DebugPlugin;
 
 #[builder]
 pub fn run(
     config: Config_,
-    install: Option<Box<dyn Fn(&mut App)>>,
+    install: Option<InstallFn>,
     #[builder(default)] logging: bool,
 ) -> AppExit {
     let mut app = App::new();

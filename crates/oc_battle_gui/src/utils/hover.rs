@@ -14,6 +14,8 @@ pub struct HoveredGizmos;
 #[derive(Debug, Component, Default, Deref, DerefMut)]
 pub struct Hovered(bool);
 
+// `T` is unused in the body but keeps `setup::<T>` a distinct Bevy system per `HoveredPlugin<T>`.
+#[allow(clippy::extra_unused_type_parameters)]
 fn setup<T: Hover + Send + Sync + 'static>(mut config: ResMut<GizmoConfigStore>) {
     tracing::trace!(name = "utils-hover-setup");
     let (gizmos, _) = config.config_mut::<HoveredGizmos>();

@@ -34,7 +34,7 @@ impl<'a, 'b> Builder<'a, 'b> {
                 self.spawn.side,
                 forces,
                 #[cfg(feature = "debug")]
-                self.spawn.shooter.clone(),
+                self.spawn.shooter,
                 self.w,
             )),
         }

@@ -36,7 +36,7 @@ pub fn on_to_client(
     match &to_client.0 {
         ToClient::GameConfig(config) => {
             tracing::debug!("Received GameConfig");
-            g.0 = Some(config.clone());
+            g.0 = Some((**config).clone());
             w.0 = Some(config.w.clone());
             commands.trigger(GameConfigReceived);
         }

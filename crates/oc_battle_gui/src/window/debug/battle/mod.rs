@@ -191,6 +191,6 @@ fn on_unmounted_window(unmounted: On<UnmountedWindow>, mut window: ResMut<DebugB
     // Store unmounted debug window to reuse it later when want to display it again
     #[allow(irrefutable_let_patterns)] // TODO: no more irrefutable when more windows
     if let crate::window::Window::BattleDebug(window_) = &unmounted.0 {
-        window.0 = Some(window_.clone())
+        window.0 = Some((**window_).clone())
     }
 }
