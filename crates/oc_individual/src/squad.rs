@@ -1,4 +1,5 @@
 use derive_more::Constructor;
+use getset::WithSetters;
 use glam::Vec2;
 use oc_root::{WorldConfig, geo::WorldVec2, side::Side, y::V};
 use oc_utils::d2::Angle;
@@ -35,20 +36,27 @@ pub struct SquadIndex(pub u64);
     serde::Serialize,
     serde::Deserialize,
     PartialEq,
+    WithSetters,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Squad {
     /// Side of the squad
+    #[getset(set_with = "pub")]
     pub side: Side,
     /// Individual identifiers in this squad. Integrity must be checked before game run
+    #[getset(set_with = "pub")]
     pub members: Vec<IndividualIndex>,
     /// Number of alive members
+    #[getset(set_with = "pub")]
     pub actives: u8,
     /// Formation of squad (to place members)
+    #[getset(set_with = "pub")]
     pub formation: SquadFormation,
     /// Order given to this squad.
+    #[getset(set_with = "pub")]
     pub orders: Vec<Order>,
     /// Computed position of the squad (leader position)
+    #[getset(set_with = "pub")]
     pub position: WorldVec2,
 }
 

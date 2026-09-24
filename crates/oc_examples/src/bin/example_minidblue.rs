@@ -2,7 +2,10 @@ use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::Context;
 use clap::{Parser, ValueEnum};
-use oc_deployment::deployment::{self, place::Placer};
+use oc_deployment::deployment::{
+    self,
+    place::{OrderPolicy, Placer},
+};
 use oc_examples::{logging, run};
 use oc_mod::Mod;
 use oc_root::{WorldConfig, geo::WorldVec2, physics::Meters};
@@ -87,7 +90,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Uuid::parse_str("9dbf54c7-3723-4fe3-a42b-44f3866c09aa").unwrap(),
                 *places.get(&"53".into()).unwrap(),
             ),
-        ]),
+        ])
+        .with_order(OrderPolicy::Hide),
     };
 
     deployments

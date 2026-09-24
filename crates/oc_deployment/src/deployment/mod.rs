@@ -67,6 +67,13 @@ impl Deployments {
         fill_with(&self.side_a, Side::A)?;
         fill_with(&self.side_b, Side::B)?;
 
+        // Orders (do it here after fills to have all individuals when compute orders)
+        for (i, squad) in snapshot.squads.clone().iter().enumerate() {
+            let orders = placer.orders(w, mod_, snapshot, &squad);
+            let squad = squad.clone().with_orders(orders);
+            snapshot.squads[i] = squad;
+        }
+
         Ok(())
     }
 }
@@ -91,9 +98,10 @@ fn fill_squad(
         snapshot.individuals.push(individual);
         *i += 1;
     }
-    snapshot
-        .squads
-        .push(Squad::fresh(side, individuals, position));
+
+    let squad = Squad::fresh(side, individuals.clone(), position);
+    snapshot.squads.push(squad);
+
     Ok(())
 }
 
