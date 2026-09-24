@@ -31,7 +31,7 @@ example-world1 *args:
     cargo run --bin example_world1 --features debug {{ args }}
 
 example-minidblue *args:
-    cargo run --bin example_minidblue --features debug {{ args }}
+    cargo run --bin example_minidblue {{ args }}
 
 example-height *args:
     cargo run --bin example_height --features debug {{ args }}

@@ -13,7 +13,7 @@
             ])
         ],
         interval: Seconds(1.0),
-        velocity: MetersSeconds(50.0),
+        velocity: MetersSeconds(600.0),
         reload: Seconds(2.0),
         aim: Seconds(3.0),
         inaccuracy: 0.1,
