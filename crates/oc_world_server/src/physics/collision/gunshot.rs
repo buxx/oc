@@ -23,6 +23,7 @@ impl<'x, E: Client> Processor<'x, E> {
             oc_individual::Status::Operational => {
                 let dead = oc_individual::Status::Dead;
                 let status = oc_individual::Update::SetStatus(dead);
+                let forces = oc_individual::Update::SetForces(vec![]);
                 #[cfg(feature = "tracker")]
                 {
                     self.ctx
@@ -32,10 +33,14 @@ impl<'x, E: Client> Processor<'x, E> {
                         .push((i, status.clone()));
                 }
                 #[cfg(not(feature = "debug"))]
-                updates.push(Update::UpdateIndividual(i, status));
+                {
+                    updates.push(Update::UpdateIndividual(i, status));
+                    updates.push(Update::UpdateIndividual(i, forces));
+                }
                 #[cfg(feature = "debug")]
                 if !WorldConfig::immortality() {
                     updates.push(Update::UpdateIndividual(i, status));
+                    updates.push(Update::UpdateIndividual(i, forces));
                 }
                 updates.push(Update::RemoveProjectile(projectile));
             }
