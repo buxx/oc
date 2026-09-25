@@ -538,13 +538,17 @@ fn on_set_orders_event(
     orders: On<SetOrdersEvent>,
     mut query: Query<&mut Orders>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut world: ResMut<crate::world::World>,
     mut commands: Commands,
 ) {
     let_some!(entity = state.get(&orders.0), return);
     let_ok!(mut orders_ = query.get_mut(*entity), return);
+    let_some!(individual = world.get_individual_mut(orders.0), return);
     tracing::trace!(name = "update-individual-set-orders", i=?orders.0, orders=?orders.1);
 
     orders_.0 = orders.1.clone();
+    individual.orders = orders.1.clone();
+
     tracing::trace!(name = "ingame-behavior-on-set-individual-orders-trigger-refresh-orders", i=?orders.0, events=?orders);
     commands.trigger(RefreshIndividualOrdersEvent(orders.0, orders.1.clone()))
 }
@@ -553,12 +557,15 @@ fn on_set_forces_event(
     forces: On<SetForcesEvent>,
     mut query: Query<&mut Forces>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut world: ResMut<crate::world::World>,
 ) {
     let_some!(entity = state.get(&forces.0), return);
     let_ok!(mut forces_ = query.get_mut(*entity), return);
+    let_some!(individual = world.get_individual_mut(forces.0), return);
     tracing::trace!(name = "update-individual-set-forces", i=?forces.0, forces=?forces.1);
 
     forces_.0 = forces.1.clone();
+    individual.forces = forces.1.clone();
 }
 
 fn on_set_status_event(

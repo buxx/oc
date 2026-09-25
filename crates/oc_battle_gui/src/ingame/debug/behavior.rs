@@ -6,7 +6,7 @@ use oc_root::geo::ScreenVec2;
 use crate::entity::individual::Behavior;
 use crate::states::GameConfig;
 
-const HIDE_ENGAGE_DISTANCE_COLOR: Color = Color::srgba(1.0, 0.5, 0.0, 0.5);
+const HIDE_ENGAGE_DISTANCE_COLOR: Color = Color::srgba(1.0, 0.5, 0.0, 0.3);
 
 #[derive(Default, Reflect, GizmoConfigGroup)]
 pub struct HideEngageDistanceGizmos;

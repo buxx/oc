@@ -285,6 +285,23 @@ impl<'a> Processor<'a> {
             let individual = self.world.individual(*member);
             if position.almost_equal(individual.position, POSITION_TOLERANCE) {
                 tracing::trace!(name="individual-step-distribute-already-on-position", i=?self.i, squad_i=?squad_i, member=?member, position=?position);
+
+                let orders = match order {
+                    Some(order) => match order {
+                        Order::Defend(direction) => vec![Order::Defend(*direction)],
+                        Order::Hide(direction) => vec![Order::Hide(*direction)],
+                        // FIXME BS NOW: here, compute targets for members ? Or just give squad id and let member choose ?
+                        Order::Engage(i) => vec![Order::Engage(*i)],
+                        Order::Suppress(position) => vec![Order::Suppress(*position)],
+                        Order::Idle
+                        | Order::MoveTo(_)
+                        | Order::MoveFastTo(_)
+                        | Order::SneakTo(_) => vec![Order::Idle],
+                    },
+                    None => vec![Order::Idle],
+                };
+
+                distribution.push((*member, orders));
                 continue;
             }
 
@@ -304,6 +321,7 @@ impl<'a> Processor<'a> {
                     vec![Order::MoveTo(position)]
                 }
             };
+
             tracing::trace!(name="individual-step-distribute-to", i=?self.i, squad_i=?squad_i, order=?order, member=?member, orders=?orders);
             distribution.push((*member, orders))
         }
@@ -323,6 +341,12 @@ impl<'a> Processor<'a> {
             .iter()
             .enumerate()
             .filter(|&(_i, v)| v.visible)
+            .filter(|&(i, _v)| {
+                self.world
+                    .individual(IndividualIndex(i as u64))
+                    .status
+                    .is_target()
+            })
             .map(|(i, v)| {
                 let target = IndividualIndex(i as u64);
                 let target_ = self.world.individual(target);
@@ -1024,18 +1048,25 @@ impl<'a> Processor<'a> {
             return Intent::Hide(direction);
         }
 
-        // FIXME: introduce suppressed, etc (refactored way!)
-        match &individual.intent {
-            // FIXME: maybe stop engage if enemy is not anymore near ?
-            Intent::Engage(target) => Intent::Engage(*target),
-            _ => match situation
-                .visibles
-                .iter()
-                .find(|v| v.distance <= w.individual_hide_engage_distance())
+        // If currently engaging, continue it only if individual is in near area
+        if let Intent::Engage(target) = &individual.intent {
+            if situation
+                .visible(*target)
+                .is_some_and(|v| v.distance <= w.individual_hide_engage_distance())
             {
-                Some(visible) => Intent::Engage(visible.individual),
-                None => Intent::Hide(direction),
-            },
+                return Intent::Engage(*target);
+            }
+        }
+
+        // FIXME: this will engage first soldier entering in area. So other ennemi=y soldiers will hide and
+        // not enter in zone. Add a second area which permit to continue to engage (but how to do that ...?)
+        match situation
+            .visibles
+            .iter()
+            .find(|v| v.distance <= w.individual_hide_engage_distance())
+        {
+            Some(visible) => Intent::Engage(visible.individual),
+            None => Intent::Hide(direction),
         }
     }
 

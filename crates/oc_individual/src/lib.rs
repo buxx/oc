@@ -395,6 +395,13 @@ impl Status {
             Status::Dead => false,
         }
     }
+
+    pub fn is_target(&self) -> bool {
+        match self {
+            Status::Operational => true,
+            Status::Dead => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
