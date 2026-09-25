@@ -130,6 +130,10 @@ pub struct WorldConfig {
     /// Individual with this or more suppress will hide (instead of make other things)
     #[getset(get_copy = "pub")]
     individual_suppress_limit_hide: Suppress,
+    /// Distance where hiding individual will not engage
+    #[getset(get_copy = "pub", set_with = "pub")]
+    // TODO: When click hide order, permit use key (like Shift) to specify distance
+    individual_hide_engage_distance: Meters,
 }
 
 impl WorldConfig {
@@ -184,6 +188,7 @@ impl WorldConfig {
         let proximity_projectile_impact_tick_increase_value = (Meters(30.), Suppress(100));
         let individual_tick_decrease_suppress = Suppress(20);
         let individual_suppress_limit_hide = Suppress(200);
+        let individual_hide_engage_distance = Meters(30.0);
 
         Self {
             world_width,
@@ -226,6 +231,7 @@ impl WorldConfig {
             proximity_projectile_impact_tick_increase_value,
             individual_tick_decrease_suppress,
             individual_suppress_limit_hide,
+            individual_hide_engage_distance,
         }
     }
 

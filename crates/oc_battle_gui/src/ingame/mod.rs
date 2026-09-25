@@ -126,8 +126,10 @@ impl Plugin for IngamePlugin {
 
         #[cfg(feature = "debug")]
         app.init_gizmo_group::<debug::projectile::CollisionGizmos>()
+            .init_gizmo_group::<debug::behavior::HideEngageDistanceGizmos>()
             .init_resource::<ShowVisibility>()
             .add_systems(Startup, debug::projectile::setup)
+            .add_systems(Startup, debug::behavior::setup)
             .add_observer(region::debug::on_listening_region)
             .add_observer(region::debug::on_spawn_region_wire_frame_debug)
             .add_observer(region::debug::on_forgotten_region)
@@ -139,6 +141,7 @@ impl Plugin for IngamePlugin {
                 (
                     debug::projectile::show_collisions,
                     debug::visibility::show_visibilities,
+                    debug::behavior::show_hide_engage_distances,
                 )
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle)),

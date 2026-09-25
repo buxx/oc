@@ -49,9 +49,6 @@ const ARRIVAL_RADIUS: f32 = 8.0;
 // instead of asymptotically crawling forever.
 const MIN_FORCE_FACTOR: f32 = 0.05;
 
-// TODO: When click hide order, permit use key (like Shift) to specify distance
-const HIDE_ENGAGE_DISTANCE: Meters = Meters(30.0);
-
 #[derive(Constructor)]
 pub struct Processor<'a> {
     world: &'a World,
@@ -1020,8 +1017,9 @@ impl<'a> Processor<'a> {
         direction: Direction,
     ) -> Intent {
         tracing::trace!(name="individual-processor-resolve-hide-order", i=?self.i);
+        let w = &self.world.w;
 
-        if individual.suppress >= self.world.w.individual_suppress_limit_hide() {
+        if individual.suppress >= w.individual_suppress_limit_hide() {
             tracing::trace!(name="individual-processor-resolve-hide-order-suppressed", i=?self.i);
             return Intent::Hide(direction);
         }
@@ -1033,7 +1031,7 @@ impl<'a> Processor<'a> {
             _ => match situation
                 .visibles
                 .iter()
-                .find(|v| v.distance <= HIDE_ENGAGE_DISTANCE)
+                .find(|v| v.distance <= w.individual_hide_engage_distance())
             {
                 Some(visible) => Intent::Engage(visible.individual),
                 None => Intent::Hide(direction),

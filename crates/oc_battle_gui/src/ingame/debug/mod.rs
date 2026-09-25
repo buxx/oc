@@ -5,6 +5,7 @@ use oc_network::Debug;
 
 use crate::debug::DebugEvent;
 
+pub mod behavior;
 pub mod projectile;
 pub mod visibility;
 
