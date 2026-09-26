@@ -1291,7 +1291,7 @@ mod tests {
     use std::assert_matches;
 
     use oc_individual::{
-        BodyGesture, Gesture, HandsGesture, Individual, IndividualIndex, Weapon, Weapons,
+        BodyGesture, Gesture, HandsGesture, Individual, IndividualIndex, Status, Weapon, Weapons,
         behavior::{Behavior, Intent},
         order::Order,
         squad::SquadIndex,
@@ -1784,5 +1784,114 @@ mod tests {
         let world = world.squads(vec![squad1, squad2]);
 
         world.build().make(w)
+    }
+
+    #[cfg(not(feature = "debug"))]
+    fn visible_visibility() -> Visibility {
+        Visibility::new(true, CumulatedOpacity(0.))
+    }
+
+    #[cfg(feature = "debug")]
+    fn visible_visibility() -> Visibility {
+        Visibility::new(true, CumulatedOpacity(0.), vec![])
+    }
+
+    fn resolve_defend_order_result(
+        initial_intent: Intent,
+        target_status: Status,
+        target_visible: bool,
+    ) -> Intent {
+        let w = WorldConfig::new(100, 100);
+        let position1 = WorldVec3::new(100., 100., 0.);
+        let position2 = WorldVec3::new(100., 200., 0.);
+        let mut world = one_vs_one_individual_world(
+            &w,
+            position1,
+            position2,
+            vec![Order::Defend(Direction::EST)],
+            vec![Order::Idle],
+        );
+        world.individual_mut(IndividualIndex(0)).intent = initial_intent;
+        world.individual_mut(IndividualIndex(1)).status = target_status;
+
+        let visibility = if target_visible {
+            visible_visibility()
+        } else {
+            Visibility::default()
+        };
+        *world.visibilities.values_mut() = vec![
+            // List of each individual visibility for individual 0
+            vec![Visibility::default(), visibility.clone()],
+            // List of each individual visibility for individual 1
+            vec![visibility, Visibility::default()],
+        ];
+
+        let index = Indexes::new(&world, &w);
+        let processor = Processor::new(&world, &index, IndividualIndex(0));
+        let individual = world.individual(IndividualIndex(0));
+        let situation = processor.situation(individual);
+
+        processor.resolve_defend_order(individual, &situation, Direction::EST)
+    }
+
+    // Individual already engaging a target which is still visible and alive: keep engaging it.
+    #[test]
+    fn test_resolve_defend_order_continue_engage_when_target_visible_and_operational() {
+        // Given-When
+        let intent = resolve_defend_order_result(
+            Intent::Engage(IndividualIndex(1)),
+            Status::Operational,
+            true,
+        );
+
+        // Then
+        assert_eq!(intent, Intent::Engage(IndividualIndex(1)));
+    }
+
+    // Individual already engaging a target which is still visible but now dead: stop engaging it.
+    #[test]
+    fn test_resolve_defend_order_stop_engaging_when_target_visible_and_dead() {
+        // Given-When
+        let intent =
+            resolve_defend_order_result(Intent::Engage(IndividualIndex(1)), Status::Dead, true);
+
+        // Then
+        assert_eq!(intent, Intent::Defend(Direction::EST));
+    }
+
+    // Individual already engaging a target which is still alive but no longer visible: stop engaging it.
+    #[test]
+    fn test_resolve_defend_order_stop_engaging_when_target_not_visible_and_operational() {
+        // Given-When
+        let intent = resolve_defend_order_result(
+            Intent::Engage(IndividualIndex(1)),
+            Status::Operational,
+            false,
+        );
+
+        // Then
+        assert_eq!(intent, Intent::Defend(Direction::EST));
+    }
+
+    // Individual not engaging anything, target becomes visible and alive: start engaging it.
+    #[test]
+    fn test_resolve_defend_order_start_engaging_when_target_newly_visible() {
+        // Given-When
+        let intent =
+            resolve_defend_order_result(Intent::Defend(Direction::EST), Status::Operational, true);
+
+        // Then
+        assert_eq!(intent, Intent::Engage(IndividualIndex(1)));
+    }
+
+    // Individual not engaging anything, and no enemy visible: keep defending.
+    #[test]
+    fn test_resolve_defend_order_defend_when_no_enemy_visible() {
+        // Given-When
+        let intent =
+            resolve_defend_order_result(Intent::Defend(Direction::EST), Status::Operational, false);
+
+        // Then
+        assert_eq!(intent, Intent::Defend(Direction::EST));
     }
 }
