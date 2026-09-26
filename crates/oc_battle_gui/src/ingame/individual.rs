@@ -114,19 +114,32 @@ pub fn setup(mut config: ResMut<GizmoConfigStore>) {
 #[cfg(feature = "debug")]
 fn positions(
     g: Res<GameConfig>,
-    individuals: Query<(&IndividualIndex, &Position)>,
+    individuals: Query<(&IndividualIndex, &Position, &Behavior)>,
     mut gizmos: Gizmos<PositionsGizmos>,
     world: Res<World>,
 ) {
     let_some!(g = &g.0, return);
 
-    for (i, position) in individuals {
+    for (i, position, behavior) in individuals {
         let_some!((_, squad) = world.individual_squad(i.0), continue);
 
-        let color = match squad.leader() == i.0 {
-            true => Color::srgba(0.0, 1.0, 1.0, 0.5),
-            false => Color::srgba(1.0, 0., 0., 0.5),
+        // FIXME BS NOW: move colors in behavior or somewhere else
+        let (r, gg, b) = match behavior.0 {
+            oc_individual::behavior::Behavior::Idle(_) => (0.5, 0.5, 0.5),
+            oc_individual::behavior::Behavior::Walk(_) => (0.0, 0.0, 1.0),
+            oc_individual::behavior::Behavior::Run(_) => (0.0, 0.0, 0.55),
+            oc_individual::behavior::Behavior::Crawl(_) => (0.0, 1.0, 0.0),
+            oc_individual::behavior::Behavior::Engage(_) => (1.0, 0.0, 0.0),
+            oc_individual::behavior::Behavior::Suppress(_) => (0.55, 0.0, 0.0),
+            oc_individual::behavior::Behavior::Defend(_) => (1.0, 0.65, 0.0),
+            oc_individual::behavior::Behavior::Hide(_) => (1.0, 1.0, 0.0),
         };
+        // FIXME BS NOW: move alpha in behavior or somewhere else
+        let alpha = match squad.leader() == i.0 {
+            true => 0.6,
+            false => 0.4,
+        };
+        let color = Color::srgba(r, gg, b, alpha);
         let position = ScreenVec2::from_(position.0, &g.w);
         let position = Vec2::new(position.x, position.y);
         // tracing::trace!(name="spawn-individual-circle", i=?i, position=?position);

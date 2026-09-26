@@ -103,20 +103,22 @@ impl super::Context {
         let mut action = None;
         ui.vertical(|ui| {
             for subject in subjects {
-                match subject.details {
+                let selected = match subject.details {
                     ComponentDetails::Individual(i) => {
-                        if !ingame.selected_squads_individuals().is_empty() {
-                            if !ingame.selected_individuals().is_empty() {
-                                if !ingame.selected_individuals().contains(&i) {
-                                    continue;
-                                }
-                            } else if !ingame.selected_squads_individuals().contains(&i) {
-                                continue;
+                        let squads_individuals = ingame.selected_squads_individuals();
+                        if squads_individuals.is_empty() {
+                            false
+                        } else {
+                            let individuals = ingame.selected_individuals();
+                            if !individuals.is_empty() {
+                                individuals.contains(&i)
+                            } else {
+                                squads_individuals.contains(&i)
                             }
                         }
                     }
-                    ComponentDetails::Projectile(_) => {}
-                }
+                    ComponentDetails::Projectile(_) => false,
+                };
 
                 ui.horizontal(|ui| {
                     let position = subject.physics.position;
@@ -135,10 +137,14 @@ impl super::Context {
                         .map(|(k, v)| format!("{k}={v}"))
                         .collect::<Vec<_>>()
                         .join(" ");
-                    ui.label(format!(
+                    let text = egui::RichText::new(format!(
                         "{} {}.{} ({}.{}) {}",
                         subject.i, position.x, position.y, region.0.0, region.0.1, infos
                     ));
+
+                    let text = if selected { text.strong() } else { text };
+
+                    ui.label(text);
                 });
             }
         });
