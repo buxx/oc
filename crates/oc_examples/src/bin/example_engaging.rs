@@ -19,7 +19,15 @@ use oc_battle_gui::{
     states::Game,
 };
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
-use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side, utils::Frequency};
+use oc_individual::order::Order;
+use oc_root::{
+    WorldConfig,
+    geo::{WorldVec2, WorldVec3},
+    physics::Meters,
+    side,
+    utils::Frequency,
+};
+use oc_utils::d2::Direction;
 use oc_world::{meta::Meta, tile::Tile};
 use tests::{
     individual::TestIndividual,
@@ -29,7 +37,6 @@ use tests::{
 
 #[cfg(feature = "test")]
 const AFTER_SUCCESS_WAIT: Duration = Duration::from_secs(1);
-const MOD: &str = "mods/tests1";
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -53,6 +60,7 @@ impl Args {
                 Duration::from_secs(10)
             }
             TestCase::Suppressed => Duration::from_secs(15),
+            TestCase::MoveToHiding => Duration::from_secs(60),
         }
     }
 }
@@ -66,6 +74,7 @@ enum TestCase {
     FarMachineGun,
     Hedge,
     Suppressed,
+    MoveToHiding,
 }
 
 // FIXME BS NOW: set random precision (fire) and permit set precise at 100% for test
@@ -80,7 +89,14 @@ fn main() -> Result<(), anyhow::Error> {
         }
     }
 
-    let mod_ = PathBuf::from(MOD);
+    let mod_ = match args.case {
+        TestCase::Direct
+        | TestCase::Direct2
+        | TestCase::FarMachineGun
+        | TestCase::Hedge
+        | TestCase::Suppressed => PathBuf::from("mods/tests1"),
+        TestCase::MoveToHiding => PathBuf::from("mods/std1"),
+    };
     let mod__ = oc_mod::Mod::load(&mod_, None)?;
     let map = PathBuf::from("examples/meadow1");
     let meta = Meta::from_file(&map.join("meta.toml"))?;
@@ -99,7 +115,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     // For some case (and when test) increase the individual tick rate
     let w = match args.case {
-        TestCase::Direct | TestCase::Direct2 => w,
+        TestCase::Direct | TestCase::Direct2 | TestCase::MoveToHiding => w,
         TestCase::FarMachineGun | TestCase::Suppressed | TestCase::Hedge => match args.test {
             true => w.with_individual_tick(Frequency::new(10.0)),
             false => w,
@@ -109,7 +125,11 @@ fn main() -> Result<(), anyhow::Error> {
     // For some case, enable the immortal settings
     #[cfg(feature = "debug")]
     match args.case {
-        TestCase::Direct | TestCase::Direct2 | TestCase::FarMachineGun | TestCase::Hedge => {}
+        TestCase::Direct
+        | TestCase::Direct2
+        | TestCase::FarMachineGun
+        | TestCase::Hedge
+        | TestCase::MoveToHiding => {}
         TestCase::Suppressed => {
             WorldConfig::set_immortality(true);
         }
@@ -259,6 +279,52 @@ fn individuals(
                     .make(w),
             ]
         }
+        TestCase::MoveToHiding => vec![
+            TestIndividual::builder()
+                .side(side::Side::A)
+                .position(WorldVec3::new(389., 64., 0.))
+                .weapons(
+                    TestWeapons::builder()
+                        .primary(TestWeapon::filled(mod_, "MosinNagantM1924").make())
+                        .build()
+                        .make(),
+                )
+                .build()
+                .make(w),
+            TestIndividual::builder()
+                .side(side::Side::A)
+                .position(WorldVec3::new(389., 71., 0.))
+                .weapons(
+                    TestWeapons::builder()
+                        .primary(TestWeapon::filled(mod_, "MosinNagantM1924").make())
+                        .build()
+                        .make(),
+                )
+                .build()
+                .make(w),
+            TestIndividual::builder()
+                .side(side::Side::B)
+                .position(WorldVec3::new(139., 92., 0.))
+                .weapons(
+                    TestWeapons::builder()
+                        .primary(TestWeapon::filled(mod_, "MosinNagantM1924").make())
+                        .build()
+                        .make(),
+                )
+                .build()
+                .make(w),
+            TestIndividual::builder()
+                .side(side::Side::B)
+                .position(WorldVec3::new(139., 99., 0.))
+                .weapons(
+                    TestWeapons::builder()
+                        .primary(TestWeapon::filled(mod_, "MosinNagantM1924").make())
+                        .build()
+                        .make(),
+                )
+                .build()
+                .make(w),
+        ],
     }
 }
 
@@ -349,6 +415,26 @@ fn squads(
                 .build()
                 .make(),
         ],
+        TestCase::MoveToHiding => vec![
+            TestSquad::builder()
+                .position(individuals.first().unwrap().position.into())
+                .members(vec![
+                    oc_individual::IndividualIndex(0),
+                    oc_individual::IndividualIndex(1),
+                ])
+                .orders(vec![Order::Hide(Direction::WEST)])
+                .build()
+                .make(),
+            TestSquad::builder()
+                .position(individuals.get(1).unwrap().position.into())
+                .members(vec![
+                    oc_individual::IndividualIndex(2),
+                    oc_individual::IndividualIndex(3),
+                ])
+                .orders(vec![Order::MoveTo(WorldVec2::new(458., 70.))])
+                .build()
+                .make(),
+        ],
     }
 }
 
@@ -380,6 +466,7 @@ fn install(app: &mut bevy::app::App) {
         | TestCase::Direct2
         | TestCase::FarMachineGun
         | TestCase::Suppressed
+        | TestCase::MoveToHiding
         | TestCase::Hedge => {
             #[cfg(feature = "test")]
             app.add_systems(Update, (tracking,))
@@ -422,6 +509,7 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Status, &
     static I0_SEEN_DEAD: AtomicBool = AtomicBool::new(false);
     static I1_SEEN_DEAD: AtomicBool = AtomicBool::new(false);
     static I2_SEEN_DEAD: AtomicBool = AtomicBool::new(false);
+    static I3_SEEN_DEAD: AtomicBool = AtomicBool::new(false);
 
     let i0_body = query
         .iter()
@@ -447,6 +535,12 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Status, &
             (i.0 == oc_individual::IndividualIndex(2)).then_some(&status.0)
         })
         .next();
+    let i3_status = query
+        .iter()
+        .filter_map(|(i, status, _)| {
+            (i.0 == oc_individual::IndividualIndex(3)).then_some(&status.0)
+        })
+        .next();
 
     if matches!(i0_body, Some(&oc_individual::BodyGesture::Prone(_))) {
         I0_SEEN_PRONE.store(true, Ordering::Relaxed);
@@ -459,6 +553,9 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Status, &
     }
     if i2_status == Some(&oc_individual::Status::Dead) {
         I2_SEEN_DEAD.store(true, Ordering::Relaxed);
+    }
+    if i3_status == Some(&oc_individual::Status::Dead) {
+        I3_SEEN_DEAD.store(true, Ordering::Relaxed);
     }
     let i0_last_shoot = state.last_shoots.last().cloned().and_then(|(i, instant)| {
         match i == oc_individual::IndividualIndex(0) {
@@ -481,6 +578,9 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Status, &
             .map(|t| t.elapsed().as_secs() > 8)
             .unwrap_or_default(),
         TestCase::Hedge => I0_SEEN_DEAD.load(Ordering::Relaxed),
+        TestCase::MoveToHiding => {
+            I2_SEEN_DEAD.load(Ordering::Relaxed) && I3_SEEN_DEAD.load(Ordering::Relaxed)
+        }
     } {
         if state.success.is_none() {
             state.success = Some(Instant::now());
