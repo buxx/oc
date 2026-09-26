@@ -39,14 +39,11 @@ pub mod update;
 
 const POSITION_TOLERANCE: f32 = 3.0;
 
-// Below this distance to the current waypoint, the walking force is scaled
-// down proportionally instead of applied at full strength. This prevents the
-// individual from overshooting POSITION_TOLERANCE every tick and bouncing
-// back and forth ("circling") around its target.
+// When arrival near move step, consider "arriving" in this radius
 const ARRIVAL_RADIUS: f32 = 8.0;
 
-// Force is never scaled below this factor, so approach still makes progress
-// instead of asymptotically crawling forever.
+// When arrival near move step, and "arriving" in radius (see ARRIVAL_RADIUS), speed will be reduced
+// according to distance to step. This value is the minimal factor usable.
 const MIN_FORCE_FACTOR: f32 = 0.05;
 
 #[derive(Constructor)]
@@ -1025,7 +1022,13 @@ impl<'a> Processor<'a> {
 
         // FIXME: introduce suppressed, etc (refactored way!)
         match &individual.intent {
-            Intent::Engage(target) => Intent::Engage(*target),
+            // If already engaging, continue only if target is visible and not dead
+            Intent::Engage(target)
+                if situation.visible(*target).is_some()
+                    && self.world.individual(*target).status.is_target() =>
+            {
+                Intent::Engage(*target)
+            }
             _ => match situation.visibles.first() {
                 Some(visible) => Intent::Engage(visible.individual),
                 None => Intent::Defend(direction),
