@@ -304,7 +304,7 @@ fn individuals(
                 .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
-                .position(WorldVec3::new(139., 92., 0.))
+                .position(WorldVec3::new(119., 92., 0.))
                 .weapons(
                     TestWeapons::builder()
                         .primary(TestWeapon::filled(mod_, "MosinNagantM1924").make())
@@ -315,7 +315,7 @@ fn individuals(
                 .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
-                .position(WorldVec3::new(139., 99., 0.))
+                .position(WorldVec3::new(119., 99., 0.))
                 .weapons(
                     TestWeapons::builder()
                         .primary(TestWeapon::filled(mod_, "MosinNagantM1924").make())

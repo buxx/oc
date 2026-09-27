@@ -54,9 +54,9 @@ impl Behavior {
             | Behavior::Hide(_)
             | Behavior::Engage(_)
             | Behavior::Suppress(_) => MetersSeconds(0.0),
-            Behavior::Walk(_) => MetersSeconds(0.6),
-            Behavior::Run(_) => MetersSeconds(1.8),
-            Behavior::Crawl(_) => MetersSeconds(0.25),
+            Behavior::Walk(_) => MetersSeconds(0.45),
+            Behavior::Run(_) => MetersSeconds(2.2),
+            Behavior::Crawl(_) => MetersSeconds(0.20),
         }
     }
 }

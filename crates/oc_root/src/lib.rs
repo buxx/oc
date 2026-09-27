@@ -188,7 +188,7 @@ impl WorldConfig {
         let proximity_projectile_impact_tick_increase_value = (Meters(30.), Suppress(100));
         let individual_tick_decrease_suppress = Suppress(20);
         let individual_suppress_limit_hide = Suppress(200);
-        let individual_hide_engage_distance = Meters(30.0);
+        let individual_hide_engage_distance = Meters(40.0);
 
         Self {
             world_width,
