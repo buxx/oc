@@ -208,7 +208,7 @@ fn end_when_success_or_timeout(
             | TestCase::MoveStraightAheadObstacle
             | TestCase::MoveFastStraightAhead
             | TestCase::MoveFastStraightAheadObstacle => {
-                (tracking.accomplished.len() == 2).then(Instant::now)
+                (tracking.accomplished.len() == 2 * args.0.count).then(Instant::now)
             }
         },
         Some(value) => {
