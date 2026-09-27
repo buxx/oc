@@ -271,15 +271,10 @@ impl<'a> Processor<'a> {
         let direction = gesture.direction();
         let angle = direction.angle(V::Server);
 
-        let positions = squad
-            .formation
-            .positions(&self.world.w, V::Server, reference, angle, count)
-            .into_iter()
-            .map(|p| WorldVec2::new(p.x, p.y));
-        tracing::trace!(name="individual-step-distribute-formation", i=?self.i, squad_i=?squad_i, reference=?reference, direction=?direction, angle=?angle, positions=?positions);
+        let places = self.places(squad_i, squad, reference, count, direction, angle);
 
-        for (member, position) in squad.members.iter().zip(positions).skip(1) {
-            let individual = self.world.individual(*member);
+        for (member, position) in places {
+            let individual = self.world.individual(member);
             if position.almost_equal(individual.position, POSITION_TOLERANCE) {
                 tracing::trace!(name="individual-step-distribute-already-on-position", i=?self.i, squad_i=?squad_i, member=?member, position=?position);
 
@@ -298,7 +293,7 @@ impl<'a> Processor<'a> {
                     None => vec![Order::Idle],
                 };
 
-                distribution.push((*member, orders));
+                distribution.push((member, orders));
                 continue;
             }
 
@@ -320,11 +315,65 @@ impl<'a> Processor<'a> {
             };
 
             tracing::trace!(name="individual-step-distribute-to", i=?self.i, squad_i=?squad_i, order=?order, member=?member, orders=?orders);
-            distribution.push((*member, orders))
+            distribution.push((member, orders))
         }
 
         tracing::trace!(name="individual-step-distribution", i=?self.i, squad_i=?squad_i, order=?order, distribution=?distribution);
         distribution
+    }
+
+    /// Find places according to formation and squad leader position
+    fn places(
+        &self,
+        squad_i: oc_individual::squad::SquadIndex,
+        squad: &oc_individual::squad::Squad,
+        reference: Vec2,
+        count: usize,
+        direction: Direction,
+        angle: oc_utils::d2::Angle,
+    ) -> Vec<(IndividualIndex, WorldVec2)> {
+        let mut available_positions: Vec<WorldVec2> = squad
+            .formation
+            // List one more position to prevent position in in opposite place
+            .positions(&self.world.w, V::Server, reference, angle, count + 1)
+            .into_iter()
+            .skip(1) // drop leader's own slot
+            .map(|p| WorldVec2::new(p.x, p.y))
+            .collect();
+        tracing::trace!(name="individual-step-distribute-formation", i=?self.i, squad_i=?squad_i, reference=?reference, direction=?direction, angle=?angle, available_positions=?available_positions);
+
+        let mut remaining_members: Vec<IndividualIndex> = squad
+            .members
+            .iter()
+            .skip(1)
+            .take(count.saturating_sub(1))
+            .copied()
+            .collect();
+
+        let mut assignments: Vec<(IndividualIndex, WorldVec2)> =
+            Vec::with_capacity(remaining_members.len());
+
+        while !remaining_members.is_empty() && !available_positions.is_empty() {
+            let mut best: Option<(usize, usize, f32)> = None;
+
+            for (mi, member_i) in remaining_members.iter().enumerate() {
+                let member_position = self.world.individual(*member_i).position;
+                let member_xy = Vec2::new(member_position.x, member_position.y);
+                for (pi, position) in available_positions.iter().enumerate() {
+                    let distance = member_xy.distance(Vec2::from(*position));
+                    if best.is_none_or(|(_, _, best_distance)| distance < best_distance) {
+                        best = Some((mi, pi, distance));
+                    }
+                }
+            }
+
+            let (mi, pi, _) = best.expect("remaining_members and available_positions non-empty");
+            let member = remaining_members.remove(mi);
+            let position = available_positions.remove(pi);
+
+            assignments.push((member, position));
+        }
+        assignments
     }
 
     /// Build object which reflect individual situation against environment
