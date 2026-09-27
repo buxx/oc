@@ -134,6 +134,17 @@ pub struct WorldConfig {
     #[getset(get_copy = "pub", set_with = "pub")]
     // TODO: When click hide order, permit use key (like Shift) to specify distance
     individual_hide_engage_distance: Meters,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    /// Distance where hiding opacity bonus is no more effective
+    hide_opacity_bonus_ends: Meters,
+    /// Hiding bonus factor for each meters between hided and watcher
+    /// Computing is : hiding_opacity_bonus (or crawling_opacity_bonus) * hide_opacity_bonus_meter_factor
+    /// for each meters.
+    #[getset(get_copy = "pub", set_with = "pub")]
+    hide_opacity_bonus_meter_factor: f32,
+    /// Tile distance to take into account to determine best tile opacity (and hide_opacity_bonus)
+    #[getset(get_copy = "pub", set_with = "pub")]
+    tiles_radius_opacity_picking: usize,
 }
 
 impl WorldConfig {
@@ -189,6 +200,9 @@ impl WorldConfig {
         let individual_tick_decrease_suppress = Suppress(20);
         let individual_suppress_limit_hide = Suppress(200);
         let individual_hide_engage_distance = Meters(40.0);
+        let hide_opacity_bonus_ends = Meters(10.);
+        let hide_opacity_bonus_meter_factor = 0.005;
+        let tiles_radius_opacity_picking = 1;
 
         Self {
             world_width,
@@ -232,6 +246,9 @@ impl WorldConfig {
             individual_tick_decrease_suppress,
             individual_suppress_limit_hide,
             individual_hide_engage_distance,
+            hide_opacity_bonus_ends,
+            hide_opacity_bonus_meter_factor,
+            tiles_radius_opacity_picking,
         }
     }
 

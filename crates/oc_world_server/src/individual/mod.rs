@@ -858,6 +858,8 @@ impl<'a> Processor<'a> {
         let direction = Vec3::new(direction.x, direction.y, direction.z);
         let directions = (0..(repeat * shot.rounds()))
             .map(|_| {
+                // FIXME BS NOW: inaccuracy could be different :
+                //     - bad opacity should make random target, not increase inaccuracy
                 #[cfg(feature = "debug")]
                 let spread = match WorldConfig::inaccuracy_spread_enabled() {
                     true => WorldConfig::inaccuracy_spread(),

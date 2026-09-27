@@ -164,6 +164,7 @@ test-e2e:
     just test-regions-individual-move-in
     just test-visibilities-direct
     just test-visibilities-through
+    just test-visibilities-not-visible
     just test-visibilities-hidden
     just test-visibilities-discover
     just test-visibilities-hedge
@@ -251,8 +252,11 @@ test-visibilities-direct:
 test-visibilities-through:
     RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- through --test
 
+test-visibilities-not-visible:
+    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- not-visible --test
+
 test-visibilities-hidden:
-    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- hidden --test
+    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- Hidden --test
 
 test-visibilities-discover:
     RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- discover --test
