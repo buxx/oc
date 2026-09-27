@@ -143,9 +143,13 @@ test-e2e:
     just test-projectiles-obstacles-multiple-wall
     just test-projectiles-obstacles-one-hill
     just test-projectiles-obstacles-multiple-hill
+    just test-projectiles-obstacles-one-traverse-volumes
     just test-individual-shots-same-pixel
     just test-individual-shots-in-volume
     just test-individual-shots-different-tile
+    just test-individual-shots-above
+    just test-individual-shots-above-prone
+    just test-individual-shots-near-rotated-prone
     just test-individual-behaviors-move-straight-ahead1
     just test-individual-behaviors-move-straight-ahead-obstacle1
     just test-individual-behaviors-move-straight-ahead2
@@ -163,8 +167,13 @@ test-e2e:
     just test-visibilities-hidden
     just test-visibilities-discover
     just test-visibilities-hedge
+    just test-visibilities-move-then-enemy-visible
     just test-engaging-direct
     just test-engaging-direct2
+    just test-engaging-far-machine-gun
+    just test-engaging-hedge
+    just test-engaging-suppressed
+    just test-engaging-move-to-hiding
     just test-height-climb
 
 test-projectiles-obstacles-one-wall:
@@ -179,6 +188,9 @@ test-projectiles-obstacles-one-hill:
 test-projectiles-obstacles-multiple-hill:
     RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- multiple-against-hill --test
 
+test-projectiles-obstacles-one-traverse-volumes:
+    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-traverse-volumes --test
+
 test-individual-shots-same-pixel:
     RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- same-pixel --test
 
@@ -187,6 +199,15 @@ test-individual-shots-in-volume:
 
 test-individual-shots-different-tile:
     RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- different-tile --test
+
+test-individual-shots-above:
+    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- above --test
+
+test-individual-shots-above-prone:
+    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- above-prone --test
+
+test-individual-shots-near-rotated-prone:
+    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- near-rotated-prone --test
 
 test-individual-behaviors-move-straight-ahead1:
     RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead --test --count 1
@@ -239,11 +260,26 @@ test-visibilities-discover:
 test-visibilities-hedge:
     RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- hedge --test
 
+test-visibilities-move-then-enemy-visible:
+    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- move-then-enemy-visible --test
+
 test-engaging-direct:
     RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- direct --test
 
 test-engaging-direct2:
     RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- direct2 --test
+
+test-engaging-far-machine-gun:
+    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- far-machine-gun --test
+
+test-engaging-hedge:
+    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- hedge --test
+
+test-engaging-suppressed:
+    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- suppressed --test
+
+test-engaging-move-to-hiding:
+    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- move-to-hiding --test
 
 test-height-climb:
     RUST_LOG=ERROR cargo run --bin example_height --features test -- climb --test
