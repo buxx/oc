@@ -3,6 +3,9 @@ name = "oc_examples"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [features]
 debug = ["oc_network/debug", "oc_world_server/debug", "oc_world/debug", "oc_battle_gui/debug", "oc_root/debug"]
 debug_locks = ["oc_utils/debug"]

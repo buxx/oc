@@ -6133,6 +6133,7 @@ dependencies = [
  "glam 0.33.2",
  "line_drawing",
  "oc_geo",
+ "oc_mod",
  "oc_physics",
  "oc_root",
  "oc_utils",

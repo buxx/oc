@@ -660,7 +660,8 @@ impl<'a> Processor<'a> {
         let tile_z = target_tile.z_pixels(w);
         let at = |xy, z| path_objects_at(w, mod_, self.world, xy, z);
         let target__ = target.extend(tile_z);
-        let visibility = visibility(w, at, individual.position, target__);
+        let modifier = oc_lov::Modifier::None(false);
+        let visibility = visibility(w, at, individual.position, target__, modifier);
         tracing::trace!(name="individual-processor-suppress-gesture-visibility", i=?self.i, target=?target, tile_z=tile_z, visibility=?visibility);
 
         let (hands, updates) = match self.primary_weapon(individual, target) {
@@ -858,6 +859,8 @@ impl<'a> Processor<'a> {
         let direction = Vec3::new(direction.x, direction.y, direction.z);
         let directions = (0..(repeat * shot.rounds()))
             .map(|_| {
+                // FIXME BS NOW: inaccuracy could be different :
+                //     - bad opacity should make random target, not increase inaccuracy
                 #[cfg(feature = "debug")]
                 let spread = match WorldConfig::inaccuracy_spread_enabled() {
                     true => WorldConfig::inaccuracy_spread(),
@@ -1101,13 +1104,12 @@ impl<'a> Processor<'a> {
         }
 
         // If currently engaging, continue it only if individual is in near area
-        if let Intent::Engage(target) = &individual.intent {
-            if situation
+        if let Intent::Engage(target) = &individual.intent
+            && situation
                 .visible(*target)
                 .is_some_and(|v| v.distance <= w.individual_hide_engage_distance())
-            {
-                return Intent::Engage(*target);
-            }
+        {
+            return Intent::Engage(*target);
         }
 
         // FIXME: this will engage first soldier entering in area. So other ennemi=y soldiers will hide and
@@ -1139,6 +1141,7 @@ impl<'a> Processor<'a> {
         // FIXME BS NOW: sneak if tired (and can't run)
         // FIXME BS NOW: impact of suppress ?
         match self.resolve_path(individual, position) {
+            // FIXME BS NOW: must move fast only if direction do not is direction of enemy !
             Some(path) => match !situation.visibles.is_empty() {
                 // Move fast as enemy can fire on them
                 true => {
@@ -1177,6 +1180,7 @@ impl<'a> Processor<'a> {
 
         // FIXME BS NOW: sneak if tired (and can't run)
         // FIXME BS NOW: impact of suppress ?
+        // FIXME BS NOW: must move fast only if direction do not is direction of enemy !
         match self.resolve_path(individual, position) {
             Some(path) => {
                 tracing::trace!(name="individual-processor-resolve-move-fast-to-order-path", i=?self.i, position=?position, path=?path);

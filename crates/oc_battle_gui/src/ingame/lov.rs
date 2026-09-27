@@ -182,7 +182,8 @@ fn on_update_lov_for(
 
     let stop = position.extend(stop_tile.z_pixels(&g.w) + lov.stop_plus_z.pixels(&g.w));
     let at = |xy, z| path_objects_at(&g.w, &g.mod_, &world, xy, z);
-    let path = oc_lov::PathBuilder::new(&g.w, at).build(start, stop, 0);
+    let modifier = oc_lov::Modifier::None(false);
+    let path = oc_lov::PathBuilder::new(&g.w, at).build(start, stop, 0, modifier);
 
     let sections = path.sections.iter().map(|section| {
         let color = Color::srgb(0.0 + section.opacity.0, 1.0 - section.opacity.0, 0.0);
@@ -209,8 +210,8 @@ fn path_objects_at(
         .map(|t| {
             let tile_z = t.z as f32 * w.geo_meters_per_z().0 * w.geo_pixels_per_meters();
             let relative_z = z - tile_z;
-            let opacity = mod_.nature(t.nature).opacity(w, relative_z);
-            vec![oc_lov::Step { opacity }]
+            let nature = mod_.nature(t.nature);
+            vec![oc_lov::Step::from_nature(w, nature, relative_z)]
         })
         .unwrap_or(vec![])
 }

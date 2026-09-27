@@ -11,6 +11,9 @@ repository = "https://github.com/Katsutoshii/bevy_heightmap"
 keywords = ["bevy"]
 readme = "README.md"
 
+[lints]
+workspace = true
+
 [dependencies]
 bevy = { workspace = true, features = [
     "bevy_image",

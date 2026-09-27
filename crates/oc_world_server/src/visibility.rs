@@ -1,6 +1,7 @@
 use derive_more::Constructor;
 use oc_geo::tile::{TileXy, WorldTileIndex};
-use oc_individual::IndividualIndex;
+use oc_individual::{BodyGesture, IndividualIndex, behavior::Behavior};
+use oc_lov::Modifier;
 use oc_root::{WcfgFrom, WorldConfig, opacity::CumulatedOpacity};
 use oc_utils::d2::Xy;
 use oc_world::{World, visibility::Visibility};
@@ -43,7 +44,16 @@ impl<'a> Processor<'a> {
                 .position
                 .add_z(individual2.gesture.body.target_z().pixels(w));
 
-            let visibility = visibility(w, at, p1, p2);
+            let is_crawling = matches!(individual2.gesture.body, BodyGesture::Crawling(_));
+            let is_hiding = matches!(individual2.behavior, Behavior::Hide(_));
+
+            let modifier = match (is_hiding, is_crawling) {
+                (true, _) => Modifier::Hiding,
+                (_, true) => Modifier::Crawling,
+                _ => Modifier::None(true),
+            };
+
+            let visibility = visibility(w, at, p1, p2, modifier);
             visibilities.push((*i1, *i2, visibility));
         };
 
@@ -68,9 +78,10 @@ pub fn visibility(
     at: impl Fn(Xy, f32) -> Vec<oc_lov::Step>,
     p1: oc_root::geo::WorldVec3,
     p2: oc_root::geo::WorldVec3,
+    modifier: Modifier,
 ) -> Visibility {
     let ignore = w.ignore_firsts_lov_tiles() as usize;
-    let lov = oc_lov::PathBuilder::new(w, at).build(p1, p2, ignore);
+    let lov = oc_lov::PathBuilder::new(w, at).build(p1, p2, ignore, modifier);
 
     let opacity = lov
         .sections
@@ -115,7 +126,7 @@ pub fn path_objects_at(
             let nature = mod_.nature(t.nature);
             let opacity = nature.opacity(w, relative_z);
             tracing::trace!(name="visibility-path-objects-at", at=?at, z=z, t=?t, tile_z=?tile_z, relative_z=?relative_z, nature=?nature, opacity=?opacity);
-            vec![oc_lov::Step { opacity }]
+            vec![oc_lov::Step::from_nature(w, nature, relative_z)]
         })
         .unwrap_or(vec![])
 }

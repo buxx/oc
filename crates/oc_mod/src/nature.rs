@@ -100,6 +100,10 @@ pub struct NatureRaw {
     pub opacity: f32,
     pub z: Meters,
     pub deny: Vec<MaterialKind>,
+    #[serde(default = "default_crawling_opacity_bonus")]
+    pub crawling_opacity_bonus: f32,
+    #[serde(default = "default_hiding_opacity_bonus")]
+    pub hiding_opacity_bonus: f32,
 }
 
 impl From<NatureRaw> for Nature {
@@ -109,6 +113,8 @@ impl From<NatureRaw> for Nature {
             opacity: value.opacity,
             z: value.z,
             traversability: Traversability::from_deny_list(value.deny),
+            crawling_opacity_bonus: value.crawling_opacity_bonus,
+            hiding_opacity_bonus: value.hiding_opacity_bonus,
         }
     }
 }
@@ -129,6 +135,8 @@ pub struct Nature {
     pub opacity: f32,
     pub z: Meters,
     pub traversability: Traversability,
+    pub crawling_opacity_bonus: f32,
+    pub hiding_opacity_bonus: f32,
 }
 
 #[derive(
@@ -230,4 +238,12 @@ pub enum Error {
     Format(#[from] ron::de::SpannedError),
     #[error("No natures defined (require at least one)")]
     Empty,
+}
+
+fn default_crawling_opacity_bonus() -> f32 {
+    0.0
+}
+
+fn default_hiding_opacity_bonus() -> f32 {
+    0.0
 }

@@ -44,9 +44,10 @@ impl Args {
         match self.case {
             TestCase::Direct
             | TestCase::Through
-            | TestCase::Hidden
+            | TestCase::NotVisible
             | TestCase::MoveThenEnemyVisible
-            | TestCase::Hedge => Duration::from_secs(10),
+            | TestCase::Hedge
+            | TestCase::Hidden => Duration::from_secs(10),
             TestCase::Discover => Duration::from_secs(20),
         }
     }
@@ -56,10 +57,16 @@ impl Args {
 enum TestCase {
     Direct,
     Through,
-    Hidden,
+    NotVisible,
     Discover,
     MoveThenEnemyVisible,
     Hedge,
+    // FIXME BS NOW: implement hiding bonuses:
+    //   - visibility when immobile
+    //   - visibility when crawling ?
+    // FIXME BS NOW 2: when fire on
+    // FIXME BS NOW 3: tile nature should sometime (brick wall 90%, trunk 70%, etc) "block" projectile
+    Hidden,
 }
 
 fn main() -> Result<(), anyhow::Error> {
@@ -132,7 +139,7 @@ fn individuals(w: &WorldConfig, _tiles: &Vec<Tile>, args: &Args) -> Vec<oc_indiv
                 .build()
                 .make(w),
         ],
-        TestCase::Hidden => vec![
+        TestCase::NotVisible => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
                 .position(WorldVec3::new(250., 250., 0.))
@@ -180,6 +187,18 @@ fn individuals(w: &WorldConfig, _tiles: &Vec<Tile>, args: &Args) -> Vec<oc_indiv
                 .build()
                 .make(w),
         ],
+        TestCase::Hidden => vec![
+            TestIndividual::builder()
+                .side(side::Side::A)
+                .position(WorldVec3::new(248., 224., 0.))
+                .build()
+                .make(w),
+            TestIndividual::builder()
+                .side(side::Side::B)
+                .position(WorldVec3::new(387., 198., 0.))
+                .build()
+                .make(w),
+        ],
     }
 }
 
@@ -190,7 +209,11 @@ fn squads(
     args: &Args,
 ) -> Vec<oc_individual::squad::Squad> {
     match args.case {
-        TestCase::Direct | TestCase::Through | TestCase::Hidden | TestCase::Hedge => vec![
+        TestCase::Direct
+        | TestCase::Through
+        | TestCase::NotVisible
+        | TestCase::Hedge
+        | TestCase::Hidden => vec![
             TestSquad::builder()
                 .position(individuals.first().unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
@@ -258,10 +281,11 @@ fn install(app: &mut bevy::app::App) {
     match args.case {
         TestCase::Direct
         | TestCase::Through
-        | TestCase::Hidden
+        | TestCase::NotVisible
         | TestCase::Discover
         | TestCase::MoveThenEnemyVisible
-        | TestCase::Hedge => {
+        | TestCase::Hedge
+        | TestCase::Hidden => {
             #[cfg(feature = "test")]
             app.add_systems(Update, tracking);
         }
@@ -308,7 +332,7 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Visibilit
                 && matches!(i1_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
                 && matches!(i2_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
         }
-        TestCase::Hidden => {
+        TestCase::NotVisible => {
             i1_visible
                 && !i2_visible
                 && matches!(i1_gesture, Some(&oc_individual::BodyGesture::StandUp(_)))
@@ -323,6 +347,7 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Visibilit
         TestCase::MoveThenEnemyVisible => {
             matches!(i1_gesture, Some(&oc_individual::BodyGesture::Running(_)))
         }
+        TestCase::Hidden => i1_visible && !i2_visible,
     } {
         // FIXME: must test individuals behavior/gesture too (hide)
         state.success = Some(Instant::now());

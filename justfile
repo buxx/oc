@@ -164,6 +164,7 @@ test-e2e:
     just test-regions-individual-move-in
     just test-visibilities-direct
     just test-visibilities-through
+    just test-visibilities-not-visible
     just test-visibilities-hidden
     just test-visibilities-discover
     just test-visibilities-hedge
@@ -174,6 +175,7 @@ test-e2e:
     just test-engaging-hedge
     just test-engaging-suppressed
     just test-engaging-move-to-hiding
+    just test-engaging-move-to-hiding-then-discover
     just test-height-climb
 
 test-projectiles-obstacles-one-wall:
@@ -251,8 +253,11 @@ test-visibilities-direct:
 test-visibilities-through:
     RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- through --test
 
+test-visibilities-not-visible:
+    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- not-visible --test
+
 test-visibilities-hidden:
-    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- hidden --test
+    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- Hidden --test
 
 test-visibilities-discover:
     RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- discover --test
@@ -280,6 +285,9 @@ test-engaging-suppressed:
 
 test-engaging-move-to-hiding:
     RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- move-to-hiding --test
+
+test-engaging-move-to-hiding-then-discover:
+    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- move-to-hiding-then-discover --test
 
 test-height-climb:
     RUST_LOG=ERROR cargo run --bin example_height --features test -- climb --test

@@ -3,6 +3,9 @@ name = "oc_battle_gui"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [features]
 debug = ["bevy/bevy_dev_tools", "oc_network/debug"]
 

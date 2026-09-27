@@ -3,6 +3,9 @@ name = "oc_world_server"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [features]
 debug = ["oc_network/debug", "oc_projectile/debug", "oc_world/debug", "oc_root/debug"]
 debug_locks = ["oc_utils/debug"]

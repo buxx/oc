@@ -314,7 +314,7 @@ impl<E: Client> Runner<E> {
         std::thread::spawn(move || {
             tracing::debug!("Track perfs");
             loop {
-                std::thread::sleep(Duration::from_secs(1));
+                std::thread::sleep(std::time::Duration::from_secs(1));
 
                 let individuals = state.world.read().unwrap().individuals().len();
                 let projectiles = state.world.read().unwrap().projectiles().len();
