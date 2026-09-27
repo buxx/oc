@@ -146,7 +146,7 @@ impl IntoIndividualSprite<IndividualOrderSprite> for Order {
 impl SpriteRect for IndividualOrderSprite {
     fn rect(&self) -> Rect {
         const START_X: f32 = 22.;
-        const START_Y: f32 = 100.;
+        const START_Y: f32 = 115.;
         const WIDTH: f32 = 11.;
         const HEIGHT: f32 = 11.;
 
