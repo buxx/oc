@@ -5,11 +5,16 @@ use std::{path::PathBuf, time::Duration};
 use anyhow::Context;
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
-use oc_battle_gui::{ingame::FirstIngameEnter, network::output::ToServerEvent, states::Game};
+use oc_battle_gui::{
+    ingame::FirstIngameEnter,
+    network::output::ToServerEvent,
+    states::{Game, GameConfig},
+};
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
+use oc_utils::let_some;
 use oc_world::{load::WorldPath, meta::Meta, reader};
 #[cfg(feature = "test")]
 use oc_world_server::state::ObjectId;
@@ -142,11 +147,15 @@ fn install(app: &mut bevy::app::App) {
     let args = Args::parse();
 
     if args.test {
-        app.add_systems(Update, |mut commands: Commands, game: Res<Game>| {
-            if game.started.elapsed() > Duration::from_secs(5) {
-                commands.write_message(bevy::app::AppExit::from_code(0));
-            }
-        });
+        app.add_systems(
+            Update,
+            |mut commands: Commands, game: Res<Game>, g: Res<GameConfig>| {
+                let_some!(g = &g.0, return);
+                if game.started.elapsed() > Duration::from_secs(5).div_f32(g.w.speed()) {
+                    commands.write_message(bevy::app::AppExit::from_code(0));
+                }
+            },
+        );
     }
 
     app.add_observer(on_first_ingame_enter);

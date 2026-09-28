@@ -19,7 +19,7 @@ use oc_individual::{IndividualIndex, order::Order, squad::SquadFormation};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectiles;
-use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
+use oc_root::{Wcfg, WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
 use oc_utils::d2::Direction;
 use oc_world::{meta::Meta, tile::Tile};
 
@@ -199,10 +199,13 @@ fn install(app: &mut bevy::app::App) {
             Update,
             move |mut commands: Commands,
                   game: Res<Game>,
+                  w: Res<Wcfg>,
                   individuals: Query<
                 &Status,
                 With<oc_battle_gui::entity::individual::IndividualIndex>,
             >| {
+                let speed = w.0.as_ref().map(|w| w.speed()).unwrap_or(1.0);
+                let timeout = timeout.div_f32(speed);
                 // Store instant where individual is in expected status
                 static STATUS_AS_EXPECTED_SINCE: Mutex<Option<Instant>> = Mutex::new(None);
 

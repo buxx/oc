@@ -182,7 +182,10 @@ struct Tracking {
 }
 
 #[cfg(feature = "test")]
-use {oc_battle_gui::states::Game, std::sync::Mutex, std::time::Duration, std::time::Instant};
+use {
+    oc_battle_gui::states::Game, oc_root::Wcfg, std::sync::Mutex, std::time::Duration,
+    std::time::Instant,
+};
 
 #[cfg(feature = "test")]
 fn end_when_success_or_timeout(
@@ -190,6 +193,7 @@ fn end_when_success_or_timeout(
     game: Res<Game>,
     args: Res<Args_>,
     tracking: Res<Tracking>,
+    w: Res<Wcfg>,
 ) {
     static MOVE_DONE: Mutex<Option<Instant>> = Mutex::new(None);
     let timeout = match args.0.case {
@@ -199,6 +203,8 @@ fn end_when_success_or_timeout(
         TestCase::MoveFastStraightAhead => Duration::from_secs(20),
         TestCase::MoveFastStraightAheadObstacle => Duration::from_secs(30),
     };
+    let speed = w.0.as_ref().map(|w| w.speed()).unwrap_or(1.0);
+    let timeout = timeout.div_f32(speed);
 
     let timeout = game.started.elapsed() > timeout;
     let mut move_done = MOVE_DONE.lock().unwrap();

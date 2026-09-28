@@ -25,6 +25,8 @@ use oc_battle_gui::{
 };
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
+#[cfg(feature = "test")]
+use oc_root::Wcfg;
 use oc_root::{
     WorldConfig,
     geo::{WorldVec2, WorldVec3},
@@ -541,9 +543,10 @@ fn install(app: &mut bevy::app::App) {
 }
 
 #[cfg(feature = "test")]
-fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>) {
+fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>, w: Res<Wcfg>) {
     let args = Args::parse();
-    let timeout = args.timeout();
+    let speed = w.0.as_ref().map(|w| w.speed()).unwrap_or(1.0);
+    let timeout = args.timeout().div_f32(speed);
     if game.started.elapsed() > timeout
         || state
             .success

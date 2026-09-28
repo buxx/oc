@@ -27,7 +27,7 @@ use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::{ProjectileId, spawn::SpawnProjectiles};
 use oc_root::{
-    WorldConfig,
+    Wcfg, WorldConfig,
     geo::{WorldVec2, WorldVec3},
     physics::Meters,
     side::Side,
@@ -208,9 +208,10 @@ fn install(app: &mut bevy::app::App) {
     }
 }
 
-fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>) {
+fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>, w: Res<Wcfg>) {
     let args = Args::parse();
-    let timeout = args.timeout();
+    let speed = w.0.as_ref().map(|w| w.speed()).unwrap_or(1.0);
+    let timeout = args.timeout().div_f32(speed);
     if game.started.elapsed() > timeout
         || state
             .success
