@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)]
+
 use std::path::PathBuf;
 #[cfg(feature = "test")]
 use std::sync::Mutex;

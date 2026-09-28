@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)]
+
 use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::Context;

@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)]
+
 #[cfg(feature = "test")]
 use std::time::{Duration, Instant};
 use std::{

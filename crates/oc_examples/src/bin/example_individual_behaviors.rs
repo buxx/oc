@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)]
+
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
 #[cfg(feature = "debug")]
