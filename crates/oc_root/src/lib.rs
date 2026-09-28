@@ -277,23 +277,23 @@ impl WorldConfig {
     }
 
     pub fn individual_tick(&self) -> Frequency {
-        self.individual_tick * self.speed
+        self.individual_tick * self.speed()
     }
 
     pub fn visibilities_tick(&self) -> Frequency {
-        self.visibilities_tick * self.speed
+        self.visibilities_tick * self.speed()
     }
 
     pub fn squad_tick(&self) -> Frequency {
-        self.squad_tick * self.speed
+        self.squad_tick * self.speed()
     }
 
     pub fn physics_tick(&self) -> Frequency {
-        self.physics_tick * self.speed
+        self.physics_tick * self.speed()
     }
 
     pub fn scheduler_tick(&self) -> Frequency {
-        self.scheduler_tick * self.speed
+        self.scheduler_tick * self.speed()
     }
 
     #[cfg(feature = "debug")]

@@ -84,6 +84,7 @@ impl<E: Client> Runner<E> {
                     let elapsed = last.elapsed();
                     let interval = ctx.state.w.physics_tick().interval();
                     let wait = interval - elapsed.min(interval);
+
                     #[cfg(feature = "perfs")]
                     {
                         let percent = wait.as_micros() as f32 / interval.as_micros() as f32;
