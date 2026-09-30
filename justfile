@@ -138,44 +138,54 @@ test:
     just test-world_server
     just test-tests
 
-test-e2e:
-    just test-projectiles-obstacles-one-wall
-    just test-projectiles-obstacles-multiple-wall
-    just test-projectiles-obstacles-one-hill
-    just test-projectiles-obstacles-multiple-hill
-    just test-projectiles-obstacles-one-traverse-volumes
-    just test-individual-shots-same-pixel
-    just test-individual-shots-in-volume
-    just test-individual-shots-different-tile
-    just test-individual-shots-above
-    just test-individual-shots-above-prone
-    just test-individual-shots-near-rotated-prone
-    just test-individual-behaviors-move-straight-ahead1
-    just test-individual-behaviors-move-straight-ahead-obstacle1
-    just test-individual-behaviors-move-straight-ahead2
-    just test-individual-behaviors-move-straight-ahead-obstacle2
-    just test-individual-behaviors-move-fast-straight-ahead1
-    just test-individual-behaviors-move-fast-straight-ahead-obstacle1
-    just test-individual-behaviors-move-fast-straight-ahead2
-    just test-individual-behaviors-move-fast-straight-ahead-obstacle2
-    just test-regions-projectile-move-out
-    just test-regions-projectile-move-in
-    just test-regions-individual-move-out
-    just test-regions-individual-move-in
-    just test-visibilities-direct
-    just test-visibilities-through
-    just test-visibilities-not-visible
-    just test-visibilities-hidden
-    just test-visibilities-discover
-    just test-visibilities-move-then-enemy-visible
-    just test-engaging-direct
-    just test-engaging-direct2
-    just test-engaging-far-machine-gun
-    just test-engaging-hedge
-    just test-engaging-suppressed
-    just test-engaging-move-to-hiding
-    just test-engaging-move-to-hiding-then-discover
-    just test-height-climb
+# speed: when not empty, run tests with OC_SPEED=100
+test-e2e speed="":
+    #!/usr/bin/env bash
+    if [ -n "{{ speed }}" ]; then
+        export OC_SPEED=100
+    fi
+    tests=(
+        test-projectiles-obstacles-one-wall
+        test-projectiles-obstacles-multiple-wall
+        test-projectiles-obstacles-one-hill
+        test-projectiles-obstacles-multiple-hill
+        test-projectiles-obstacles-one-traverse-volumes
+        test-individual-shots-same-pixel
+        test-individual-shots-in-volume
+        test-individual-shots-different-tile
+        test-individual-shots-above
+        test-individual-shots-above-prone
+        test-individual-shots-near-rotated-prone
+        test-individual-behaviors-move-straight-ahead1
+        test-individual-behaviors-move-straight-ahead-obstacle1
+        test-individual-behaviors-move-straight-ahead2
+        test-individual-behaviors-move-straight-ahead-obstacle2
+        test-individual-behaviors-move-fast-straight-ahead1
+        test-individual-behaviors-move-fast-straight-ahead-obstacle1
+        test-individual-behaviors-move-fast-straight-ahead2
+        test-individual-behaviors-move-fast-straight-ahead-obstacle2
+        test-regions-projectile-move-out
+        test-regions-projectile-move-in
+        test-regions-individual-move-out
+        test-regions-individual-move-in
+        test-visibilities-direct
+        test-visibilities-through
+        test-visibilities-not-visible
+        test-visibilities-hidden
+        test-visibilities-discover
+        test-visibilities-move-then-enemy-visible
+        test-engaging-direct
+        test-engaging-direct2
+        test-engaging-far-machine-gun
+        test-engaging-hedge
+        test-engaging-suppressed
+        test-engaging-move-to-hiding
+        test-engaging-move-to-hiding-then-discover
+        test-height-climb
+    )
+    for t in "${tests[@]}"; do
+        just "$t" || exit 1
+    done
 
 test-projectiles-obstacles-one-wall:
     RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-against-wall --test
