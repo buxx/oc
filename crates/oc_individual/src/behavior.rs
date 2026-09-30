@@ -1,5 +1,5 @@
 use derive_more::{Deref, DerefMut};
-use oc_root::{geo::WorldVec2, physics::MetersSeconds};
+use oc_root::{WorldConfig, geo::WorldVec2, physics::MetersSeconds};
 use oc_utils::d2::Direction;
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -47,16 +47,16 @@ impl Intent {
 }
 
 impl Behavior {
-    pub fn nominal_speed(&self) -> MetersSeconds {
+    pub fn nominal_speed(&self, w: &WorldConfig) -> MetersSeconds {
         match self {
             Behavior::Idle(_)
             | Behavior::Defend(_)
             | Behavior::Hide(_)
             | Behavior::Engage(_)
             | Behavior::Suppress(_) => MetersSeconds(0.0),
-            Behavior::Walk(_) => MetersSeconds(0.45),
-            Behavior::Run(_) => MetersSeconds(2.2),
-            Behavior::Crawl(_) => MetersSeconds(0.20),
+            Behavior::Walk(_) => w.walk_nominal_speed(),
+            Behavior::Run(_) => w.run_nominal_speed(),
+            Behavior::Crawl(_) => w.crawl_nominal_speed(),
         }
     }
 }

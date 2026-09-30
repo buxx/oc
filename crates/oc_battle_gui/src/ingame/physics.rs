@@ -88,11 +88,7 @@ pub fn physics_step<I, C>(
         transform.translation.x = position__.x;
         transform.translation.y = position__.y;
 
-        commands.trigger(PhysicsUpdatedPosition(
-            *i,
-            position_before,
-            position_,
-        ));
+        commands.trigger(PhysicsUpdatedPosition(*i, position_before, position_));
 
         for event in events {
             commands.trigger(PhysicEvent(event))

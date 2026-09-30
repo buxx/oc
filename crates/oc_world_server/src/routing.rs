@@ -47,9 +47,10 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
     pub fn remove(&mut self, listener: &T) {
         self.all.retain(|l| l != listener);
         if let Some(identity) = self.identities.remove(listener)
-            && let Some(identities) = self.side_identitides.get_mut(&identity.side) {
-                identities.retain(|l| l != listener);
-            }
+            && let Some(identities) = self.side_identitides.get_mut(&identity.side)
+        {
+            identities.retain(|l| l != listener);
+        }
 
         let regions = self.listener_regions(listener).clone();
         for region in regions {
@@ -126,4 +127,17 @@ pub enum Listening {
     ExitBorder(WorldRegionIndex, WorldRegionIndex),
     /// Will match with all listener which are this side
     Side(Side),
+}
+
+#[cfg(feature = "debug")]
+impl Listening {
+    pub fn match_side(&self, side: Side) -> bool {
+        match self {
+            Listening::Side(side_) => *side_ == side,
+            Listening::Any
+            | Listening::Regions(_)
+            | Listening::EnterBorder(_, _)
+            | Listening::ExitBorder(_, _) => true,
+        }
+    }
 }

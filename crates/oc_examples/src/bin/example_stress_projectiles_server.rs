@@ -61,6 +61,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             to_client_tx,
             #[cfg(feature = "test")]
             tracker,
+            #[cfg(feature = "debug")]
+            None,
         )
         .run(to_server_rx, ready_tx, stop_rx);
     });

@@ -8,7 +8,12 @@ use bevy::prelude::*;
 use getset::{CopyGetters, Getters, WithSetters};
 use rkyv::{Archive, Deserialize, Serialize};
 
-use crate::{behavior::Suppress, opacity::CumulatedOpacity, physics::Meters, utils::Frequency};
+use crate::{
+    behavior::Suppress,
+    opacity::CumulatedOpacity,
+    physics::{Meters, MetersSeconds},
+    utils::Frequency,
+};
 
 pub mod behavior;
 pub mod end;
@@ -145,6 +150,12 @@ pub struct WorldConfig {
     /// Tile distance to take into account to determine best tile opacity (and hide_opacity_bonus)
     #[getset(get_copy = "pub", set_with = "pub")]
     tiles_radius_opacity_picking: u64,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    walk_nominal_speed: MetersSeconds,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    run_nominal_speed: MetersSeconds,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    crawl_nominal_speed: MetersSeconds,
 }
 
 impl WorldConfig {
@@ -204,6 +215,10 @@ impl WorldConfig {
         let hide_opacity_bonus_meter_factor = 0.005;
         let tiles_radius_opacity_picking = 1;
 
+        let walk_nominal_speed = MetersSeconds(1.2);
+        let run_nominal_speed = MetersSeconds(2.7);
+        let crawl_nominal_speed = MetersSeconds(0.50);
+
         Self {
             world_width,
             world_height,
@@ -249,6 +264,9 @@ impl WorldConfig {
             hide_opacity_bonus_ends,
             hide_opacity_bonus_meter_factor,
             tiles_radius_opacity_picking,
+            walk_nominal_speed,
+            run_nominal_speed,
+            crawl_nominal_speed,
         }
     }
 

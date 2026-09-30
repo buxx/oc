@@ -10,6 +10,8 @@ use derive_more::Constructor;
 use oc_individual::{IndividualIndex, squad::SquadIndex};
 use oc_network::{GameConfig, ToClient};
 use oc_root::Client;
+#[cfg(feature = "debug")]
+use oc_root::side::Side;
 use rayon::{
     iter::{IndexedParallelIterator, ParallelIterator},
     slice::ParallelSlice,
@@ -32,6 +34,9 @@ pub struct Runner<E: Client> {
     output: Sender<(E, ToClient)>,
     #[cfg(feature = "tracker")]
     tracker: Tracker,
+    #[cfg(feature = "debug")]
+    /// When set, avoid listening filter when broadcast (to ensure vent receive in e2e tests)
+    direct: Option<(E, Side)>,
 }
 
 impl<E: Client> Runner<E> {
@@ -63,6 +68,8 @@ impl<E: Client> Runner<E> {
             self.output.clone(),
             #[cfg(feature = "tracker")]
             self.tracker.clone(),
+            #[cfg(feature = "debug")]
+            self.direct.clone(),
         );
 
         #[cfg(feature = "perfs")]
@@ -115,6 +122,8 @@ impl<E: Client> Runner<E> {
             self.output.clone(),
             #[cfg(feature = "tracker")]
             self.tracker.clone(),
+            #[cfg(feature = "debug")]
+            self.direct.clone(),
         );
         let individuals_count = {
             let world = self.state.world();
@@ -186,6 +195,8 @@ impl<E: Client> Runner<E> {
             self.output.clone(),
             #[cfg(feature = "tracker")]
             self.tracker.clone(),
+            #[cfg(feature = "debug")]
+            self.direct.clone(),
         );
         let individuals_count = {
             let world = self.state.world();
@@ -246,6 +257,8 @@ impl<E: Client> Runner<E> {
             self.output.clone(),
             #[cfg(feature = "tracker")]
             self.tracker.clone(),
+            #[cfg(feature = "debug")]
+            self.direct.clone(),
         );
         let squads_count = {
             let world = self.state.world();
@@ -366,6 +379,8 @@ impl<E: Client> Runner<E> {
             self.output.clone(),
             #[cfg(feature = "tracker")]
             self.tracker.clone(),
+            #[cfg(feature = "debug")]
+            self.direct.clone(),
         );
 
         std::thread::spawn(move || {
@@ -398,6 +413,8 @@ impl<E: Client> Runner<E> {
             self.output.clone(),
             #[cfg(feature = "tracker")]
             self.tracker.clone(),
+            #[cfg(feature = "debug")]
+            self.direct.clone(),
         );
 
         std::thread::spawn(move || {

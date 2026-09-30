@@ -392,10 +392,11 @@ fn on_despawn_individual_order(
 ) {
     tracing::trace!(name = "ingame-behavior-on-despawn-individual-order", i=?event.0, order=?event.1);
     if let Some(orders) = orders.get_mut(&event.0)
-        && let Some(x) = orders.iter().position(|(o, _)| o == &event.1) {
-            let (_, entity) = orders.remove(x);
-            commands.entity(entity).despawn();
-        }
+        && let Some(x) = orders.iter().position(|(o, _)| o == &event.1)
+    {
+        let (_, entity) = orders.remove(x);
+        commands.entity(entity).despawn();
+    }
 }
 
 fn on_despawn_individual_orders(
@@ -556,10 +557,11 @@ fn on_despawn_squad_order(
 ) {
     tracing::trace!(name = "ingame-behavior-on-despawn-squad-order", i=?event.0, event=?event);
     if let Some(orders) = orders.get_mut(&event.0)
-        && let Some(x) = orders.iter().position(|(o, _)| o == &event.1) {
-            let (_, entity) = orders.remove(x);
-            commands.entity(entity).despawn();
-        }
+        && let Some(x) = orders.iter().position(|(o, _)| o == &event.1)
+    {
+        let (_, entity) = orders.remove(x);
+        commands.entity(entity).despawn();
+    }
 }
 
 fn on_despawn_squad_orders(

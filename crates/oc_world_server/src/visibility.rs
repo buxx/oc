@@ -44,7 +44,10 @@ impl<'a> Processor<'a> {
                 .position
                 .add_z(individual2.gesture.body.target_z().pixels(w));
 
-            let is_crawling = matches!(individual2.gesture.body, BodyGesture::Crawling(_));
+            let is_crawling = matches!(
+                individual2.gesture.body,
+                BodyGesture::Crawling(_) | BodyGesture::Prone(_)
+            );
             let is_hiding = matches!(individual2.behavior, Behavior::Hide(_));
 
             let modifier = match (is_hiding, is_crawling) {

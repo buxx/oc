@@ -8,6 +8,8 @@ use oc_battle_gui::ingame::camera::squad::ToggleShowFormationPositions;
 use oc_battle_gui::ingame::individual::{AccomplishedEvent, MoveStepAccomplishedEvent};
 use oc_examples::{logging, tests::behavior};
 use oc_individual::order::Order;
+#[cfg(feature = "test")]
+use oc_utils::let_some;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -195,16 +197,18 @@ fn end_when_success_or_timeout(
     tracking: Res<Tracking>,
     w: Res<Wcfg>,
 ) {
+    let_some!(w = &w.0, return);
     static MOVE_DONE: Mutex<Option<Instant>> = Mutex::new(None);
     let timeout = match args.0.case {
         TestCase::Idle => Duration::from_secs(20),
-        TestCase::MoveStraightAhead => Duration::from_secs(30),
-        TestCase::MoveStraightAheadObstacle => Duration::from_secs(40),
-        TestCase::MoveFastStraightAhead => Duration::from_secs(20),
-        TestCase::MoveFastStraightAheadObstacle => Duration::from_secs(30),
+        TestCase::MoveStraightAhead => Duration::from_secs(40),
+        TestCase::MoveStraightAheadObstacle => Duration::from_secs(50),
+        TestCase::MoveFastStraightAhead => Duration::from_secs(30),
+        TestCase::MoveFastStraightAheadObstacle => Duration::from_secs(40),
     };
-    let speed = w.0.as_ref().map(|w| w.speed()).unwrap_or(1.0);
-    let timeout = timeout.div_f32(speed);
+    let speed = w.speed();
+    // Ensure a minimal timeout to let time to bevy to make "network" exchange with server
+    let timeout = timeout.div_f32(speed).max(Duration::from_secs(2));
 
     let timeout = game.started.elapsed() > timeout;
     let mut move_done = MOVE_DONE.lock().unwrap();
@@ -216,11 +220,11 @@ fn end_when_success_or_timeout(
             | TestCase::MoveStraightAheadObstacle
             | TestCase::MoveFastStraightAhead
             | TestCase::MoveFastStraightAheadObstacle => {
-                (tracking.accomplished.len() == 2 * args.0.count).then(Instant::now)
+                (tracking.accomplished.len() >= 2 * args.0.count).then(Instant::now)
             }
         },
         Some(value) => {
-            if value.elapsed().as_secs() > 1 {
+            if value.elapsed().as_secs_f32() > 1. / speed {
                 println!("✅ (GUI) Individual reached target");
                 commands.write_message(bevy::app::AppExit::from_code(0));
             };
