@@ -63,10 +63,16 @@ pub struct SetOrdersEvent(
 );
 
 #[derive(Debug, Event)]
-pub struct SetStatusEvent(oc_individual::IndividualIndex, oc_individual::Status);
+pub struct SetStatusEvent(
+    pub oc_individual::IndividualIndex,
+    pub oc_individual::Status,
+);
 
 #[derive(Debug, Event)]
-pub struct SetGestureEvent(oc_individual::IndividualIndex, oc_individual::Gesture);
+pub struct SetGestureEvent(
+    pub oc_individual::IndividualIndex,
+    pub oc_individual::Gesture,
+);
 
 #[derive(Debug, Event)]
 pub struct SetIntentEvent(

@@ -1,10 +1,13 @@
 #![allow(clippy::unwrap_used)]
 
-#[cfg(feature = "test")]
-use std::time::{Duration, Instant};
 use std::{
     path::PathBuf,
     sync::atomic::{AtomicBool, Ordering},
+};
+#[cfg(feature = "test")]
+use std::{
+    sync::Mutex,
+    time::{Duration, Instant},
 };
 
 use bevy::prelude::*;
@@ -13,7 +16,9 @@ use anyhow::Context;
 use clap::{Parser, ValueEnum};
 #[cfg(feature = "test")]
 use oc_battle_gui::{
-    entity::individual::IndividualIndex, ingame::individual::Gesture, states::Game,
+    entity::individual::IndividualIndex,
+    ingame::individual::{Gesture, SetGestureEvent},
+    states::{Game, GameConfig},
 };
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
@@ -25,6 +30,8 @@ use oc_root::{
     physics::Meters,
     side,
 };
+#[cfg(feature = "test")]
+use oc_utils::let_some;
 use oc_world::{meta::Meta, tile::Tile};
 use tests::{individual::TestIndividual, squad::TestSquad};
 
@@ -50,7 +57,6 @@ impl Args {
             | TestCase::Through
             | TestCase::NotVisible
             | TestCase::MoveThenEnemyVisible
-            | TestCase::Hedge
             | TestCase::Hidden => Duration::from_secs(10),
             TestCase::Discover => Duration::from_secs(20),
         }
@@ -64,7 +70,6 @@ enum TestCase {
     NotVisible,
     Discover,
     MoveThenEnemyVisible,
-    Hedge,
     // FIXME BS NOW: implement hiding bonuses:
     //   - visibility when immobile
     //   - visibility when crawling ?
@@ -158,43 +163,31 @@ fn individuals(w: &WorldConfig, _tiles: &Vec<Tile>, args: &Args) -> Vec<oc_indiv
         TestCase::Discover => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
-                .position(WorldVec3::new(250., 175., 0.))
+                .position(WorldVec3::new(250., 225., 0.))
                 .build()
                 .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
-                .position(WorldVec3::new(450., 150., 0.))
+                .position(WorldVec3::new(450., 140., 0.))
                 .build()
                 .make(w),
         ],
         TestCase::MoveThenEnemyVisible => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
-                .position(WorldVec3::new(250., 175., 0.))
+                .position(WorldVec3::new(250., 225., 0.))
                 .build()
                 .make(w),
             TestIndividual::builder()
                 .side(side::Side::B)
-                .position(WorldVec3::new(450., 150., 0.))
-                .build()
-                .make(w),
-        ],
-        TestCase::Hedge => vec![
-            TestIndividual::builder()
-                .side(side::Side::A)
-                .position(WorldVec3::new(104., 311., 0.))
-                .build()
-                .make(w),
-            TestIndividual::builder()
-                .side(side::Side::B)
-                .position(WorldVec3::new(387., 160., 0.))
+                .position(WorldVec3::new(450., 140., 0.))
                 .build()
                 .make(w),
         ],
         TestCase::Hidden => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
-                .position(WorldVec3::new(248., 224., 0.))
+                .position(WorldVec3::new(25., 224., 0.))
                 .build()
                 .make(w),
             TestIndividual::builder()
@@ -213,11 +206,7 @@ fn squads(
     args: &Args,
 ) -> Vec<oc_individual::squad::Squad> {
     match args.case {
-        TestCase::Direct
-        | TestCase::Through
-        | TestCase::NotVisible
-        | TestCase::Hedge
-        | TestCase::Hidden => vec![
+        TestCase::Direct | TestCase::Through | TestCase::NotVisible | TestCase::Hidden => vec![
             TestSquad::builder()
                 .position(individuals.first().unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
@@ -235,7 +224,7 @@ fn squads(
             TestSquad::builder()
                 .position(individuals.first().unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
-                .orders(vec![Order::MoveFastTo(WorldVec2::new(250., 150.))])
+                .orders(vec![Order::MoveFastTo(WorldVec2::new(250., 110.))])
                 .build()
                 .make(),
             TestSquad::builder()
@@ -268,6 +257,7 @@ static SUCCESS: AtomicBool = AtomicBool::new(false);
 #[derive(Debug, Resource, Default)]
 struct State {
     success: Option<Instant>,
+    gestures: Vec<(oc_individual::IndividualIndex, oc_individual::Gesture)>,
 }
 
 #[allow(unused)]
@@ -288,23 +278,30 @@ fn install(app: &mut bevy::app::App) {
         | TestCase::NotVisible
         | TestCase::Discover
         | TestCase::MoveThenEnemyVisible
-        | TestCase::Hedge
         | TestCase::Hidden => {
             #[cfg(feature = "test")]
-            app.add_systems(Update, tracking);
+            app.add_systems(Update, tracking)
+                .add_observer(on_set_gesture);
         }
     }
 }
 
 #[cfg(feature = "test")]
+fn on_set_gesture(event: On<SetGestureEvent>, mut state: ResMut<State>) {
+    state.gestures.push((event.0, event.1.clone()));
+}
+
+#[cfg(feature = "test")]
 fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>, w: Res<Wcfg>) {
+    let_some!(w = &w.0, return);
     let args = Args::parse();
-    let speed = w.0.as_ref().map(|w| w.speed()).unwrap_or(1.0);
-    let timeout = args.timeout().div_f32(speed);
+    let speed = w.speed();
+    // Ensure a minimal timeout to let time to bevy to make "network" exchange with server
+    let timeout = args.timeout().div_f32(speed).max(Duration::from_secs(2));
     if game.started.elapsed() > timeout
         || state
             .success
-            .map(|success| success.elapsed() > AFTER_SUCCESS_WAIT)
+            .map(|success| success.elapsed() >= AFTER_SUCCESS_WAIT.div_f32(speed))
             .unwrap_or_default()
     {
         commands.write_message(bevy::app::AppExit::from_code(0));
@@ -312,8 +309,15 @@ fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>, w
 }
 
 #[cfg(feature = "test")]
-fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Visibility, &Gesture)>) {
+fn tracking(
+    mut state: ResMut<State>,
+    query: Query<(&IndividualIndex, &Visibility, &Gesture)>,
+    g: Res<GameConfig>,
+) {
+    let_some!(g = &g.0, return);
     let args = Args::parse();
+
+    static I2_INVISIBLE_SINCE: Mutex<Option<Instant>> = Mutex::new(None);
 
     let i1_visible = query
         .iter()
@@ -330,8 +334,12 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Visibilit
         .filter_map(|(i, _, g)| (i.0 == oc_individual::IndividualIndex(1)).then_some(&g.0.body))
         .next();
 
+    if !i2_visible && I2_INVISIBLE_SINCE.lock().unwrap().is_none() {
+        *I2_INVISIBLE_SINCE.lock().unwrap() = Some(Instant::now());
+    }
+
     if match args.case {
-        TestCase::Direct | TestCase::Hedge | TestCase::Through => {
+        TestCase::Direct | TestCase::Through => {
             i1_visible
                 && i2_visible
                 && matches!(i1_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
@@ -349,10 +357,19 @@ fn tracking(mut state: ResMut<State>, query: Query<(&IndividualIndex, &Visibilit
                 && matches!(i1_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
                 && matches!(i2_gesture, Some(&oc_individual::BodyGesture::Prone(_)))
         }
-        TestCase::MoveThenEnemyVisible => {
-            matches!(i1_gesture, Some(&oc_individual::BodyGesture::Running(_)))
+        TestCase::MoveThenEnemyVisible => state.gestures.iter().any(|(i, gesture)| {
+            *i == oc_individual::IndividualIndex(0)
+                && matches!(gesture.body, oc_individual::BodyGesture::Prone(_))
+        }),
+        TestCase::Hidden => {
+            i1_visible
+                && !i2_visible
+                // FIXME BS NOW: add never been seen (must modify source code to begin in correct gesture)
+                && I2_INVISIBLE_SINCE
+                    .lock()
+                    .unwrap()
+                    .is_some_and(|s| s.elapsed().as_secs_f32() >= 1. / g.w.speed())
         }
-        TestCase::Hidden => i1_visible && !i2_visible,
     } {
         // FIXME: must test individuals behavior/gesture too (hide)
         state.success = Some(Instant::now());

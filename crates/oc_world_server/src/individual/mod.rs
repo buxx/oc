@@ -955,7 +955,7 @@ impl<'a> Processor<'a> {
         match behavior {
             Behavior::Idle(_) => vec![],
             Behavior::Walk(direction) | Behavior::Run(direction) | Behavior::Crawl(direction) => {
-                let nominal_speed = behavior.nominal_speed();
+                let nominal_speed = behavior.nominal_speed(&self.world.w);
                 let move_disability_factor = self.move_disability_factor(individual, behavior);
                 let arrival_factor = self.arrival_factor(intent);
                 let direction = WorldVec3::new(direction.x, direction.y, 0.);

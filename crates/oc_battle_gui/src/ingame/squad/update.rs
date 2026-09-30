@@ -91,14 +91,15 @@ fn update_squad(
     if let Some(now_region) = new_region {
         // Remove squad from ol region
         if let Some(squads) = world.squads.get_mut(&region)
-            && let Some(squad) = squads.remove(&i) {
-                // And put it in new region
-                world
-                    .squads
-                    .entry(now_region)
-                    .or_default()
-                    .insert(i, squad.clone());
-            }
+            && let Some(squad) = squads.remove(&i)
+        {
+            // And put it in new region
+            world
+                .squads
+                .entry(now_region)
+                .or_default()
+                .insert(i, squad.clone());
+        }
 
         world.squads_refs.insert(i, now_region);
     }

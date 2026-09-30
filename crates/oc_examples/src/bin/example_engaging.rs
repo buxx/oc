@@ -18,7 +18,7 @@ use clap::{Parser, ValueEnum};
 use oc_battle_gui::{
     entity::individual::IndividualIndex,
     ingame::{
-        individual::{Gesture, Status},
+        individual::{Gesture, SetGestureEvent, SetStatusEvent, Status},
         input::projectile::InsertProjectileEvent,
     },
     states::Game,
@@ -35,6 +35,8 @@ use oc_root::{
     utils::Frequency,
 };
 use oc_utils::d2::Direction;
+#[cfg(feature = "test")]
+use oc_utils::let_some;
 use oc_world::{meta::Meta, tile::Tile};
 use tests::{
     individual::TestIndividual,
@@ -488,7 +490,7 @@ fn squads(
                     oc_individual::IndividualIndex(0),
                     oc_individual::IndividualIndex(1),
                 ])
-                .orders(vec![Order::MoveFastTo(WorldVec2::new(458., 70.))])
+                .orders(vec![Order::MoveFastTo(WorldVec2::new(395., 68.))])
                 .build()
                 .make(),
             TestSquad::builder()
@@ -512,6 +514,8 @@ struct State {
     success: Option<Instant>,
     start: Option<Instant>,
     last_shoots: Vec<(oc_individual::IndividualIndex, Instant)>,
+    gestures: Vec<(oc_individual::IndividualIndex, oc_individual::Gesture)>,
+    statuses: Vec<(oc_individual::IndividualIndex, oc_individual::Status)>,
 }
 
 #[cfg(feature = "test")]
@@ -521,7 +525,9 @@ fn install(app: &mut bevy::app::App) {
     #[cfg(feature = "test")]
     if args.test {
         app.add_systems(Update, test_tracker)
-            .add_systems(Startup, setup);
+            .add_systems(Startup, setup)
+            .add_observer(on_set_status)
+            .add_observer(on_set_gesture);
     }
 
     #[cfg(feature = "test")]
@@ -543,10 +549,21 @@ fn install(app: &mut bevy::app::App) {
 }
 
 #[cfg(feature = "test")]
+fn on_set_status(event: On<SetStatusEvent>, mut state: ResMut<State>) {
+    state.statuses.push((event.0, event.1.clone()));
+}
+
+#[cfg(feature = "test")]
+fn on_set_gesture(event: On<SetGestureEvent>, mut state: ResMut<State>) {
+    state.gestures.push((event.0, event.1.clone()));
+}
+
+#[cfg(feature = "test")]
 fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>, w: Res<Wcfg>) {
     let args = Args::parse();
     let speed = w.0.as_ref().map(|w| w.speed()).unwrap_or(1.0);
-    let timeout = args.timeout().div_f32(speed);
+    // Ensure a minimal timeout to let time to bevy to make "network" exchange with server
+    let timeout = args.timeout().div_f32(speed).max(Duration::from_secs(2));
     if game.started.elapsed() > timeout
         || state
             .success
@@ -573,7 +590,10 @@ fn on_spawn_projectile(projectile: On<InsertProjectileEvent>, mut state: ResMut<
 fn tracking(
     mut state: ResMut<State>,
     query: Query<(&IndividualIndex, &Status, &Gesture, &Visibility)>,
+    w: Res<Wcfg>,
 ) {
+    let_some!(w = &w.0, return);
+    let speed = w.speed();
     let args = Args::parse();
 
     static I0_SEEN_PRONE: AtomicBool = AtomicBool::new(false);
@@ -583,36 +603,6 @@ fn tracking(
     static I3_SEEN_DEAD: AtomicBool = AtomicBool::new(false);
     static I2_AND_I3_HIDDEN_SINCE: Mutex<Option<Instant>> = Mutex::new(None);
 
-    let i0_body = query
-        .iter()
-        .filter_map(|(i, _, gesture, _)| {
-            (i.0 == oc_individual::IndividualIndex(0)).then_some(&gesture.0.body)
-        })
-        .next();
-    let i0_status = query
-        .iter()
-        .filter_map(|(i, status, _, _)| {
-            (i.0 == oc_individual::IndividualIndex(0)).then_some(&status.0)
-        })
-        .next();
-    let i1_status = query
-        .iter()
-        .filter_map(|(i, status, _, _)| {
-            (i.0 == oc_individual::IndividualIndex(1)).then_some(&status.0)
-        })
-        .next();
-    let i2_status = query
-        .iter()
-        .filter_map(|(i, status, _, _)| {
-            (i.0 == oc_individual::IndividualIndex(2)).then_some(&status.0)
-        })
-        .next();
-    let i3_status = query
-        .iter()
-        .filter_map(|(i, status, _, _)| {
-            (i.0 == oc_individual::IndividualIndex(3)).then_some(&status.0)
-        })
-        .next();
     let i2_visibility = query
         .iter()
         .filter_map(|(i, _, _, visibility)| {
@@ -626,19 +616,30 @@ fn tracking(
         })
         .next();
 
-    if matches!(i0_body, Some(&oc_individual::BodyGesture::Prone(_))) {
+    if state.gestures.iter().any(|(i, gesture)| {
+        *i == oc_individual::IndividualIndex(0)
+            && matches!(gesture.body, oc_individual::BodyGesture::Prone(_))
+    }) {
         I0_SEEN_PRONE.store(true, Ordering::Relaxed);
     }
-    if i0_status == Some(&oc_individual::Status::Dead) {
+    if state.statuses.iter().any(|(i, status)| {
+        *i == oc_individual::IndividualIndex(0) && *status == oc_individual::Status::Dead
+    }) {
         I0_SEEN_DEAD.store(true, Ordering::Relaxed);
     }
-    if i1_status == Some(&oc_individual::Status::Dead) {
+    if state.statuses.iter().any(|(i, status)| {
+        *i == oc_individual::IndividualIndex(1) && *status == oc_individual::Status::Dead
+    }) {
         I1_SEEN_DEAD.store(true, Ordering::Relaxed);
     }
-    if i2_status == Some(&oc_individual::Status::Dead) {
+    if state.statuses.iter().any(|(i, status)| {
+        *i == oc_individual::IndividualIndex(2) && *status == oc_individual::Status::Dead
+    }) {
         I2_SEEN_DEAD.store(true, Ordering::Relaxed);
     }
-    if i3_status == Some(&oc_individual::Status::Dead) {
+    if state.statuses.iter().any(|(i, status)| {
+        *i == oc_individual::IndividualIndex(3) && *status == oc_individual::Status::Dead
+    }) {
         I3_SEEN_DEAD.store(true, Ordering::Relaxed);
     }
     let i0_last_shoot = state.last_shoots.last().cloned().and_then(|(i, instant)| {
@@ -669,18 +670,18 @@ fn tracking(
         }
         TestCase::Suppressed => i0_last_shoot
             .or(state.start)
-            .map(|t| t.elapsed().as_secs() > 8)
+            .map(|t| t.elapsed().as_secs_f32() > 8. / speed)
             .unwrap_or_default(),
         TestCase::Hedge => I0_SEEN_DEAD.load(Ordering::Relaxed),
         TestCase::MoveToHiding => I2_AND_I3_HIDDEN_SINCE
             .lock()
             .unwrap()
-            .and_then(|s| Some(s.elapsed().as_secs() > 5))
+            .map(|s| s.elapsed().as_secs_f32() > 5. / speed)
             .unwrap_or_default(),
         TestCase::MoveToHidingThenDiscover => {
             // FIXME BS NOW: all individuals visible during some milliseconds
             // default enemy visibility should be hidden
-            state.start.is_some_and(|s| s.elapsed().as_secs() > 2)
+            state.start.is_some_and(|s| s.elapsed().as_secs_f32() > 2. / speed)
                 && matches!(i2_visibility, Some(Visibility::Visible))
                 && matches!(i3_visibility, Some(Visibility::Visible))
         }

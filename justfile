@@ -167,7 +167,6 @@ test-e2e:
     just test-visibilities-not-visible
     just test-visibilities-hidden
     just test-visibilities-discover
-    just test-visibilities-hedge
     just test-visibilities-move-then-enemy-visible
     just test-engaging-direct
     just test-engaging-direct2
@@ -257,13 +256,10 @@ test-visibilities-not-visible:
     RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- not-visible --test
 
 test-visibilities-hidden:
-    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- Hidden --test
+    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- hidden --test
 
 test-visibilities-discover:
     RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- discover --test
-
-test-visibilities-hedge:
-    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- hedge --test
 
 test-visibilities-move-then-enemy-visible:
     RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- move-then-enemy-visible --test

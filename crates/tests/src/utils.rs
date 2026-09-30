@@ -17,10 +17,11 @@ pub fn workspace_root() -> PathBuf {
         let cargo_toml = current.join("Cargo.toml");
         if cargo_toml.is_file()
             && let Ok(contents) = std::fs::read_to_string(&cargo_toml)
-                && contents.contains("[workspace]") {
-                    found = Some(current.to_path_buf());
-                    break;
-                }
+            && contents.contains("[workspace]")
+        {
+            found = Some(current.to_path_buf());
+            break;
+        }
 
         match current.parent() {
             Some(parent) => current = parent,

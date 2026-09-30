@@ -97,6 +97,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             output,
             #[cfg(feature = "tracker")]
             tracker,
+            #[cfg(feature = "debug")]
+            None,
         )
         .run(input, ready, stop_rx);
     });

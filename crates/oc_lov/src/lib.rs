@@ -29,7 +29,7 @@ where
         ignore: usize,
         modifier: Modifier,
     ) -> Path {
-        tracing::trace!(name="lov-path-build", start=?start, end=?end);
+        tracing::trace!(name="lov-path-build", start=?start, end=?end, ignore=ignore, modifier=?modifier);
         let mut opacity = CumulatedOpacity(0.);
         let mut tile = TileXy::from_([start.x, start.y], self.w);
         let mut sections = vec![];
@@ -59,6 +59,7 @@ where
 
             // Do not compute opacity for last tile, modifier will do it
             if ignore_end_opacity && xy == last_xy {
+                tracing::trace!(name="lov-path-build-bresenham3d-ignore-end-opacity", xy=?xy, last_xy=?last_xy);
                 break;
             }
 

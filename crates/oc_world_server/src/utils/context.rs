@@ -2,6 +2,8 @@ use std::sync::{Arc, mpsc::Sender};
 
 use oc_network::ToClient;
 use oc_root::Client;
+#[cfg(feature = "debug")]
+use oc_root::side::Side;
 
 #[cfg(feature = "tracker")]
 use crate::tracker::Tracker;
@@ -14,6 +16,8 @@ pub struct Context<E: Client> {
     pub output: Sender<(E, ToClient)>,
     #[cfg(feature = "tracker")]
     pub tracker: Tracker,
+    #[cfg(feature = "debug")]
+    direct: Option<(E, Side)>,
 }
 
 impl<E: Client> Context<E> {
@@ -21,6 +25,7 @@ impl<E: Client> Context<E> {
         state: Arc<State<E>>,
         output: Sender<(E, ToClient)>,
         #[cfg(feature = "tracker")] tracker: Tracker,
+        #[cfg(feature = "debug")] direct: Option<(E, Side)>,
     ) -> Self {
         let cpus = num_cpus::get();
 
@@ -30,6 +35,8 @@ impl<E: Client> Context<E> {
             output,
             #[cfg(feature = "tracker")]
             tracker,
+            #[cfg(feature = "debug")]
+            direct,
         }
     }
 
@@ -37,8 +44,21 @@ impl<E: Client> Context<E> {
     where
         T: Clone + Into<ToClient>,
     {
-        let listeners = self.state.listeners();
+        #[cfg(feature = "debug")]
+        {
+            // In cases like e2e tests, we want ensure gui receive all event. So, send all events
+            if let Some((direct, side)) = &self.direct {
+                if filter.match_side(*side) {
+                    for message in &messages {
+                        let message = message.clone().into();
+                        self.output.send((direct.clone(), message)).unwrap() // TODO
+                    }
+                }
+                return;
+            }
+        }
 
+        let listeners = self.state.listeners();
         for listener in listeners.find(filter) {
             for message in &messages {
                 let pkg = (listener.clone(), message.clone().into());

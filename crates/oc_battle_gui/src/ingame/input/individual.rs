@@ -84,26 +84,25 @@ pub fn on_click(
     let point = Vec2::new(point.x, point.y);
     let point = cursor_to!(point, camera, &g.w, WorldVec2);
 
-    if !ingame.selected_squads().is_empty()
-        && click.button == PointerButton::Secondary {
-            // Close possible menu before open new one
-            commands.trigger(CloseContextMenu::<contextual::Menu>::default());
+    if !ingame.selected_squads().is_empty() && click.button == PointerButton::Secondary {
+        // Close possible menu before open new one
+        commands.trigger(CloseContextMenu::<contextual::Menu>::default());
 
-            // If a menu already opened, consider user want to close it
-            if !menu.is_empty() {
-                return;
-            }
-
-            let_some!(cursor = window.cursor_position(), return);
-            let position = ScreenVec2::from(cursor);
-            let position = WorldVec2::from_(position, &g.w);
-
-            // Prevent open menu after map dragging
-            if Some(position) == input.first_right_press {
-                tracing::debug!("Trigger open squad contextual menu from outside on {point:?}");
-                commands.trigger(PrepareOpenSquadContextualMenu(point));
-            }
+        // If a menu already opened, consider user want to close it
+        if !menu.is_empty() {
+            return;
         }
+
+        let_some!(cursor = window.cursor_position(), return);
+        let position = ScreenVec2::from(cursor);
+        let position = WorldVec2::from_(position, &g.w);
+
+        // Prevent open menu after map dragging
+        if Some(position) == input.first_right_press {
+            tracing::debug!("Trigger open squad contextual menu from outside on {point:?}");
+            commands.trigger(PrepareOpenSquadContextualMenu(point));
+        }
+    }
 
     click.propagate(false);
 }

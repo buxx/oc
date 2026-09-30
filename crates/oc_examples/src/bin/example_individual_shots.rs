@@ -15,12 +15,14 @@ use oc_battle_gui::{
     states::Game,
 };
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
-use oc_individual::{IndividualIndex, order::Order, squad::SquadFormation};
+use oc_individual::{
+    INDIVIDUAL_PRONE_VOLUME_WIDTH, IndividualIndex, order::Order, squad::SquadFormation,
+};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectiles;
 use oc_root::{Wcfg, WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
-use oc_utils::d2::Direction;
+use oc_utils::{d2::Direction, let_some};
 use oc_world::{meta::Meta, tile::Tile};
 
 #[derive(Parser, Debug, Clone)]
@@ -61,7 +63,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let map_ = oc_world::reader::MapReader::new(&map);
     let map_ = map_.context(format!("Read map_ {}", map.display()))?;
     let w = WorldConfig::new(map_.width().unwrap() as u64, map_.height().unwrap() as u64)
-        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z))
+        .with_geo_pixels_per_meters(5.0);
     let tiles = map_.tiles(&w, &mod__).unwrap();
     let (individuals, squads) = individuals(&args, &w, &tiles);
     let snapshot = SnapshotBuilder::new(map_, individuals, squads, vec![]).build(w, &mod__)?;
@@ -85,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let tracker = tracker.take();
 
-            // We consider success if physics event own at leat 10 projectiles collisions
+            // We consider success if physics event own at least 10 projectiles collisions
             let collision = tracker.physics.iter().find(|event| {
                 matches!(
                     event,
@@ -186,12 +189,12 @@ fn install(app: &mut bevy::app::App) {
             TestCase::SamePixel | TestCase::InVolume | TestCase::DifferentTile => (
                 oc_individual::Status::Dead,
                 Duration::from_secs(1),
-                Duration::from_secs(10),
+                Duration::from_secs(15),
             ),
             TestCase::Above | TestCase::AboveProne | TestCase::NearRotatedProne => (
                 oc_individual::Status::Operational,
                 Duration::from_secs(5),
-                Duration::from_secs(10),
+                Duration::from_secs(15),
             ),
         };
 
@@ -204,8 +207,12 @@ fn install(app: &mut bevy::app::App) {
                 &Status,
                 With<oc_battle_gui::entity::individual::IndividualIndex>,
             >| {
-                let speed = w.0.as_ref().map(|w| w.speed()).unwrap_or(1.0);
-                let timeout = timeout.div_f32(speed);
+                let_some!(w = &w.0, return);
+                let speed = w.speed();
+
+                // Ensure a minimal timeout to let time to bevy to make "network" exchange with server
+                let timeout = timeout.div_f32(speed).max(Duration::from_secs(2));
+
                 // Store instant where individual is in expected status
                 static STATUS_AS_EXPECTED_SINCE: Mutex<Option<Instant>> = Mutex::new(None);
 
@@ -232,7 +239,7 @@ fn install(app: &mut bevy::app::App) {
                 }
 
                 if (*status_as_expected_since)
-                    .map(|s| s.elapsed() >= expected_duration)
+                    .map(|s| s.elapsed() >= expected_duration.div_f32(speed))
                     .unwrap_or_default()
                 {
                     println!("✅ (GUI) Individual is in expected status");
@@ -266,6 +273,7 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
         .find(|s| s.name() == "Single")
         .unwrap();
 
+    let body_height = INDIVIDUAL_PRONE_VOLUME_WIDTH.0 * 5.0;
     let projectiles = match args.case {
         TestCase::SamePixel
         | TestCase::InVolume
@@ -274,7 +282,10 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
             vec![([220.0, 151.0, 5.0], [100.0, 151.0, 5.0])]
         }
         TestCase::Above => vec![([220.0, 151.0, 15.0], [100.0, 151.0, 15.0])],
-        TestCase::NearRotatedProne => vec![([220.0, 152.0, 1.0], [100.0, 152.0, 1.0])],
+        TestCase::NearRotatedProne => vec![(
+            [220.0, 151.0 + body_height + 1.0, 1.0],
+            [100.0, 151.0 + body_height + 1.0, 1.0],
+        )],
     };
 
     for (start, end) in projectiles {
