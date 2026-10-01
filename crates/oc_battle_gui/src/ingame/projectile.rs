@@ -83,7 +83,6 @@ pub fn on_insert_projectile(
     state.insert(projectile.0, entity);
 }
 
-// FIXME BS NOW: ne plus être attaché aux update de position du serveur mais du gui
 fn on_update_position(
     event: On<PhysicsUpdatedPosition<oc_projectile::ProjectileId>>,
     g: Res<GameConfig>,
