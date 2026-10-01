@@ -681,7 +681,9 @@ fn tracking(
         TestCase::MoveToHidingThenDiscover => {
             // FIXME BS NOW: all individuals visible during some milliseconds
             // default enemy visibility should be hidden
-            state.start.is_some_and(|s| s.elapsed().as_secs_f32() > 2. / speed)
+            state
+                .start
+                .is_some_and(|s| s.elapsed().as_secs_f32() > 2. / speed)
                 && matches!(i2_visibility, Some(Visibility::Visible))
                 && matches!(i3_visibility, Some(Visibility::Visible))
         }
