@@ -18,7 +18,9 @@ use crate::{
     cache::{self, CacheRegionBackgroundError},
     meta::{self, Meta},
     navmesh::{Walls, navmesh},
+    reader::{MapReader, MapReaderError},
     snapshot::Snapshot,
+    utils::image::crop::crop_polygon,
     visibility::Visibilities,
 };
 
@@ -31,7 +33,7 @@ pub struct WorldLoader {
 }
 
 impl WorldLoader {
-    pub fn load(&self, ids: &Ids, snapshot: Snapshot) -> Result<World, Error> {
+    pub fn load(&self, ids: &Ids, snapshot: Snapshot, map: &MapReader) -> Result<World, Error> {
         tracing::info!("Check world {}", self.world.display());
         self.check()?;
 
@@ -39,7 +41,7 @@ impl WorldLoader {
         let meta = Meta::from_file(&self.world.meta()).map_err(MetaError::Load)?;
 
         // TODO: centralize caching at server startup
-        self.cache(&meta, self.w.region_width(), self.w.region_height())?;
+        self.cache(&meta, self.w.region_width(), self.w.region_height(), map)?;
         tracing::debug!("Cache finished");
 
         let w = self.w.clone();
@@ -120,7 +122,13 @@ impl WorldLoader {
     }
 
     // TODO: centralize caching at server startup
-    fn cache(&self, meta: &Meta, region_width: u64, region_height: u64) -> Result<(), CacheError> {
+    fn cache(
+        &self,
+        meta: &Meta,
+        region_width: u64,
+        region_height: u64,
+        map: &MapReader,
+    ) -> Result<(), CacheError> {
         tracing::info!("Check cache for {}", self.world.display());
         let files = files::Files::new("".to_string(), meta.canonical());
         let files = files.into_server(self.cache.clone());
@@ -129,7 +137,8 @@ impl WorldLoader {
         let minimap = files.minimap();
 
         std::fs::create_dir_all(&world).unwrap(); // TODO
-        let image = image::open(self.world.background())?;
+        let background = image::open(self.world.background())?;
+        let interior = image::open(self.world.interiors())?;
 
         match minimap.exists() {
             true => {
@@ -146,7 +155,7 @@ impl WorldLoader {
                     height
                 );
                 let minimap_ = image::imageops::resize(
-                    &image,
+                    &background,
                     width as u32,
                     height as u32,
                     FilterType::Gaussian,
@@ -155,31 +164,8 @@ impl WorldLoader {
             }
         }
 
-        let counter = Arc::new(AtomicU32::new(0));
-        tracing::info!("Prepare cache for regions");
-
-        (0..self.w.regions_count())
-            .into_par_iter()
-            .map(|i| {
-                let i = WorldRegionIndex(i);
-                let region = files.region(i.0, region_width, region_height);
-
-                match region.exists() {
-                    true => {
-                        tracing::info!("Region cache {} already exists", region.display());
-                        Ok(())
-                    }
-                    false => {
-                        counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                        cache::cache_region_background(&self.w, &region, &image, i)
-                    }
-                }
-            })
-            .collect::<Result<Vec<()>, CacheRegionBackgroundError>>()?;
-
-        let cached = counter.load(std::sync::atomic::Ordering::Relaxed);
-        let already = self.w.regions_count() - cached as u64;
-        tracing::info!("{} cached, {} already cached", cached, already);
+        self.cache_regions(region_width, region_height, &files, &background)?;
+        self.cache_interiors(map, &files, &interior)?;
 
         if !std::fs::exists(&archive)? {
             tracing::info!("Caching {} to {}", &self.world.display(), archive.display());
@@ -193,6 +179,80 @@ impl WorldLoader {
             tracing::info!("Finished cache for world ({})", archive.display());
         }
 
+        Ok(())
+    }
+
+    fn cache_regions(
+        &self,
+        region_width: u64,
+        region_height: u64,
+        files: &files::FilesAsServer,
+        image: &image::DynamicImage,
+    ) -> Result<(), CacheError> {
+        let counter = Arc::new(AtomicU32::new(0));
+        tracing::info!("Prepare cache for regions");
+        (0..self.w.regions_count())
+            .into_par_iter()
+            .map(|i| {
+                let i = WorldRegionIndex(i);
+                let region = files.region(i.0, region_width, region_height);
+
+                match region.exists() {
+                    true => {
+                        tracing::info!("Region cache {} already exists", region.display());
+                        Ok(())
+                    }
+                    false => {
+                        counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        cache::cache_region_background(&self.w, &region, image, i)
+                    }
+                }
+            })
+            .collect::<Result<Vec<()>, CacheRegionBackgroundError>>()?;
+        let cached = counter.load(std::sync::atomic::Ordering::Relaxed);
+        let already = self.w.regions_count() - cached as u64;
+        tracing::info!("{} cached, {} already cached", cached, already);
+        Ok(())
+    }
+
+    fn cache_interiors(
+        &self,
+        map: &MapReader,
+        files: &files::FilesAsServer,
+        image: &image::DynamicImage,
+    ) -> Result<(), CacheError> {
+        let interiors = map.interiors()?;
+        tracing::info!("Prepare cache for interiors");
+
+        let mut cached = 0;
+        for interior in &interiors {
+            let path = files.interior(interior.id);
+
+            if !std::fs::exists(&path).map_err(|e| {
+                CacheError::Interior(format!(
+                    "Error when reading interior {} file {}: {}",
+                    interior.id,
+                    path.display(),
+                    e
+                ))
+            })? {
+                let image = crop_polygon(image, &interior.points).map_err(|e| {
+                    CacheError::Interior(format!("Error when crop interior {}: {}", interior.id, e))
+                })?;
+                image.save(&path).map_err(|e| {
+                    CacheError::Interior(format!(
+                        "Error when save interior {} to {}: {}",
+                        interior.id,
+                        path.display(),
+                        e
+                    ))
+                })?;
+                cached += 1;
+            }
+        }
+
+        let already = interiors.len() - cached as usize;
+        tracing::info!("{} cached, {} already cached", cached, already);
         Ok(())
     }
 }
@@ -229,6 +289,10 @@ pub enum CacheError {
     Image(#[from] image::error::ImageError),
     #[error("Region background: {0}")]
     RegionBackground(#[from] CacheRegionBackgroundError),
+    #[error("Interior: {0}")]
+    Interior(String),
+    #[error("Map reader: {0}")]
+    MapReader(#[from] MapReaderError),
 }
 
 #[derive(Debug, Error)]
@@ -243,12 +307,17 @@ pub enum Error {
 
 pub trait WorldPath {
     fn background(&self) -> PathBuf;
+    fn interiors(&self) -> PathBuf;
     fn meta(&self) -> PathBuf;
 }
 
 impl WorldPath for PathBuf {
     fn background(&self) -> PathBuf {
         self.join("background.png")
+    }
+
+    fn interiors(&self) -> PathBuf {
+        self.join("interiors.png")
     }
 
     fn meta(&self) -> PathBuf {

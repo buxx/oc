@@ -10,6 +10,7 @@ pub enum File {
     World,
     Minimap,
     Region(u64),
+    Interior(u32),
 }
 
 #[derive(Debug, Clone)]
@@ -51,6 +52,7 @@ impl Display for File {
             File::World => f.write_str("World"),
             File::Minimap => f.write_str("Minimap"),
             File::Region(i) => f.write_str(&format!("Region({i})")),
+            File::Interior(i) => f.write_str(&format!("Interior({i})")),
         }
     }
 }
@@ -119,6 +121,11 @@ impl FilesAsServer {
             .join("mods")
             .join(format!("{}.tar.gz", self.mod_))
     }
+
+    pub fn interior(&self, id: u32) -> PathBuf {
+        self.cache
+            .join(format!("worlds/{}/interior_{id}.png", self.world))
+    }
 }
 
 impl FilesAsGui {
@@ -141,7 +148,10 @@ impl FilesAsGui {
                 let name = remove_numeric_suffix(&self.world);
                 PathBuf::from(format!("cache/worlds/{}/{}", self.world, name))
             }
-            StaticSource::Local { mod_: _, world } => PathBuf::from(world).join("UNUSED"),
+            StaticSource::Local { mod_: _, world: _ } => {
+                let name = remove_numeric_suffix(&self.world);
+                PathBuf::from(format!("worlds_/{}", name))
+            }
         }
     }
 
@@ -217,6 +227,12 @@ impl FilesAsGui {
         ))
     }
 
+    pub fn interior(&self, id: u32) -> PathBuf {
+        self.sources
+            .cache()
+            .join(format!("worlds/{}/interior_{id}.png", self.world))
+    }
+
     pub fn method(
         &self,
         file: File,
@@ -244,6 +260,10 @@ impl FilesAsGui {
                     File::Region(i) => (
                         Sync::DirectDownload(format!("{base_url}/region/{i}")),
                         base_target.join(self.region(i, region_width, region_height)),
+                    ),
+                    File::Interior(i) => (
+                        Sync::DirectDownload(format!("{base_url}/interior/{i}")),
+                        base_target.join(self.interior(i)),
                     ),
                 })
             }

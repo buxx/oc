@@ -13,7 +13,7 @@ use crate::{
 use glam::Vec2;
 use oc_geo::tile::WorldTileIndex;
 use oc_mod::Mod;
-use oc_root::WorldConfig;
+use oc_root::{WorldConfig, geo::WorldVec2};
 use tiled::{
     FiniteTileLayer, Image, ImageLayer, Layer, LayerType, Loader, Map as TiledMap, ObjectLayer,
     TileLayer, Tileset,
@@ -190,23 +190,30 @@ impl MapReader {
         }
     }
 
-    fn interiors(&self) -> Result<Vec<Interior>, MapReaderError> {
-        let interiors_image = self.interiors_image()?;
+    pub fn interiors(&self) -> Result<Vec<Interior>, MapReaderError> {
         let mut interiors = vec![];
 
         for object in self.interiors_zones_layer()?.objects() {
-            interiors.push(match object.shape {
-                tiled::ObjectShape::Rect { width, height } => Interior::new(
-                    object.x,
-                    object.y,
-                    width,
-                    height,
-                    interiors_image.width as f32,
-                    interiors_image.height as f32,
-                ),
+            interiors.push(match &object.shape {
+                tiled::ObjectShape::Polygon { points } => {
+                    let x = object.x;
+                    let y = object.y;
+                    let first = WorldVec2::new(x, y);
+                    let points: Vec<WorldVec2> = points
+                        .iter()
+                        .map(|(x, y)| WorldVec2::new(first.x + x, first.y + y))
+                        .collect();
+
+                    // Warning: image crop must fit with this start point to be correctly displayed
+                    let min_x = points.iter().map(|p| p.x).fold(f32::INFINITY, f32::min);
+                    let min_y = points.iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
+                    let start = WorldVec2::new(min_x, min_y);
+
+                    Interior::new(object.id(), start, points)
+                }
                 _ => {
                     return Result::Err(MapReaderError::InvalidLayer(format!(
-                        "Layer '{}' in map contains non Rect shapes, this is not supported now",
+                        "Layer '{}' in map contains non Polygon shapes, this is not supported now",
                         INTERIORS_ZONES_LAYER_NAME,
                     )));
                 }

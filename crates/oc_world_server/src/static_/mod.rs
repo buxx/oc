@@ -35,6 +35,7 @@ impl Static {
             .route("/mod", get(mod_::get))
             .route("/world", get(world::get))
             .route("/region/{region}", get(world::get_region))
+            .route("/interior/{interior}", get(world::get_interior))
             .route("/minimap", get(minimap::get))
             .with_state(state);
 

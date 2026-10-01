@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .region_width(100)
         .region_height(100)
         .build();
-    let state = oc_world_server::state::init::<()>(config.clone())?;
+    let state = oc_world_server::state::init::<()>(config.clone(), &map)?;
     let state = Arc::new(state);
 
     let (ready_tx, ready_rx) = channel::<std::result::Result<(), String>>();

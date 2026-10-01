@@ -78,7 +78,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let network: NetworkConfig = args.clone().into();
     let config: ServerConfig = args.clone().into();
-    let state = state::init::<Endpoint>(config.clone())?;
+
+    let map = oc_world::reader::MapReader::new(&args.world)?;
+    let state = state::init::<Endpoint>(config.clone(), &map)?;
     let state = Arc::new(state);
 
     let (input, output) = network::listen(network.clone());

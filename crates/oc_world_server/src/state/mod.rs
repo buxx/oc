@@ -10,7 +10,7 @@ use oc_individual::IndividualIndex;
 use oc_mod::Mod;
 use oc_projectile::ProjectileId;
 use oc_root::{Client, WorldConfig, ids::Ids};
-use oc_world::{World, load::WorldLoader, snapshot::Snapshot};
+use oc_world::{World, load::WorldLoader, reader::MapReader, snapshot::Snapshot};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -96,7 +96,7 @@ pub enum ObjectId {
     Tile(WorldTileIndex),
 }
 
-pub fn init<E: Client>(config: ServerConfig) -> Result<State<E>, anyhow::Error> {
+pub fn init<E: Client>(config: ServerConfig, map: &MapReader) -> Result<State<E>, anyhow::Error> {
     let cache = config.cache.clone();
     let world = config.world.clone();
     let mod_ = config.mod_.clone();
@@ -110,7 +110,7 @@ pub fn init<E: Client>(config: ServerConfig) -> Result<State<E>, anyhow::Error> 
         .with_region_width(config.region_width)
         .with_region_height(config.region_height);
     let world = WorldLoader::new(w.clone(), mod_.clone(), world.clone(), cache.clone());
-    let world = world.load(&ids, snapshot)?;
+    let world = world.load(&ids, snapshot, map)?;
 
     Ok(State::new(w.clone(), ids, mod_.clone(), world))
 }

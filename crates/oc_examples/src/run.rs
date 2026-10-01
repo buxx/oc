@@ -6,7 +6,9 @@ use std::{
 use anyhow::Context;
 use bevy::app::AppExit;
 use bon::Builder;
-use oc_root::{files::Files, side::Side, static_::StaticSource};
+#[cfg(feature = "debug")]
+use oc_root::side::Side;
+use oc_root::{files::Files, static_::StaticSource};
 use oc_world::{load::WorldPath, meta::Meta};
 use oc_world_server::config::ServerConfig;
 #[cfg(feature = "test")]
@@ -36,6 +38,7 @@ pub struct Example {
     regions_height: u64,
     region_width: Option<u64>,
     region_height: Option<u64>,
+    #[cfg(feature = "debug")]
     #[builder(default = Side::A)]
     side: Side,
 }
@@ -79,12 +82,13 @@ impl Example {
             .region_width(self.region_width.unwrap_or(map_width as u64))
             .region_height(self.region_height.unwrap_or(map_height as u64))
             .build();
-        let state = oc_world_server::state::init::<()>(config.clone())?;
+        let state = oc_world_server::state::init::<()>(config.clone(), &map)?;
         let state = Arc::new(state);
 
         {
             #[cfg(feature = "test")]
             let tracker = tracker.clone();
+            #[cfg(feature = "debug")]
             let side = self.side;
             std::thread::spawn(move || {
                 oc_world_server::runner::Runner::new(

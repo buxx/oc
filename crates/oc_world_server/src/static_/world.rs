@@ -30,6 +30,29 @@ pub async fn get_region(
         .unwrap()
 }
 
+#[derive(Debug, Deserialize)]
+pub struct GetInteriorPath {
+    interior: u32,
+}
+
+#[axum::debug_handler]
+pub async fn get_interior(
+    path: Path<GetInteriorPath>,
+    State(state): State<super::State>,
+) -> impl IntoResponse {
+    let mod_ = state.world().mod_().canonical();
+    let world = state.world().meta().canonical();
+    let files = files::Files::new(mod_, world).into_server(state.config.cache.clone());
+    let path = files.interior(path.interior);
+    let interior = tokio::fs::File::open(path).await.unwrap(); // TODO
+    let interior = tokio_util::io::ReaderStream::new(interior);
+
+    Response::builder()
+        .header("Content-Type", "application/octet-stream")
+        .body(Body::from_stream(interior))
+        .unwrap()
+}
+
 #[axum::debug_handler]
 pub async fn get(State(state): State<super::State>) -> impl IntoResponse {
     let mod_ = state.world().mod_().canonical();

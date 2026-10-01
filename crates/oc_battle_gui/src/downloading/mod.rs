@@ -43,10 +43,23 @@ fn download(
     ensure_file(&files, files::File::Mod, region_width, region_height).unwrap(); // TODO
     ensure_file(&files, files::File::World, region_width, region_height).unwrap(); // TODO
     ensure_file(&files, files::File::Minimap, region_width, region_height).unwrap(); // TODO
+
     for region in 0..g.w.regions_count() {
         ensure_file(
             &files,
             files::File::Region(region),
+            region_width,
+            region_height,
+        )
+        .unwrap(); // TODO
+    }
+
+    let world_dir = std::path::Path::new("assets").join(files.world_());
+    let map = oc_world::reader::MapReader::new(&world_dir).unwrap(); // TODO
+    for interior in map.interiors().unwrap() {
+        ensure_file(
+            &files,
+            files::File::Interior(interior.id),
             region_width,
             region_height,
         )

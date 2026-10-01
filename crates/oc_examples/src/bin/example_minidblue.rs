@@ -44,11 +44,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let map_ = PathBuf::from("examples/minidblue");
     let map = oc_world::reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
-    let map__ = map.build().unwrap();
     let world = Meta::from_file(&map_.meta());
     let world = world.context(format!("Read file {}", map_.meta().display()))?;
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
         .with_geo_meters_per_z(Meters(world.geo_meters_per_z));
+    let map__ = map.build().unwrap();
 
     let deployments = match args.case {
         Case::Empty => deployment::Deployments::default(),

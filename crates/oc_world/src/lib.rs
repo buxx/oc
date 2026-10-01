@@ -32,6 +32,7 @@ pub mod snapshot;
 pub mod spawn;
 pub mod terrain;
 pub mod tile;
+pub mod utils;
 pub mod visibility;
 
 #[derive(Constructor)]
