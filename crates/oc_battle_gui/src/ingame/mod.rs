@@ -13,6 +13,7 @@ use crate::{
         height::HeightPlugin,
         individual::IndividualPlugin,
         input::InputPlugin,
+        interior::InteriorPlugin,
         lov::LovPlugin,
         path::{DisplayPaths, PathGizmos, draw},
         projectile::ProjectilePlugin,
@@ -37,6 +38,7 @@ pub mod height;
 pub mod individual;
 pub mod init;
 pub mod input;
+pub mod interior;
 pub mod lov;
 pub mod path;
 pub mod physics;
@@ -91,6 +93,7 @@ impl Plugin for IngamePlugin {
             .add_plugins(ProjectilePlugin)
             .add_plugins(BehaviorPlugin)
             .add_plugins(LovPlugin)
+            .add_plugins(InteriorPlugin)
             .init_resource::<DisplayPaths>()
             .add_observer(on_game_config_received)
             .add_observer(on_update_battle_square)

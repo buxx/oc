@@ -80,6 +80,8 @@ pub struct WorldConfig {
     #[getset(set_with = "pub")]
     scheduler_tick: Frequency,
     #[getset(get_copy = "pub", set_with = "pub")]
+    interiors_tick: Frequency, // TODO: Only for GUI, maybe move it in gui
+    #[getset(get_copy = "pub", set_with = "pub")]
     geo_pixels_per_meters: f32,
     #[getset(get_copy = "pub", set_with = "pub")]
     geo_pixels_per_tile: u64,
@@ -177,6 +179,7 @@ impl WorldConfig {
         let squad_tick = Frequency::each(Duration::from_secs(5));
         let physics_tick = Frequency::each(Duration::from_millis(500));
         let scheduler_tick = Frequency::each(Duration::from_millis(5));
+        let interiors_tick = Frequency::each(Duration::from_secs(2));
         let geo_pixels_per_meters: f32 = 5.;
         let geo_pixels_per_tile: u64 = geo_pixels_per_meters as u64;
 
@@ -238,6 +241,7 @@ impl WorldConfig {
             squad_tick,
             physics_tick,
             scheduler_tick,
+            interiors_tick,
             geo_pixels_per_meters,
             geo_pixels_per_tile,
             geo_meters_per_z,

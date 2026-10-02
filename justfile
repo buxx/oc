@@ -63,6 +63,9 @@ example-stress-server-projectiles:
 example-weapons *args:
     cargo run --bin example_weapons --features debug {{ args }}
 
+example-interiors *args:
+    cargo run --bin example_interiorsweapons --features debug {{ args }}
+
 [working-directory: 'crates/oc_battle_gui']
 test-battle_gui:
     if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi
@@ -182,6 +185,7 @@ test-e2e speed="":
         test-engaging-move-to-hiding
         test-engaging-move-to-hiding-then-discover
         test-height-climb
+        test-interiors-enter
     )
     for t in "${tests[@]}"; do
         just "$t" || exit 1
@@ -297,6 +301,9 @@ test-engaging-move-to-hiding-then-discover:
 
 test-height-climb:
     RUST_LOG=ERROR cargo run --bin example_height --features test -- climb --test
+
+test-interiors-enter:
+    RUST_LOG=ERROR cargo run --bin example_interiors --features test,debug -- enter --test
 
 test-all:
     just test

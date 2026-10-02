@@ -3,7 +3,7 @@ use oc_root::files::{self};
 use oc_utils::let_some;
 
 use crate::{
-    http_to_file, network,
+    http_to_file, ingame, network,
     states::{AppState, GameConfig, PointerIn},
     utils::untar,
     world::World,
@@ -28,6 +28,7 @@ fn download(
     g: Res<GameConfig>,
     network: Res<network::state::State>,
     mut world_: ResMut<World>,
+    assets: Res<AssetServer>,
 ) -> Result<(), BevyError> {
     let_some!(g = &g.0, return Ok(()));
     let_some!(connect = network.server.clone(), return Ok(()));
@@ -57,6 +58,8 @@ fn download(
     let world_dir = std::path::Path::new("assets").join(files.world_());
     let map = oc_world::reader::MapReader::new(&world_dir).unwrap(); // TODO
     for interior in map.interiors().unwrap() {
+        // TODO: when quit ingame state, must despawn
+        ingame::interior::spawn(&mut commands, &assets, &files, &g.w, interior.clone());
         ensure_file(
             &files,
             files::File::Interior(interior.id),

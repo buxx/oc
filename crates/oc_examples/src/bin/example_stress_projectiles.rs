@@ -5,6 +5,7 @@ use std::{f32::consts::TAU, time::Duration};
 
 use anyhow::Context;
 use bevy::prelude::*;
+use oc_battle_gui::ingame::GameConfigReceived;
 use oc_battle_gui::{ingame::camera::move_::CenterCameraOn, network::output::ToServerEvent};
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_mod::{
@@ -12,6 +13,7 @@ use oc_mod::{
 };
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectiles;
+use oc_root::geo::WorldVec2;
 use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
 use oc_world::meta::Meta;
 
@@ -75,11 +77,18 @@ fn install(app: &mut bevy::app::App) {
 
     app.insert_resource(config)
         .add_systems(Startup, setup)
-        .add_systems(Update, orbit);
+        .add_systems(Update, orbit)
+        .add_observer(
+            |_: On<GameConfigReceived>, config: Res<Config>, mut commands: Commands| {
+                commands.trigger(CenterCameraOn(WorldVec2::new(
+                    config.center_x,
+                    config.center_y,
+                )));
+            },
+        );
 }
 
 fn setup(mut commands: Commands, config: Res<Config>) {
-    commands.trigger(CenterCameraOn(Vec2::new(config.center_x, config.center_y)));
     commands.spawn((
         Transform::from_xyz(config.center_x + config.orbit_radius, 0., 3.),
         Orbiter {

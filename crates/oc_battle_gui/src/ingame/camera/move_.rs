@@ -1,13 +1,16 @@
 use bevy::prelude::*;
-use oc_root::Wcfg;
+use oc_root::{Wcfg, geo::WorldVec2, y::Y};
 use oc_utils::{let_ok, let_some};
 
-use crate::ingame::camera::{
-    self, GoToPoint, map::window_point_to_world_map_point, region::UpdateRegions,
+use crate::{
+    ingame::camera::{
+        self, GoToPoint, map::window_point_to_world_map_point, region::UpdateRegions,
+    },
+    states::GameConfig,
 };
 
 #[derive(Debug, Event, Deref)]
-pub struct CenterCameraOn(pub Vec2);
+pub struct CenterCameraOn(pub WorldVec2);
 
 #[derive(Debug, Event)]
 pub struct MovedBattleCamera;
@@ -45,9 +48,11 @@ pub fn on_center_camera_on(
     point: On<CenterCameraOn>,
     mut commands: Commands,
     mut camera: Single<&mut Transform, With<Camera2d>>,
+    g: Res<GameConfig>,
 ) {
+    let_some!(g = &g.0, return);
     camera.translation.x = point.x;
-    camera.translation.y = point.y;
+    camera.translation.y = point.y.to_gui_y(&g.w);
     commands.trigger(MovedBattleCamera)
 }
 
