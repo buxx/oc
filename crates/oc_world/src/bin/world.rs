@@ -4,7 +4,7 @@ use ::image::{ImageBuffer, Rgba};
 use anyhow::Context;
 use clap::Parser;
 use oc_mod::Mod;
-use oc_root::WorldConfig;
+use oc_root::{WorldConfig, battle::BattlePhase};
 use oc_utils::image;
 use oc_world::{reader, snapshot::Snapshot, terrain::Terrain};
 use tracing::level_filters::LevelFilter;
@@ -193,7 +193,16 @@ fn snapshot_(
     };
 
     tracing::info!("Initialize snapshot ({})", path.display());
-    let mut snapshot = Snapshot::new(w, vec![], vec![], vec![], vec![]);
+    let mut snapshot = Snapshot::new(
+        w,
+        vec![],
+        vec![],
+        vec![],
+        vec![],
+        BattlePhase::Deployment,
+        vec![],
+        vec![],
+    );
 
     tracing::info!("Update snapshot tiles");
     let map = reader::MapReader::new(map)?;

@@ -16,8 +16,8 @@ use oc_root::{WorldConfig, geo::WorldVec2, identity::Identity, static_::StaticSo
 use oc_world::{meta::Meta, resume::WorldResume, tile::Tile, visibility::Visibility};
 use rkyv::{Archive, Deserialize, Serialize};
 
-#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
-#[rkyv(compare(PartialEq), derive(Debug))]
+#[derive(Debug, Clone, Archive, Deserialize, Serialize)]
+#[rkyv(derive(Debug))]
 pub enum ToClient {
     GameConfig(Box<GameConfig>),
     WorldResume(WorldResume),
@@ -68,6 +68,7 @@ pub struct GameConfig {
 pub enum SquadMessage {
     SetOrders(Vec<Order>),
     SetPositionOrderPosition(OrderIndex, WorldVec2),
+    SetLeaderPosition(WorldVec2),
 }
 
 #[cfg(feature = "debug")]

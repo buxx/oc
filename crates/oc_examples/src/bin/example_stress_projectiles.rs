@@ -13,6 +13,7 @@ use oc_mod::{
 };
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectiles;
+use oc_root::battle::BattlePhase;
 use oc_root::geo::WorldVec2;
 use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
 use oc_world::meta::Meta;
@@ -28,7 +29,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let map = map.context(format!("Read map {}", map_.display()))?;
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
         .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
-    let snapshot = SnapshotBuilder::new(map, vec![], vec![], vec![]).build(w, &mod__)?;
+    let snapshot = SnapshotBuilder::new(
+        map,
+        vec![],
+        vec![],
+        vec![],
+        BattlePhase::Fight,
+        vec![],
+        vec![],
+    )
+    .build(w, &mod__)?;
 
     let example = run::Example::builder()
         .world(PathBuf::from("examples/world1"))

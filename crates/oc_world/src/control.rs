@@ -1,27 +1,21 @@
-use crate::spawn::SpawnZoneName;
-use serde::{Deserialize, Serialize};
+// use crate::spawn::SpawnZone;
+// use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct MapControl {
-    spawn_zone_names: Vec<SpawnZoneName>,
-}
+// #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+// pub struct MapControl {
+//     spawns: Vec<SpawnZoneName>,
+// }
 
-impl MapControl {
-    pub fn new(spawn_zone_names: Vec<SpawnZoneName>) -> Self {
-        Self { spawn_zone_names }
-    }
+// impl MapControl {
+//     pub fn new(spawns: Vec<SpawnZoneName>) -> Self {
+//         Self { spawns }
+//     }
 
-    pub fn empty() -> Self {
-        Self {
-            spawn_zone_names: vec![],
-        }
-    }
+//     pub fn contains(&self, name: &SpawnZoneName) -> bool {
+//         self.spawns.contains(name)
+//     }
 
-    pub fn contains_spawn_zone(&self, spawn_zone_name: &SpawnZoneName) -> bool {
-        self.spawn_zone_names.contains(spawn_zone_name)
-    }
-
-    pub fn spawn_zone_names(&self) -> &Vec<SpawnZoneName> {
-        self.spawn_zone_names.as_ref()
-    }
-}
+//     pub fn spawns(&self) -> &[SpawnZoneName] {
+//         &self.spawns
+//     }
+// }

@@ -2,12 +2,13 @@ use std::sync::{Arc, mpsc::Sender};
 
 use derive_more::Constructor;
 use oc_geo::region::WorldRegionIndex;
+use oc_geo::tile::WorldTileIndex;
 use oc_individual::squad::SquadIndex;
 use oc_mod::Mod;
 use oc_network::{SquadMessage, ToClient, ToServer};
 use oc_projectile::spawn::SpawnProjectiles;
-use oc_root::Client;
 use oc_root::identity::Identity;
+use oc_root::{Client, WcfgFrom, geo::WorldVec2};
 use oc_utils::error::OkOrLogError;
 use oc_world::tile::IntoTiles;
 
@@ -126,6 +127,25 @@ impl<'a, E: Client> Dealer<'a, E> {
                     oc_individual::squad::Update::SetOrderPosition(index, position),
                 )]
             }
+            SquadMessage::SetLeaderPosition(position) => self.set_leader_position(squad, position),
         }
+    }
+
+    fn set_leader_position(&self, squad: SquadIndex, position: WorldVec2) -> Vec<Update> {
+        let world = self.state.world();
+        let squad_ = world.squad(squad);
+        let tile_i = WorldTileIndex::from_(position, &world.w);
+
+        let z = world
+            .tile(tile_i)
+            .map(|t| t.z_pixels(&world.w))
+            .unwrap_or(0.);
+        let update = oc_individual::Update::SetPosition(position.extend(z));
+
+        vec![
+            // Update squad position first to let GUI use squad position when orders refresh
+            Update::UpdateSquad(squad, oc_individual::squad::Update::SetPosition(position)),
+            Update::UpdateIndividual(squad_.leader(), update),
+        ]
     }
 }

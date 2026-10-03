@@ -26,6 +26,7 @@ use oc_individual::order::Order;
 use oc_root::Wcfg;
 use oc_root::{
     WorldConfig,
+    battle::BattlePhase,
     geo::{WorldVec2, WorldVec3},
     physics::Meters,
     side,
@@ -101,7 +102,16 @@ fn main() -> Result<(), anyhow::Error> {
 
     let individuals = individuals(&w, &tiles, &args);
     let squads = squads(&w, &tiles, &individuals, &args);
-    let snapshot = SnapshotBuilder::new(map_, individuals, squads, vec![]).build(w, &mod__)?;
+    let snapshot = SnapshotBuilder::new(
+        map_,
+        individuals,
+        squads,
+        vec![],
+        BattlePhase::Fight,
+        vec![],
+        vec![],
+    )
+    .build(w, &mod__)?;
 
     let example = run::Example::builder()
         .world(map)

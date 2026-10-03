@@ -104,6 +104,7 @@ pub struct Individual {
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Update {
+    SetPosition(WorldVec3),
     SetForces(Vec<Force>),
     SetOrders(Vec<Order>),
     SetBehavior(Behavior),

@@ -20,7 +20,10 @@ use oc_world::tile::Tile;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    ingame::{WorldResumeEvent, behavior::SpawnSquadOrders, physics::ObjectId},
+    ingame::{
+        BattlePhase, WorldResumeEvent, behavior::SpawnSquadOrders, physics::ObjectId,
+        spawn::ShowSpawnZones,
+    },
     states::GameConfig,
     world::{path::navmesh, visibilities::Visibilities},
 };
@@ -297,6 +300,7 @@ fn on_world_resume(
     g: Res<GameConfig>,
     mut world: ResMut<World>,
     mut commands: Commands,
+    mut phase: ResMut<NextState<BattlePhase>>,
 ) {
     let_some!(g = &g.0, return);
 
@@ -319,4 +323,14 @@ fn on_world_resume(
         tracing::trace!(name="world-on-world-resume-trigger-spawn-squad-orders", i=?i, orders=?squad.orders);
         commands.trigger(SpawnSquadOrders(*i, squad.orders.clone()));
     }
+
+    commands.trigger(ShowSpawnZones(
+        event.0.side_a_spawns.clone(),
+        event.0.side_b_spawns.clone(),
+    ));
+    let phase_ = match event.0.phase {
+        oc_root::battle::BattlePhase::Deployment => BattlePhase::Deployment,
+        oc_root::battle::BattlePhase::Fight => BattlePhase::Fight,
+    };
+    *phase = NextState::Pending(phase_);
 }

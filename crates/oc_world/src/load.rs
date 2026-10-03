@@ -56,6 +56,9 @@ impl WorldLoader {
             .into_iter()
             .map(|projectile| (ids.next_projectile_id(), projectile))
             .collect();
+        let phase = snapshot.phase;
+        let side_a_spawns = snapshot.side_a_spawns;
+        let side_b_spawns = snapshot.side_b_spawns;
         tracing::debug!("Build navmesh grid");
         let walls = tiles.as_walls(&mod_);
 
@@ -67,6 +70,9 @@ impl WorldLoader {
             w,
             mod_,
             meta,
+            phase,
+            side_a_spawns,
+            side_b_spawns,
             tiles,
             navmesh,
             visibilities,

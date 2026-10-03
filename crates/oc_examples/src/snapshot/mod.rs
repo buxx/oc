@@ -3,9 +3,10 @@ use std::{marker::PhantomData, path::PathBuf};
 use oc_individual::{Individual, squad::Squad};
 use oc_mod::Mod;
 use oc_projectile::Projectile;
-use oc_root::WorldConfig;
+use oc_root::{WorldConfig, battle::BattlePhase};
 use oc_world::{
     snapshot::{SaveError, Snapshot},
+    spawn::SpawnZoneName,
     tile::Tile,
 };
 
@@ -25,6 +26,9 @@ where
     individuals: I,
     squads: S,
     projectiles: P,
+    phase: BattlePhase,
+    side_a_spawns: Vec<SpawnZoneName>,
+    side_b_spawns: Vec<SpawnZoneName>,
 }
 
 impl<T, I, S, P> SnapshotBuilder<T, I, S, P>
@@ -34,12 +38,23 @@ where
     S: squad::SquadsGenerator,
     P: projectile::ProjectilesGenerator,
 {
-    pub fn new(tiles: T, individuals: I, squads: S, projectiles: P) -> Self {
+    pub fn new(
+        tiles: T,
+        individuals: I,
+        squads: S,
+        projectiles: P,
+        phase: BattlePhase,
+        side_a_spawns: Vec<SpawnZoneName>,
+        side_b_spawns: Vec<SpawnZoneName>,
+    ) -> Self {
         Self {
             tiles,
             individuals,
             squads,
             projectiles,
+            phase,
+            side_a_spawns,
+            side_b_spawns,
         }
     }
 
@@ -49,6 +64,9 @@ where
         let individuals = self.individuals.individuals(&w, &tiles);
         let squads = self.squads.squads(&w, &individuals);
         let projectiles = self.projectiles.projectiles(&w, &tiles);
+        let phase = self.phase;
+        let side_a_spawns = self.side_a_spawns.clone();
+        let side_b_spawns = self.side_b_spawns.clone();
 
         let snapshot = Snapshot {
             w,
@@ -56,6 +74,9 @@ where
             individuals,
             squads,
             projectiles,
+            phase,
+            side_a_spawns,
+            side_b_spawns,
         };
         snapshot.save(&snapshot_path)?;
 

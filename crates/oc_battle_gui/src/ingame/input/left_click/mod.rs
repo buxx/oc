@@ -56,8 +56,10 @@ pub struct SpawnProjectileLeftClick(pub SpawnProjectileClickMode);
 #[derive(Debug, Clone, EnumType, is_enum_variant)]
 #[enum_type(derive(EnumIter, States))]
 pub enum LeftClickMode {
-    ///The default mode which is selector
+    /// The default mode which is selector
     Select,
+    /// The dragging state of cursor (permit to prevent select systems)
+    Dragging,
     /// For debug, ability to spawn projectile from mouse
     #[cfg(feature = "debug")]
     SpawnProjectile(SpawnProjectileProfile),
@@ -70,7 +72,7 @@ pub enum LeftClickMode {
 impl LeftClickMode {
     pub fn display_lov(&self) -> bool {
         match self {
-            LeftClickMode::Select => false,
+            LeftClickMode::Select | LeftClickMode::Dragging => false,
             #[cfg(feature = "debug")]
             LeftClickMode::SpawnProjectile(_) => false,
             LeftClickMode::LineOfView(_) => true,
@@ -88,7 +90,7 @@ impl LeftClickMode {
 
     pub fn order(&self) -> Option<&OrderType> {
         match self {
-            LeftClickMode::Select => None,
+            LeftClickMode::Select | LeftClickMode::Dragging => None,
             #[cfg(feature = "debug")]
             LeftClickMode::SpawnProjectile(_) => None,
             LeftClickMode::LineOfView(_) => None,
@@ -110,6 +112,7 @@ impl LeftClickModeType {
     pub fn name(&self) -> &str {
         match self {
             LeftClickModeType::Select => "Select",
+            LeftClickModeType::Dragging => "Dragging",
             LeftClickModeType::SpawnProjectile => "Spawn projectile",
             LeftClickModeType::LineOfView => "Line of view",
             LeftClickModeType::Order => "Order",
@@ -173,7 +176,10 @@ pub fn update_spawn_projectile_clicks_line(
     state: Res<super::State>,
 ) {
     match &mode.0 {
-        LeftClickMode::Select | LeftClickMode::LineOfView(_) | LeftClickMode::Order(_) => {}
+        LeftClickMode::Select
+        | LeftClickMode::Dragging
+        | LeftClickMode::LineOfView(_)
+        | LeftClickMode::Order(_) => {}
         LeftClickMode::SpawnProjectile(_) => {
             if !state.clicks.is_empty() {
                 commands.trigger(DespawnClicksLine);

@@ -5,9 +5,11 @@ use oc_individual::Individual;
 use oc_individual::squad::Squad;
 use oc_projectile::Projectile;
 use oc_root::WorldConfig;
+use oc_root::battle::BattlePhase;
 use rkyv::rancor::Error;
 use rkyv::{Archive, Deserialize, Serialize};
 
+use crate::spawn::SpawnZoneName;
 use crate::tile::Tile;
 
 #[derive(Debug, Archive, Deserialize, Serialize, Constructor)]
@@ -18,6 +20,9 @@ pub struct Snapshot {
     pub individuals: Vec<Individual>,
     pub squads: Vec<Squad>,
     pub projectiles: Vec<Projectile>,
+    pub phase: BattlePhase,
+    pub side_a_spawns: Vec<SpawnZoneName>,
+    pub side_b_spawns: Vec<SpawnZoneName>,
 }
 
 impl Snapshot {
@@ -28,6 +33,9 @@ impl Snapshot {
             individuals: vec![],
             squads: vec![],
             projectiles: vec![],
+            phase: BattlePhase::Deployment,
+            side_a_spawns: vec![],
+            side_b_spawns: vec![],
         }
     }
 
@@ -61,6 +69,11 @@ impl Snapshot {
 
     pub fn with_projectiles(mut self, projectiles: Vec<Projectile>) -> Self {
         self.projectiles = projectiles;
+        self
+    }
+
+    pub fn with_phase(mut self, value: BattlePhase) -> Self {
+        self.phase = value;
         self
     }
 

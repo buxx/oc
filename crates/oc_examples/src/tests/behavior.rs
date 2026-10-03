@@ -9,7 +9,7 @@ use oc_individual::{
     order::Order,
     squad::{Squad, SquadFormation},
 };
-use oc_root::{WcfgFrom, WorldConfig, physics::Meters, side::Side, y::V};
+use oc_root::{WcfgFrom, WorldConfig, battle::BattlePhase, physics::Meters, side::Side, y::V};
 use oc_utils::d2::{Direction, Xy};
 use oc_world::{meta::Meta, tile::Tile};
 #[cfg(feature = "test")]
@@ -44,7 +44,16 @@ pub fn run(
 
     let individuals = individuals(&w, &tiles, &setup, count);
     let squads = squads(&w, &individuals, &setup, count);
-    let snapshot = SnapshotBuilder::new(map_, individuals, squads, vec![]).build(w, &mod__)?;
+    let snapshot = SnapshotBuilder::new(
+        map_,
+        individuals,
+        squads,
+        vec![],
+        BattlePhase::Deployment,
+        vec![],
+        vec![],
+    )
+    .build(w, &mod__)?;
 
     let example = run::Example::builder()
         .world(map)

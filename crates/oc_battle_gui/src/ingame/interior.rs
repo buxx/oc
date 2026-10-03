@@ -7,7 +7,7 @@ use oc_root::{
     files::FilesAsGui,
     geo::{ScreenVec2, WorldVec2},
 };
-use oc_utils::let_some;
+use oc_utils::{let_some, polygon::Polygon};
 use oc_world::interior::Interior;
 
 use crate::{
@@ -71,11 +71,11 @@ fn update_interiors_visibility(
     let positions: Vec<_> = individuals
         .iter()
         .filter(|(_, side, status)| side.0 == identity.side && status.0.can_step())
-        .map(|(position, _, _)| (position.0.x, position.0.y))
+        .map(|(position, _, _)| position)
         .collect();
 
     for (interior, mut visibility) in &mut interiors {
-        let displayed = positions.iter().any(|(x, y)| interior.contains(*x, *y));
+        let displayed = positions.iter().any(|p| interior.contains(p.0.into()));
         match displayed {
             true => *visibility = Visibility::Visible,
             false => *visibility = Visibility::Hidden,

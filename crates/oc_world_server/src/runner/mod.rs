@@ -9,9 +9,9 @@ use std::{
 use derive_more::Constructor;
 use oc_individual::{IndividualIndex, squad::SquadIndex};
 use oc_network::{GameConfig, ToClient};
-use oc_root::Client;
 #[cfg(feature = "debug")]
 use oc_root::side::Side;
+use oc_root::{Client, battle::BattlePhase};
 use rayon::{
     iter::{IndexedParallelIterator, ParallelIterator},
     slice::ParallelSlice,
@@ -238,6 +238,11 @@ impl<E: Client> Runner<E> {
                     let world = &ctx.state.world();
                     let indexes = &ctx.state.indexes();
                     tracing::trace!(name = "runner-visibilities");
+
+                    if !matches!(world.phase, BattlePhase::Fight) {
+                        continue;
+                    }
+
                     crate::visibility::Processor::new(world, indexes).compute()
                 };
 

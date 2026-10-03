@@ -37,6 +37,7 @@ impl super::Context {
             });
 
         match left_click_mode {
+            LeftClickModeType::Dragging => {}
             LeftClickModeType::Select => {
                 commands.trigger(SetLeftClick(LeftClickMode::Select));
             }

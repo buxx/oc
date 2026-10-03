@@ -15,8 +15,10 @@ use oc_geo::tile::WorldTileIndex;
 use oc_individual::order::Order;
 use oc_mod::Mod;
 use oc_root::{
-    WcfgInto, WorldConfig, geo::WorldVec2, physics::Meters, side::Side, utils::Frequency,
+    WcfgInto, WorldConfig, battle::BattlePhase, geo::WorldVec2, physics::Meters, side::Side,
+    utils::Frequency,
 };
+#[cfg(feature = "test")]
 use oc_utils::let_some;
 #[cfg(feature = "test")]
 use oc_world::interior::Interior;
@@ -65,7 +67,16 @@ fn main() -> Result<(), anyhow::Error> {
 
     let individuals = individuals(&w, &mod_, &tiles, &args);
     let squads = squads(&w, &tiles, &individuals, &args);
-    let snapshot = SnapshotBuilder::new(map, individuals, squads, vec![]).build(w, &mod_)?;
+    let snapshot = SnapshotBuilder::new(
+        map,
+        individuals,
+        squads,
+        vec![],
+        BattlePhase::Fight,
+        vec![],
+        vec![],
+    )
+    .build(w, &mod_)?;
 
     let example = run::Example::builder()
         .world(map_)

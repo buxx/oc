@@ -15,6 +15,7 @@ use crate::{
     utils::Frequency,
 };
 
+pub mod battle;
 pub mod behavior;
 pub mod end;
 pub mod files;

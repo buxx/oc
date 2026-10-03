@@ -41,22 +41,51 @@ pub enum Visual {
 }
 
 #[derive(Debug)]
-pub struct DragPlugin<T: Dragging + std::fmt::Debug + Send + Sync + 'static>(PhantomData<T>);
+pub struct DragPlugin<T: Dragging + std::fmt::Debug + Send + Sync + 'static, S: States + Copy> {
+    in_state: Option<S>,
+    _marker: PhantomData<T>,
+}
 
-impl<T: Dragging + std::fmt::Debug + Send + Sync + 'static> Default for DragPlugin<T> {
+impl<T: Dragging + std::fmt::Debug + Send + Sync + 'static, S: States + Copy> Default
+    for DragPlugin<T, S>
+{
     fn default() -> Self {
-        Self(PhantomData)
+        Self {
+            in_state: None,
+            _marker: PhantomData,
+        }
     }
 }
 
-impl<T: Dragging + std::fmt::Debug + Send + Sync + 'static> Plugin for DragPlugin<T> {
+impl<T: Dragging + std::fmt::Debug + Send + Sync + 'static, S: States + Copy> DragPlugin<T, S> {
+    pub fn new(state: S) -> Self {
+        Self {
+            in_state: Some(state),
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<T: Dragging + std::fmt::Debug + Send + Sync + 'static, S: States + Copy> Plugin
+    for DragPlugin<T, S>
+{
     fn build(&self, app: &mut App) {
         app.init_resource::<Cursor>()
             .add_observer(on_drag_stop::<T>);
 
-        match T::visual() {
-            Visual::Offset => app.add_systems(Update, update_positions::<T>),
-            Visual::Direction => app.add_systems(Update, update_directions::<T>),
+        match self.in_state {
+            Some(state) => match T::visual() {
+                Visual::Offset => {
+                    app.add_systems(Update, update_positions::<T>.run_if(in_state(state)))
+                }
+                Visual::Direction => {
+                    app.add_systems(Update, update_directions::<T>.run_if(in_state(state)))
+                }
+            },
+            None => match T::visual() {
+                Visual::Offset => app.add_systems(Update, update_positions::<T>),
+                Visual::Direction => app.add_systems(Update, update_directions::<T>),
+            },
         };
     }
 }

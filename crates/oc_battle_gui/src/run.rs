@@ -10,7 +10,7 @@ use oc_root::Wcfg;
 use crate::config::{Config, Config_};
 #[cfg(feature = "debug")]
 use crate::debug;
-use crate::ingame::InGameState;
+use crate::ingame::{BattlePhase, InGameState};
 use crate::sprites::Animations;
 use crate::states::{Game, GameConfig, PointerIn};
 use crate::{
@@ -77,6 +77,7 @@ pub fn run(
         .init_resource::<GameConfig>()
         .init_resource::<states::Window>()
         .init_state::<InGameState>()
+        .init_state::<BattlePhase>()
         .init_state::<PointerIn>()
         .insert_resource(Config(config))
         .add_systems(Startup, setup::setup);

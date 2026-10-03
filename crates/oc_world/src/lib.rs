@@ -9,11 +9,13 @@ use oc_individual::{
 };
 use oc_mod::Mod;
 use oc_projectile::{Projectile, ProjectileId};
-use oc_root::{WcfgInto, WorldConfig, identity::Identity};
+use oc_root::{WcfgInto, WorldConfig, battle::BattlePhase, identity::Identity};
 use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
 
-use crate::{meta::Meta, resume::WorldResume, tile::Tile, visibility::Visibilities};
+use crate::{
+    meta::Meta, resume::WorldResume, spawn::SpawnZoneName, tile::Tile, visibility::Visibilities,
+};
 
 pub mod cache;
 pub mod control;
@@ -41,6 +43,9 @@ pub struct World {
     pub w: WorldConfig,
     pub mod_: Mod, // Maybe its place is not in world (when want to access, need to read lock World, but Mod never change)
     pub meta: Meta,
+    pub phase: BattlePhase,
+    pub side_a_spawns: Vec<SpawnZoneName>,
+    pub side_b_spawns: Vec<SpawnZoneName>,
     pub tiles: Vec<Tile>,
     pub navmesh: polyanya::Mesh,
     pub visibilities: Visibilities,
@@ -135,8 +140,16 @@ impl World {
             .filter(|(_, s)| s.side == identity.side)
             .map(|(i, s)| (SquadIndex(i as u64), s.clone()))
             .collect();
+        let phase = self.phase.clone();
+        let side_a_spawns = self.side_a_spawns.clone();
+        let side_b_spawns = self.side_b_spawns.clone();
 
-        WorldResume { squads }
+        WorldResume {
+            squads,
+            phase,
+            side_a_spawns,
+            side_b_spawns,
+        }
     }
 }
 
@@ -171,6 +184,9 @@ mod tests {
             w.clone(),
             mod_,
             meta,
+            BattlePhase::Fight,
+            vec![],
+            vec![],
             tiles,
             polyanya::Mesh::default(),
             Visibilities::empty(0),

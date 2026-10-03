@@ -13,7 +13,7 @@ use oc_battle_gui::{
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
 use oc_network::ToServer;
-use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
+use oc_root::{WorldConfig, battle::BattlePhase, geo::WorldVec3, physics::Meters, side::Side};
 use oc_utils::let_some;
 use oc_world::{load::WorldPath, meta::Meta, reader};
 #[cfg(feature = "test")]
@@ -59,7 +59,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let world = world.context(format!("Read file {}", map_.meta().display()))?;
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
         .with_geo_meters_per_z(Meters(world.geo_meters_per_z));
-    let snapshot = SnapshotBuilder::new(map, vec![], vec![], vec![]).build(w, &mod_)?;
+    let snapshot = SnapshotBuilder::new(
+        map,
+        vec![],
+        vec![],
+        vec![],
+        BattlePhase::Fight,
+        vec![],
+        vec![],
+    )
+    .build(w, &mod_)?;
 
     let example = run::Example::builder()
         .world(map_)

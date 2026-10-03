@@ -12,7 +12,10 @@ use oc_examples::{logging, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectiles;
-use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side::Side, static_::StaticSource};
+use oc_root::{
+    WorldConfig, battle::BattlePhase, geo::WorldVec3, physics::Meters, side::Side,
+    static_::StaticSource,
+};
 use oc_world::meta::Meta;
 #[cfg(feature = "test")]
 use oc_world_server::tracker::Tracker;
@@ -32,8 +35,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let map = map.context(format!("Read map {}", map_.display()))?;
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
         .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
-    let snapshot =
-        SnapshotBuilder::new(map.clone(), vec![], vec![], vec![]).build(w.clone(), &mod__)?;
+    let snapshot = SnapshotBuilder::new(
+        map.clone(),
+        vec![],
+        vec![],
+        vec![],
+        BattlePhase::Fight,
+        vec![],
+        vec![],
+    )
+    .build(w.clone(), &mod__)?;
     let config = ServerConfig::builder()
         .world(world.clone())
         .mod_(mod_.clone())

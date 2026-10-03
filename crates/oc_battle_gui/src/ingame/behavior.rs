@@ -13,8 +13,9 @@ use oc_utils::{collections::InvertedIndex, d2::Direction, let_ok, let_some};
 use rustc_hash::FxHashMap;
 
 use crate::{
+    entity::individual::IndividualIndex,
     ingame::{
-        InGameState,
+        BattlePhase, InGameState,
         draw::{self, UI_FILE, Z_SQUAD_ORDER},
         input::left_click::{LeftClickMode, LeftClickModeType, SetLeftClick, order::PendingOrder},
         lov::DespawnLov,
@@ -251,57 +252,44 @@ pub fn on_update_direction_squad_order_target(
 
 impl Plugin for BehaviorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(DragPlugin::<PositionSquadOrder>::default())
-            .add_plugins(DragPlugin::<DirectionSquadOrder>::default())
-            .init_resource::<IndividualOrders>()
-            .init_resource::<SquadOrders>()
-            .add_observer(on_refresh_individual_orders)
-            .add_observer(on_spawn_individual_order)
-            .add_observer(on_despawn_individual_order)
-            .add_observer(on_despawn_individual_orders)
-            .add_observer(on_refresh_squad_orders)
-            .add_observer(on_spawn_squad_order)
-            .add_observer(on_spawn_squad_orders)
-            .add_observer(on_despawn_squad_order)
-            .add_observer(on_despawn_squad_orders)
-            .add_observer(on_listening_region)
-            .add_observer(on_forgotten_region)
-            .add_observer(on_spawn_squad_order_marker_phantom)
-            .add_observer(on_drop_squad_order_marker_phantom)
-            .add_observer(on_enter_drag_direction_squad_order_marker)
-            .add_observer(on_set_position)
-            .add_observer(on_update_direction_squad_order_target);
+        app.add_plugins(DragPlugin::<PositionSquadOrder, InGameState>::new(
+            InGameState::Battle,
+        ))
+        .add_plugins(DragPlugin::<DirectionSquadOrder, InGameState>::new(
+            InGameState::Battle,
+        ))
+        .add_plugins(DragPlugin::<IndividualIndex, BattlePhase>::new(
+            BattlePhase::Deployment,
+        ))
+        .init_resource::<IndividualOrders>()
+        .init_resource::<SquadOrders>()
+        .add_observer(on_refresh_individual_orders)
+        .add_observer(on_spawn_individual_order)
+        .add_observer(on_despawn_individual_order)
+        .add_observer(on_despawn_individual_orders)
+        .add_observer(on_refresh_squad_orders)
+        .add_observer(on_spawn_squad_order)
+        .add_observer(on_spawn_squad_orders)
+        .add_observer(on_despawn_squad_order)
+        .add_observer(on_despawn_squad_orders)
+        .add_observer(on_listening_region)
+        .add_observer(on_forgotten_region)
+        .add_observer(on_spawn_squad_order_marker_phantom)
+        .add_observer(on_drop_squad_order_marker_phantom)
+        .add_observer(on_enter_drag_direction_squad_order_marker)
+        .add_observer(on_set_position)
+        .add_observer(on_update_direction_squad_order_target);
     }
 }
 
-fn on_refresh_individual_orders(
-    event: On<RefreshIndividualOrdersEvent>,
-    orders: Res<IndividualOrders>,
-    mut commands: Commands,
-) {
+fn on_refresh_individual_orders(event: On<RefreshIndividualOrdersEvent>, mut commands: Commands) {
     let (i, orders_) = (event.0, &event.1);
-    tracing::trace!(name = "ingame-behavior-on-refresh-individual-orders", i=?i, orders=?orders_, x=?orders.0);
+    tracing::trace!(name = "ingame-behavior-on-refresh-individual-orders", i=?i, orders=?orders_);
 
-    // Search for new ones
+    // Despawn all then spawn all to ensure a total refresh
+    commands.trigger(DespawnIndividualOrders(i));
     for order in orders_ {
-        if orders
-            .get(&i)
-            .and_then(|orders| orders.iter().find(|(o, _)| o == order))
-            .is_none()
-        {
-            tracing::trace!(name = "ingame-behavior-on-refresh-individual-orders-trigger-spawn-order", i=?i, order=?order);
-            commands.trigger(SpawnIndividualOrder(i, order.clone()));
-        }
-    }
-
-    // Search for missing ones
-    if let Some(orders) = orders.get(&i) {
-        for (order, _) in orders {
-            if orders_.iter().find(|o| o == &order).is_none() {
-                tracing::trace!(name = "ingame-behavior-on-refresh-individual-orders-trigger-despawn-order", i=?i, order=?order);
-                commands.trigger(DespawnIndividualOrder(i, order.clone()));
-            }
-        }
+        commands.trigger(SpawnIndividualOrder(i, order.clone()));
     }
 }
 
@@ -313,44 +301,39 @@ fn on_refresh_squad_orders(
     let (i, orders_) = (event.0, &event.1);
     tracing::trace!(name = "ingame-behavior-on-refresh-squad-orders", i=?i, order=?orders_);
 
-    // Search for new ones
-    for (o, order) in orders_.iter().rev().enumerate() {
-        if orders
+    // Despawn all then spawn all to ensure a total refresh
+    commands.trigger(DespawnSquadOrders(i));
+
+    // Orders not already displayed are pending (just given)
+    let is_new = |order: &Order| {
+        orders
             .get(&i)
             .and_then(|orders| orders.iter().find(|(o, _)| o == order))
             .is_none()
-        {
-            tracing::trace!(name = "ingame-behavior-on-refresh-squad-orders-trigger-spawn-order", i=?i, order=?order);
-
-            if let Some(spawn) = match order {
-                Order::Idle => None,
-                Order::MoveTo(_)
-                | Order::MoveFastTo(_)
-                | Order::SneakTo(_)
-                | Order::Engage(_)
-                | Order::Suppress(_) => Some(SpawnSquadOrder::Position(
-                    i,
-                    OrderIndex(o as u32),
-                    order.clone(),
-                )),
-                Order::Defend(_) | Order::Hide(_) => {
-                    Some(SpawnSquadOrder::Direction(i, order.clone(), true))
-                }
-            } {
-                commands.trigger(spawn);
+    };
+    let spawns: Vec<_> = orders_
+        .iter()
+        .rev()
+        .enumerate()
+        .filter_map(|(o, order)| match order {
+            Order::Idle => None,
+            Order::MoveTo(_)
+            | Order::MoveFastTo(_)
+            | Order::SneakTo(_)
+            | Order::Engage(_)
+            | Order::Suppress(_) => Some(SpawnSquadOrder::Position(
+                i,
+                OrderIndex(o as u32),
+                order.clone(),
+            )),
+            Order::Defend(_) | Order::Hide(_) => {
+                Some(SpawnSquadOrder::Direction(i, order.clone(), is_new(order)))
             }
-        }
-    }
+        })
+        .collect();
 
-    // FIXME: dans les logs vu deux fois le despawn, bizarre
-    // Search for missing ones
-    if let Some(orders) = orders.get(&i) {
-        for (order, _) in orders {
-            if orders_.iter().find(|o| o == &order).is_none() {
-                tracing::trace!(name = "ingame-behavior-on-refresh-squad-orders-trigger-despawn-order", i=?i, order=?order);
-                commands.trigger(DespawnSquadOrder(i, order.clone()));
-            }
-        }
+    for spawn in spawns {
+        commands.trigger(spawn);
     }
 }
 

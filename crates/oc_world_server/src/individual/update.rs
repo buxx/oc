@@ -1,5 +1,6 @@
 use oc_individual::{IndividualIndex, Update, behavior::Intent, network};
 use oc_network::ToClient;
+use oc_physics::UpdatePhysic;
 use oc_world::World;
 
 use crate::routing::Listening;
@@ -12,6 +13,9 @@ pub fn write(
     let individual = world.individual_mut(i);
 
     match &update {
+        Update::SetPosition(position) => {
+            individual.set_position(*position);
+        }
         Update::SetBehavior(behavior) => {
             individual.behavior = behavior.clone();
         }

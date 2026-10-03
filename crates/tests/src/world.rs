@@ -3,11 +3,12 @@ use oc_geo::tile::WorldTileIndex;
 use oc_individual::{Individual, IndividualIndex, squad::Squad};
 use oc_mod::{Mod, nature::NatureIndex};
 use oc_projectile::{Projectile, ProjectileId};
-use oc_root::WorldConfig;
+use oc_root::{WorldConfig, battle::BattlePhase};
 use oc_world::{
     World,
     meta::Meta,
     navmesh::{Walls, navmesh},
+    spawn::SpawnZoneName,
     tile::Tile,
     visibility::Visibilities,
 };
@@ -26,6 +27,12 @@ pub struct TestWorld {
     mod_: Mod,
     #[builder(default)]
     meta: Meta,
+    #[builder(default = BattlePhase::Deployment)]
+    phase: BattlePhase,
+    #[builder(default)]
+    side_a_spawns: Vec<SpawnZoneName>,
+    #[builder(default)]
+    side_b_spawns: Vec<SpawnZoneName>,
     tiles: Option<Vec<Tile>>,
     #[builder(default)]
     individuals: Vec<Individual>,
@@ -72,6 +79,9 @@ impl TestWorld {
             visibilities: Visibilities::empty(individuals_count),
             squads,
             projectiles: self.projectiles,
+            phase: self.phase,
+            side_a_spawns: self.side_a_spawns.clone(),
+            side_b_spawns: self.side_b_spawns.clone(),
         }
     }
 }

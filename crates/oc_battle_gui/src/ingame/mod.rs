@@ -44,6 +44,7 @@ pub mod path;
 pub mod physics;
 pub mod projectile;
 pub mod region;
+pub mod spawn;
 pub mod squad;
 pub mod state;
 pub mod world;
@@ -73,6 +74,13 @@ pub struct SwitchToHeightMap;
 
 #[derive(Debug, Event)]
 pub struct RestoreBattleCenter;
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
+pub enum BattlePhase {
+    #[default]
+    Deployment,
+    Fight,
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
 pub enum InGameState {
@@ -113,6 +121,7 @@ impl Plugin for IngamePlugin {
             .add_observer(path::on_compute_display_paths)
             // .add_observer(on_forgotten_region)
             .add_observer(physics::on_physics_event)
+            .add_observer(spawn::on_show_spawn_zones)
             // TODO: despawn entities on OnExit(AppState::InGame)
             .add_systems(Startup, (path::setup,))
             .add_systems(Startup, (init::init,))

@@ -5,7 +5,7 @@ use oc_geo::tile::WorldTileIndex;
 use oc_individual::{Individual, IndividualIndex, Weapon, squad::Squad};
 use oc_mod::Mod;
 use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec2, side::Side};
-use oc_world::{snapshot::Snapshot, tile::Tile};
+use oc_world::{snapshot::Snapshot, spawn::SpawnZone, tile::Tile};
 use serde::{Deserialize, Serialize};
 
 use crate::deployment::place::Placer;
@@ -18,13 +18,15 @@ pub mod weapon;
 
 #[derive(Debug, Deserialize, Serialize, Default)]
 pub struct Deployments {
-    side_a: Deployment,
-    side_b: Deployment,
+    pub side_a: Deployment,
+    pub side_b: Deployment,
 }
 
 #[derive(Debug, Deserialize, Serialize, Default)]
 pub struct Deployment {
     pub squads: Vec<squad::Squad>,
+    #[serde(default)]
+    pub spawns: Vec<SpawnZone>,
 }
 
 impl Deployment {
@@ -44,6 +46,12 @@ impl Deployments {
         })
     }
 
+    pub fn with_spawns(mut self, side_a: Vec<SpawnZone>, side_b: Vec<SpawnZone>) -> Self {
+        self.side_a.spawns = side_a;
+        self.side_b.spawns = side_b;
+        self
+    }
+
     pub fn mobilize(
         &self,
         w: &WorldConfig,
@@ -58,7 +66,7 @@ impl Deployments {
 
         let mut fill_with = |deployment: &Deployment, side: Side| -> Result<(), anyhow::Error> {
             for squad in &deployment.squads {
-                fill_squad(w, mod_, snapshot, placer, &mut i, side, squad, tiles)?;
+                self.fill_squad(w, mod_, snapshot, placer, &mut i, side, squad, tiles)?;
             }
 
             Ok(())
@@ -76,112 +84,123 @@ impl Deployments {
 
         Ok(())
     }
-}
 
-#[allow(clippy::too_many_arguments)]
-fn fill_squad(
-    w: &WorldConfig,
-    mod_: &Mod,
-    snapshot: &mut Snapshot,
-    placer: &Placer,
-    i: &mut u64,
-    side: Side,
-    squad: &squad::Squad,
-    tiles: &[Tile],
-) -> Result<(), anyhow::Error> {
-    let mut individuals = vec![];
-    let position = placer.place(squad.uuid);
+    #[allow(clippy::too_many_arguments)]
+    fn fill_squad(
+        &self,
+        w: &WorldConfig,
+        mod_: &Mod,
+        snapshot: &mut Snapshot,
+        placer: &Placer,
+        i: &mut u64,
+        side: Side,
+        squad: &squad::Squad,
+        tiles: &[Tile],
+    ) -> Result<(), anyhow::Error> {
+        let mut individuals = vec![];
+        let spawns = match side {
+            Side::A => &self.side_a.spawns,
+            Side::B => &self.side_b.spawns,
+        };
+        let occupied: Vec<WorldVec2> = snapshot.squads.iter().map(|s| s.position).collect();
+        let position = placer.place(spawns, squad.uuid, &occupied);
 
-    for individual_ in &squad.individuals {
-        let individual = fill_individual(w, mod_, i, side, individual_, position, tiles)?;
-        individuals.push(IndividualIndex(*i));
-        snapshot.individuals.push(individual);
-        *i += 1;
+        for individual_ in &squad.individuals {
+            let individual =
+                self.fill_individual(w, mod_, i, side, individual_, position, tiles)?;
+            individuals.push(IndividualIndex(*i));
+            snapshot.individuals.push(individual);
+            *i += 1;
+        }
+
+        let squad = Squad::fresh(side, individuals.clone(), position);
+        snapshot.squads.push(squad);
+
+        Ok(())
     }
 
-    let squad = Squad::fresh(side, individuals.clone(), position);
-    snapshot.squads.push(squad);
+    fn fill_individual(
+        &self,
+        w: &WorldConfig,
+        mod_: &Mod,
+        individual_index: &mut u64,
+        side: Side,
+        individual_: &individual::Individual,
+        squad_position: WorldVec2,
+        tiles: &[Tile],
+    ) -> Result<Individual, anyhow::Error> {
+        // FIXME BS NOW: z; and according to formation (and according to best opacity tile)
+        let tile = WorldTileIndex::from_(squad_position, w);
+        let tile = &tiles[tile.0 as usize];
+        let z = tile.z_pixels(w);
+        let position = squad_position.extend(z);
+        let mut individual = Individual::fresh(w, side, position);
 
-    Ok(())
-}
+        if let Some(weapon) = &individual_.weapons.main {
+            let weapon = mod_.weapon_from_name(weapon)?;
+            let (filled, filled_count) =
+                self.fill_weapon(mod_, individual_, weapon)
+                    .context(format!(
+                        "Fill weapon for individual {individual_index} and mod {}",
+                        mod_.name()
+                    ))?;
+            individual.weapons.primary = Some(Weapon {
+                i: weapon.index(),
+                filled,
+                filled_count,
+            });
+        }
 
-fn fill_individual(
-    w: &WorldConfig,
-    mod_: &Mod,
-    individual_index: &mut u64,
-    side: Side,
-    individual_: &individual::Individual,
-    squad_position: WorldVec2,
-    tiles: &[Tile],
-) -> Result<Individual, anyhow::Error> {
-    // FIXME BS NOW: z; and according to formation (and according to best opacity tile)
-    let tile = WorldTileIndex::from_(squad_position, w);
-    let tile = &tiles[tile.0 as usize];
-    let z = tile.z_pixels(w);
-    let position = squad_position.extend(z);
-    let mut individual = Individual::fresh(w, side, position);
+        for magazine in &individual_.magazines {
+            let magazine = mod_.magazine_from_name(&magazine.name).context(format!(
+                "Fill magazine for individual {individual_index} and magazine {} and mod {}",
+                magazine.name,
+                mod_.name()
+            ))?;
 
-    if let Some(weapon) = &individual_.weapons.main {
-        let weapon = mod_.weapon_from_name(weapon)?;
-        let (filled, filled_count) = fill_weapon(mod_, individual_, weapon).context(format!(
-            "Fill weapon for individual {individual_index} and mod {}",
-            mod_.name()
-        ))?;
-        individual.weapons.primary = Some(Weapon {
-            i: weapon.index(),
-            filled,
-            filled_count,
-        });
+            individual.magazines.push(magazine.index());
+        }
+
+        Ok(individual)
     }
 
-    for magazine in &individual_.magazines {
-        let magazine = mod_.magazine_from_name(&magazine.name).context(format!(
-            "Fill magazine for individual {individual_index} and magazine {} and mod {}",
-            magazine.name,
-            mod_.name()
-        ))?;
+    // Search from deployment individual magazines if one match with weapon compatible magazines
+    fn fill_weapon(
+        &self,
+        mod_: &Mod,
+        deployment_individual: &individual::Individual,
+        weapon: &oc_mod::weapons::IndexedWeapon,
+    ) -> Result<
+        (
+            Option<(
+                oc_mod::magazine::MagazineIndex,
+                oc_mod::ammunition::AmmunitionIndex,
+            )>,
+            u16,
+        ),
+        anyhow::Error,
+    > {
+        for magazine in &deployment_individual.magazines {
+            // If it is an accepted magazine by this weapon
+            if weapon.magazines().iter().any(|m| m.name() == magazine.name) {
+                // Read real magazine from mod
+                let magazine = mod_.magazine_from_name(&magazine.name)?;
 
-        individual.magazines.push(magazine.index());
-    }
-
-    Ok(individual)
-}
-
-// Search from deployment individual magazines if one match with weapon compatible magazines
-fn fill_weapon(
-    mod_: &Mod,
-    deployment_individual: &individual::Individual,
-    weapon: &oc_mod::weapons::IndexedWeapon,
-) -> Result<
-    (
-        Option<(
-            oc_mod::magazine::MagazineIndex,
-            oc_mod::ammunition::AmmunitionIndex,
-        )>,
-        u16,
-    ),
-    anyhow::Error,
-> {
-    for magazine in &deployment_individual.magazines {
-        // If it is an accepted magazine by this weapon
-        if weapon.magazines().iter().any(|m| m.name() == magazine.name) {
-            // Read real magazine from mod
-            let magazine = mod_.magazine_from_name(&magazine.name)?;
-
-            // This magazine must accept ammunition model which is compatible with weapon
-            let magazine_ammunitions = mod_.ammunitions_from_model_names(magazine.accept());
-            if let Some(ammunition) = weapon
-                .ammunitions()
-                .iter()
-                .find(|a| magazine_ammunitions.contains(a))
-            {
-                return Ok((
-                    Some((magazine.index(), ammunition.index())),
-                    magazine.capacity(),
-                ));
+                // This magazine must accept ammunition model which is compatible with weapon
+                let magazine_ammunitions = mod_.ammunitions_from_model_names(magazine.accept());
+                if let Some(ammunition) = weapon
+                    .ammunitions()
+                    .iter()
+                    .find(|a| magazine_ammunitions.contains(a))
+                {
+                    return Ok((
+                        Some((magazine.index(), ammunition.index())),
+                        magazine.capacity(),
+                    ));
+                }
             }
         }
-    }
 
-    Ok((None, 0))
+        Ok((None, 0))
+    }
 }

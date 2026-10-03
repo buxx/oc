@@ -29,6 +29,8 @@ fn download(
     network: Res<network::state::State>,
     mut world_: ResMut<World>,
     assets: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) -> Result<(), BevyError> {
     let_some!(g = &g.0, return Ok(()));
     let_some!(connect = network.server.clone(), return Ok(()));
@@ -58,8 +60,6 @@ fn download(
     let world_dir = std::path::Path::new("assets").join(files.world_());
     let map = oc_world::reader::MapReader::new(&world_dir).unwrap(); // TODO
     for interior in map.interiors().unwrap() {
-        // TODO: when quit ingame state, must despawn
-        ingame::interior::spawn(&mut commands, &assets, &files, &g.w, interior.clone());
         ensure_file(
             &files,
             files::File::Interior(interior.id),
@@ -67,6 +67,14 @@ fn download(
             region_height,
         )
         .unwrap(); // TODO
+        // TODO: when quit ingame state, must despawn
+        ingame::interior::spawn(&mut commands, &assets, &files, &g.w, interior.clone());
+    }
+
+    // TODO unwrap
+    for spawn_zone in map.spawn_zones().unwrap() {
+        // TODO: when quit ingame state, must despawn
+        ingame::spawn::spawn_zone(&mut commands, &mut meshes, &mut materials, &g.w, spawn_zone);
     }
 
     // FIXME: check tile size

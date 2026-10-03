@@ -7,7 +7,7 @@ edition = "2024"
 workspace = true
 
 [features]
-bevy = ["dep:bevy"]
+bevy = ["dep:bevy", "dep:geo"]
 tests = []
 debug = []
 
@@ -41,6 +41,7 @@ bevy = { workspace = true, optional = true }
 strum.workspace = true
 strum_macros.workspace = true
 polyanya.workspace = true
+geo = { workspace = true, optional = true }
 
 [dev-dependencies]
 rstest.workspace = true

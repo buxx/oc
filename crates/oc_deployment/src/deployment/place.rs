@@ -2,35 +2,48 @@ use std::collections::HashMap;
 
 use getset::WithSetters;
 use oc_root::geo::WorldVec2;
+use oc_utils::polygon::Polygon;
+use oc_world::spawn::SpawnZone;
 use uuid::Uuid;
 
 #[derive(Debug, WithSetters)]
 pub struct Placer {
-    places: HashMap<Uuid, WorldVec2>,
+    places: Vec<WorldVec2>,
+    assigned: HashMap<Uuid, WorldVec2>,
     #[getset(set_with = "pub")]
     order: OrderPolicy,
 }
 
 impl Placer {
-    pub fn random() -> Self {
+    pub fn new(places: Vec<WorldVec2>) -> Self {
         Self {
-            places: HashMap::default(),
-            order: OrderPolicy::default(),
-        }
-    }
-    pub fn places(places: Vec<(Uuid, WorldVec2)>) -> Self {
-        Self {
-            places: places.into_iter().collect(),
+            places,
+            assigned: HashMap::default(),
             order: OrderPolicy::default(),
         }
     }
 
-    pub fn place(&self, uuid: Uuid) -> WorldVec2 {
-        if let Some(place) = self.places.get(&uuid) {
+    pub fn with_assigned(mut self, places: Vec<(Uuid, WorldVec2)>) -> Self {
+        self.assigned = places.into_iter().collect();
+        self
+    }
+
+    pub fn place(&self, spawns: &[SpawnZone], uuid: Uuid, occupied: &[WorldVec2]) -> WorldVec2 {
+        // If placer already know a place for the squad, us it
+        if let Some(place) = self.assigned.get(&uuid) {
             return *place;
         }
 
-        // FIXME BS NOW: place somewhere (must know spawn zones, etc)
+        // Elsewhere, find a place in available spawn zone
+        if let Some(place) = self
+            .places
+            .iter()
+            .find(|p| !occupied.contains(p) && spawns.iter().any(|s| s.contains(**p)))
+        {
+            return *place;
+        }
+
+        // FIXME BS NOW: place somewhere randomly
         todo!()
     }
 

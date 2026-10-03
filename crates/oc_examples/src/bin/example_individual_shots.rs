@@ -21,7 +21,9 @@ use oc_individual::{
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectiles;
-use oc_root::{Wcfg, WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
+use oc_root::{
+    Wcfg, WorldConfig, battle::BattlePhase, geo::WorldVec3, physics::Meters, side::Side,
+};
 use oc_utils::{d2::Direction, let_some};
 use oc_world::{meta::Meta, tile::Tile};
 
@@ -67,7 +69,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_geo_pixels_per_meters(5.0);
     let tiles = map_.tiles(&w, &mod__).unwrap();
     let (individuals, squads) = individuals(&args, &w, &tiles);
-    let snapshot = SnapshotBuilder::new(map_, individuals, squads, vec![]).build(w, &mod__)?;
+    let snapshot = SnapshotBuilder::new(
+        map_,
+        individuals,
+        squads,
+        vec![],
+        BattlePhase::Fight,
+        vec![],
+        vec![],
+    )
+    .build(w, &mod__)?;
 
     let example = run::Example::builder()
         .world(map)

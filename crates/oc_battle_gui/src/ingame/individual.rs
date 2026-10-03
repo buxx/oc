@@ -2,16 +2,20 @@ use bevy::prelude::*;
 use bevy_spritesheet_animation::prelude::*;
 use oc_geo::region::WorldRegionIndex;
 use oc_mod::magazine::MagazineIndex;
+use oc_network::{SquadMessage, ToServer};
 use oc_physics::Physic;
 use oc_physics::collision::{Material, Material_};
 use oc_physics::update::bevy::{Forces, PhysicsPlugin, Position, Region, Tile, Volumes};
 use oc_root::WcfgFrom;
-use oc_root::geo::ScreenVec2;
+use oc_root::geo::WorldVec2;
+use oc_root::geo::{ScreenVec2, WorldVec3};
 use oc_root::identity::Identity;
 use oc_root::y::V;
 use oc_utils::bevy::EntityMapping;
 use oc_utils::let_ok;
 use oc_utils::let_some;
+use oc_utils::polygon::Polygon;
+use oc_world::spawn::SpawnZone;
 
 use crate::entity::individual::{Behavior, IndividualIndex, Intent, Orders, Side};
 use crate::ingame::behavior::{
@@ -21,18 +25,21 @@ use crate::ingame::draw::Z_INDIVIDUAL;
 use crate::ingame::input::individual::{
     InsertIndividualEvent, UpdateIndividualEvent, UpdateIndividualPhysicsEvent,
 };
-use crate::ingame::input::left_click::LeftClickModeType;
 use crate::ingame::input::left_click::select::Select;
+use crate::ingame::input::left_click::{LeftClickMode, LeftClickModeType, SetLeftClick};
 use crate::ingame::physics::Direction;
 use crate::ingame::region::ForgottenRegion;
+use crate::ingame::spawn::OwnSpawnZone;
 use crate::ingame::squad::menu::contextual::{
     self, PrepareOpenSquadContextualMenu, on_prepare_open_squad_contextual_menu,
 };
-use crate::ingame::{self, InGameState};
+use crate::ingame::{self, BattlePhase, InGameState};
 use crate::menu::contextual::close::CloseContextMenu;
+use crate::network::output::ToServerEvent;
 use crate::sprites::IntoAnimation;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
 use crate::states::{AppState, GameConfig};
+use crate::utils::drag::{self, Dragged, Dragging, Phantom};
 use crate::utils::hover::{self, Hovered, HoveredPlugin};
 use crate::utils::selected::{self, Selected, SelectedPlugin};
 use crate::world::World;
@@ -46,6 +53,9 @@ pub struct ForgotIndividual(pub oc_individual::IndividualIndex);
 
 #[derive(Debug, Deref, Event)]
 pub struct RefreshRender(pub oc_individual::IndividualIndex);
+
+#[derive(Debug, Event)]
+pub struct SetPositionEvent(oc_individual::IndividualIndex, WorldVec3);
 
 #[derive(Debug, Event)]
 pub struct SetBehaviorEvent(
@@ -226,7 +236,12 @@ pub fn on_insert_individual(
                 Transform::from_xyz(position_.x, position_.y, Z_INDIVIDUAL).with_rotation(rotation),
             ),
             // Surface (clicking, etc)
-            (Pickable::default(), Hovered::default(), Selected::default()),
+            (
+                Pickable::default(),
+                Hovered::default(),
+                Selected::default(),
+                Dragged::<IndividualIndex>::default(),
+            ),
         ))
         .observe(
             on_click
@@ -244,6 +259,13 @@ pub fn on_insert_individual(
             hover::out
                 .run_if(in_state(AppState::InGame))
                 .run_if(in_state(InGameState::Battle))
+                .run_if(in_state(LeftClickModeType::Select)),
+        )
+        .observe(
+            drag::on_drag_start::<IndividualIndex>
+                .run_if(in_state(AppState::InGame))
+                .run_if(in_state(InGameState::Battle))
+                .run_if(in_state(BattlePhase::Deployment))
                 .run_if(in_state(LeftClickModeType::Select)),
         )
         .id();
@@ -339,6 +361,10 @@ pub fn on_update_individual(update: On<UpdateIndividualEvent>, mut commands: Com
 
     // TODO: use macro to automatise events declaration and mapping here
     let refresh = match update {
+        oc_individual::Update::SetPosition(position) => {
+            commands.trigger(SetPositionEvent(i, *position));
+            false
+        }
         oc_individual::Update::SetBehavior(behavior) => {
             commands.trigger(SetBehaviorEvent(i, behavior.clone()));
             false
@@ -403,6 +429,9 @@ impl Plugin for IndividualPlugin {
             .init_resource::<EntityMapping<oc_individual::IndividualIndex>>()
             .add_observer(on_insert_individual)
             .add_observer(on_update_individual)
+            .add_observer(on_set_position_event)
+            .add_observer(on_spawn_individual_phantom)
+            .add_observer(on_drop_individual_phantom)
             .add_observer(on_set_behavior_event)
             .add_observer(on_set_intent_event)
             .add_observer(on_set_gesture_event)
@@ -463,6 +492,29 @@ impl selected::Selection for Selection {
 
     fn size() -> Vec2 {
         Vec2::splat(10.)
+    }
+}
+
+fn on_set_position_event(
+    position: On<SetPositionEvent>,
+    mut query: Query<&mut Position>,
+    state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut world: ResMut<crate::world::World>,
+    mut commands: Commands,
+) {
+    let_some!(entity = state.get(&position.0), return);
+    let_ok!(mut position_ = query.get_mut(*entity), return);
+    let_some!(individual = world.get_individual_mut(position.0), return);
+    tracing::trace!(name = "update-individual-position", i=?position.0, position=?position.1);
+
+    position_.0 = position.1.clone();
+    individual.position = position.1.clone();
+
+    if let Some((squad_i, squad)) = world.individual_squad(position.0) {
+        commands.trigger(crate::ingame::behavior::RefreshSquadsOrdersEvent(
+            squad_i,
+            squad.orders.clone(),
+        ));
     }
 }
 
@@ -674,4 +726,72 @@ pub fn on_forgot_individual(
         commands.entity(entity).despawn();
         commands.trigger(DespawnIndividualOrders(individual.0));
     }
+}
+
+#[derive(Debug, Event)]
+pub struct SpawnIndividualPhantom(Phantom);
+
+#[derive(Debug, Event)]
+pub struct DropIndividualPhantom(Entity, WorldVec2);
+
+impl Dragging for IndividualIndex {
+    fn spawn(commands: &mut Commands, marker: Phantom) {
+        commands.trigger(SpawnIndividualPhantom(marker));
+    }
+
+    fn drop(commands: &mut Commands, subject: Entity, point: WorldVec2) {
+        commands.trigger(DropIndividualPhantom(subject, point));
+    }
+
+    fn visual() -> drag::Visual {
+        drag::Visual::Offset
+    }
+}
+
+pub fn on_spawn_individual_phantom(
+    event: On<SpawnIndividualPhantom>,
+    mut commands: Commands,
+    animations: Res<SoldierAnimations>,
+    individuals: Query<(&IndividualIndex, &Side, &Transform)>,
+) {
+    let phantom = event.0;
+    let_ok!(
+        (index, side, transform) = individuals.get(phantom.0),
+        return
+    );
+
+    let mut sprite = animations.sprite();
+    sprite.color = Color::srgba(1., 1., 1., 0.6);
+    let animation = animations.stand_up(side.0);
+
+    tracing::trace!(name="ingame-individual-on-spawn-individual-phantom", i=?index.0);
+    commands.spawn((
+        sprite,
+        SpritesheetAnimation::new(animation),
+        Transform::from_translation(transform.translation),
+        phantom,
+    ));
+    commands.trigger(SetLeftClick(LeftClickMode::Dragging));
+}
+
+pub fn on_drop_individual_phantom(
+    event: On<DropIndividualPhantom>,
+    mut commands: Commands,
+    world: Res<World>,
+    individuals: Query<&IndividualIndex>,
+    zones: Query<&SpawnZone, With<OwnSpawnZone>>,
+) {
+    let (subject, drop) = (event.0, event.1);
+    let_ok!(individual = individuals.get(subject), return);
+    let_some!((squad_i, _) = world.individual_squad(individual.0), return);
+    commands.trigger(SetLeftClick(LeftClickMode::Select));
+
+    if !zones.iter().any(|zone| zone.contains(drop)) {
+        tracing::trace!(name="ingame-individual-on-drop-individual-outside-own-spawn", drop=?drop);
+        return;
+    }
+
+    tracing::trace!(name="ingame-individual-on-drop-individual-set-leader-position", squad=?squad_i, position=?drop);
+    let message = SquadMessage::SetLeaderPosition(drop);
+    commands.trigger(ToServerEvent(ToServer::Squad(squad_i, message)));
 }

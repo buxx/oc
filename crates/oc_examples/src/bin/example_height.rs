@@ -22,6 +22,7 @@ use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
 #[cfg(feature = "test")]
 use oc_physics::update::bevy::Position;
+use oc_root::battle::BattlePhase;
 use oc_root::geo::{WorldVec2, WorldVec3};
 use oc_root::{Wcfg, side};
 use oc_root::{WorldConfig, physics::Meters};
@@ -88,7 +89,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ),
     };
 
-    let snapshot = SnapshotBuilder::new(map, individuals, squads, vec![]).build(w, &mod_)?;
+    let snapshot = SnapshotBuilder::new(
+        map,
+        individuals,
+        squads,
+        vec![],
+        BattlePhase::Fight,
+        vec![],
+        vec![],
+    )
+    .build(w, &mod_)?;
 
     let example = run::Example::builder()
         .world(PathBuf::from("examples/height"))

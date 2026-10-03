@@ -1,13 +1,12 @@
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
-    str::FromStr,
     sync::Arc,
 };
 
 use crate::{
     place::{Place, PlaceName},
-    spawn::{ParseOriginDirectionError, SpawnZoneName},
+    spawn::SpawnZoneName,
     tile::Tile,
 };
 use glam::Vec2;
@@ -59,12 +58,6 @@ pub enum MapReaderError {
     TileError(String),
     #[error("Terrain tile error: {0}")]
     TerrainTileError(String),
-}
-
-impl From<ParseOriginDirectionError> for MapReaderError {
-    fn from(value: ParseOriginDirectionError) -> Self {
-        Self::InvalidLayer(format!("Invalid origin direction : '{}'", value))
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -223,32 +216,44 @@ impl MapReader {
         Ok(interiors)
     }
 
-    fn spawn_zones(&self) -> Result<Vec<SpawnZone>, MapReaderError> {
-        let background_image = self.background_image()?;
+    pub fn spawn_zones(&self) -> Result<Vec<SpawnZone>, MapReaderError> {
         let mut spawn_zones = vec![];
 
         for object in self.spawn_zones_layer()?.objects() {
-            let spawn_zone_name = SpawnZoneName::from_str(&object.name)?;
-            if !spawn_zone_name.allowed_for_zone_object() {
-                return Err(MapReaderError::InvalidLayer(format!(
-                    "Spawn zone name is not allowed : '{}'",
-                    object.name
-                )));
-            }
+            let name = SpawnZoneName(object.name.to_string());
+            let start = WorldVec2::new(object.x, object.y);
 
-            spawn_zones.push(match object.shape {
-                tiled::ObjectShape::Rect { width, height } => SpawnZone::new(
-                    spawn_zone_name,
-                    object.x,
-                    object.y,
-                    width,
-                    height,
-                    background_image.width as f32,
-                    background_image.height as f32,
-                ),
+            spawn_zones.push(match &object.shape {
+                tiled::ObjectShape::Rect { width, height } => {
+                    let (x, y) = (start.x, start.y);
+                    let points = vec![
+                        WorldVec2::new(x, y),
+                        WorldVec2::new(x + width, y),
+                        WorldVec2::new(x + width, y + height),
+                        WorldVec2::new(x, y + height),
+                    ];
+
+                    SpawnZone {
+                        name,
+                        start,
+                        points,
+                    }
+                }
+                tiled::ObjectShape::Polygon { points } => {
+                    let points: Vec<WorldVec2> = points
+                        .iter()
+                        .map(|(x, y)| WorldVec2::new(start.x + x, start.y + y))
+                        .collect();
+
+                    SpawnZone {
+                        name,
+                        start,
+                        points,
+                    }
+                }
                 _ => {
                     return Result::Err(MapReaderError::InvalidLayer(format!(
-                        "Layer '{}' in map contains non Rect shapes, this is not supported now",
+                        "Layer '{}' in map contains non Rect/Polygon shapes, this is not supported now",
                         SPAWN_ZONES_LAYER_NAME,
                     )));
                 }
@@ -290,7 +295,8 @@ impl MapReader {
 
             flags.push(match object.shape {
                 tiled::ObjectShape::Rect { width, height } => {
-                    Flag::new(flag_name, object.x, object.y, width, height)
+                    let start = WorldVec2::new(object.x, object.y);
+                    Flag::new(flag_name, start, width, height)
                 }
                 _ => {
                     return Result::Err(MapReaderError::InvalidLayer(format!(
