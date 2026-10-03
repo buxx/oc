@@ -17,7 +17,6 @@ use oc_mod::Mod;
 use oc_root::{
     WcfgInto, WorldConfig, geo::WorldVec2, physics::Meters, side::Side, utils::Frequency,
 };
-use oc_utils::let_some;
 #[cfg(feature = "test")]
 use oc_world::interior::Interior;
 use oc_world::{load::WorldPath, meta::Meta, tile::Tile};

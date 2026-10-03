@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 
-use glam::Vec2;
+use oc_utils::polygon::Polygon;
 
 use crate::{
-    control::MapControl,
     decor::Decor,
     flag::{Flag, FlagName},
     interior::Interior,
@@ -94,14 +93,14 @@ impl Map {
     pub fn flag(&self, flag_name: &FlagName) -> &Flag {
         self.flags()
             .iter()
-            .find(|f| f.name() == flag_name)
+            .find(|f| &f.name == flag_name)
             .expect("Flags ownership and map flag must be consistent")
     }
 
     pub fn find_spawn_zones(&self, names: &[SpawnZoneName]) -> Vec<&SpawnZone> {
         self.spawn_zones
             .iter()
-            .filter(|s| names.contains(&SpawnZoneName::All) || names.contains(s.name()))
+            .filter(|s| names.contains(&s.name))
             .collect()
     }
 
@@ -115,7 +114,7 @@ impl Map {
             let found = self.find_spawn_zones(std::slice::from_ref(spawn_zone_name));
             let spawn_zone = found.first().unwrap(); // FIXME: manage error
 
-            if spawn_zone.contains(&flag.shape()) {
+            if spawn_zone.include_shape(&flag.shape()) {
                 return true;
             }
         }
@@ -208,28 +207,19 @@ impl Map {
 
     //     true
     // }
+    //
+    // pub fn point_in_spawn_zones(&self, point: &WorldVec2, allowed_zone_names: &MapControl) -> bool {
+    //     for spawn_zone in &self.spawn_zones {
+    //         if allowed_zone_names.contains_spawn_zone(spawn_zone.name())
+    //             && point.x >= spawn_zone.x()
+    //             && point.x <= spawn_zone.x() + spawn_zone.width()
+    //             && point.y >= spawn_zone.y()
+    //             && point.y <= spawn_zone.y() + spawn_zone.height()
+    //         {
+    //             return true;
+    //         }
+    //     }
 
-    pub fn point_in_spawn_zones(
-        &self,
-        point: &Vec2,
-        allowed_zone_names: &MapControl,
-        consider_all: bool,
-    ) -> bool {
-        if consider_all && allowed_zone_names.contains_spawn_zone(&SpawnZoneName::All) {
-            return true;
-        }
-
-        for spawn_zone in &self.spawn_zones {
-            if allowed_zone_names.contains_spawn_zone(spawn_zone.name())
-                && point.x >= spawn_zone.x()
-                && point.x <= spawn_zone.x() + spawn_zone.width()
-                && point.y >= spawn_zone.y()
-                && point.y <= spawn_zone.y() + spawn_zone.height()
-            {
-                return true;
-            }
-        }
-
-        false
-    }
+    //     false
+    // }
 }
