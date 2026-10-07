@@ -177,6 +177,13 @@ impl WorldVec3 {
         ((dx * dx) + (dy * dy) + (dz * dz)).sqrt()
     }
 
+    pub fn to_vec2(&self) -> WorldVec2 {
+        WorldVec2 {
+            x: self.x,
+            y: self.y,
+        }
+    }
+
     pub fn with_z(&self, z: f32) -> WorldVec3 {
         WorldVec3 {
             x: self.x,

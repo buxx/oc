@@ -13,3 +13,12 @@ pub enum BattlePhase {
     Deployment,
     Fight,
 }
+
+impl BattlePhase {
+    pub fn fight(&self) -> bool {
+        match self {
+            BattlePhase::Deployment => false,
+            BattlePhase::Fight => true,
+        }
+    }
+}

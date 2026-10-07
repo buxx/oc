@@ -467,6 +467,45 @@ impl<'a> Processor<'a> {
     // TODO: Ex. idle -> Behavior::TakingCover when under fire
     fn act(&self, _situation: &Situation, intent: &Intent) -> Behavior {
         let individual = self.world.individual(self.i);
+        let phase = self.world.phase;
+
+        if !phase.fight() {
+            return match intent {
+                Intent::Idle(direction) => Behavior::Idle(*direction),
+                Intent::MoveTo(_, path) => match self.direction_to_next(individual, path, "move") {
+                    Some(direction) => Behavior::Idle(direction),
+                    None => Behavior::Idle(Direction::NORTH),
+                },
+                Intent::MoveFastTo(_, path) => {
+                    match self.direction_to_next(individual, path, "move-fast") {
+                        Some(direction) => Behavior::Idle(direction),
+                        None => Behavior::Idle(Direction::NORTH),
+                    }
+                }
+                Intent::SneakTo(_, path) => match self.direction_to_next(individual, path, "sneak")
+                {
+                    Some(direction) => Behavior::Idle(direction),
+                    None => Behavior::Idle(Direction::NORTH),
+                },
+                Intent::Defend(direction) => Behavior::Idle(*direction),
+                Intent::Hide(direction) => Behavior::Idle(*direction),
+                Intent::Engage(target) => {
+                    let target = self.world.individual(*target);
+                    let direction = Direction::from_points2d(
+                        individual.position.to_vec2().into(),
+                        target.position.to_vec2().into(),
+                    );
+                    Behavior::Idle(direction)
+                }
+                Intent::Suppress(position) => {
+                    let direction = Direction::from_points2d(
+                        individual.position.to_vec2().into(),
+                        (*position).into(),
+                    );
+                    Behavior::Idle(direction)
+                }
+            };
+        }
 
         match intent {
             Intent::Idle(direction) => Behavior::Idle(*direction),
