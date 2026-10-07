@@ -15,6 +15,7 @@ use oc_projectile::ProjectileId;
 use oc_projectile::spawn::SpawnProjectile;
 use oc_projectile::spawn::SpawnProjectiles;
 use oc_root::Client;
+use oc_root::battle::BattlePhase;
 use oc_root::side::Side;
 use oc_world::visibility::Visibilities;
 use oc_world::visibility::Visibility;
@@ -29,6 +30,7 @@ pub enum Update {
     UpdateIndividual(IndividualIndex, oc_individual::Update),
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
     UpdateSquad(SquadIndex, oc_individual::squad::Update),
+    SetBattlePhase(BattlePhase),
 }
 
 pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
@@ -50,6 +52,7 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         }
         Update::UpdateVisibilities(visibilities) => state.update_visibilities(visibilities),
         Update::UpdateSquad(i, update) => state.update_squad(i, update),
+        Update::SetBattlePhase(phase) => state.set_battle_phase(phase),
     } {
         tracing::trace!(name="runner-update-broadcast", filter=?filter, messages=?messages);
         ctx.broadcast(filter, messages);
@@ -245,5 +248,10 @@ impl<E: Client> super::State<E> {
         } else {
             vec![]
         }
+    }
+
+    fn set_battle_phase(&self, phase: BattlePhase) -> Vec<(Listening, Vec<ToClient>)> {
+        self.world_mut().set_phase(phase);
+        vec![(Listening::Any, vec![ToClient::SetBattlePhase(phase)])]
     }
 }

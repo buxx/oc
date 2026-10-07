@@ -75,6 +75,9 @@ pub struct SwitchToHeightMap;
 #[derive(Debug, Event)]
 pub struct RestoreBattleCenter;
 
+#[derive(Debug, Event)]
+pub struct SetBattlePhase(BattlePhase);
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
 pub enum BattlePhase {
     #[default]
@@ -122,6 +125,8 @@ impl Plugin for IngamePlugin {
             // .add_observer(on_forgotten_region)
             .add_observer(physics::on_physics_event)
             .add_observer(spawn::on_show_spawn_zones)
+            .add_observer(spawn::on_hide_spawn_zones)
+            .add_observer(on_set_battle_phase)
             // TODO: despawn entities on OnExit(AppState::InGame)
             .add_systems(Startup, (path::setup,))
             .add_systems(Startup, (init::init,))
@@ -265,4 +270,19 @@ fn on_game_config_received(
 ) {
     let_some!(identity = &network_state.identity, return);
     commands.trigger(ToServerEvent(ToServer::RequestInit(identity.clone())));
+}
+
+fn on_set_battle_phase(
+    event: On<SetBattlePhase>,
+    mut commands: Commands,
+    mut phase: ResMut<NextState<BattlePhase>>,
+) {
+    *phase = NextState::Pending(event.0);
+
+    match event.0 {
+        BattlePhase::Deployment => {}
+        BattlePhase::Fight => {
+            commands.trigger(spawn::HideSpawnZones);
+        }
+    }
 }

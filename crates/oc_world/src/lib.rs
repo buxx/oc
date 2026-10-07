@@ -151,6 +151,10 @@ impl World {
             side_b_spawns,
         }
     }
+
+    pub fn set_phase(&mut self, value: BattlePhase) {
+        self.phase = value;
+    }
 }
 
 #[cfg(test)]

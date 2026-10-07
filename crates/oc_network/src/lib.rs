@@ -12,7 +12,9 @@ use oc_projectile::network::Projectile;
 use oc_projectile::spawn::SpawnProjectiles;
 #[cfg(feature = "debug")]
 use oc_root::geo::WorldVec3;
-use oc_root::{WorldConfig, geo::WorldVec2, identity::Identity, static_::StaticSource};
+use oc_root::{
+    WorldConfig, battle::BattlePhase, geo::WorldVec2, identity::Identity, static_::StaticSource,
+};
 use oc_world::{meta::Meta, resume::WorldResume, tile::Tile, visibility::Visibility};
 use rkyv::{Archive, Deserialize, Serialize};
 
@@ -27,6 +29,7 @@ pub enum ToClient {
     Tiles(WorldRegionIndex, Vec<(WorldTileIndex, Tile)>),
     Fx(Fx),
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
+    SetBattlePhase(BattlePhase),
     #[cfg(feature = "debug")]
     Debug(Debug),
 }
@@ -52,6 +55,7 @@ pub enum ToServer {
     Refresh,
     ExplodeProjectile(SpawnProjectiles),
     Squad(SquadIndex, SquadMessage),
+    Fight,
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq, Constructor)]

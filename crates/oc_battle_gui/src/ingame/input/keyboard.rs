@@ -8,21 +8,28 @@ use crate::ingame::camera::debug::tile::ToggleShowTiles;
 use crate::ingame::camera::map::SaveCurrentWindowCenterAsBattleCenter;
 use crate::ingame::input::left_click::{LeftClickMode, SetLeftClick};
 use crate::ingame::lov::SpawnLovConfig;
-use crate::ingame::{QuitHeightMap, RestoreBattleCenter, SwitchToBattleMap, SwitchToWorldMap};
+use crate::ingame::{
+    BattlePhase, QuitHeightMap, RestoreBattleCenter, SwitchToBattleMap, SwitchToWorldMap,
+};
 use crate::ingame::{SwitchToHeightMap, camera};
+use crate::window;
 use crate::window::ToggleWindow;
 use crate::window::Window;
 #[cfg(feature = "debug")]
 use crate::window::debug::battle::DebugBattleWindow;
-use crate::window::menu::battle::{BattleMenuWindow, Window as BattleMenu};
 
 pub fn on_key_press(
     mut commands: Commands,
     mut keyboard: MessageReader<KeyboardInput>,
+    keys: Res<ButtonInput<KeyCode>>,
     camera: Res<camera::State>,
-    menu: Res<BattleMenuWindow>,
+    fight_menu: Res<window::battle::fight::FightWindow>,
+    battle_menu: Res<window::menu::battle::BattleMenuWindow>,
+    phase: Res<State<BattlePhase>>,
     #[cfg(feature = "debug")] debug: Res<DebugBattleWindow>,
 ) {
+    let ctrl = keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]);
+
     for event in keyboard.read() {
         match (event.state, event.key_code) {
             (ButtonState::Released, KeyCode::KeyV) => match camera.focus {
@@ -61,9 +68,21 @@ pub fn on_key_press(
                 }
                 camera::Focus::World => {}
             },
+            (ButtonState::Released, KeyCode::KeyF)
+                if ctrl && matches!(phase.get(), BattlePhase::Deployment) =>
+            {
+                let window = fight_menu
+                    .0
+                    .clone()
+                    .unwrap_or(window::battle::fight::Window);
+                commands.trigger(ToggleWindow(window::Window::Fight(window)));
+            }
             (ButtonState::Released, KeyCode::Escape) => {
-                let window = menu.0.clone().unwrap_or(BattleMenu);
-                commands.trigger(ToggleWindow(Window::BattleMenu(window)));
+                let window = battle_menu
+                    .0
+                    .clone()
+                    .unwrap_or(window::menu::battle::Window);
+                commands.trigger(ToggleWindow(window::Window::BattleMenu(window)));
             }
             #[cfg(feature = "debug")]
             (ButtonState::Released, KeyCode::F11) => {

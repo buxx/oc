@@ -9,7 +9,7 @@ use crate::debug::DebugEvent;
 use crate::{
     fx::FxEvent,
     ingame::{
-        GameConfigReceived, WorldResumeEvent,
+        BattlePhase, GameConfigReceived, SetBattlePhase, WorldResumeEvent,
         individual::ForgotIndividual,
         input::{
             individual::{
@@ -86,6 +86,14 @@ pub fn on_to_client(
         ToClient::UpdateVisibilities(visibilities) => {
             tracing::trace!(name = "ingame-input-visibilities");
             commands.trigger(UpdateVisibilities(visibilities.clone()));
+        }
+        ToClient::SetBattlePhase(phase) => {
+            tracing::trace!(name = "ingame-input-set-battle-phase");
+            let phase = match phase {
+                oc_root::battle::BattlePhase::Deployment => BattlePhase::Deployment,
+                oc_root::battle::BattlePhase::Fight => BattlePhase::Fight,
+            };
+            commands.trigger(SetBattlePhase(phase));
         }
         #[cfg(feature = "debug")]
         ToClient::Debug(debug) => commands.trigger(DebugEvent(debug.clone())),

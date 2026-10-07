@@ -7,6 +7,7 @@ use oc_individual::squad::SquadIndex;
 use oc_mod::Mod;
 use oc_network::{SquadMessage, ToClient, ToServer};
 use oc_projectile::spawn::SpawnProjectiles;
+use oc_root::battle::BattlePhase;
 use oc_root::identity::Identity;
 use oc_root::{Client, WcfgFrom, geo::WorldVec2};
 use oc_utils::error::OkOrLogError;
@@ -35,6 +36,7 @@ impl<'a, E: Client> Dealer<'a, E> {
             ToServer::Refresh => self.refresh(),
             ToServer::ExplodeProjectile(spawn) => self.spawn_projectiles(spawn),
             ToServer::Squad(squad, message) => self.squad_message(squad, message),
+            ToServer::Fight => self.fight(),
         }
     }
 
@@ -129,6 +131,11 @@ impl<'a, E: Client> Dealer<'a, E> {
             }
             SquadMessage::SetLeaderPosition(position) => self.set_leader_position(squad, position),
         }
+    }
+
+    fn fight(&self) -> Vec<Update> {
+        // FIXME BS NOW: Against AI: fight immediately; Against human both must want fight to fight
+        vec![Update::SetBattlePhase(BattlePhase::Fight)]
     }
 
     fn set_leader_position(&self, squad: SquadIndex, position: WorldVec2) -> Vec<Update> {

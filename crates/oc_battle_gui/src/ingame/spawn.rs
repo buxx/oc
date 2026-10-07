@@ -17,6 +17,9 @@ pub struct OwnSpawnZone;
 #[derive(Debug, Event)]
 pub struct ShowSpawnZones(pub Vec<SpawnZoneName>, pub Vec<SpawnZoneName>);
 
+#[derive(Debug, Event)]
+pub struct HideSpawnZones;
+
 pub fn spawn_zone(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
@@ -105,5 +108,14 @@ pub fn on_show_spawn_zones(
         if let Some(mut material) = materials.get_mut(&handle.0) {
             material.color.set_alpha(alpha);
         }
+    }
+}
+
+pub fn on_hide_spawn_zones(
+    _: On<HideSpawnZones>,
+    mut spawns: Query<&mut Visibility, With<SpawnZone>>,
+) {
+    for mut visibility in &mut spawns {
+        *visibility = Visibility::Hidden;
     }
 }

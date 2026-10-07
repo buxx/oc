@@ -6,9 +6,10 @@ use oc_utils::let_some;
 
 use crate::{
     states::{self, PointerIn},
-    window::menu::battle::BattleMenuWindowPlugin,
+    window::{battle::fight::FightWindowPlugin, menu::battle::BattleMenuWindowPlugin},
 };
 
+pub mod battle;
 #[cfg(feature = "debug")]
 pub mod debug;
 pub mod menu;
@@ -17,6 +18,7 @@ pub mod menu;
 #[derive(Clone)]
 pub enum Window {
     BattleMenu(menu::battle::Window),
+    Fight(battle::fight::Window),
     #[cfg(feature = "debug")]
     BattleDebug(Box<debug::battle::window::Window>),
 }
@@ -33,6 +35,7 @@ impl Window {
     ) -> Result {
         match self {
             Window::BattleMenu(window) => window.show(contexts, commands, mod_, w)?,
+            Window::Fight(window) => window.show(contexts, commands, mod_, w)?,
             #[cfg(feature = "debug")]
             Window::BattleDebug(window) => {
                 window.show(contexts, commands, mod_, w, world, ingame)?
@@ -76,6 +79,7 @@ pub struct WindowPlugin;
 impl Plugin for WindowPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(BattleMenuWindowPlugin)
+            .add_plugins(FightWindowPlugin)
             .add_systems(EguiPrimaryContextPass, show)
             .add_observer(on_toggle_debug_window);
 

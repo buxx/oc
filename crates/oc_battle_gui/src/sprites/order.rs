@@ -50,7 +50,7 @@ impl SpriteRect for SquadOrderSprite {
         const DIRECTION_START_X: f32 = 0.;
         const DIRECTION_START_Y: f32 = 160.;
         const DIRECTION_WIDTH: f32 = 50.;
-        const DIRECTION_HEIGHT: f32 = 48.;
+        const DIRECTION_HEIGHT: f32 = 45.;
 
         match self {
             SquadOrderSprite::Idle => Rect::EMPTY, // Should never happen

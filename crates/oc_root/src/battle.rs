@@ -7,6 +7,7 @@
     serde::Deserialize,
     rkyv::Serialize,
     serde::Serialize,
+    PartialEq,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum BattlePhase {

@@ -117,7 +117,6 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
 
 #[derive(Debug, Clone)]
 pub enum Listening {
-    #[cfg(feature = "debug")]
     Any,
     /// Will match with all listener of one of these regions
     Regions(Vec<WorldRegionIndex>),
