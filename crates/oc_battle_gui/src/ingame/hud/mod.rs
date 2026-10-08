@@ -14,9 +14,6 @@ const HUD_BG: Color = Color::srgba(0., 0., 0., 0.95);
 #[derive(Component, Default, Clone)]
 pub struct Hud;
 
-#[derive(Component, Default, Clone)]
-pub struct Minimap;
-
 pub struct HudPlugin;
 
 impl Plugin for HudPlugin {
@@ -56,31 +53,11 @@ fn hud() -> impl Scene {
         BackgroundColor(HUD_BG)
         Children [
             // Squads
-            (
-                squad::SquadGrid
-                Node {
-                    flex_grow: 1.,
-                    height: percent(100),
-                    flex_direction: FlexDirection::Row,
-                    flex_wrap: FlexWrap::Wrap,
-                    align_content: AlignContent::FlexStart,
-                    row_gap: px(GAP),
-                    column_gap: px(GAP),
-                    overflow: Overflow::scroll_y(),
-                }
-            ),
+            ({ squad::grid() }),
             // Actions
             ({ actions::actions() }),
             // Minimap
-            (
-                Minimap
-                Node {
-                    width: px(minimap::MINIMAP_SIZE),
-                    height: px(minimap::MINIMAP_SIZE),
-                    flex_shrink: 0.,
-                }
-                BackgroundColor(Color::BLACK)
-            ),
+            ({ minimap::show() }),
         ]
     }
 }

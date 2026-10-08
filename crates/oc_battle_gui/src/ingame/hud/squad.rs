@@ -12,7 +12,6 @@ use oc_mod::illustration::IllustrationKind;
 use oc_root::files::Files;
 use oc_utils::{let_ok, let_some};
 
-use crate::world::World;
 use crate::{
     config,
     ingame::{camera::GoToPoint, hud::SCROLL_LINE_PX},
@@ -20,6 +19,7 @@ use crate::{
     sprites::SpriteRect,
     states::GameConfig,
 };
+use crate::{ingame::hud::GAP, world::World};
 
 const CELL_BG: Color = Color::srgb(0.2, 0.25, 0.2);
 const CELL_BG_HOVER: Color = Color::srgb(0.35, 0.45, 0.35);
@@ -30,12 +30,27 @@ const SQUAD_CELL_HEIGHT: f32 = 52.;
 #[derive(Component, Default, Clone)]
 pub struct SquadGrid;
 
-/// Text showing the current order of the squad leader
 #[derive(Component, Default, Clone)]
 pub struct SquadBehaviorText;
 
 #[derive(Component)]
 pub struct SquadCell(pub SquadIndex);
+
+pub fn grid() -> impl Scene {
+    bsn! {
+        SquadGrid
+        Node {
+            flex_grow: 1.,
+            height: percent(100),
+            flex_direction: FlexDirection::Row,
+            flex_wrap: FlexWrap::Wrap,
+            align_content: AlignContent::FlexStart,
+            row_gap: px(GAP),
+            column_gap: px(GAP),
+            overflow: Overflow::scroll_y(),
+        }
+    }
+}
 
 fn squad_cell(
     g: &oc_network::GameConfig,
@@ -159,7 +174,6 @@ pub fn update_squad_behaviors(
     }
 
     for (entity, mut text) in &mut texts {
-        // Text -> column -> cell
         let cell = parents
             .iter_ancestors(entity)
             .find_map(|e| cells.get(e).ok());
