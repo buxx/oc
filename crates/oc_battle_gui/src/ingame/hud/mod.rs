@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::states::AppState;
 
+pub mod actions;
 pub mod minimap;
 pub mod squad;
 
@@ -27,6 +28,7 @@ impl Plugin for HudPlugin {
                     squad::spawn_squad_cells,
                     squad::scroll_squad_grid,
                     squad::update_squad_behaviors,
+                    actions::update_fight_button,
                 )
                     .run_if(in_state(AppState::InGame)),
             );
@@ -67,6 +69,8 @@ fn hud() -> impl Scene {
                     overflow: Overflow::scroll_y(),
                 }
             ),
+            // Actions
+            ({ actions::actions() }),
             // Minimap
             (
                 Minimap
