@@ -9,7 +9,7 @@ use image::imageops::FilterType;
 use oc_geo::region::WorldRegionIndex;
 use oc_mod::Mod;
 use oc_projectile::NextProjectileId;
-use oc_root::{WorldConfig, files, ids::Ids};
+use oc_root::{HUD_MINIMAP_SIZE, WorldConfig, files, ids::Ids};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
 
@@ -168,6 +168,19 @@ impl WorldLoader {
                 );
                 minimap_.save(minimap)?;
             }
+        }
+
+        let hud_minimap = files.hud_minimap();
+        if hud_minimap.exists() {
+            tracing::info!("Hud minimap already exists ({})", hud_minimap.display());
+        } else {
+            let size = HUD_MINIMAP_SIZE;
+            tracing::info!(
+                "Prepare cache for hud minimap {} ({size}x{size})",
+                hud_minimap.display()
+            );
+            image::imageops::resize(&background, size, size, FilterType::Gaussian)
+                .save(hud_minimap)?;
         }
 
         self.cache_regions(region_width, region_height, &files, &background)?;

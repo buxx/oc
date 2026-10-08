@@ -1,10 +1,11 @@
 use bevy::prelude::*;
 
-use crate::states::AppState;
+use crate::{ingame::BattlePhase, states::AppState};
 
 pub mod actions;
 pub mod minimap;
 pub mod squad;
+pub mod squads;
 
 const HUD_HEIGHT: f32 = 200.;
 const GAP: f32 = 4.;
@@ -22,23 +23,31 @@ impl Plugin for HudPlugin {
             .add_systems(
                 Update,
                 (
-                    squad::spawn_squad_cells,
-                    squad::scroll_squad_grid,
-                    squad::update_squad_behaviors,
-                    actions::update_fight_button,
+                    squads::spawn_squad_cells,
+                    squads::scroll_squad_grid,
+                    squads::update_squad_behaviors,
+                    squad::spawn_rows,
+                    squad::update_rows,
+                    minimap::load_image,
                 )
                     .run_if(in_state(AppState::InGame)),
-            );
+            )
+            .add_systems(OnEnter(BattlePhase::Fight), actions::update_fight_button);
     }
 }
 
-fn spawn_hud(mut commands: Commands, existing: Query<(), With<Hud>>) {
+fn spawn_hud(
+    mut commands: Commands,
+    existing: Query<(), With<Hud>>,
+    world: Res<crate::world::World>,
+    phase: Res<State<BattlePhase>>,
+) {
     if existing.is_empty() {
-        commands.spawn_scene(hud());
+        commands.spawn_scene(hud(&world, &phase));
     }
 }
 
-fn hud() -> impl Scene {
+fn hud(world: &crate::world::World, phase: &BattlePhase) -> impl Scene {
     bsn! {
         Hud
         Node {
@@ -53,11 +62,13 @@ fn hud() -> impl Scene {
         BackgroundColor(HUD_BG)
         Children [
             // Squads
-            ({ squad::grid() }),
+            ({ squads::squads() }),
+            // Squad
+            ({ squad::squad() }),
             // Actions
-            ({ actions::actions() }),
+            ({ actions::actions(world, phase) }),
             // Minimap
-            ({ minimap::show() }),
+            ({ minimap::minimap() }),
         ]
     }
 }

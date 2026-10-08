@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use bevy::{prelude::*, sprite::Anchor};
 use oc_physics::update::bevy::Position;
 use oc_root::{
@@ -7,7 +5,7 @@ use oc_root::{
     files::FilesAsGui,
     geo::{ScreenVec2, WorldVec2},
 };
-use oc_utils::{let_some, polygon::Polygon};
+use oc_utils::{every, let_some, polygon::Polygon};
 use oc_world::interior::Interior;
 
 use crate::{
@@ -59,14 +57,9 @@ fn update_interiors_visibility(
     individuals: Query<(&Position, &Side, &Status)>,
     mut interiors: Query<(&Interior, &mut Visibility)>,
 ) {
+    every!(timer, time, g.w.interiors_tick().interval());
     let_some!(g = &g.0, return);
     let_some!(identity = &network.identity, return);
-
-    let period = Duration::from_secs_f32(g.w.interiors_tick().period());
-    let timer = timer.get_or_insert_with(|| Timer::new(period, TimerMode::Repeating));
-    if !timer.tick(time.delta()).just_finished() {
-        return;
-    }
 
     let positions: Vec<_> = individuals
         .iter()

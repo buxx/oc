@@ -30,6 +30,7 @@ pub mod static_;
 pub mod utils;
 pub mod y;
 
+pub const HUD_MINIMAP_SIZE: u32 = 400;
 #[cfg(feature = "debug")]
 static INACCURACY_SPREAD_RAW: AtomicU32 = AtomicU32::new(0);
 #[cfg(feature = "debug")]

@@ -37,6 +37,7 @@ impl Static {
             .route("/region/{region}", get(world::get_region))
             .route("/interior/{interior}", get(world::get_interior))
             .route("/minimap", get(minimap::get))
+            .route("/hud_minimap", get(minimap::get_hud))
             .with_state(state);
 
         let rt = tokio::runtime::Runtime::new()?;

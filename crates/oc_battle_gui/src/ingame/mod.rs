@@ -87,6 +87,15 @@ pub enum BattlePhase {
     Fight,
 }
 
+impl BattlePhase {
+    fn hud_button_label(&self) -> &str {
+        match self {
+            BattlePhase::Deployment => "Fight",
+            BattlePhase::Fight => "Surrender",
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
 pub enum InGameState {
     #[default]

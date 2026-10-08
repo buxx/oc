@@ -56,4 +56,17 @@ impl Order {
             | Order::Suppress(position_) => *position_ = position,
         }
     }
+
+    pub fn hud_label(&self) -> &str {
+        match self {
+            Order::Idle => "Idle",
+            Order::MoveTo(_) => "Move",
+            Order::MoveFastTo(_) => "Move fast",
+            Order::SneakTo(_) => "Sneak",
+            Order::Defend(_) => "Defend",
+            Order::Hide(_) => "Hide",
+            Order::Engage(_) => "Engage",
+            Order::Suppress(_) => "Suppress",
+        }
+    }
 }

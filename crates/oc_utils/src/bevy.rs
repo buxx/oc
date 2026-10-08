@@ -11,3 +11,13 @@ impl<I: Hash> Default for EntityMapping<I> {
         Self(FxHashMap::default())
     }
 }
+
+#[macro_export]
+macro_rules! every {
+    ($timer:ident, $time:expr, $period:expr) => {
+        let $timer = $timer.get_or_insert_with(|| Timer::new($period, TimerMode::Repeating));
+        if !$timer.tick($time.delta()).just_finished() {
+            return;
+        }
+    };
+}
