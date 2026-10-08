@@ -97,3 +97,18 @@ squads:
     - name: MosinNagant5x
     - name: MosinNagant5x
     - name: MosinNagant5x
+  - uuid: 193e9872-0335-4150-bb10-1eeeb2c984c4
+    illustration: default
+    weapons:
+      main: MosinNagantM1924
+    magazines:
+    - name: MosinNagant5x
+    - name: MosinNagant5x
+    - name: MosinNagant5x
+    - name: MosinNagant5x
+    - name: MosinNagant5x
+    - name: MosinNagant5x
+    - name: MosinNagant5x
+    - name: MosinNagant5x
+    - name: MosinNagant5x
+    - name: MosinNagant5x

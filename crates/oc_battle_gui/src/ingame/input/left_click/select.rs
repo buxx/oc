@@ -41,6 +41,7 @@ pub fn area(
     mut query: Query<(&IndividualIndex, &Position, &mut Selected)>,
     world: Res<crate::world::World>,
     mapping: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut commands: Commands,
 ) {
     let_some!(g = &g.0, return);
 
@@ -119,7 +120,8 @@ pub fn area(
                 }
 
                 // Update the state too about who is selected
-                ingame.update_selected(squads, squad_members, vec![]);
+                let updated = ingame.update_selected(squads, squad_members, vec![]);
+                commands.trigger(updated);
             }
             state.first_left_press = None;
         }
@@ -127,9 +129,10 @@ pub fn area(
 }
 
 /// Un select all. Observer which select must stop propagation to avoid execute this observer.
-pub fn unselect(click: On<Pointer<Click>>, mut state: ResMut<State>) {
+pub fn unselect(click: On<Pointer<Click>>, mut state: ResMut<State>, mut commands: Commands) {
     if click.button == PointerButton::Primary {
-        state.update_selected(vec![], vec![], vec![]);
+        let updated = state.update_selected(vec![], vec![], vec![]);
+        commands.trigger(updated);
     }
 }
 
@@ -139,12 +142,24 @@ pub fn on_select(
     mut state: ResMut<State>,
     individuals: Res<EntityMapping<oc_individual::IndividualIndex>>,
     mut query: Query<(&IndividualIndex, &mut Selected)>,
+    mut commands: Commands,
 ) {
     match event.clone() {
-        Select::Individual(i) => select_individual(i, &world, &mut state, &individuals, &mut query),
-        Select::Restore(selection) => {
-            select_restore(selection, &mut state, &individuals, &mut query)
-        }
+        Select::Individual(i) => select_individual(
+            i,
+            &world,
+            &mut state,
+            &individuals,
+            &mut query,
+            &mut commands,
+        ),
+        Select::Restore(selection) => select_restore(
+            selection,
+            &mut state,
+            &individuals,
+            &mut query,
+            &mut commands,
+        ),
     }
 }
 
@@ -154,12 +169,15 @@ fn select_individual(
     state: &mut State,
     individuals: &EntityMapping<oc_individual::IndividualIndex>,
     query: &mut Query<(&IndividualIndex, &mut Selected)>,
+    commands: &mut Commands,
 ) {
     let_some!((squad, _) = world.individual_squad(i), return);
     let squads = vec![squad];
     let_some!(squad = world.squad(squad), return);
 
-    state.update_selected(squads, squad.members.clone(), vec![i]);
+    let updated = state.update_selected(squads, squad.members.clone(), vec![i]);
+    commands.trigger(updated);
+
     for individual in &squad.members {
         let_some!(individual = individuals.get(individual), continue);
         let_ok!((_, mut selected) = query.get_mut(*individual), continue);
@@ -172,12 +190,14 @@ fn select_restore(
     state: &mut State,
     individuals: &EntityMapping<oc_individual::IndividualIndex>,
     query: &mut Query<(&IndividualIndex, &mut Selected)>,
+    commands: &mut Commands,
 ) {
-    state.update_selected(
+    let updated = state.update_selected(
         selection.selected_squads.clone(),
         selection.selected_squads_individuals.clone(),
         selection.selected_individuals.clone(),
     );
+    commands.trigger(updated);
 
     for individual in [
         selection.selected_squads_individuals.clone(),

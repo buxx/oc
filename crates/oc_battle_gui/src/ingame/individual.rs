@@ -38,7 +38,7 @@ use crate::menu::contextual::close::CloseContextMenu;
 use crate::network::output::ToServerEvent;
 use crate::sprites::IntoAnimation;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
-use crate::states::{AppState, GameConfig};
+use crate::states::{AppState, GameConfig, PointerIn};
 use crate::utils::drag::{self, Dragged, Dragging, Phantom};
 use crate::utils::hover::{self, Hovered, HoveredPlugin};
 use crate::utils::selected::{self, Selected, SelectedPlugin};
@@ -247,26 +247,30 @@ pub fn on_insert_individual(
             on_click
                 .run_if(in_state(AppState::InGame))
                 .run_if(in_state(InGameState::Battle))
-                .run_if(in_state(LeftClickModeType::Select)),
+                .run_if(in_state(LeftClickModeType::Select))
+                .run_if(in_state(PointerIn::Battle)),
         )
         .observe(
             hover::over
                 .run_if(in_state(AppState::InGame))
                 .run_if(in_state(InGameState::Battle))
-                .run_if(in_state(LeftClickModeType::Select)),
+                .run_if(in_state(LeftClickModeType::Select))
+                .run_if(in_state(PointerIn::Battle)),
         )
         .observe(
             hover::out
                 .run_if(in_state(AppState::InGame))
                 .run_if(in_state(InGameState::Battle))
-                .run_if(in_state(LeftClickModeType::Select)),
+                .run_if(in_state(LeftClickModeType::Select))
+                .run_if(in_state(PointerIn::Battle)),
         )
         .observe(
             drag::on_drag_start::<IndividualIndex>
                 .run_if(in_state(AppState::InGame))
                 .run_if(in_state(InGameState::Battle))
                 .run_if(in_state(BattlePhase::Deployment))
-                .run_if(in_state(LeftClickModeType::Select)),
+                .run_if(in_state(LeftClickModeType::Select))
+                .run_if(in_state(PointerIn::Battle)),
         )
         .id();
 
@@ -292,8 +296,9 @@ fn on_click(
         let_some!((squad, _) = world.individual_squad(individual.0), return);
         let squads = vec![squad];
         let_some!(squad = world.squad(squad), return);
-        state.update_selected(squads, squad.members.clone(), vec![individual.0]);
+        let updated = state.update_selected(squads, squad.members.clone(), vec![individual.0]);
         let position = individual_.position;
+        commands.trigger(updated);
         tracing::debug!("Trigger open squad contextual menu from individual on {position:?}");
         // Close existing menu before open new one
         commands.trigger(CloseContextMenu::<contextual::Menu>::default());

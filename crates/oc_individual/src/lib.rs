@@ -408,6 +408,13 @@ impl Status {
             Status::Dead => false,
         }
     }
+
+    pub fn hud_label(&self) -> &str {
+        match self {
+            Status::Operational => "Operational",
+            Status::Dead => "Dead",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]

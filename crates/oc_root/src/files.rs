@@ -9,6 +9,7 @@ pub enum File {
     Mod,
     World,
     Minimap,
+    HudMinimap,
     Region(u64),
     Interior(u32),
 }
@@ -51,6 +52,7 @@ impl Display for File {
             File::Mod => f.write_str("Mod"),
             File::World => f.write_str("World"),
             File::Minimap => f.write_str("Minimap"),
+            File::HudMinimap => f.write_str("HudMinimap"),
             File::Region(i) => f.write_str(&format!("Region({i})")),
             File::Interior(i) => f.write_str(&format!("Interior({i})")),
         }
@@ -101,6 +103,11 @@ impl FilesAsServer {
     pub fn minimap(&self) -> PathBuf {
         self.cache
             .join(format!("worlds/{}/minimap.png", self.world))
+    }
+
+    pub fn hud_minimap(&self) -> PathBuf {
+        self.cache
+            .join(format!("worlds/{}/hud_minimap.png", self.world))
     }
 
     pub fn region(&self, region: u64, region_width: u64, region_height: u64) -> PathBuf {
@@ -220,6 +227,12 @@ impl FilesAsGui {
             .join(format!("worlds/{}/minimap.png", self.world))
     }
 
+    pub fn hud_minimap(&self) -> PathBuf {
+        self.sources
+            .cache()
+            .join(format!("worlds/{}/hud_minimap.png", self.world))
+    }
+
     pub fn region(&self, region: u64, region_width: u64, region_height: u64) -> PathBuf {
         self.sources.cache().join(format!(
             "worlds/{}/region_{region_width}_{region_height}_{region}.png",
@@ -256,6 +269,10 @@ impl FilesAsGui {
                     File::Minimap => (
                         Sync::DirectDownload(format!("{base_url}/minimap")),
                         base_target.join(self.minimap()),
+                    ),
+                    File::HudMinimap => (
+                        Sync::DirectDownload(format!("{base_url}/hud_minimap")),
+                        base_target.join(self.hud_minimap()),
                     ),
                     File::Region(i) => (
                         Sync::DirectDownload(format!("{base_url}/region/{i}")),

@@ -2,6 +2,7 @@
 use std::time::Instant;
 
 use bevy::prelude::*;
+use derive_more::Constructor;
 use oc_individual::{IndividualIndex, order::Order, squad::SquadIndex};
 #[cfg(feature = "debug")]
 use oc_root::geo::WorldVec3;
@@ -37,15 +38,22 @@ impl State {
     }
 
     /// Entrypoint for selection update. Only way to update selection which require set all values at once.
+    #[must_use]
     pub fn update_selected(
         &mut self,
         squads: Vec<SquadIndex>,
         squads_individuals: Vec<IndividualIndex>,
         individuals: Vec<IndividualIndex>,
-    ) {
+    ) -> SelectionUpdated {
         self.selected_squads = squads;
         self.selected_squads_individuals = squads_individuals;
         self.selected_individuals = individuals;
+
+        SelectionUpdated::new(
+            self.selected_squads.clone(),
+            self.selected_squads_individuals.clone(),
+            self.selected_individuals.clone(),
+        )
     }
 
     pub fn pending_orders(&self) -> &[Order] {
@@ -75,6 +83,13 @@ impl State {
 
 #[derive(Debug, Clone)]
 pub struct Selection {
+    pub selected_squads: Vec<SquadIndex>,
+    pub selected_squads_individuals: Vec<IndividualIndex>,
+    pub selected_individuals: Vec<IndividualIndex>,
+}
+
+#[derive(Debug, Event, Constructor)]
+pub struct SelectionUpdated {
     pub selected_squads: Vec<SquadIndex>,
     pub selected_squads_individuals: Vec<IndividualIndex>,
     pub selected_individuals: Vec<IndividualIndex>,

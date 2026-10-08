@@ -1,12 +1,13 @@
 use bevy::prelude::*;
+use bevy_egui::EguiContexts;
 use oc_root::{
     WcfgFrom,
     geo::{ScreenVec2, WorldVec2},
 };
-use oc_utils::let_some;
+use oc_utils::{let_ok, let_some};
 
 use crate::{
-    ingame::{InGameState, input::left_click::LeftClickModeType},
+    ingame::{InGameState, hud::Hud, input::left_click::LeftClickModeType},
     states::{AppState, GameConfig, PointerIn},
 };
 
@@ -46,19 +47,22 @@ impl Plugin for InputPlugin {
                 left_click::select::unselect
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
-                    .run_if(in_state(LeftClickModeType::Select)),
+                    .run_if(in_state(LeftClickModeType::Select))
+                    .run_if(in_state(PointerIn::Battle)),
             )
             .add_observer(
                 left_click::order::on_click
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
                     .run_if(in_state(LeftClickModeType::Order))
+                    .run_if(in_state(PointerIn::Battle))
                     .run_if(in_state(PointerIn::Battle)),
             )
             .add_observer(
                 left_click::order::on_set_left_click
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(PointerIn::Battle))
                     .run_if(in_state(PointerIn::Battle)),
             )
             .add_systems(Startup, left_click::select::setup)
@@ -67,6 +71,7 @@ impl Plugin for InputPlugin {
                 (watch_clicks,)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(PointerIn::Battle))
                     .run_if(in_state(PointerIn::Battle)),
             )
             .add_systems(
@@ -96,7 +101,8 @@ impl Plugin for InputPlugin {
                     .run_if(in_state(InGameState::Battle))
                     .run_if(in_state(LeftClickModeType::LineOfView))
                     .run_if(in_state(PointerIn::Battle)),
-            );
+            )
+            .add_systems(Update, pointer_in);
 
         #[cfg(feature = "debug")]
         app.init_resource::<left_click::SpawnProjectileLeftClick>()
@@ -134,4 +140,27 @@ fn watch_clicks(
     if buttons.just_released(MouseButton::Right) {
         state.first_right_press = None;
     }
+}
+
+fn pointer_in(
+    mut contexts: EguiContexts,
+    mut pointer: ResMut<NextState<PointerIn>>,
+    window: Single<&Window>,
+    hud: Single<(&ComputedNode, &UiGlobalTransform), With<Hud>>,
+) {
+    let (node, transform) = *hud;
+    let_some!(cursor = window.physical_cursor_position(), return);
+    let_ok!(contexts = contexts.ctx_mut(), return);
+
+    if contexts.is_pointer_over_egui() {
+        *pointer = NextState::Pending(PointerIn::Window);
+        return;
+    }
+
+    if node.contains_point(*transform, cursor) {
+        *pointer = NextState::Pending(PointerIn::Hud);
+        return;
+    }
+
+    *pointer = NextState::Pending(PointerIn::Battle);
 }

@@ -14,6 +14,7 @@ pub enum AppState {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
 pub enum PointerIn {
     Battle,
+    Hud,
     #[default]
     Window,
 }

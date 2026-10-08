@@ -27,6 +27,24 @@ macro_rules! let_ok {
 }
 
 #[macro_export]
+macro_rules! true_ {
+    ($expr:expr, $or:expr) => {
+        if !$expr {
+            $or
+        };
+    };
+}
+
+#[macro_export]
+macro_rules! false_ {
+    ($expr:expr, $or:expr) => {
+        if $expr {
+            $or
+        };
+    };
+}
+
+#[macro_export]
 macro_rules! return_if {
     ($expr:expr) => {
         if $expr {

@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 use crate::{
     ingame::{InGameState, input::left_click::LeftClickModeType},
-    states::AppState,
+    states::{AppState, PointerIn},
 };
 
 #[derive(Default, Reflect, GizmoConfigGroup)]
@@ -56,7 +56,8 @@ impl<T: Selection + Send + Sync + 'static> Plugin for SelectedPlugin<T> {
                 unselect::<T>
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
-                    .run_if(in_state(LeftClickModeType::Select)),
+                    .run_if(in_state(LeftClickModeType::Select))
+                    .run_if(in_state(PointerIn::Battle)),
             );
     }
 }

@@ -95,7 +95,6 @@ fn show(
     mut window: ResMut<states::Window>,
     mut commands: Commands,
     g: Res<states::GameConfig>,
-    mut pointer: ResMut<NextState<PointerIn>>,
     world: Res<crate::world::World>,
     ingame: Res<crate::ingame::state::State>,
 ) -> Result {
@@ -103,11 +102,6 @@ fn show(
     let_some!(g = &g.0, return Ok(()));
 
     window.show(&mut contexts, &mut commands, &g.mod_, &g.w, &world, &ingame)?;
-
-    match contexts.ctx_mut()?.is_pointer_over_egui() {
-        true => *pointer = NextState::Pending(PointerIn::Window),
-        false => *pointer = NextState::Pending(PointerIn::Battle),
-    }
 
     Ok(())
 }

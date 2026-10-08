@@ -46,6 +46,7 @@ fn download(
     ensure_file(&files, files::File::Mod, region_width, region_height).unwrap(); // TODO
     ensure_file(&files, files::File::World, region_width, region_height).unwrap(); // TODO
     ensure_file(&files, files::File::Minimap, region_width, region_height).unwrap(); // TODO
+    ensure_file(&files, files::File::HudMinimap, region_width, region_height).unwrap(); // TODO
 
     for region in 0..g.w.regions_count() {
         ensure_file(

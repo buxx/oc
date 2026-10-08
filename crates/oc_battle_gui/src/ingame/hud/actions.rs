@@ -14,7 +14,7 @@ pub struct BattlePhaseButton;
 #[derive(Component, Default, Clone)]
 pub struct ActionButtonText;
 
-pub fn actions() -> impl Scene {
+pub fn actions(world: &crate::world::World, phase: &BattlePhase) -> impl Scene {
     bsn! {
         Node {
             flex_direction: FlexDirection::Column,
@@ -25,14 +25,16 @@ pub fn actions() -> impl Scene {
         Children [
             (
                 BattlePhaseButton
-                battle_state_button()
+                battle_state_button(world, phase)
                 on(on_battle_phase_click)
             ),
         ]
     }
 }
 
-fn battle_state_button() -> impl Scene {
+fn battle_state_button(_world: &crate::world::World, phase: &BattlePhase) -> impl Scene {
+    let label = phase.hud_button_label();
+
     bsn! {
         Node {
             padding: UiRect::axes(px(12), px(6)),
@@ -44,9 +46,10 @@ fn battle_state_button() -> impl Scene {
         on(on_out)
         Children [
             (
-                Text("n/a")
+                ActionButtonText
+                Text(label)
                 TextFont { font_size: px(12) }
-                ActionButtonText Pickable::IGNORE
+                Pickable::IGNORE
             )
         ]
     }
@@ -79,7 +82,7 @@ fn on_battle_phase_click(
             commands.trigger(ToggleWindow(window::Window::Fight(window)));
         }
         BattlePhase::Fight => {
-            // TODO: surrender
+            // FIXME: surrender
             tracing::debug!("Surrender");
         }
     }
@@ -87,19 +90,7 @@ fn on_battle_phase_click(
 
 pub fn update_fight_button(
     phase: Res<State<BattlePhase>>,
-    mut texts: Query<(&mut Text, &ChildOf), With<ActionButtonText>>,
-    buttons: Query<(), With<BattlePhaseButton>>,
+    mut text: Single<&mut Text, With<ActionButtonText>>,
 ) {
-    for (mut text, parent) in &mut texts {
-        if !buttons.contains(parent.parent()) {
-            continue;
-        }
-        let label = match phase.get() {
-            BattlePhase::Deployment => "Fight",
-            BattlePhase::Fight => "Surrender",
-        };
-        if text.0 != label {
-            text.0 = label.to_string();
-        }
-    }
+    text.0 = phase.hud_button_label().to_string();
 }
