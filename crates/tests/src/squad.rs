@@ -4,6 +4,7 @@ use oc_individual::{
     order::Order,
     squad::{Squad, SquadFormation},
 };
+use oc_mod::illustration::IllustrationIndex;
 use oc_root::{geo::WorldVec2, side::Side};
 
 #[derive(Debug, Builder)]
@@ -23,6 +24,7 @@ impl TestSquad {
     pub fn make(self) -> Squad {
         Squad {
             side: self.side,
+            illustration: IllustrationIndex(0),
             actives: self.members.len() as u8,
             members: self.members,
             formation: self.formation,

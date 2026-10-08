@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use oc_individual::order::Order;
+use oc_mod::illustration::Illustration;
 
 use crate::sprites::{IntoIndividualSprite, IntoSprite, SpriteRect};
 
@@ -163,5 +164,12 @@ impl SpriteRect for IndividualOrderSprite {
 
         let start_y = START_Y + (i * HEIGHT);
         Rect::new(START_X, start_y, START_X + WIDTH, start_y + HEIGHT)
+    }
+}
+
+impl SpriteRect for Illustration {
+    fn rect(&self) -> Rect {
+        let (x, y) = (self.x as f32, self.y as f32);
+        Rect::new(x, y, x + self.width as f32, y + self.height as f32)
     }
 }

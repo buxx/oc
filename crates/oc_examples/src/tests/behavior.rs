@@ -9,6 +9,7 @@ use oc_individual::{
     order::Order,
     squad::{Squad, SquadFormation},
 };
+use oc_mod::illustration::IllustrationIndex;
 use oc_root::{WcfgFrom, WorldConfig, battle::BattlePhase, physics::Meters, side::Side, y::V};
 use oc_utils::d2::{Direction, Xy};
 use oc_world::{meta::Meta, tile::Tile};
@@ -125,6 +126,7 @@ fn squads(
         .map(|(position, orders)| (position, orders))
         .map(|(position, orders)| Squad {
             side: Side::A,
+            illustration: IllustrationIndex(0),
             position: (*position).into(),
             members: (0..count)
                 .into_iter()

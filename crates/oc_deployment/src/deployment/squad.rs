@@ -5,6 +5,7 @@ use uuid::Uuid;
 pub struct Squad {
     pub uuid: Uuid,
     pub label: String,
+    pub illustration: String,
     pub individuals: Vec<super::individual::Individual>,
 }
 
@@ -18,7 +19,8 @@ impl Squad {
     pub fn new() -> Self {
         Self {
             uuid: Uuid::new_v4(),
-            label: "".to_string(),
+            label: "default".to_string(),
+            illustration: "".to_string(),
             individuals: vec![],
         }
     }

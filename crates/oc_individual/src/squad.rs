@@ -1,6 +1,7 @@
 use derive_more::Constructor;
 use getset::WithSetters;
 use glam::Vec2;
+use oc_mod::illustration::IllustrationIndex;
 use oc_root::{WorldConfig, geo::WorldVec2, side::Side, y::V};
 use oc_utils::d2::Angle;
 use rkyv::Archive;
@@ -43,6 +44,9 @@ pub struct Squad {
     /// Side of the squad
     #[getset(set_with = "pub")]
     pub side: Side,
+    /// Illustration
+    #[getset(set_with = "pub")]
+    pub illustration: IllustrationIndex,
     /// Individual identifiers in this squad. Integrity must be checked before game run
     #[getset(set_with = "pub")]
     pub members: Vec<IndividualIndex>,
@@ -65,6 +69,7 @@ impl Squad {
         let actives = members.len() as u8;
         Self {
             side,
+            illustration: IllustrationIndex(0),
             members,
             actives,
             formation: SquadFormation::Line,

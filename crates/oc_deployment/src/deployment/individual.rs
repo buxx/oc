@@ -6,6 +6,7 @@ use crate::deployment::{magazine::Magazine, weapon::Weapons};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Individual {
     pub uuid: Uuid,
+    pub illustration: String,
     pub weapons: Weapons,
     pub magazines: Vec<Magazine>,
 }
@@ -20,6 +21,7 @@ impl Individual {
     pub fn new() -> Self {
         Self {
             uuid: Uuid::new_v4(),
+            illustration: "default".to_string(),
             weapons: Weapons::empty(),
             magazines: vec![],
         }

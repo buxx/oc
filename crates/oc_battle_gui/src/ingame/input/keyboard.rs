@@ -14,6 +14,7 @@ use crate::ingame::{
 use crate::ingame::{SwitchToHeightMap, camera};
 use crate::window;
 use crate::window::ToggleWindow;
+#[cfg(feature = "debug")]
 use crate::window::Window;
 #[cfg(feature = "debug")]
 use crate::window::debug::battle::DebugBattleWindow;

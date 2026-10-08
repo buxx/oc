@@ -2,6 +2,7 @@ use std::fmt::Display;
 use std::ops::Deref;
 
 use derive_more::Constructor;
+use getset::WithSetters;
 use oc_geo::Geo;
 use oc_geo::UpdateGeo;
 use oc_geo::region::Region;
@@ -10,6 +11,7 @@ use oc_geo::tile::TileXy;
 use oc_geo::tile::WorldTileIndex;
 use oc_mod::Mod;
 use oc_mod::ammunition::AmmunitionIndex;
+use oc_mod::illustration::IllustrationIndex;
 use oc_mod::magazine::MagazineIndex;
 use oc_mod::nature::Traversability;
 use oc_mod::weapons::WeaponIndex;
@@ -77,11 +79,13 @@ impl Display for IndividualIndex {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone)]
+#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone, WithSetters)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 #[allow(clippy::too_many_arguments)]
 pub struct Individual {
     pub side: Side,
+    #[getset(set_with = "pub")]
+    pub illustration: IllustrationIndex,
     pub position: WorldVec3,
     pub tile: WorldTileIndex,
     pub region: WorldRegionIndex,
@@ -164,6 +168,7 @@ impl Individual {
         let region = WorldRegionIndex::from_(tile, w);
         Self::new(
             side,
+            IllustrationIndex(0),
             position,
             tile,
             region,

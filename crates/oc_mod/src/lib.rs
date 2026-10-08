@@ -13,6 +13,7 @@ use thiserror::Error;
 
 use crate::{
     ammunition::{Ammunition, AmmunitionIndex, IndexedAmmunition},
+    illustration::{IllustrationIndex, IllustrationKind, IndexedIllustration},
     magazine::{IndexedMagazine, MagazineIndex},
     nature::{Nature, NatureIndex},
     sound::IndexedSound,
@@ -21,6 +22,7 @@ use crate::{
 
 pub mod ammunition;
 pub mod armament;
+pub mod illustration;
 pub mod magazine;
 pub mod nature;
 pub mod sound;
@@ -56,6 +58,8 @@ pub struct Mod {
     pub magazines: Vec<magazine::IndexedMagazine>,
     #[serde(skip, default)]
     pub weapons: Vec<weapons::IndexedWeapon>,
+    #[serde(skip, default)]
+    pub illustrations: illustration::IndexedIllustrations,
     // Below game specs
     #[serde(default = "default_human_default_stand_up_fire_meters")]
     pub human_default_stand_up_fire_meters: f32,
@@ -70,6 +74,7 @@ impl Mod {
         mod_.ammunitions = ammunition::load(path)?;
         mod_.magazines = magazine::load(path)?;
         mod_.weapons = weapons::load(path, &mod_)?;
+        mod_.illustrations = illustration::load(path)?;
 
         // TODO: centralize caching at server startup
         if let Some(cache_) = cache_ {
@@ -180,6 +185,40 @@ impl Mod {
             .collect()
     }
 
+    pub fn illustration_from_name(
+        &self,
+        kind: IllustrationKind,
+        name: &str,
+    ) -> Result<&IndexedIllustration, Error> {
+        match kind {
+            IllustrationKind::IngameSquad => self
+                .illustrations
+                .ingame_squads
+                .iter()
+                .find(|i| i.name == name)
+                .ok_or(Error::UnknownIllustrationName(name.to_string())),
+            IllustrationKind::IngameIndividual => self
+                .illustrations
+                .ingame_individuals
+                .iter()
+                .find(|i| i.name == name)
+                .ok_or(Error::UnknownIllustrationName(name.to_string())),
+        }
+    }
+
+    pub fn illustration(
+        &self,
+        kind: IllustrationKind,
+        index: IllustrationIndex,
+    ) -> &IndexedIllustration {
+        match kind {
+            IllustrationKind::IngameSquad => &self.illustrations.ingame_squads[index.0 as usize],
+            IllustrationKind::IngameIndividual => {
+                &self.illustrations.ingame_individuals[index.0 as usize]
+            }
+        }
+    }
+
     pub fn sound(&self, sound: sound::SoundIndex) -> &IndexedSound {
         &self.sounds[sound.0 as usize]
     }
@@ -253,6 +292,10 @@ pub enum Error {
     UnknownMagazineName(String),
     #[error("Unknown sound name: {0}")]
     UnknownSoundName(String),
+    #[error("Unknown illustration name: {0}")]
+    UnknownIllustrationName(String),
+    #[error("Illustrations: {0}")]
+    Illustrations(#[from] illustration::Error),
     #[error("Weapons: {0}")]
     Natures(#[from] nature::Error),
     #[error("Natures: {0}")]

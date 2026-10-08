@@ -10,6 +10,7 @@ pub struct Squad {
     #[serde(default = "default_count")]
     pub count: usize,
     pub label: String,
+    pub illustration: String,
     pub individuals: Vec<Individual>,
 }
 
@@ -17,6 +18,7 @@ pub struct Squad {
 pub struct Individual {
     #[serde(default = "default_count")]
     pub count: usize,
+    pub illustration: String,
     pub weapons: Weapons,
     pub magazines: Vec<Magazine>,
 }

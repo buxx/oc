@@ -18,7 +18,7 @@ use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::{
     INDIVIDUAL_PRONE_VOLUME_WIDTH, IndividualIndex, order::Order, squad::SquadFormation,
 };
-use oc_mod::Mod;
+use oc_mod::{Mod, illustration::IllustrationIndex};
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectiles;
 use oc_root::{
@@ -180,6 +180,7 @@ fn individuals(
             let individual = IndividualIndex(i as u64);
             oc_individual::squad::Squad {
                 side: Side::A,
+                illustration: IllustrationIndex(0),
                 position: [position[0], position[1]].into(),
                 members: vec![individual],
                 actives: 2,

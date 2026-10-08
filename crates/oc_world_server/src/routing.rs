@@ -104,7 +104,6 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
                 Some(listeners) => listeners.clone().into_iter().collect::<FxHashSet<_>>(),
                 None => FxHashSet::default(),
             },
-            #[cfg(feature = "debug")]
             Listening::Any => self.all.iter().cloned().collect::<FxHashSet<_>>(),
         }
     }

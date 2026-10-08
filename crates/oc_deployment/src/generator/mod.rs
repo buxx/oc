@@ -21,10 +21,12 @@ impl Generator {
             for _ in 0..squad.count {
                 let mut squad_ = Squad::new();
                 squad_.label = squad.label.clone();
+                squad_.illustration = squad.illustration.clone();
 
                 for individual in &squad.individuals {
                     for _ in 0..individual.count {
                         let mut individual_ = Individual::new();
+                        individual_.illustration = individual.illustration.clone();
 
                         individual_.weapons = Weapons::default();
                         if let Some(weapon) = &individual.weapons.main {

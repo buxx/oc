@@ -11,6 +11,7 @@ use crate::{
         behavior::BehaviorPlugin,
         draw::world::WorldMapDisplay,
         height::HeightPlugin,
+        hud::HudPlugin,
         individual::IndividualPlugin,
         input::InputPlugin,
         interior::InteriorPlugin,
@@ -35,6 +36,7 @@ pub mod camera;
 pub mod debug;
 pub mod draw;
 pub mod height;
+pub mod hud;
 pub mod individual;
 pub mod init;
 pub mod input;
@@ -99,6 +101,7 @@ impl Plugin for IngamePlugin {
             .add_plugins(InputPlugin)
             .add_plugins(WorldPlugin)
             .add_plugins(HeightPlugin)
+            .add_plugins(HudPlugin)
             .add_plugins(IndividualPlugin)
             .add_plugins(SquadPlugin)
             .add_plugins(ProjectilePlugin)

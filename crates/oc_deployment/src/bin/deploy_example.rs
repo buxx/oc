@@ -11,8 +11,10 @@ fn example() -> Profile {
         squads: vec![Squad {
             count: 2,
             label: "MySquad1".to_string(),
+            illustration: "default".to_string(),
             individuals: vec![Individual {
                 count: 3,
+                illustration: "default".to_string(),
                 weapons: Weapons {
                     main: Some("MosinNagantM1924".to_string()),
                 },

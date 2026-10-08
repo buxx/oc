@@ -1,8 +1,10 @@
 squads:
 - count: 2
   label: MySquad1
+  illustration: default
   individuals:
   - count: 3
+    illustration: default
     weapons:
       main: MosinNagantM1924
     magazines:

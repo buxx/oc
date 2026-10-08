@@ -1,5 +1,9 @@
 use bevy::prelude::*;
-use oc_root::{Wcfg, geo::WorldVec2, y::Y};
+use oc_root::{
+    Wcfg, WcfgFrom,
+    geo::{ScreenVec2, WorldVec2},
+    y::Y,
+};
 use oc_utils::{let_ok, let_some};
 
 use crate::{
@@ -103,13 +107,15 @@ pub fn move_in_world_map(
 
 pub fn on_go_to_point(
     point: On<GoToPoint>,
+    g: Res<GameConfig>,
     mut commands: Commands,
     mut camera: Single<&mut Transform, With<Camera2d>>,
 ) {
+    let_some!(g = &g.0, return);
     tracing::debug!("Moved on {point:?}");
+    let point = ScreenVec2::from_(point.0, &g.w);
     camera.translation.x = point.x;
     camera.translation.y = point.y;
-    camera.translation.z = 0.;
-    commands.trigger(UpdateRegions(point.0.into()));
-    commands.trigger(UpdateVisibleBattleSquare(point.0.into()));
+    commands.trigger(UpdateRegions(point.into()));
+    commands.trigger(UpdateVisibleBattleSquare(point.into()));
 }

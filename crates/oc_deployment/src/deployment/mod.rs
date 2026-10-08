@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::Context;
 use oc_geo::tile::WorldTileIndex;
 use oc_individual::{Individual, IndividualIndex, Weapon, squad::Squad};
-use oc_mod::Mod;
+use oc_mod::{Mod, illustration::IllustrationKind};
 use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec2, side::Side};
 use oc_world::{snapshot::Snapshot, spawn::SpawnZone, tile::Tile};
 use serde::{Deserialize, Serialize};
@@ -113,7 +113,14 @@ impl Deployments {
             *i += 1;
         }
 
-        let squad = Squad::fresh(side, individuals.clone(), position);
+        let squad = Squad::fresh(side, individuals.clone(), position).with_illustration(
+            mod_.illustration_from_name(IllustrationKind::IngameSquad, &squad.illustration)
+                .context(format!(
+                    "Use squad ingame illustration '{}'",
+                    squad.illustration
+                ))?
+                .index(),
+        );
         snapshot.squads.push(squad);
 
         Ok(())
@@ -134,7 +141,17 @@ impl Deployments {
         let tile = &tiles[tile.0 as usize];
         let z = tile.z_pixels(w);
         let position = squad_position.extend(z);
-        let mut individual = Individual::fresh(w, side, position);
+        let mut individual = Individual::fresh(w, side, position).with_illustration(
+            mod_.illustration_from_name(
+                IllustrationKind::IngameIndividual,
+                &individual_.illustration,
+            )
+            .context(format!(
+                "Use individual ingame illustration '{}'",
+                individual_.illustration
+            ))?
+            .index(),
+        );
 
         if let Some(weapon) = &individual_.weapons.main {
             let weapon = mod_.weapon_from_name(weapon)?;
