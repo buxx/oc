@@ -51,7 +51,7 @@ pub fn squads() -> impl Scene {
     }
 }
 
-fn squad_cell(
+fn squad(
     g: &oc_network::GameConfig,
     connect: &config::Connect,
     i: SquadIndex,
@@ -126,7 +126,7 @@ pub fn spawn_squad_cells(
     for i in world.squads() {
         let_some!(squad = world.squad(i), continue);
         commands
-            .spawn_scene(squad_cell(g, &connect, i, squad))
+            .spawn_scene(squad(g, &connect, i, squad))
             .insert((SquadCell(i), ChildOf(grid)));
     }
 }
