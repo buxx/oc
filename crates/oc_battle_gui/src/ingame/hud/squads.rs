@@ -11,7 +11,7 @@ use oc_utils::{every, let_ok, let_some, true_};
 
 use crate::{
     config,
-    ingame::{camera::GoToPoint, hud::SCROLL_LINE_PX},
+    ingame::{self, camera::GoToPoint, hud::SCROLL_LINE_PX},
     network,
     sprites::SpriteRect,
     states::GameConfig,
@@ -148,9 +148,13 @@ fn on_click(
     mut commands: Commands,
     cells: Query<&SquadCell>,
     world: Res<World>,
+    mut state: ResMut<ingame::state::State>,
 ) {
     let_ok!(cell = cells.get(e.entity), return);
-    let_some!(squad = world.squad(cell.0), return);
+    let i = cell.0;
+    let_some!(squad = world.squad(i), return);
+    let updated = state.update_selected(vec![i], squad.members.clone(), vec![]);
+    commands.trigger(updated);
     commands.trigger(GoToPoint(squad.position));
 }
 
