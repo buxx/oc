@@ -91,4 +91,9 @@
    <property name="ID" value="BigRock"/>
   </properties>
  </tile>
+ <tile id="204">
+  <properties>
+   <property name="ID" value="Cliff"/>
+  </properties>
+ </tile>
 </tileset>

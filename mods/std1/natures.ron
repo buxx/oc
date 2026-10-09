@@ -125,4 +125,10 @@
         z: Meters(2.5),
         deny: [Individual, Projectile],
     ),
+    (
+        name: "Cliff",
+        opacity: 0.0,
+        z: Meters(0.0),
+        deny: [Individual, Projectile],
+    ),
 ]
