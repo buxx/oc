@@ -2,16 +2,24 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 use oc_individual::{Individual, IndividualIndex};
+use oc_mod::illustration::IllustrationKind;
+use oc_root::files::Files;
 use oc_utils::{every, let_ok, let_some};
 
 use crate::{
+    config,
     ingame::{hud::GAP, state::SelectionUpdated},
+    network,
+    sprites::SpriteRect,
+    states::GameConfig,
     world::World,
 };
 
 const ROW_BG: Color = Color::srgb(0.2, 0.25, 0.2);
-const ROW_HEIGHT: f32 = 20.;
-const COLUMNS_WIDTH: f32 = 200.;
+const ROW_HEIGHT: f32 = 32.;
+const COLUMNS_WIDTH: f32 = 250.;
+const INDIVIDUAL_ICON_WIDTH: f32 = 30.;
+const INDIVIDUAL_ICON_HEIGHT: f32 = 30.;
 
 #[derive(Component, Default, Clone)]
 pub struct SquadDetails;
@@ -36,7 +44,20 @@ pub fn squad() -> impl Scene {
     }
 }
 
-fn row(i: IndividualIndex, individual: &Individual) -> impl Scene {
+fn row(
+    g: &oc_network::GameConfig,
+    connect: &config::Connect,
+    i: IndividualIndex,
+    individual: &Individual,
+) -> impl Scene {
+    let mod__ = g.mod_.canonical();
+    let world = g.meta.canonical();
+    let files = Files::new(mod__, world).into_gui(g.static_.clone(), connect.clone().into());
+    let sprites = files.sprites();
+    let sprite = sprites.join("illustrations.png");
+    let kind = IllustrationKind::IngameIndividual;
+    let illustration = g.mod_.illustration(kind, individual.illustration);
+    let rect = illustration.inner().rect();
     let status = individual.status.hud_label().to_string();
 
     bsn! {
@@ -50,11 +71,19 @@ fn row(i: IndividualIndex, individual: &Individual) -> impl Scene {
         }
         BackgroundColor(ROW_BG)
         Children [
+            // Icon
+            (
+                Node { width: px(INDIVIDUAL_ICON_WIDTH), height: px(INDIVIDUAL_ICON_HEIGHT), flex_shrink: 0. }
+                ImageNode { image: sprite, rect: {Some(rect)} }
+                Pickable::IGNORE
+            ),
+            // Name
             (
                 Text({format!("Individual {}", i.0)})
                 TextFont { font_size: px(12) }
                 Pickable::IGNORE
             ),
+            // Status
             (
                 IndividualStatusText(i)
                 Text(status)
@@ -72,7 +101,12 @@ pub fn spawn_rows(
     world: Res<World>,
     details: Query<Entity, With<SquadDetails>>,
     rows: Query<Entity, With<IndividualRow>>,
+    g: Res<GameConfig>,
+    network: Res<network::state::State>,
 ) {
+    let_some!(g = &g.0, return);
+    let_some!(connect = &network.server, return);
+
     for row in &rows {
         commands.entity(row).despawn();
     }
@@ -85,7 +119,7 @@ pub fn spawn_rows(
         let_some!(individual = world.get_individual(i), continue);
 
         commands
-            .spawn_scene(row(i, individual))
+            .spawn_scene(row(g, &connect, i, individual))
             .insert((IndividualRow, ChildOf(details)));
     }
 }
