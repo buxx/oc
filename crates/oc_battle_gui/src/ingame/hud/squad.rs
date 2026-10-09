@@ -17,7 +17,7 @@ use crate::{
 
 const ROW_BG: Color = Color::srgb(0.2, 0.25, 0.2);
 const ROW_HEIGHT: f32 = 32.;
-const COLUMNS_WIDTH: f32 = 250.;
+const COLUMNS_WIDTH: f32 = 200.;
 const INDIVIDUAL_ICON_WIDTH: f32 = 30.;
 const INDIVIDUAL_ICON_HEIGHT: f32 = 30.;
 
@@ -66,7 +66,7 @@ fn row(
             height: px(ROW_HEIGHT),
             flex_shrink: 0.,
             justify_content: JustifyContent::SpaceBetween,
-            align_items: AlignItems::Center,
+            align_items: AlignItems::Start,
             padding: UiRect::horizontal(px(2)),
         }
         BackgroundColor(ROW_BG)
@@ -77,19 +77,35 @@ fn row(
                 ImageNode { image: sprite, rect: {Some(rect)} }
                 Pickable::IGNORE
             ),
-            // Name
+            Node { flex_direction: FlexDirection::Column }
+            Pickable::IGNORE
+            Children [
+                // Name
+                (
+                    Text({format!("Individual {}", i.0)})
+                    TextFont { font_size: px(11) }
+                    Pickable::IGNORE
+                ),
+                // Status
+                (
+                    IndividualStatusText(i)
+                    Text(status)
+                    TextFont { font_size: px(11) }
+                    TextColor(Color::srgb(0.3, 0.5, 1.0))
+                    Pickable::IGNORE
+                ),
+            ],
+            //
             (
-                Text({format!("Individual {}", i.0)})
-                TextFont { font_size: px(12) }
+                Node { flex_direction: FlexDirection::Column }
                 Pickable::IGNORE
-            ),
-            // Status
-            (
-                IndividualStatusText(i)
-                Text(status)
-                TextFont { font_size: px(12) }
-                TextColor(Color::srgb(0.3, 0.5, 1.0))
-                Pickable::IGNORE
+                Children [
+                    (
+                        Text("toto")
+                        TextFont { font_size: px(10) }
+                        Pickable::IGNORE
+                    ),
+                ]
             ),
         ]
     }
