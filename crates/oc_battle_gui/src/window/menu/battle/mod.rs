@@ -20,9 +20,13 @@ impl Window {
         _mod_: &Mod,
         _wcfg: &WorldConfig,
     ) -> Result {
-        bevy_egui::egui::Window::new("Hello").show(contexts.ctx_mut()?, |ui| {
-            ui.label("world");
-        });
+        let ctx = contexts.ctx_mut()?;
+        bevy_egui::egui::Window::new("Hello")
+            .pivot(bevy_egui::egui::Align2::CENTER_CENTER)
+            .default_pos(ctx.content_rect().center())
+            .show(ctx, |ui| {
+                ui.label("world");
+            });
 
         Ok(())
     }

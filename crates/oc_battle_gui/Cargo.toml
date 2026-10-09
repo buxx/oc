@@ -23,6 +23,7 @@ oc_individual = { path = "../oc_individual", features = ["bevy"] }
 oc_projectile = { path = "../oc_projectile" }
 enum_type_derive = { path = "../enum_type_derive" }
 bevy_heightmap = { path = "../bevy_heightmap" }
+bevy_editor_cam = "0.10.1"
 bevy.workspace = true
 bevy_spritesheet_animation.workspace = true
 tracing.workspace = true

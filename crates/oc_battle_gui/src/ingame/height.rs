@@ -2,8 +2,8 @@ use std::f32::consts::PI;
 use std::path::PathBuf;
 
 use bevy::color::palettes::css::WHITE;
-use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
+use bevy_editor_cam::prelude::*;
 use bevy_heightmap::{HeightMap, HeightMapPlugin, ValueFunctionHeightMap};
 use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_geo::tile::{TileXy, WorldTileIndex};
@@ -17,6 +17,8 @@ use oc_utils::{let_ok, let_some};
 use crate::ingame::InGameState;
 use crate::states::{AppState, GameConfig};
 use crate::world::World;
+
+// WARNING: this module is experimental and essentially based on AI help
 
 pub struct HeightPlugin;
 
@@ -36,121 +38,15 @@ pub struct CursorWorldPos(pub Option<Vec3>);
 
 impl Plugin for HeightPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(HeightMapPlugin)
+        app.add_plugins((HeightMapPlugin, MeshPickingPlugin, DefaultEditorCamPlugins))
             .add_observer(on_spawn)
             .add_systems(
                 Update,
-                (
-                    move_camera_by_keyboard,
-                    move_camera_by_mouse,
-                    rotate_camera_by_mouse,
-                    update_cursor_world_pos,
-                    update_cursor_circle_transform,
-                )
+                (update_cursor_world_pos, update_cursor_circle_transform)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Height)),
             );
     }
-}
-
-// AI generated
-fn rotate_camera_by_mouse(
-    mouse_buttons: Res<ButtonInput<MouseButton>>,
-    mut mouse_motion: MessageReader<MouseMotion>,
-    mut query: Query<&mut Transform, With<Camera3d>>,
-) {
-    let_ok!(mut transform = query.single_mut(), return);
-
-    if mouse_buttons.pressed(MouseButton::Left) {
-        for event in mouse_motion.read() {
-            let yaw = -event.delta.x * 0.002;
-            let pitch = -event.delta.y * 0.002;
-
-            // The point the camera is looking at (world space)
-            let target =
-                transform.translation + transform.forward() * transform.translation.length();
-
-            // Orbit around target
-            let yaw_quat = Quat::from_rotation_y(yaw);
-            let pitch_quat = Quat::from_axis_angle(*transform.right(), pitch);
-
-            // Rotate position around target
-            let offset = transform.translation - target;
-            let new_offset = yaw_quat * pitch_quat * offset;
-            transform.translation = target + new_offset;
-
-            // Always look back at target
-            transform.look_at(target, Vec3::Y);
-        }
-    } else {
-        mouse_motion.clear();
-    }
-}
-
-// AI generated
-fn move_camera_by_mouse(
-    mut dragging: Local<bool>,
-    mouse_buttons: Res<ButtonInput<MouseButton>>,
-    mut mouse_motion: MessageReader<MouseMotion>,
-    mut query: Query<(&mut Transform, &Projection), With<Camera3d>>,
-) {
-    let Ok((mut transform, projection)) = query.single_mut() else {
-        return;
-    };
-
-    let scale = match projection {
-        Projection::Orthographic(o) => o.scale,
-        _ => 1.0,
-    };
-
-    if mouse_buttons.just_pressed(MouseButton::Right) {
-        *dragging = true;
-    }
-    if mouse_buttons.just_released(MouseButton::Right) {
-        *dragging = false;
-    }
-
-    if *dragging {
-        for event in mouse_motion.read() {
-            transform.translation.x -= event.delta.x * scale;
-            transform.translation.y += event.delta.y * scale;
-        }
-    } else {
-        mouse_motion.clear();
-    }
-}
-
-const CAMERA_SPEED: f32 = 300.0; // units per second
-
-// AI generated
-fn move_camera_by_keyboard(
-    time: Res<Time>,
-    keys: Res<ButtonInput<KeyCode>>,
-    mut query: Query<&mut Transform, With<Camera3d>>,
-) {
-    let_ok!(mut transform = query.single_mut(), return);
-
-    let mut direction = Vec3::ZERO;
-
-    if keys.pressed(KeyCode::ArrowLeft) || keys.pressed(KeyCode::KeyA) {
-        direction.x -= 1.0;
-    }
-    if keys.pressed(KeyCode::ArrowRight) || keys.pressed(KeyCode::KeyD) {
-        direction.x += 1.0;
-    }
-    if keys.pressed(KeyCode::ArrowUp) || keys.pressed(KeyCode::KeyW) {
-        direction.y += 1.0;
-    }
-    if keys.pressed(KeyCode::ArrowDown) || keys.pressed(KeyCode::KeyS) {
-        direction.y -= 1.0;
-    }
-
-    // Normalize to prevent faster diagonal movement
-    if direction != Vec3::ZERO {
-        direction = direction.normalize();
-    }
-
-    transform.translation += direction * CAMERA_SPEED * time.delta_secs();
 }
 
 // FIXME: if all tiles are z0, nothing display
@@ -463,6 +359,11 @@ pub fn setup_camera3d(commands: &mut Commands, center: &Vec2) {
 
     commands.spawn((
         Camera3d::default(),
+        EditorCam {
+            orbit_constraint: OrbitConstraint::Free,
+            last_anchor_depth: -1000.0,
+            ..default()
+        },
         Projection::Orthographic(OrthographicProjection {
             scale: 1.0,
             near: -100.0, // negative near lets you see meshes slightly in front of camera Z

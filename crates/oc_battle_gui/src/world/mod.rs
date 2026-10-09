@@ -21,8 +21,8 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     ingame::{
-        BattlePhase, WorldResumeEvent, behavior::SpawnSquadOrders, physics::ObjectId,
-        spawn::ShowSpawnZones,
+        BattlePhase, WorldResumeEvent, behavior::SpawnSquadOrders, camera::GoToPoint,
+        physics::ObjectId, spawn::ShowSpawnZones,
     },
     states::GameConfig,
     world::{path::navmesh, visibilities::Visibilities},
@@ -272,11 +272,10 @@ impl World {
         Some(p.into())
     }
 
-    pub fn squads(&self) -> Vec<SquadIndex> {
+    pub fn squads(&self) -> impl Iterator<Item = SquadIndex> + '_ {
         self.squads
             .values()
             .flat_map(|squads| squads.keys().copied())
-            .collect()
     }
 
     pub fn squad(&self, i: SquadIndex) -> Option<&Squad> {
@@ -329,6 +328,10 @@ fn on_world_resume(
 
         tracing::trace!(name="world-on-world-resume-trigger-spawn-squad-orders", i=?i, orders=?squad.orders);
         commands.trigger(SpawnSquadOrders(*i, squad.orders.clone()));
+
+        let_some!(squad = world.squads().next(), return);
+        let_some!(squad = world.squad(squad), return);
+        commands.trigger(GoToPoint(squad.position));
     }
 
     commands.trigger(ShowSpawnZones(

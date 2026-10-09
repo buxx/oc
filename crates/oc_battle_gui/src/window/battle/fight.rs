@@ -23,7 +23,11 @@ impl Window {
         _mod_: &Mod,
         _wcfg: &WorldConfig,
     ) -> Result {
-        bevy_egui::egui::Window::new("Hello").show(contexts.ctx_mut()?, |ui| {
+        let ctx = contexts.ctx_mut()?;
+        bevy_egui::egui::Window::new("Hello")
+            .pivot(bevy_egui::egui::Align2::CENTER_CENTER)
+            .default_pos(ctx.content_rect().center())
+            .show(ctx, |ui| {
             if ui.button("Fight !").clicked() {
                 commands.trigger(ToServerEvent(ToServer::Fight));
                 commands.trigger(ToggleWindow(window::Window::Fight(self.clone())));

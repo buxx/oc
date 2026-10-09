@@ -49,6 +49,8 @@ impl Window {
 
         bevy_egui::egui::Window::new("Dock window")
             .default_size(size)
+            .pivot(bevy_egui::egui::Align2::CENTER_CENTER)
+            .default_pos(ctx.content_rect().center())
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     let show_tiles = &mut context.context.show_tiles;
