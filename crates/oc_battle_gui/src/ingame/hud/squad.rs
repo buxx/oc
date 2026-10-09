@@ -101,7 +101,7 @@ fn row(
                 Pickable::IGNORE
                 Children [
                     (
-                        Text("toto")
+                        Text("x rnds.")
                         TextFont { font_size: px(10) }
                         Pickable::IGNORE
                     ),
