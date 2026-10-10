@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use oc_individual::network::{Individual, Squad};
 use oc_network::ToClient;
 use oc_projectile::network::Projectile;
-use oc_root::Wcfg;
+use oc_root::{Wcfg, files};
 
 #[cfg(feature = "debug")]
 use crate::debug::DebugEvent;
@@ -20,8 +20,9 @@ use crate::{
         },
         projectile::ForgotProjectile,
     },
+    network,
     network::input::ToClientEvent,
-    states::GameConfig,
+    states::{GameConfig, GuiFiles},
     world::{InsertTiles, UpdateVisibilities},
 };
 
@@ -29,6 +30,8 @@ pub fn on_to_client(
     to_client: On<ToClientEvent>,
     mut commands: Commands,
     mut g: ResMut<GameConfig>,
+    mut files: ResMut<GuiFiles>,
+    network: Res<network::state::State>,
     mut w: ResMut<Wcfg>,
 ) {
     tracing::trace!(name = "ingame-input-client");
@@ -38,6 +41,10 @@ pub fn on_to_client(
             tracing::debug!("Received GameConfig");
             g.0 = Some((**config).clone());
             w.0 = Some(config.w.clone());
+            files.0 = network.server.clone().map(|connect| {
+                files::Files::new(config.mod_.canonical(), config.meta.canonical())
+                    .into_gui(config.static_.clone(), connect.into())
+            });
             commands.trigger(GameConfigReceived);
         }
         ToClient::WorldResume(resume) => {

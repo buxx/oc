@@ -1,9 +1,9 @@
+use crate::states::GuiFiles;
 use bevy::prelude::*;
 use oc_physics::fx::{Audio, Fx};
-use oc_root::files;
 use oc_utils::let_some;
 
-use crate::{network, states::GameConfig};
+use crate::states::GameConfig;
 
 #[derive(Debug, Event)]
 pub struct FxEvent(pub Fx);
@@ -35,14 +35,10 @@ fn on_fx(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
     g: Res<GameConfig>,
-    network: Res<network::state::State>,
+    files: Res<GuiFiles>,
 ) {
     let_some!(g = &g.0, return);
-    let_some!(connect = network.server.clone(), return);
-
-    let mod_ = g.mod_.canonical();
-    let world = g.meta.canonical();
-    let files = files::Files::new(mod_, world).into_gui(g.static_.clone(), connect.into());
+    let_some!(files = &files.0, return);
     let path = files.mod_().join("sounds");
 
     match &fx.0 {

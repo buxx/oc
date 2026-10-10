@@ -1,11 +1,9 @@
+use crate::states::GuiFiles;
 use bevy::prelude::*;
 use bevy_spritesheet_animation::prelude::*;
-use oc_root::files::Files;
 use oc_utils::let_some;
 
-use crate::{
-    ingame::GameConfigReceived, network, sprites::soldier::SoldierAnimations, states::GameConfig,
-};
+use crate::{ingame::GameConfigReceived, sprites::soldier::SoldierAnimations};
 
 pub mod order;
 pub mod soldier;
@@ -23,17 +21,11 @@ fn on_game_config_received(
     _: On<GameConfigReceived>,
     mut commands: Commands,
     assets: Res<AssetServer>,
-    g: Res<GameConfig>,
-    network: Res<network::state::State>,
+    files: Res<GuiFiles>,
     mut animations: ResMut<Assets<Animation>>,
     mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    let_some!(g = &g.0, return);
-    let_some!(connect = network.server.clone(), return);
-
-    let mod_ = g.mod_.canonical();
-    let world = g.meta.canonical();
-    let files = Files::new(mod_, world).into_gui(g.static_.clone(), connect.into());
+    let_some!(files = &files.0, return);
     let sprites = files.sprites();
 
     let soldier = SoldierAnimations::init(&sprites, &assets, &mut animations, &mut atlas_layouts);

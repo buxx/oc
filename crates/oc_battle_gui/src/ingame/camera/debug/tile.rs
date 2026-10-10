@@ -5,7 +5,7 @@ use bevy::sprite::Anchor;
 use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::{TileXy, WorldHeightIndex, WorldTileIndex};
 use oc_root::y::Y;
-use oc_root::{WcfgFrom, WcfgInto, files};
+use oc_root::{WcfgFrom, WcfgInto};
 use oc_utils::bevy::EntityMapping;
 use oc_utils::d2::Xy;
 use oc_utils::let_some;
@@ -14,7 +14,6 @@ use oc_world::tile::Tile;
 
 use crate::ingame::camera::{self, State};
 use crate::ingame::region::ForgottenRegion;
-use crate::network;
 use crate::states::GameConfig;
 use crate::tileset::ConcernedTileset;
 use crate::world::{InsertedTiles, World};
@@ -147,7 +146,7 @@ pub fn on_spawn_region<E, I, T, S>(
     event: On<E>,
     mut commands: Commands,
     g: Res<GameConfig>,
-    network: Res<network::state::State>,
+    files: Res<crate::states::GuiFiles>,
     world_: Res<World>,
     asset_server: Res<AssetServer>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
@@ -165,17 +164,13 @@ pub fn on_spawn_region<E, I, T, S>(
         + 'static,
     S: crate::tileset::Tileset<I, T>,
 {
-    let (Some(g), Some(connect), Some(tileset)) = (&g.0, &network.server, event.tileset(&world_))
-    else {
+    let (Some(g), Some(files), Some(tileset)) = (&g.0, &files.0, event.tileset(&world_)) else {
         return;
     };
     let region = event.region();
     tracing::debug!("Spawn region {:?} tiles", region);
 
-    let mod_ = g.mod_.canonical();
-    let world = g.meta.canonical();
-    let files = files::Files::new(mod_, world).into_gui(g.static_.clone(), connect.clone().into());
-    let spriteset = tileset.spriteset(&files).display().to_string();
+    let spriteset = tileset.spriteset(files).display().to_string();
 
     let texture = asset_server.load(&spriteset);
     let layout = tileset.layout();

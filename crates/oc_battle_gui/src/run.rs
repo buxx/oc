@@ -12,7 +12,7 @@ use crate::config::{Config, Config_};
 use crate::debug;
 use crate::ingame::{BattlePhase, InGameState};
 use crate::sprites::Animations;
-use crate::states::{Game, GameConfig, PointerIn};
+use crate::states::{Game, GameConfig, GuiFiles, PointerIn};
 use crate::{
     downloading::DownloadingPlugin, error::ErrorPlugin, fx::FxPlugin, home::HomePlugin,
     ingame::IngamePlugin, network::NetworkPlugin, states::AppState,
@@ -75,6 +75,7 @@ pub fn run(
         .init_resource::<Game>()
         .init_resource::<Wcfg>()
         .init_resource::<GameConfig>()
+        .init_resource::<GuiFiles>()
         .init_resource::<states::Window>()
         .init_state::<InGameState>()
         .init_state::<BattlePhase>()

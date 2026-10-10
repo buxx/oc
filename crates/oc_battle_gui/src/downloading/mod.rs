@@ -1,9 +1,10 @@
+use crate::states::GuiFiles;
 use bevy::prelude::*;
 use oc_root::files::{self};
 use oc_utils::let_some;
 
 use crate::{
-    http_to_file, ingame, network,
+    http_to_file, ingame,
     states::{AppState, GameConfig, PointerIn},
     utils::untar,
     world::World,
@@ -26,18 +27,14 @@ impl Plugin for DownloadingPlugin {
 fn download(
     mut commands: Commands,
     g: Res<GameConfig>,
-    network: Res<network::state::State>,
+    files: Res<GuiFiles>,
     mut world_: ResMut<World>,
     assets: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) -> Result<(), BevyError> {
     let_some!(g = &g.0, return Ok(()));
-    let_some!(connect = network.server.clone(), return Ok(()));
-
-    let mod__ = g.mod_.canonical();
-    let world = g.meta.canonical();
-    let files = files::Files::new(mod__, world).into_gui(g.static_.clone(), connect.into());
+    let_some!(files = &files.0, return Ok(()));
 
     tracing::info!("Download");
     let region_width = g.w.region_width();

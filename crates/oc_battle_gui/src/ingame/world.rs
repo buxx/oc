@@ -1,5 +1,6 @@
+use crate::states::GuiFiles;
 use bevy::prelude::*;
-use oc_root::{Wcfg, files};
+use oc_root::Wcfg;
 use oc_utils::let_some;
 
 use crate::{
@@ -11,8 +12,6 @@ use crate::{
             world::WorldMapDisplay,
         },
     },
-    network,
-    states::GameConfig,
 };
 
 #[derive(Debug, Event)]
@@ -36,22 +35,12 @@ pub fn on_spawn_minimap(
     w: Res<Wcfg>,
     window: Single<&Window>,
     assets: Res<AssetServer>,
-    g: Res<GameConfig>,
-    network: Res<network::state::State>,
+    files: Res<GuiFiles>,
 ) {
     let_some!(w = &w.0, return);
-    let (Some(g), Some(connect)) = (&g.0, &network.server) else {
-        return;
-    };
-    // let Some(mod_) = &mod_.0 else { return };
-    // let Some(meta) = &meta.0 else { return };
-    // let_some!(connect = network.server.clone(),      return);
-    // };
+    let_some!(files = &files.0, return);
 
     let display = WorldMapDisplay::from_env(w, window.size());
-    let mod_ = g.mod_.canonical();
-    let world = g.meta.canonical();
-    let files = files::Files::new(mod_, world).into_gui(g.static_.clone(), connect.clone().into());
     let minimap = files.minimap();
 
     let x = display.center.x;

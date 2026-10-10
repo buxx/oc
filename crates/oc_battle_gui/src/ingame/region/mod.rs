@@ -1,11 +1,11 @@
+use crate::states::GuiFiles;
 use bevy::prelude::*;
 use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_physics::update::bevy::Region;
-use oc_root::{WcfgInto, files, y::Y};
+use oc_root::{WcfgInto, y::Y};
 
 use crate::{
-    entity::world::region::RegionBackground, ingame::draw::Z_REGION_BACKGROUND, network,
-    states::GameConfig,
+    entity::world::region::RegionBackground, ingame::draw::Z_REGION_BACKGROUND, states::GameConfig,
 };
 
 #[cfg(feature = "debug")]
@@ -22,17 +22,14 @@ pub fn on_listening_region(
     mut commands: Commands,
     assets: Res<AssetServer>,
     g: Res<GameConfig>,
-    network: Res<network::state::State>,
+    files: Res<GuiFiles>,
 ) {
-    let (Some(g), Some(connect)) = (&g.0, &network.server) else {
+    let (Some(g), Some(files)) = (&g.0, &files.0) else {
         return;
     };
     tracing::debug!("Spawn region background {:?}", region.0);
 
     let region_ = region.0;
-    let mod_ = g.mod_.canonical();
-    let world = g.meta.canonical();
-    let files = files::Files::new(mod_, world).into_gui(g.static_.clone(), connect.clone().into());
 
     let region: RegionXy = region_.into_(&g.w);
     let region_width = g.w.region_width();

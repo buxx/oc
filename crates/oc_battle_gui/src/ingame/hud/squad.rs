@@ -3,13 +3,11 @@ use std::time::Duration;
 use bevy::prelude::*;
 use oc_individual::{Individual, IndividualIndex};
 use oc_mod::illustration::IllustrationKind;
-use oc_root::files::Files;
+use oc_root::files::FilesAsGui;
 use oc_utils::{every, let_ok, let_some};
 
 use crate::{
-    config,
     ingame::{hud::GAP, state::SelectionUpdated},
-    network,
     sprites::SpriteRect,
     states::GameConfig,
     world::World,
@@ -46,13 +44,10 @@ pub fn squad() -> impl Scene {
 
 fn row(
     g: &oc_network::GameConfig,
-    connect: &config::Connect,
+    files: &FilesAsGui,
     i: IndividualIndex,
     individual: &Individual,
 ) -> impl Scene {
-    let mod__ = g.mod_.canonical();
-    let world = g.meta.canonical();
-    let files = Files::new(mod__, world).into_gui(g.static_.clone(), connect.clone().into());
     let sprites = files.sprites();
     let sprite = sprites.join("illustrations.png");
     let kind = IllustrationKind::IngameIndividual;
@@ -118,10 +113,10 @@ pub fn spawn_rows(
     details: Query<Entity, With<SquadDetails>>,
     rows: Query<Entity, With<IndividualRow>>,
     g: Res<GameConfig>,
-    network: Res<network::state::State>,
+    files: Res<crate::states::GuiFiles>,
 ) {
     let_some!(g = &g.0, return);
-    let_some!(connect = &network.server, return);
+    let_some!(files = &files.0, return);
 
     for row in &rows {
         commands.entity(row).despawn();
@@ -135,7 +130,7 @@ pub fn spawn_rows(
         let_some!(individual = world.individual(i), continue);
 
         commands
-            .spawn_scene(row(g, &connect, i, individual))
+            .spawn_scene(row(g, files, i, individual))
             .insert((IndividualRow, ChildOf(details)));
     }
 }

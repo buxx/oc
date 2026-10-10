@@ -39,6 +39,7 @@ pub struct FilesAsServer {
     world: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct FilesAsGui {
     connection: Connection,
     sources: StaticSource,

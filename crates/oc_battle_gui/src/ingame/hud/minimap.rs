@@ -1,8 +1,9 @@
+use crate::states::GuiFiles;
 use std::time::Duration;
 
 use bevy::prelude::*;
 use oc_individual::Status;
-use oc_root::{files, geo::WorldVec2};
+use oc_root::geo::WorldVec2;
 use oc_utils::{every, let_some};
 
 use crate::{
@@ -50,18 +51,13 @@ pub fn minimap() -> impl Scene {
 
 pub fn load_image(
     mut commands: Commands,
-    slot: Query<Entity, (With<Minimap>, Without<ImageNode>)>,
+    slot: Single<Entity, (With<Minimap>, Without<ImageNode>)>,
     assets: Res<AssetServer>,
-    g: Res<GameConfig>,
-    network: Res<network::state::State>,
+    files: Res<GuiFiles>,
 ) {
-    let Ok(entity) = slot.single() else { return };
-    let_some!(g = &g.0, return);
-    let_some!(connect = &network.server, return);
-    let files = files::Files::new(g.mod_.canonical(), g.meta.canonical())
-        .into_gui(g.static_.clone(), connect.clone().into());
+    let_some!(files = &files.0, return);
     commands
-        .entity(entity)
+        .entity(*slot)
         .insert(ImageNode::new(assets.load(files.hud_minimap())));
 }
 

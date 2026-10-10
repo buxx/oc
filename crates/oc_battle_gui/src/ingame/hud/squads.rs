@@ -6,17 +6,16 @@ use bevy::{
 };
 use oc_individual::squad::{Squad, SquadIndex};
 use oc_mod::illustration::IllustrationKind;
-use oc_root::files::Files;
+use oc_root::files::FilesAsGui;
 use oc_utils::{every, let_ok, let_some, true_};
 
+use crate::{ingame::hud::GAP, world::World};
 use crate::{
-    config,
     ingame::{self, camera::GoToPoint, hud::SCROLL_LINE_PX},
     network,
     sprites::SpriteRect,
     states::GameConfig,
 };
-use crate::{ingame::hud::GAP, world::World};
 
 const CELL_BG: Color = Color::srgb(0.2, 0.25, 0.2);
 const CELL_BG_HOVER: Color = Color::srgb(0.35, 0.45, 0.35);
@@ -53,13 +52,10 @@ pub fn squads() -> impl Scene {
 
 fn squad_cell(
     g: &oc_network::GameConfig,
-    connect: &config::Connect,
+    files: &FilesAsGui,
     i: SquadIndex,
     squad: &Squad,
 ) -> impl Scene {
-    let mod__ = g.mod_.canonical();
-    let world = g.meta.canonical();
-    let files = Files::new(mod__, world).into_gui(g.static_.clone(), connect.clone().into());
     let sprites = files.sprites();
     let sprite = sprites.join("illustrations.png");
     let kind = IllustrationKind::IngameSquad;
@@ -116,10 +112,11 @@ pub fn spawn_squad_cells(
     grid: Query<Entity, With<SquadGrid>>,
     cells: Query<(), With<SquadCell>>,
     g: Res<GameConfig>,
+    files: Res<crate::states::GuiFiles>,
     network: Res<network::state::State>,
 ) {
     let_some!(g = &g.0, return);
-    let_some!(connect = &network.server, return);
+    let_some!(files = &files.0, return);
     let Ok(grid) = grid.single() else { return };
     true_!(cells.is_empty() && !world.squads_refs.is_empty(), return);
 
@@ -131,7 +128,7 @@ pub fn spawn_squad_cells(
             continue;
         }
         commands
-            .spawn_scene(squad_cell(g, &connect, i, squad))
+            .spawn_scene(squad_cell(g, files, i, squad))
             .insert((SquadCell(i), ChildOf(grid)));
     }
 }
