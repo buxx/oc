@@ -91,6 +91,8 @@ pub struct Selection {
 #[derive(Debug, Event, Constructor)]
 pub struct SelectionUpdated {
     pub selected_squads: Vec<SquadIndex>,
+    #[allow(unused)]
     pub selected_squads_individuals: Vec<IndividualIndex>,
+    #[allow(unused)]
     pub selected_individuals: Vec<IndividualIndex>,
 }

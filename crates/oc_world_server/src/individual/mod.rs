@@ -87,7 +87,6 @@ impl<'a> Processor<'a> {
             return updates;
         }
 
-        // FIXME BS NOW NOW: en fonction de la battlephase ...
         let distribute = self.distribute();
         let intent = self.decide(situation);
         let behavior = self.act(situation, &intent);
@@ -669,7 +668,7 @@ impl<'a> Processor<'a> {
                                         (
                                             // FIXME BS NOW: we must use reload exceedance to set the already progressed aiming
                                             oc_individual::HandsGesture::Aiming(U8Progress::zero()),
-                                            vec![self.reloaded(individual, weapon_kind, weapon)],
+                                            self.reloaded(individual, weapon_kind),
                                         )
                                     }
                                     // Else continue reloading
@@ -821,11 +820,7 @@ impl<'a> Processor<'a> {
                                         (
                                             // FIXME BS NOW: we must use reload exceedance to set the already progressed aiming
                                             oc_individual::HandsGesture::Aiming(U8Progress::zero()),
-                                            vec![self.reloaded(
-                                                individual,
-                                                WeaponKind::Primary,
-                                                weapon,
-                                            )],
+                                            self.reloaded(individual, WeaponKind::Primary),
                                         )
                                     }
                                     // Else continue reloading
@@ -853,33 +848,55 @@ impl<'a> Processor<'a> {
         )
     }
 
-    fn can_reload(&self, _individual: &Individual, _weapon: &oc_individual::Weapon) -> bool {
-        // FIXME BS NOW: must be according to carried magazines
-        true
-    }
-
-    fn reloaded(
+    fn compatible_magazine<'m>(
         &self,
         individual: &Individual,
-        kind: WeaponKind,
-        weapon: &oc_mod::weapons::Weapon,
-    ) -> runner::update::Update {
+        weapon: &'m oc_mod::weapons::Weapon,
+    ) -> Option<(usize, &'m oc_mod::magazine::IndexedMagazine)> {
+        let compatibles = weapon.magazines();
+
+        individual
+            .magazines
+            .iter()
+            .enumerate()
+            .find_map(|(position, carried)| {
+                let magazine = compatibles.iter().find(|m| m.index() == *carried)?;
+                Some((position, magazine))
+            })
+    }
+
+    fn can_reload(&self, individual: &Individual, weapon: &oc_individual::Weapon) -> bool {
+        let weapon = self.world.mod_.weapon(weapon.i);
+        self.compatible_magazine(individual, weapon).is_some()
+    }
+
+    fn reloaded(&self, individual: &Individual, kind: WeaponKind) -> Vec<runner::update::Update> {
         let mut weapons = individual.weapons.clone();
-        match kind {
-            WeaponKind::Primary => {
-                if let Some(weapon_) = &mut weapons.primary {
-                    // FIXME BS NOW: According to transported magazines / etc
-                    if let Some(magazine) = weapon.magazines().first() {
-                        // FIXME BS NOW: According to transported magazines / etc
-                        if let Some(ammunition) = weapon.ammunitions().first() {
-                            weapon_.filled = Some((magazine.index(), ammunition.index()));
-                            weapon_.filled_count = magazine.capacity();
-                        }
-                    }
-                }
-            }
-        };
-        runner::update::Update::UpdateIndividual(self.i, oc_individual::Update::SetWeapons(weapons))
+        let_some!(slot = weapons.get_mut(&kind), return vec![]);
+        let weapon = self.world.mod_.weapon(slot.i);
+
+        if let (Some((position, magazine)), Some(ammunition)) = (
+            self.compatible_magazine(individual, weapon),
+            weapon.ammunitions().first(),
+        ) {
+            let mut magazines = individual.magazines.clone();
+            magazines.remove(position);
+            slot.filled = Some((magazine.index(), ammunition.index()));
+            slot.filled_count = magazine.capacity();
+
+            return vec![
+                runner::update::Update::UpdateIndividual(
+                    self.i,
+                    oc_individual::Update::SetWeapons(weapons),
+                ),
+                runner::update::Update::UpdateIndividual(
+                    self.i,
+                    oc_individual::Update::SetMagazines(magazines),
+                ),
+            ];
+        }
+
+        vec![]
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -898,14 +915,10 @@ impl<'a> Processor<'a> {
         let repeat = 1;
 
         let mut weapons = individual.weapons.clone();
-        match kind {
-            WeaponKind::Primary => {
-                if let Some(weapon) = &mut weapons.primary {
-                    weapon.filled = None;
-                    weapon.filled_count = 0;
-                }
-            }
-        };
+        if let Some(weapon) = weapons.get_mut(&kind) {
+            weapon.filled = None;
+            weapon.filled_count = 0;
+        }
 
         let plus_z = individual.gesture.body.weapon_z().pixels(&self.world.w);
         let from = WorldVec3 {
@@ -1782,26 +1795,145 @@ mod tests {
                     .build()
                     .make(),
             );
+            individual1.magazines = vec![MagazineIndex(0)];
         });
 
         // Then
         assert_eq!(gesture.0.hands, HandsGesture::Aiming(U8Progress(0)));
         assert_eq!(
             gesture.1,
-            vec![Update::UpdateIndividual(
-                IndividualIndex(0),
-                oc_individual::Update::SetWeapons(Weapons {
-                    primary: Some(Weapon {
-                        i: WeaponIndex(0),
-                        filled: Some((MagazineIndex(0), AmmunitionIndex(0))),
-                        filled_count: 5
+            vec![
+                Update::UpdateIndividual(
+                    IndividualIndex(0),
+                    oc_individual::Update::SetWeapons(Weapons {
+                        primary: Some(Weapon {
+                            i: WeaponIndex(0),
+                            filled: Some((MagazineIndex(0), AmmunitionIndex(0))),
+                            filled_count: 5
+                        })
                     })
-                })
-            )]
+                ),
+                Update::UpdateIndividual(
+                    IndividualIndex(0),
+                    oc_individual::Update::SetMagazines(vec![])
+                )
+            ]
         );
     }
 
-    // Refactored function which generate a world with one squad composed of two members.
+    #[test]
+    fn test_engage_reload_start_with_compatible_magazine() {
+        // Given
+        let mod_ = Mod::load(&workspace_root().join(MOD), None).unwrap();
+        let w = WorldConfig::new(100, 100);
+
+        // When
+        let gesture = engage_test_gesture(w, |individual1| {
+            *individual1 = individual1.clone().with_weapons(
+                TestWeapons::builder()
+                    .primary(TestWeapon::not_filled(&mod_, "Weapon1").make())
+                    .build()
+                    .make(),
+            );
+            individual1.magazines = vec![MagazineIndex(1), MagazineIndex(0)];
+        });
+
+        // Then
+        assert_eq!(gesture.0.hands, HandsGesture::Reloading(U8Progress(0)));
+    }
+
+    #[test]
+    fn test_engage_reload_not_started_without_compatible_magazine() {
+        // Given
+        let mod_ = Mod::load(&workspace_root().join(MOD), None).unwrap();
+        let w = WorldConfig::new(100, 100);
+
+        // When
+        let gesture = engage_test_gesture(w, |individual1| {
+            *individual1 = individual1.clone().with_weapons(
+                TestWeapons::builder()
+                    .primary(TestWeapon::not_filled(&mod_, "Weapon1").make())
+                    .build()
+                    .make(),
+            );
+            individual1.magazines = vec![MagazineIndex(1)];
+        });
+
+        // Then
+        assert_eq!(gesture.0.hands, HandsGesture::Idle);
+        assert_eq!(gesture.1, vec![]);
+    }
+
+    #[test]
+    fn test_engage_reload_finished_uses_compatible_magazine_only() {
+        // Given
+        let mod_ = Mod::load(&workspace_root().join(MOD), None).unwrap();
+        let w = WorldConfig::new(100, 100);
+
+        // When
+        let gesture = engage_test_gesture(w, |individual1| {
+            individual1.gesture = individual1
+                .gesture
+                .clone()
+                .with_hands(HandsGesture::Reloading(U8Progress(254)));
+            *individual1 = individual1.clone().with_weapons(
+                TestWeapons::builder()
+                    .primary(TestWeapon::not_filled(&mod_, "Weapon1").make())
+                    .build()
+                    .make(),
+            );
+            individual1.magazines = vec![MagazineIndex(1), MagazineIndex(0), MagazineIndex(1)];
+        });
+
+        // Then
+        assert_eq!(gesture.0.hands, HandsGesture::Aiming(U8Progress(0)));
+        assert_eq!(
+            gesture.1,
+            vec![
+                Update::UpdateIndividual(
+                    IndividualIndex(0),
+                    oc_individual::Update::SetWeapons(Weapons {
+                        primary: Some(Weapon {
+                            i: WeaponIndex(0),
+                            filled: Some((MagazineIndex(0), AmmunitionIndex(0))),
+                            filled_count: 5
+                        })
+                    })
+                ),
+                Update::UpdateIndividual(
+                    IndividualIndex(0),
+                    oc_individual::Update::SetMagazines(vec![MagazineIndex(1), MagazineIndex(1)])
+                )
+            ]
+        );
+    }
+
+    #[test]
+    fn test_engage_reload_finished_without_compatible_magazine_changes_nothing() {
+        // Given
+        let mod_ = Mod::load(&workspace_root().join(MOD), None).unwrap();
+        let w = WorldConfig::new(100, 100);
+
+        // When
+        let gesture = engage_test_gesture(w, |individual1| {
+            individual1.gesture = individual1
+                .gesture
+                .clone()
+                .with_hands(HandsGesture::Reloading(U8Progress(254)));
+            *individual1 = individual1.clone().with_weapons(
+                TestWeapons::builder()
+                    .primary(TestWeapon::not_filled(&mod_, "Weapon1").make())
+                    .build()
+                    .make(),
+            );
+            individual1.magazines = vec![MagazineIndex(1)];
+        });
+
+        // Then
+        assert_eq!(gesture.1, vec![]);
+    }
+
+    // Refactored function which generate a world with one squad with two members.
     // Both individuals Idle in EST direction.
     fn two_individuals_world(
         w: &WorldConfig,
@@ -1838,7 +1970,7 @@ mod tests {
         world.build().make(w)
     }
 
-    // Refactored function which generate a world with one squad composed of one member.
+    // Refactored function which generate a world with one squad with one member.
     // Individuals Idle in EST direction.
     fn one_individual_world(w: &WorldConfig, position: WorldVec3, orders: Vec<Order>) -> World {
         let individual = TestIndividual::builder();
@@ -1862,7 +1994,7 @@ mod tests {
         world.build().make(w)
     }
 
-    // Refactored function which generate a world with one squad composed of one member.
+    // Refactored function which generate a world with one squad with one member.
     // Individuals Idle in EST direction.
     fn one_vs_one_individual_world(
         w: &WorldConfig,

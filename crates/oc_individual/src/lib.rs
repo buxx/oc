@@ -530,6 +530,14 @@ pub struct Weapons {
     pub primary: Option<Weapon>,
 }
 
+impl Weapons {
+    pub fn get_mut(&mut self, kind: &WeaponKind) -> Option<&mut Weapon> {
+        match kind {
+            WeaponKind::Primary => self.primary.as_mut(),
+        }
+    }
+}
+
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Constructor, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Weapon {
