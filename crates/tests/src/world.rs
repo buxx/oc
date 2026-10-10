@@ -27,7 +27,7 @@ pub struct TestWorld {
     mod_: Mod,
     #[builder(default)]
     meta: Meta,
-    #[builder(default = BattlePhase::Deployment)]
+    #[builder(default = BattlePhase::Fight)]
     phase: BattlePhase,
     #[builder(default)]
     side_a_spawns: Vec<SpawnZoneName>,
