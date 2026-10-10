@@ -134,7 +134,7 @@ fn lov_profiles(
     for squad in state.selected_squads() {
         tracing::trace!(name = "ingame-input-left-click-lov-selected-squads-squad", squad=?squad);
         let_some!(squad = world.squad(*squad), continue);
-        let_some!(leader = world.get_individual(squad.leader()), continue);
+        let_some!(leader = world.individual(squad.leader()), continue);
         profiles.push(SpawnLovProfile {
             start: leader.position.into(),
             start_plus_z: leader.gesture.body.weapon_z(),
@@ -146,7 +146,7 @@ fn lov_profiles(
         let_ok!(marker = markers.get(dragged.0), continue);
         let PositionSquadOrder(squad, _) = marker;
         let_some!(squad = world.squad(*squad), continue);
-        let_some!(leader = world.get_individual(squad.leader()), continue);
+        let_some!(leader = world.individual(squad.leader()), continue);
 
         profiles.push(SpawnLovProfile {
             start: leader.position.into(),
@@ -176,7 +176,7 @@ fn path_profiles(
             let points = [pending, vec![point]].concat();
 
             let squad = world.squad(*i)?;
-            let leader = world.get_individual(squad.leader())?;
+            let leader = world.individual(squad.leader())?;
             paths_from(w, *i, points, leader.position.into())
         }).flatten().collect::<Vec<_>>());
     }
@@ -198,7 +198,7 @@ fn path_profiles(
 
                 // Dragged marker is the first marker of squad markers
                 if index.0 as usize == orders.len() - 1 {
-                    let leader = world.get_individual(squad.leader())?;
+                    let leader = world.individual(squad.leader())?;
                     let paths = paths_from(w, i, vec![point], leader.position.into());
                     profiles.extend(paths.unwrap_or_default())
                 // If not, there is a marker before it
@@ -306,7 +306,7 @@ pub fn on_click(
     // Keep under cursor individual only if in opposite side
     let individual = individual.filter(|&i| {
         world
-            .get_individual(i)
+            .individual(i)
             .is_some_and(|individual_| individual_.side != identity.side)
     });
 

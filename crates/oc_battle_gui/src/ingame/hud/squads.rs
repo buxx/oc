@@ -123,8 +123,13 @@ pub fn spawn_squad_cells(
     let Ok(grid) = grid.single() else { return };
     true_!(cells.is_empty() && !world.squads_refs.is_empty(), return);
 
+    let_some!(identity = &network.identity, return);
+
     for i in world.squads() {
         let_some!(squad = world.squad(i), continue);
+        if squad.side != identity.side {
+            continue;
+        }
         commands
             .spawn_scene(squad_cell(g, &connect, i, squad))
             .insert((SquadCell(i), ChildOf(grid)));

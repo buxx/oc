@@ -132,7 +132,7 @@ pub fn spawn_rows(
     let_some!(squad = world.squad(squad), return);
 
     for i in squad.members.iter().copied() {
-        let_some!(individual = world.get_individual(i), continue);
+        let_some!(individual = world.individual(i), continue);
 
         commands
             .spawn_scene(row(g, &connect, i, individual))
@@ -150,7 +150,7 @@ pub fn update_rows(
 
     for (individual, mut text) in &mut texts {
         let_some!(individual = individual.0, continue);
-        let_some!(individual = world.get_individual(individual), continue);
+        let_some!(individual = world.individual(individual), continue);
         text.0 = individual.status.hud_label().to_string();
     }
 }

@@ -180,7 +180,7 @@ impl super::Context {
         world: &crate::world::World,
         _ingame: &crate::ingame::state::State,
     ) -> Option<Action> {
-        let individual = world.get_individual(i)?;
+        let individual = world.individual(i)?;
 
         egui::ScrollArea::vertical().show(ui, |ui| {
             ui.add(egui::Label::new(format!("{individual:#?}")).wrap());

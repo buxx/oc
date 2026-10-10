@@ -61,7 +61,7 @@ pub fn on_visibilities_updated(
     for (i, mut visibility, side) in query.iter_mut() {
         // Change visibility only on other side individuals
         if side.0 != identity.side {
-            let_some!(individual = world.get_individual(i.0), continue);
+            let_some!(individual = world.individual(i.0), continue);
             *visibility = crate::ingame::individual::visibility(identity, i.0, individual, &world);
         }
     }

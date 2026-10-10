@@ -165,7 +165,7 @@ impl SpawnPathProfile {
             // Consider valid if squad leader still at same position
             SpawnPathProfileKey::Squad { i, start, end: _ } => {
                 let_some!(squad = world.squad(i), return false);
-                let_some!(leader = world.get_individual(squad.leader()), return false);
+                let_some!(leader = world.individual(squad.leader()), return false);
                 start == leader.tile()
             }
         }

@@ -34,8 +34,8 @@ pub fn show_visibilities(
     commands.trigger(DespawnLov);
 
     for (i1, i2, visibility) in &world.visibilities.all {
-        let_some!(individual1 = world.get_individual(*i1), continue);
-        let_some!(individual2 = world.get_individual(*i2), continue);
+        let_some!(individual1 = world.individual(*i1), continue);
+        let_some!(individual2 = world.individual(*i2), continue);
         let start = individual1.position;
         let stop = individual2.position;
         let sections = visibility

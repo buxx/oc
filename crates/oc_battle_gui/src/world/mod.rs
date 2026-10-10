@@ -174,7 +174,7 @@ impl World {
         self.individuals.remove(&region);
     }
 
-    pub fn get_individual(&self, i: IndividualIndex) -> Option<&Individual> {
+    pub fn individual(&self, i: IndividualIndex) -> Option<&Individual> {
         let (region, tile) = self.individuals_refs.get(&i)?;
 
         self.individuals
@@ -207,7 +207,7 @@ impl World {
         i: IndividualIndex,
         position: WorldVec3,
     ) {
-        let_some!(individual = self.get_individual(i).cloned(), return);
+        let_some!(individual = self.individual(i).cloned(), return);
         self.remove_individual(w, i, position);
         self.insert_individual(w, i, individual.clone());
     }
@@ -296,6 +296,18 @@ impl World {
         self.navmesh.path([from.x, from.y], [to.x, to.y])
     }
 
+    pub fn side_squads(&self, side: oc_root::side::Side) -> impl Iterator<Item = &Squad> + '_ {
+        self.squads
+            .values()
+            .flat_map(|squads| squads.values())
+            .filter(move |squad| squad.side == side)
+    }
+
+    pub fn operational(&self, i: IndividualIndex) -> bool {
+        self.individual(i)
+            .is_some_and(|individual| individual.status == oc_individual::Status::Operational)
+    }
+
     pub fn visible(&self, i: IndividualIndex) -> bool {
         self.visibilities.visible.contains(&i)
     }
@@ -307,8 +319,10 @@ fn on_world_resume(
     mut world: ResMut<World>,
     mut commands: Commands,
     mut phase: ResMut<NextState<BattlePhase>>,
+    network: Res<crate::network::state::State>,
 ) {
     let_some!(g = &g.0, return);
+    let_some!(identity = &network.identity, return);
 
     for (i, squad) in &event.0.squads {
         let position = squad.position;
@@ -322,6 +336,10 @@ fn on_world_resume(
             .or_default()
             .insert(*i, squad.clone());
         world.squads_refs.insert(*i, region);
+        // Opposite squads are only known to display them on minimap
+        if squad.side != identity.side {
+            continue;
+        }
         for member in &squad.members {
             world.individual_squad.insert(*member, *i);
         }

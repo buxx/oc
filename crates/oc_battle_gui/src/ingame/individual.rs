@@ -292,7 +292,7 @@ fn on_click(
     let_ok!(individual = query.get(individual), return);
 
     if event.button == PointerButton::Secondary {
-        let_some!(individual_ = world.get_individual(individual.0), return);
+        let_some!(individual_ = world.individual(individual.0), return);
         let_some!((squad, _) = world.individual_squad(individual.0), return);
         let squads = vec![squad];
         let_some!(squad = world.squad(squad), return);
@@ -339,7 +339,7 @@ fn on_refresh_render(
     let_some!(identity = &network.identity, return);
     let i = individual.0;
     let_some!(entity = state.get(&i), return);
-    let_some!(individual = world.get_individual(i), return);
+    let_some!(individual = world.individual(i), return);
     let Ok((status, side, gesture, mut animation, mut transform, mut visibility_)) =
         query.get_mut(*entity)
     else {

@@ -137,8 +137,14 @@ impl World {
             .squads
             .iter()
             .enumerate()
-            .filter(|(_, s)| s.side == identity.side)
-            .map(|(i, s)| (SquadIndex(i as u64), s.clone()))
+            .map(|(i, s)| {
+                let mut squad = s.clone();
+                if s.side != identity.side {
+                    // Opposite squads are sent for minimap display only: don't leak their orders
+                    squad.orders = vec![];
+                }
+                (SquadIndex(i as u64), squad)
+            })
             .collect();
         let phase = self.phase.clone();
         let side_a_spawns = self.side_a_spawns.clone();

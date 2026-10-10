@@ -28,6 +28,8 @@ impl Plugin for HudPlugin {
                     squads::update_squad_behaviors,
                     squad::update_rows,
                     minimap::load_image,
+                    minimap::update_squad_markers,
+                    minimap::update_viewport,
                 )
                     .run_if(in_state(AppState::InGame)),
             )
