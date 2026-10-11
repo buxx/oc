@@ -91,7 +91,10 @@ pub struct SetIntentEvent(
 );
 
 #[derive(Debug, Event)]
-pub struct SetWeaponsEvent(oc_individual::IndividualIndex, oc_individual::Weapons);
+pub struct SetWeaponsEvent(
+    pub oc_individual::IndividualIndex,
+    pub oc_individual::Weapons,
+);
 
 #[derive(Debug, Clone, Event, Deref)]
 pub struct AccomplishedEvent(oc_individual::IndividualIndex);
@@ -103,7 +106,7 @@ pub struct MoveStepAccomplishedEvent(oc_individual::IndividualIndex);
 pub struct SetSuppressEvent(oc_individual::IndividualIndex, oc_root::behavior::Suppress);
 
 #[derive(Debug, Clone, Event)]
-pub struct SetMagazinesEvent(oc_individual::IndividualIndex, Vec<MagazineIndex>);
+pub struct SetMagazinesEvent(pub oc_individual::IndividualIndex, pub Vec<MagazineIndex>);
 
 #[derive(Debug, Deref, Component)]
 pub struct Status(pub oc_individual::Status);
@@ -222,6 +225,7 @@ pub fn on_insert_individual(
                 Orders(individual.1.orders.clone()),
                 Gesture(individual.1.gesture.clone()),
                 Magazines(individual.1.magazines.clone()),
+                Weapons(individual.1.weapons.clone()),
             ),
             (
                 Direction(individual.1.gesture.direction()),

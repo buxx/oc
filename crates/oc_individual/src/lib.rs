@@ -269,6 +269,27 @@ impl Individual {
     pub fn suppress_inaccuracy(&self, w: &WorldConfig) -> f32 {
         self.suppress.normalize() * w.suppress_inaccuracy()
     }
+
+    pub fn action_hud_label(&self) -> &str {
+        match self.behavior {
+            Behavior::Idle(_) => "Idle",
+            Behavior::Walk(_) => "Walk",
+            Behavior::Run(_) => "Run",
+            Behavior::Crawl(_) => "Crawl",
+            Behavior::Defend(_) => "Defend",
+            Behavior::Hide(_) => "Hide",
+            Behavior::Engage(_) => match self.gesture.hands {
+                HandsGesture::Idle => "Engage",
+                HandsGesture::Reloading(_) => "Reloading",
+                HandsGesture::Aiming(_) => "Aiming",
+            },
+            Behavior::Suppress(_) => match self.gesture.hands {
+                HandsGesture::Idle => "Suppress",
+                HandsGesture::Reloading(_) => "Reloading",
+                HandsGesture::Aiming(_) => "Aiming",
+            },
+        }
+    }
 }
 
 impl Physic for Individual {

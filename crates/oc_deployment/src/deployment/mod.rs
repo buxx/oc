@@ -153,6 +153,8 @@ impl Deployments {
             .index(),
         );
 
+        // Magazine inserted in the weapon is no longer carried
+        let mut inserted = None;
         if let Some(weapon) = &individual_.weapons.main {
             let weapon = mod_.weapon_from_name(weapon)?;
             let (filled, filled_count) =
@@ -161,6 +163,7 @@ impl Deployments {
                         "Fill weapon for individual {individual_index} and mod {}",
                         mod_.name()
                     ))?;
+            inserted = filled.map(|(magazine, _)| magazine);
             individual.weapons.primary = Some(Weapon {
                 i: weapon.index(),
                 filled,
@@ -174,6 +177,11 @@ impl Deployments {
                 magazine.name,
                 mod_.name()
             ))?;
+
+            if inserted == Some(magazine.index()) {
+                inserted = None;
+                continue;
+            }
 
             individual.magazines.push(magazine.index());
         }

@@ -3,6 +3,7 @@ use oc_individual::{
     BodyGesture, Gesture, Individual, Weapons,
     behavior::{Behavior, Intent},
 };
+use oc_mod::magazine::MagazineIndex;
 use oc_root::{WorldConfig, geo::WorldVec3, side::Side};
 use oc_utils::d2::Direction;
 
@@ -20,6 +21,8 @@ pub struct TestIndividual {
     intent: Intent,
     #[builder(default)]
     weapons: Weapons,
+    #[builder(default)]
+    magazines: Vec<MagazineIndex>,
 }
 
 impl TestIndividual {
@@ -29,5 +32,6 @@ impl TestIndividual {
             .with_behavior(self.behavior)
             .with_intent(self.intent)
             .with_weapons(self.weapons)
+            .with_magazines(self.magazines)
     }
 }

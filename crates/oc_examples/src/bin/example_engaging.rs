@@ -18,7 +18,9 @@ use clap::{Parser, ValueEnum};
 use oc_battle_gui::{
     entity::individual::IndividualIndex,
     ingame::{
-        individual::{Gesture, SetGestureEvent, SetStatusEvent, Status},
+        individual::{
+            Gesture, SetGestureEvent, SetMagazinesEvent, SetStatusEvent, SetWeaponsEvent, Status,
+        },
         input::projectile::InsertProjectileEvent,
     },
     states::Game,
@@ -37,13 +39,15 @@ use oc_root::{
 };
 use oc_utils::d2::Direction;
 #[cfg(feature = "test")]
-use oc_utils::let_some;
+use oc_utils::{let_some, true_};
 use oc_world::{meta::Meta, tile::Tile};
 use tests::{
     individual::TestIndividual,
     squad::TestSquad,
     weapons::{TestWeapon, TestWeapons},
 };
+
+const SUPPRESS_FIRE_MAGAZINES: usize = 2;
 
 #[cfg(feature = "test")]
 const AFTER_SUCCESS_WAIT: Duration = Duration::from_secs(1);
@@ -69,7 +73,7 @@ impl Args {
             TestCase::Direct | TestCase::Direct2 | TestCase::FarMachineGun | TestCase::Hedge => {
                 Duration::from_secs(10)
             }
-            TestCase::Suppressed => Duration::from_secs(15),
+            TestCase::Suppressed | TestCase::SuppressFire => Duration::from_secs(25),
             TestCase::MoveToHiding | TestCase::MoveToHidingThenDiscover => Duration::from_secs(30),
         }
     }
@@ -84,6 +88,7 @@ enum TestCase {
     FarMachineGun,
     Hedge,
     Suppressed,
+    SuppressFire,
     MoveToHiding,
     MoveToHidingThenDiscover,
 }
@@ -105,7 +110,8 @@ fn main() -> Result<(), anyhow::Error> {
         | TestCase::Direct2
         | TestCase::FarMachineGun
         | TestCase::Hedge
-        | TestCase::Suppressed => PathBuf::from("mods/tests1"),
+        | TestCase::Suppressed
+        | TestCase::SuppressFire => PathBuf::from("mods/tests1"),
         TestCase::MoveToHiding | TestCase::MoveToHidingThenDiscover => PathBuf::from("mods/std1"),
     };
     let mod__ = oc_mod::Mod::load(&mod_, None)?;
@@ -130,7 +136,10 @@ fn main() -> Result<(), anyhow::Error> {
         | TestCase::Direct2
         | TestCase::MoveToHiding
         | TestCase::MoveToHidingThenDiscover => w,
-        TestCase::FarMachineGun | TestCase::Suppressed | TestCase::Hedge => match args.test {
+        TestCase::FarMachineGun
+        | TestCase::Suppressed
+        | TestCase::SuppressFire
+        | TestCase::Hedge => match args.test {
             true => w.with_individual_tick(Frequency::new(10.0)),
             false => w,
         },
@@ -143,6 +152,7 @@ fn main() -> Result<(), anyhow::Error> {
         | TestCase::Direct2
         | TestCase::FarMachineGun
         | TestCase::Hedge
+        | TestCase::SuppressFire
         | TestCase::MoveToHiding
         | TestCase::MoveToHidingThenDiscover => {}
         TestCase::Suppressed => {
@@ -283,6 +293,28 @@ fn individuals(
                 .collect::<Vec<_>>(),
         ]
         .concat(),
+        TestCase::SuppressFire => {
+            let magazine = mod_
+                .magazines
+                .iter()
+                .find(|m| m.name() == "Magazine1")
+                .unwrap()
+                .index();
+            vec![
+                TestIndividual::builder()
+                    .side(side::Side::A)
+                    .position(WorldVec3::new(104., 311., 0.))
+                    .weapons(
+                        TestWeapons::builder()
+                            .primary(TestWeapon::filled(mod_, "Weapon3").make())
+                            .build()
+                            .make(),
+                    )
+                    .magazines(vec![magazine; SUPPRESS_FIRE_MAGAZINES])
+                    .build()
+                    .make(w),
+            ]
+        }
         TestCase::Hedge => {
             vec![
                 TestIndividual::builder()
@@ -459,6 +491,14 @@ fn squads(
                 .collect::<Vec<_>>(),
         ]
         .concat(),
+        TestCase::SuppressFire => vec![
+            TestSquad::builder()
+                .position(individuals.first().unwrap().position.into())
+                .members(vec![oc_individual::IndividualIndex(0)])
+                .orders(vec![Order::Suppress(WorldVec2::new(387., 160.))])
+                .build()
+                .make(),
+        ],
         TestCase::Hedge => vec![
             TestSquad::builder()
                 .position(individuals.first().unwrap().position.into())
@@ -526,6 +566,8 @@ struct State {
     last_shoots: Vec<(oc_individual::IndividualIndex, Instant)>,
     gestures: Vec<(oc_individual::IndividualIndex, oc_individual::Gesture)>,
     statuses: Vec<(oc_individual::IndividualIndex, oc_individual::Status)>,
+    filled_counts: Vec<u16>,
+    magazine_counts: Vec<usize>,
 }
 
 #[cfg(feature = "test")]
@@ -537,7 +579,8 @@ fn install(app: &mut bevy::app::App) {
         app.add_systems(Update, test_tracker)
             .add_systems(Startup, setup)
             .add_observer(on_set_status)
-            .add_observer(on_set_gesture);
+            .add_observer(on_set_gesture)
+            .add_observer(on_set_magazines);
     }
 
     #[cfg(feature = "test")]
@@ -550,12 +593,27 @@ fn install(app: &mut bevy::app::App) {
         | TestCase::Suppressed
         | TestCase::MoveToHiding
         | TestCase::MoveToHidingThenDiscover
+        | TestCase::SuppressFire
         | TestCase::Hedge => {
             #[cfg(feature = "test")]
             app.add_systems(Update, (tracking,))
-                .add_observer(on_spawn_projectile);
+                .add_observer(on_spawn_projectile)
+                .add_observer(on_set_weapons);
         }
     }
+}
+
+#[cfg(feature = "test")]
+fn on_set_weapons(event: On<SetWeaponsEvent>, mut state: ResMut<State>) {
+    true_!(event.0 == oc_individual::IndividualIndex(0), return);
+    let_some!(primary = &event.1.primary, return);
+    state.filled_counts.push(primary.filled_count);
+}
+
+#[cfg(feature = "test")]
+fn on_set_magazines(event: On<SetMagazinesEvent>, mut state: ResMut<State>) {
+    true_!(event.0 == oc_individual::IndividualIndex(0), return);
+    state.magazine_counts.push(event.1.len());
 }
 
 #[cfg(feature = "test")]
@@ -682,6 +740,10 @@ fn tracking(
             .or(state.start)
             .map(|t| t.elapsed().as_secs_f32() > 8. / speed)
             .unwrap_or_default(),
+        TestCase::SuppressFire => {
+            state.filled_counts == [4, 3, 2, 1, 0, 5, 4, 3, 2, 1, 0, 5, 4, 3, 2, 1, 0]
+                && state.magazine_counts == [1, 0]
+        }
         TestCase::Hedge => I0_SEEN_DEAD.load(Ordering::Relaxed),
         TestCase::MoveToHiding => I2_AND_I3_HIDDEN_SINCE
             .lock()

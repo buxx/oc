@@ -36,6 +36,15 @@ macro_rules! true_ {
 }
 
 #[macro_export]
+macro_rules! if_true {
+    ($expr:expr, $then:expr) => {
+        if $expr {
+            $then
+        };
+    };
+}
+
+#[macro_export]
 macro_rules! false_ {
     ($expr:expr, $or:expr) => {
         if $expr {

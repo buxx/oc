@@ -23,7 +23,7 @@ use oc_root::{
 };
 use oc_utils::{
     d2::{AlmostEqual, Direction},
-    let_some,
+    if_true, let_some,
     random::direction_with_inaccuracy,
 };
 use oc_world::World;
@@ -865,24 +865,33 @@ impl<'a> Processor<'a> {
             })
     }
 
+    // FIXME: reload is different according to weapon type. For now, its simple version where reload
+    // from filled weapon or magazine.
     fn can_reload(&self, individual: &Individual, weapon: &oc_individual::Weapon) -> bool {
+        if_true!(weapon.filled.is_some(), return true);
         let weapon = self.world.mod_.weapon(weapon.i);
         self.compatible_magazine(individual, weapon).is_some()
     }
 
     fn reloaded(&self, individual: &Individual, kind: WeaponKind) -> Vec<runner::update::Update> {
         let mut weapons = individual.weapons.clone();
-        let_some!(slot = weapons.get_mut(&kind), return vec![]);
-        let weapon = self.world.mod_.weapon(slot.i);
+        let_some!(weapon = weapons.get_mut(&kind), return vec![]);
+        let weapon_type = self.world.mod_.weapon(weapon.i);
+
+        // FIXME: reload is different according to weapon type. For now, its simple version where reload
+        // from filled weapon or magazine.
+        if weapon.filled.is_some() {
+            return vec![];
+        }
 
         if let (Some((position, magazine)), Some(ammunition)) = (
-            self.compatible_magazine(individual, weapon),
-            weapon.ammunitions().first(),
+            self.compatible_magazine(individual, weapon_type),
+            weapon_type.ammunitions().first(),
         ) {
             let mut magazines = individual.magazines.clone();
             magazines.remove(position);
-            slot.filled = Some((magazine.index(), ammunition.index()));
-            slot.filled_count = magazine.capacity();
+            weapon.filled = Some((magazine.index(), ammunition.index()));
+            weapon.filled_count = magazine.capacity();
 
             return vec![
                 runner::update::Update::UpdateIndividual(
@@ -916,8 +925,10 @@ impl<'a> Processor<'a> {
 
         let mut weapons = individual.weapons.clone();
         if let Some(weapon) = weapons.get_mut(&kind) {
-            weapon.filled = None;
-            weapon.filled_count = 0;
+            weapon.filled_count = weapon.filled_count.saturating_sub(1);
+            if weapon.filled_count == 0 {
+                weapon.filled = None;
+            }
         }
 
         let plus_z = individual.gesture.body.weapon_z().pixels(&self.world.w);
@@ -1771,8 +1782,8 @@ mod tests {
                 oc_individual::Update::SetWeapons(Weapons {
                     primary: Some(Weapon {
                         i: WeaponIndex(0),
-                        filled: None,
-                        filled_count: 0
+                        filled: Some((MagazineIndex(0), AmmunitionIndex(0))),
+                        filled_count: 4
                     })
                 })
             )

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 use oc_individual::{Individual, IndividualIndex};
-use oc_mod::illustration::IllustrationKind;
+use oc_mod::{Mod, illustration::IllustrationKind};
 use oc_root::files::FilesAsGui;
 use oc_utils::{every, let_ok, let_some};
 
@@ -27,6 +27,9 @@ pub struct IndividualRow;
 
 #[derive(Component, Default, Clone)]
 pub struct IndividualStatusText(pub Option<IndividualIndex>);
+
+#[derive(Component, Default, Clone)]
+pub struct IndividualRoundsText(pub Option<IndividualIndex>);
 
 pub fn squad() -> impl Scene {
     bsn! {
@@ -53,7 +56,8 @@ fn row(
     let kind = IllustrationKind::IngameIndividual;
     let illustration = g.mod_.illustration(kind, individual.illustration);
     let rect = illustration.inner().rect();
-    let status = individual.status.hud_label().to_string();
+    let action = individual.action_hud_label().to_string();
+    let rounds = format!("{} rnds.", primary_rounds(&g.mod_, individual));
 
     bsn! {
         Node {
@@ -84,7 +88,7 @@ fn row(
                 // Status
                 (
                     IndividualStatusText(i)
-                    Text(status)
+                    Text(action)
                     TextFont { font_size: px(11) }
                     TextColor(Color::srgb(0.3, 0.5, 1.0))
                     Pickable::IGNORE
@@ -96,7 +100,8 @@ fn row(
                 Pickable::IGNORE
                 Children [
                     (
-                        Text("x rnds.")
+                        IndividualRoundsText(i)
+                        Text(rounds)
                         TextFont { font_size: px(10) }
                         Pickable::IGNORE
                     ),
@@ -137,15 +142,38 @@ pub fn spawn_rows(
 
 pub fn update_rows(
     world: Res<World>,
-    mut texts: Query<(&IndividualStatusText, &mut Text)>,
+    g: Res<GameConfig>,
+    mut texts: Query<(&IndividualStatusText, &mut Text), Without<IndividualRoundsText>>,
+    mut rounds: Query<(&IndividualRoundsText, &mut Text), Without<IndividualStatusText>>,
     time: Res<Time>,
     mut timer: Local<Option<Timer>>,
 ) {
+    let_some!(g = &g.0, return);
     every!(timer, time, Duration::from_secs(1));
 
     for (individual, mut text) in &mut texts {
         let_some!(individual = individual.0, continue);
         let_some!(individual = world.individual(individual), continue);
-        text.0 = individual.status.hud_label().to_string();
+        text.0 = individual.action_hud_label().to_string();
     }
+
+    for (individual, mut text) in &mut rounds {
+        let_some!(individual = individual.0, continue);
+        let_some!(individual = world.individual(individual), continue);
+        text.0 = format!("{} rnds.", primary_rounds(&g.mod_, individual));
+    }
+}
+
+fn primary_rounds(mod_: &Mod, individual: &Individual) -> u32 {
+    let_some!(primary = &individual.weapons.primary, return 0);
+    let weapon = mod_.weapon(primary.i);
+    let compatibles = weapon.magazines();
+    let carried: u32 = individual
+        .magazines
+        .iter()
+        .filter_map(|carried| compatibles.iter().find(|m| m.index() == *carried))
+        .map(|m| m.capacity() as u32)
+        .sum();
+
+    primary.filled_count as u32 + carried
 }
