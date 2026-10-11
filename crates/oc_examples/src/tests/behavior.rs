@@ -50,7 +50,7 @@ pub fn run(
         individuals,
         squads,
         vec![],
-        BattlePhase::Deployment,
+        BattlePhase::Fight,
         vec![],
         vec![],
     )

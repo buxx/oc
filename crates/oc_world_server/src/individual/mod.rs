@@ -40,8 +40,20 @@ pub mod update;
 
 const POSITION_TOLERANCE: f32 = 3.0;
 
-// When arrival near move step, consider "arriving" in this radius
-const ARRIVAL_RADIUS: f32 = 8.0;
+// AI generated
+// When individual has no path from its position (see `resolve_path`), look for path from points
+// around it, until this radius (pixels).
+const PATH_UNSTUCK_MAX_RADIUS: usize = 5;
+const PATH_UNSTUCK_DIRECTIONS: [(f32, f32); 8] = [
+    (1., 0.),
+    (-1., 0.),
+    (0., 1.),
+    (0., -1.),
+    (0.7, 0.7),
+    (-0.7, 0.7),
+    (0.7, -0.7),
+    (-0.7, -0.7),
+];
 
 // When arrival near move step, and "arriving" in radius (see ARRIVAL_RADIUS), speed will be reduced
 // according to distance to step. This value is the minimal factor usable.
@@ -1385,7 +1397,24 @@ impl<'a> Processor<'a> {
 
         let from = (individual.position.x, individual.position.y);
         let to = (target.x, target.y);
-        self.world.navmesh.path(from, to).map(MovePath::from)
+        if let Some(path) = self.world.navmesh.path(from, to) {
+            return Some(path.into());
+        }
+
+        // Individual can be stuck against a wall (physics stops it on the wall edge, which is out
+        // of the navmesh because of the agent radius): look for a path from a nearby free point
+        // to let it go out.
+        for radius in 1..=PATH_UNSTUCK_MAX_RADIUS {
+            for (dx, dy) in PATH_UNSTUCK_DIRECTIONS {
+                let from = (from.0 + dx * radius as f32, from.1 + dy * radius as f32);
+                if let Some(path) = self.world.navmesh.path(from, to) {
+                    tracing::trace!(name="individual-resolve-path-unstuck", i=?self.i, from=?from);
+                    return Some(path.into());
+                }
+            }
+        }
+
+        None
     }
 
     fn direction_to_next(
