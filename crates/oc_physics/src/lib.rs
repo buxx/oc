@@ -1,8 +1,17 @@
 use crate::{collision::Material, volume::Volume};
 use line_drawing::Bresenham3d;
 use oc_mod::{Mod, nature::Traversability};
-use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec3, physics::MetersSeconds, side::Side, y::V};
-use oc_utils::d2::{Direction, Xy};
+use oc_root::{
+    WcfgFrom, WorldConfig,
+    geo::{WorldVec2, WorldVec3},
+    physics::MetersSeconds,
+    side::Side,
+    y::V,
+};
+use oc_utils::{
+    d2::{Direction, Xy},
+    number::almost_equal,
+};
 use rkyv::Archive;
 
 pub mod collision;
@@ -46,6 +55,9 @@ pub trait Physic: Material {
     fn receive_z(&self) -> bool {
         false
     }
+    fn want_stop(&self) -> Option<(WorldVec2, f32)> {
+        None
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -87,6 +99,8 @@ pub enum Event<T: serde::Serialize> {
     Collision(T, T),
     /// Object which emit proximity is on same tile than other
     Proximity(ProximityKind, T, T, [f32; 3]),
+    /// Object want stop here by its own decision
+    WantStop(T, WorldVec3),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize)]
@@ -128,6 +142,7 @@ where
     let ignore_underground = object.ignore_underground();
     let receive_z = object.receive_z();
     let mut apply_z: Option<f32> = None;
+    let want_stop = object.want_stop();
     tracing::trace!(name="physics-step-start", origin=origin, i=?i, p=?position, forces=?object.forces(w));
 
     'forces: for force in object.forces(w) {
@@ -180,6 +195,20 @@ where
                     position = [pixel_x as f32, pixel_y as f32, pixel_z as f32].into();
 
                     tracing::trace!(name="physics-step-translation-line-pixel", origin=origin, i=?i, pixel=?pixel, xy=?xy);
+
+                    if let Some((p, tolerance)) = want_stop {
+                        if almost_equal(p.x, position.x, tolerance)
+                            && almost_equal(p.y, position.y, tolerance)
+                        {
+                            tracing::trace!(name="physics-step-translation-line-pixel-want-stop-stop", origin=origin, i=?i, pixel=?pixel, xy=?xy);
+
+                            events.push(Event::WantStop(i.clone().into(), position));
+                            // Do not keep this force by stopping this iteration
+                            position = pixel;
+                            continue 'forces;
+                        }
+                    }
+
                     let volumes = object.volumes(pixel, !ignore_underground, w, mod_);
 
                     let proximity_others = proximity_at(xy);

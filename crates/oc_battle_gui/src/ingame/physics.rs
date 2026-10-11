@@ -14,7 +14,11 @@ use oc_root::{
 };
 use oc_utils::{d2::Xy, let_some};
 
-use crate::{ingame::projectile::ForgotProjectile, states::GameConfig, world::World};
+use crate::{
+    ingame::{individual::SetForcesEvent, projectile::ForgotProjectile},
+    states::GameConfig,
+    world::World,
+};
 
 #[derive(Debug, Clone, Event)]
 pub struct PhysicsUpdatedPosition<I>(pub I, pub WorldVec3, pub WorldVec3);
@@ -124,6 +128,10 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
             }
         }
         oc_physics::Event::Proximity(_, _, _, _) => {}
+        oc_physics::Event::WantStop(ObjectId::Individual(i), _) => {
+            commands.trigger(SetForcesEvent(*i, vec![]))
+        }
+        oc_physics::Event::WantStop(_, _) => {}
     }
 }
 

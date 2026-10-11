@@ -259,6 +259,8 @@ impl<'x, E: Client> Processor<'x, E> {
                     }
                     //
                 }
+                // No more consequences than no more forces
+                Event::WantStop(_, _) => {}
             }
         }
 

@@ -64,7 +64,10 @@ pub struct SetBehaviorEvent(
 );
 
 #[derive(Debug, Event)]
-pub struct SetForcesEvent(oc_individual::IndividualIndex, Vec<oc_physics::Force>);
+pub struct SetForcesEvent(
+    pub oc_individual::IndividualIndex,
+    pub Vec<oc_physics::Force>,
+);
 
 #[derive(Debug, Event)]
 pub struct SetOrdersEvent(

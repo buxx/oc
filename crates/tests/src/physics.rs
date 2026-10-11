@@ -5,7 +5,7 @@ mod test {
     use oc_mod::{Mod, nature::NatureIndex};
     use oc_physics::{Event, Force, Physic, collision::Material, volume::Volume};
     #[cfg(test)]
-    use oc_root::geo::WorldVec3;
+    use oc_root::geo::{WorldVec2, WorldVec3};
     use oc_root::{
         WorldConfig,
         physics::{Meters, MetersSeconds},
@@ -153,6 +153,93 @@ mod test {
             "tests",
         );
 
+        assert_eq!(result, expected);
+    }
+
+    struct StopObject(Object, WorldVec3);
+
+    impl Material for StopObject {
+        fn kind(&self) -> Option<oc_root::material::MaterialKind> {
+            self.0.kind()
+        }
+    }
+
+    impl Physic for StopObject {
+        fn position(&self, w: &WorldConfig) -> WorldVec3 {
+            self.0.position(w)
+        }
+
+        fn forces(&self, w: &WorldConfig) -> &Vec<Force> {
+            self.0.forces(w)
+        }
+
+        fn volumes(
+            &self,
+            ref_: WorldVec3,
+            underground: bool,
+            w: &WorldConfig,
+            mod_: &Mod,
+        ) -> Vec<(Volume, Traversability, Direction)> {
+            self.0.volumes(ref_, underground, w, mod_)
+        }
+
+        fn ignore_side(&self) -> oc_physics::IgnoreSide {
+            self.0.ignore_side()
+        }
+
+        fn side(&self) -> Option<oc_root::side::Side> {
+            self.0.side()
+        }
+
+        fn want_stop(&self) -> Option<(WorldVec2, f32)> {
+            Some((WorldVec2::new(self.1.x, self.1.y), 2.))
+        }
+    }
+
+    #[rstest]
+    #[case(
+        [120., 100., 0.],
+        ([118., 100., 0.].into(), vec![], vec![Event::WantStop(ObjectsId::Object(ObjectId(0)), [118., 100., 0.].into())])
+    )]
+    // Stop point is not on the way: no stop, force kept
+    #[case(
+        [120., 200., 0.],
+        (
+            [150., 100., 0.].into(),
+            vec![Force::Translation([1., 0., 0.].into(), MetersSeconds(10.))],
+            vec![]
+        )
+    )]
+    fn test_want_stop(
+        #[case] stop_at: [f32; 3],
+        #[case] expected: (WorldVec3, Vec<Force>, Vec<Event<ObjectsId>>),
+    ) {
+        // Given
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
+        let w = WorldConfig::new(1000, 1000)
+            .with_geo_pixels_per_tile(5)
+            .with_geo_pixels_per_meters(5.)
+            .with_geo_meters_per_z(Meters(0.1));
+        // 10 m/s during 1 second at 5 pixels/meter: 50 pixels along x
+        let forces = vec![Force::Translation([1., 0., 0.].into(), MetersSeconds(10.))];
+        let object = StopObject(
+            Object(WorldVec3::new(100., 100., 0.), forces),
+            stop_at.into(),
+        );
+
+        // When
+        let result = oc_physics::step(
+            &w,
+            1.0,
+            &mod_,
+            (ObjectsId::Object(ObjectId(0)), &object),
+            |_| vec![],
+            |_| vec![],
+            0,
+            "tests",
+        );
+
+        // Then
         assert_eq!(result, expected);
     }
 }

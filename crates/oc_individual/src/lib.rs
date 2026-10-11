@@ -24,6 +24,7 @@ use oc_physics::volume::Volume;
 use oc_root::WcfgFrom;
 use oc_root::WorldConfig;
 use oc_root::behavior::Suppress;
+use oc_root::geo::WorldVec2;
 use oc_root::geo::WorldVec3;
 use oc_root::material::MaterialKind;
 use oc_root::physics::Meters;
@@ -55,6 +56,8 @@ pub const INDIVIDUAL_INDEXATION_SHAPE: Meters = Meters(2.0);
 pub const INDIVIDUAL_PRONE_VOLUME_WIDTH: Meters = Meters(0.8);
 pub const INDIVIDUAL_PRONE_VOLUME_HEIGHT: Meters = Meters(1.8);
 pub const INDIVIDUAL_PRONE_VOLUME_DEPTH: Meters = Meters(0.8);
+
+pub const WANT_STOP_TOLERANCE: f32 = 2.0;
 
 #[derive(
     Archive,
@@ -360,6 +363,13 @@ impl Physic for Individual {
 
     fn receive_z(&self) -> bool {
         true
+    }
+
+    fn want_stop(&self) -> Option<(WorldVec2, f32)> {
+        self.intent
+            .path()
+            .and_then(|(_, p)| p.first())
+            .and_then(|p| Some((*p, WANT_STOP_TOLERANCE)))
     }
 }
 
