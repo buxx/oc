@@ -55,10 +55,6 @@ const PATH_UNSTUCK_DIRECTIONS: [(f32, f32); 8] = [
     (-0.7, -0.7),
 ];
 
-// When arrival near move step, and "arriving" in radius (see ARRIVAL_RADIUS), speed will be reduced
-// according to distance to step. This value is the minimal factor usable.
-const MIN_FORCE_FACTOR: f32 = 0.05;
-
 #[derive(Constructor)]
 pub struct Processor<'a> {
     world: &'a World,
@@ -1046,17 +1042,16 @@ impl<'a> Processor<'a> {
     }
 
     /// Compute forces for the current behavior.
-    fn forces(&self, individual: &Individual, behavior: &Behavior, intent: &Intent) -> Vec<Force> {
+    fn forces(&self, individual: &Individual, behavior: &Behavior, _intent: &Intent) -> Vec<Force> {
         match behavior {
             Behavior::Idle(_) => vec![],
             Behavior::Walk(direction) | Behavior::Run(direction) | Behavior::Crawl(direction) => {
                 let nominal_speed = behavior.nominal_speed(&self.world.w);
                 let move_disability_factor = self.move_disability_factor(individual, behavior);
-                let arrival_factor = self.arrival_factor(intent);
                 let direction = WorldVec3::new(direction.x, direction.y, 0.);
                 vec![Force::Translation(
                     direction,
-                    nominal_speed * move_disability_factor * arrival_factor,
+                    nominal_speed * move_disability_factor,
                 )]
             }
             Behavior::Defend(_) => vec![],
@@ -1069,38 +1064,6 @@ impl<'a> Processor<'a> {
     fn move_disability_factor(&self, _individual: &Individual, _behavior: &Behavior) -> f32 {
         // TODO: here use fatigue, injures, etc
         1.0
-    }
-
-    /// Returns a value in [MIN_FORCE_FACTOR, 1.0] based on distance to the
-    /// current waypoint: 1.0 far away, tapering down to MIN_FORCE_FACTOR
-    /// within ARRIVAL_RADIUS. We compute it to ensure arrival near the targeted
-    /// pixel and avoid turning around target.
-    fn arrival_factor(&self, intent: &Intent) -> f32 {
-        let path = match intent {
-            Intent::Idle(_)
-            | Intent::Defend(_)
-            | Intent::Hide(_)
-            | Intent::Engage(_)
-            | Intent::Suppress(_) => return 1.0, // fallback (should not happens)
-            Intent::MoveTo(_, path) => path,
-            Intent::MoveFastTo(_, path) => path,
-            Intent::SneakTo(_, path) => path,
-        };
-        let_some!(next = path.iter().next(), return 1.0); // 1.0 is fallback (should not happens)
-
-        let individual = self.world.individual(self.i);
-        let from = WorldVec2::from(individual.position);
-        let distance = *next - from;
-        let distance = Vec2::new(distance.x, distance.y).length();
-
-        // No chance to miss the target, return full speed
-        if distance >= ARRIVAL_RADIUS {
-            1.0
-        } else {
-            // FIXME: 0.5 is a hack to reduce "missing target".
-            // This arrival factor should probably consider the tick delay between each compute
-            ((distance / ARRIVAL_RADIUS) * 0.5).max(MIN_FORCE_FACTOR)
-        }
     }
 
     // TODO: can change to fire target if any
@@ -1401,6 +1364,7 @@ impl<'a> Processor<'a> {
             return Some(path.into());
         }
 
+        // AI generated (maybe found another solution)
         // Individual can be stuck against a wall (physics stops it on the wall edge, which is out
         // of the navmesh because of the agent radius): look for a path from a nearby free point
         // to let it go out.
