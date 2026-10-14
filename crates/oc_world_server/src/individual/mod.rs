@@ -251,90 +251,165 @@ impl<'a> Processor<'a> {
         let phase = self.world.phase;
         let squad_i = self.index.individual_squad(self.i);
         let squad = self.world.squad(squad_i);
-        let order = squad.orders.first();
-        let mut updates = vec![];
-        let mut distribution: Vec<(IndividualIndex, Vec<Order>)> =
-            Vec::with_capacity(squad.members.len());
         let is_squad_leader = self.i == squad.leader();
-
         if !is_squad_leader {
             tracing::trace!(name="individual-step-distribute-not-leader", i=?self.i);
             return vec![];
         }
+        let order = squad.orders.first();
+        let mut updates = vec![];
+        let mut distribution: Vec<(IndividualIndex, Vec<Order>)> =
+            Vec::with_capacity(squad.members.len());
 
-        if let Some(order) = order {
-            // Squad leader own the squad order
-            let orders = Update::SetOrders(vec![order.clone()]);
-            let update = runner::update::Update::UpdateIndividual(squad.leader(), orders);
-            updates.push(update);
+        let Some(order) = order else {
+            return vec![];
         };
+
+        // Squad leader own the squad order
+        let orders = Update::SetOrders(vec![order.clone()]);
+        let update = runner::update::Update::UpdateIndividual(squad.leader(), orders);
+        updates.push(update);
 
         let leader = self.world.individual(squad.leader());
         let gesture = &leader.gesture;
-        let reference = Vec2::new(leader.position.x, leader.position.y);
         let count = squad.actives as usize;
         let direction = gesture.direction();
         let angle = direction.angle(V::Server);
 
-        let places = self.places(squad_i, squad, reference, count, direction, angle);
+        // // Distribute to members only if its a just accepted order
+        // if leader.orders.first() != Some(order) {
+        //     return updates;
+        // }
 
-        for (member, position) in places {
-            let individual = self.world.individual(member);
-            if position.almost_equal(individual.position, POSITION_TOLERANCE) {
-                tracing::trace!(name="individual-step-distribute-already-on-position", i=?self.i, squad_i=?squad_i, member=?member, position=?position);
+        // Members receive orders according to this order when leader accept it.
+        match order {
+            Order::Idle => todo!(),
+            Order::MoveTo(target) | Order::MoveFastTo(target) | Order::SneakTo(target) => {
+                let direction = Direction::from_points2d(leader.position.into(), (*target).into());
+                let angle = direction.angle(V::Server);
+                let places = self.places(squad_i, squad, (*target).into(), count, direction, angle);
 
-                let orders = match order {
-                    Some(order) => match order {
-                        Order::Defend(direction) => vec![Order::Defend(*direction)],
-                        Order::Hide(direction) => vec![Order::Hide(*direction)],
-                        // FIXME BS NOW: here, compute targets for members ? Or just give squad id and let member choose ?
-                        Order::Engage(i) => vec![Order::Engage(*i)],
-                        Order::Suppress(position) => vec![Order::Suppress(*position)],
-                        Order::Idle
-                        | Order::MoveTo(_)
-                        | Order::MoveFastTo(_)
-                        | Order::SneakTo(_) => vec![Order::Idle],
-                    },
-                    None => vec![Order::Idle],
-                };
+                for (member, position) in places {
+                    let individual = self.world.individual(member);
 
-                distribution.push((member, orders));
-                continue;
-            }
+                    if position.almost_equal(individual.position, POSITION_TOLERANCE) {
+                        tracing::trace!(name="individual-step-distribute-already-on-position", i=?self.i, squad_i=?squad_i, member=?member, position=?position);
+                        continue;
+                    }
 
-            match phase {
-                // As deployment phase, set directly the position
-                BattlePhase::Deployment => {
-                    let tile_z = self.tile_z(position);
-                    let position = Update::SetPosition(position.extend(tile_z));
-                    let update = runner::update::Update::UpdateIndividual(member, position);
-                    updates.push(update);
+                    let order = order.clone().with_position(position);
+                    distribution.push((member, vec![order]));
                 }
-                // According to order, choose appropriate order to distribute (move if move, move fast if move fast, etc.)
-                BattlePhase::Fight => {
-                    let orders = match order {
-                        Some(order) => match order {
-                            Order::Idle => vec![Order::MoveTo(position)],
-                            Order::MoveTo(_) => vec![Order::MoveTo(position)],
-                            Order::MoveFastTo(_) => vec![Order::MoveFastTo(position)],
-                            Order::SneakTo(_) => vec![Order::SneakTo(position)],
-                            Order::Defend(_) => vec![Order::MoveFastTo(position)],
-                            Order::Hide(_) => vec![Order::SneakTo(position)],
-                            Order::Engage(_) => vec![Order::MoveFastTo(position)],
-                            Order::Suppress(_) => vec![Order::MoveFastTo(position)],
-                        },
-                        None => {
-                            vec![Order::MoveTo(position)]
-                        }
+            }
+            Order::Defend(direction) | Order::Hide(direction) => {
+                let reference: Vec2 = leader.position.into();
+                let places = self.places(squad_i, squad, reference, count, *direction, angle);
+
+                for (member, position) in places {
+                    let member_ = self.world.individual(member);
+                    let orders = match position.almost_equal(member_.position, POSITION_TOLERANCE) {
+                        true => vec![order.clone()],
+                        // FIXME BS NOW NOW: how to choose move/moveFast/sneak ?
+                        false => vec![Order::MoveFastTo(position), order.clone()],
                     };
 
-                    tracing::trace!(name="individual-step-distribute-to", i=?self.i, squad_i=?squad_i, order=?order, member=?member, orders=?orders);
-                    distribution.push((member, orders))
+                    distribution.push((member, orders));
+                }
+            }
+            Order::Engage(target) => {
+                let target_ = self.world.individual(*target);
+                let dir = Direction::from_points2d(leader.position.into(), target_.position.into());
+                let reference: Vec2 = leader.position.into();
+                let places = self.places(squad_i, squad, reference, count, dir, angle);
+
+                for (member, position) in places {
+                    let member_ = self.world.individual(member);
+                    let orders = match position.almost_equal(member_.position, POSITION_TOLERANCE) {
+                        true => vec![order.clone()],
+                        // FIXME BS NOW NOW: how to choose move/moveFast/sneak ?
+                        false => vec![Order::MoveFastTo(position), order.clone()],
+                    };
+
+                    distribution.push((member, orders));
+                }
+            }
+            Order::Suppress(target) => {
+                let reference: Vec2 = leader.position.into();
+                let dir = Direction::from_points2d(leader.position.into(), (*target).into());
+                let places = self.places(squad_i, squad, reference, count, dir, angle);
+
+                for (member, position) in places {
+                    let member_ = self.world.individual(member);
+                    let orders = match position.almost_equal(member_.position, POSITION_TOLERANCE) {
+                        true => vec![order.clone()],
+                        // FIXME BS NOW NOW: how to choose move/moveFast/sneak ?
+                        false => vec![Order::MoveFastTo(position), order.clone()],
+                    };
+
+                    distribution.push((member, orders));
                 }
             }
         }
 
-        tracing::trace!(name="individual-step-distribution", i=?self.i, squad_i=?squad_i, order=?order, distribution=?distribution);
+        // let places = self.places(squad_i, squad, reference, count, direction, angle);
+
+        // for (member, position) in places {
+        //     let individual = self.world.individual(member);
+        //     if position.almost_equal(individual.position, POSITION_TOLERANCE) {
+        //         tracing::trace!(name="individual-step-distribute-already-on-position", i=?self.i, squad_i=?squad_i, member=?member, position=?position);
+
+        //         let orders = match order {
+        //             Some(order) => match order {
+        //                 Order::Defend(direction) => vec![Order::Defend(*direction)],
+        //                 Order::Hide(direction) => vec![Order::Hide(*direction)],
+        //                 // FIXME BS NOW: here, compute targets for members ? Or just give squad id and let member choose ?
+        //                 Order::Engage(i) => vec![Order::Engage(*i)],
+        //                 Order::Suppress(position) => vec![Order::Suppress(*position)],
+        //                 Order::Idle
+        //                 | Order::MoveTo(_)
+        //                 | Order::MoveFastTo(_)
+        //                 | Order::SneakTo(_) => vec![Order::Idle],
+        //             },
+        //             None => vec![Order::Idle],
+        //         };
+
+        //         distribution.push((member, orders));
+        //         continue;
+        //     }
+
+        //     match phase {
+        //         // As deployment phase, set directly the position
+        //         BattlePhase::Deployment => {
+        //             let tile_z = self.tile_z(position);
+        //             let position = Update::SetPosition(position.extend(tile_z));
+        //             let update = runner::update::Update::UpdateIndividual(member, position);
+        //             updates.push(update);
+        //         }
+        //         // According to order, choose appropriate order to distribute (move if move, move fast if move fast, etc.)
+        //         BattlePhase::Fight => {
+        //             let orders = match order {
+        //                 Some(order) => match order {
+        //                     Order::Idle => vec![Order::MoveTo(position)],
+        //                     Order::MoveTo(_) => vec![Order::MoveTo(position)],
+        //                     Order::MoveFastTo(_) => vec![Order::MoveFastTo(position)],
+        //                     Order::SneakTo(_) => vec![Order::SneakTo(position)],
+        //                     Order::Defend(_) => vec![Order::MoveFastTo(position)],
+        //                     Order::Hide(_) => vec![Order::SneakTo(position)],
+        //                     Order::Engage(_) => vec![Order::MoveFastTo(position)],
+        //                     Order::Suppress(_) => vec![Order::MoveFastTo(position)],
+        //                 },
+        //                 None => {
+        //                     vec![Order::MoveTo(position)]
+        //                 }
+        //             };
+
+        //             tracing::trace!(name="individual-step-distribute-to", i=?self.i, squad_i=?squad_i, order=?order, member=?member, orders=?orders);
+        //             distribution.push((member, orders))
+        //         }
+        //     }
+        // }
+
+        // tracing::trace!(name="individual-step-distribution", i=?self.i, squad_i=?squad_i, order=?order, distribution=?distribution);
 
         // Dispatch orders to members if not already own it
         for (member_i, orders) in distribution {
@@ -349,7 +424,7 @@ impl<'a> Processor<'a> {
         updates
     }
 
-    /// Find places according to formation and squad leader position
+    /// Find places according to formation and position
     fn places(
         &self,
         squad_i: oc_individual::squad::SquadIndex,

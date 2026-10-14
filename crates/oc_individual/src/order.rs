@@ -69,4 +69,16 @@ impl Order {
             Order::Suppress(_) => "Suppress",
         }
     }
+
+    /// Modify self with position if self is an order which accept it
+    pub fn with_position(mut self, position: WorldVec2) -> Order {
+        match &mut self {
+            Order::MoveTo(p) | Order::MoveFastTo(p) | Order::SneakTo(p) | Order::Suppress(p) => {
+                *p = position
+            }
+            Order::Idle | Order::Defend(_) | Order::Hide(_) | Order::Engage(_) => {}
+        }
+
+        self
+    }
 }

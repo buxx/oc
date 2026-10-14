@@ -129,6 +129,12 @@ impl From<WorldVec3> for Vec3 {
     }
 }
 
+impl From<WorldVec3> for Vec2 {
+    fn from(value: WorldVec3) -> Vec2 {
+        Vec2::new(value.x, value.y)
+    }
+}
+
 impl WcfgFrom<ScreenVec2> for WorldVec2 {
     fn from_(value: ScreenVec2, w: &crate::WorldConfig) -> Self {
         Self {
