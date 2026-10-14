@@ -1,6 +1,7 @@
 use std::sync::{Arc, mpsc::Sender};
 
 use derive_more::Constructor;
+use oc_deployment::deployment::Deployments as Deployment;
 use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::WorldTileIndex;
 use oc_individual::squad::SquadIndex;
@@ -141,18 +142,20 @@ impl<'a, E: Client> Dealer<'a, E> {
     fn set_leader_position(&self, squad: SquadIndex, position: WorldVec2) -> Vec<Update> {
         let world = self.state.world();
         let squad_ = world.squad(squad);
-        let tile_i = WorldTileIndex::from_(position, &world.w);
+        let tiles = &world.tiles;
+        let count = squad_.members.len();
+        let places = Deployment::members_positions(&world.w, &world.mod_, tiles, position, count);
 
-        let z = world
-            .tile(tile_i)
-            .map(|t| t.z_pixels(&world.w))
-            .unwrap_or(0.);
-        let update = oc_individual::Update::SetPosition(position.extend(z));
+        // Update squad position first to let GUI use squad position when orders refresh
+        let set_position = oc_individual::squad::Update::SetPosition(position);
+        let mut updates = vec![Update::UpdateSquad(squad, set_position)];
 
-        vec![
-            // Update squad position first to let GUI use squad position when orders refresh
-            Update::UpdateSquad(squad, oc_individual::squad::Update::SetPosition(position)),
-            Update::UpdateIndividual(squad_.leader(), update),
-        ]
+        for (member, place) in squad_.members.iter().zip(places) {
+            let tile_i = WorldTileIndex::from_(place, &world.w);
+            let z = world.tile_z(&world.w, tile_i);
+            let set_position = oc_individual::Update::SetPosition(place.extend(z));
+            updates.push(Update::UpdateIndividual(*member, set_position));
+        }
+        updates
     }
 }

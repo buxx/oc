@@ -91,7 +91,7 @@ impl Deployments {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn fill_squad(
+    pub fn fill_squad(
         &self,
         w: &WorldConfig,
         mod_: &Mod,
@@ -109,16 +109,9 @@ impl Deployments {
         };
         let occupied: Vec<WorldVec2> = snapshot.squads.iter().map(|s| s.position).collect();
         let position = placer.place(spawns, squad.uuid, &occupied);
+        let places = Self::members_positions(w, mod_, tiles, position, squad.individuals.len());
 
-        // Members are placed on the best opacity tile near their formation place
-        let reference = Vec2::new(position.x, position.y);
-        let count = squad.individuals.len();
-        let places = SquadFormation::Line.positions(w, V::Server, reference, Angle::zero(), count);
-        let mut taken: HashSet<WorldTileIndex> = HashSet::new();
-
-        for (indiv, slot) in squad.individuals.iter().zip(places) {
-            let slot = WorldVec2::new(slot.x, slot.y);
-            let position_ = Self::best_tile_position(w, mod_, tiles, slot, &mut taken);
+        for (indiv, position_) in squad.individuals.iter().zip(places) {
             let individual = self.fill_individual(w, mod_, i, side, indiv, position_, tiles)?;
             individuals.push(IndividualIndex(*i));
             snapshot.individuals.push(individual);
@@ -136,6 +129,27 @@ impl Deployments {
         snapshot.squads.push(squad);
 
         Ok(())
+    }
+
+    /// Members are placed on the best opacity tile near their formation place
+    pub fn members_positions(
+        w: &WorldConfig,
+        mod_: &Mod,
+        tiles: &[Tile],
+        position: WorldVec2,
+        count: usize,
+    ) -> Vec<WorldVec2> {
+        let reference = Vec2::new(position.x, position.y);
+        let places = SquadFormation::Line.positions(w, V::Server, reference, Angle::zero(), count);
+        let mut taken: HashSet<WorldTileIndex> = HashSet::new();
+
+        places
+            .into_iter()
+            .map(|slot| {
+                let slot = WorldVec2::new(slot.x, slot.y);
+                Self::best_tile_position(w, mod_, tiles, slot, &mut taken)
+            })
+            .collect()
     }
 
     // Warning: AI generated

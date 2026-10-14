@@ -161,6 +161,10 @@ impl World {
     pub fn set_phase(&mut self, value: BattlePhase) {
         self.phase = value;
     }
+
+    pub fn tile_z(&self, w: &WorldConfig, i: WorldTileIndex) -> f32 {
+        self.tile(i).map(|t| t.z_pixels(w)).unwrap_or(0.)
+    }
 }
 
 #[cfg(test)]

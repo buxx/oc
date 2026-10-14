@@ -6353,6 +6353,7 @@ dependencies = [
  "glam 0.33.2",
  "message-io",
  "num_cpus",
+ "oc_deployment",
  "oc_geo",
  "oc_individual",
  "oc_lov",

@@ -14,7 +14,6 @@ use oc_projectile::spawn::SpawnProjectiles;
 use oc_root::WorldConfig;
 use oc_root::{
     WcfgFrom,
-    battle::BattlePhase,
     geo::{WorldVec2, WorldVec3},
     opacity::CumulatedOpacity,
     physics::{Meters, Seconds},
@@ -1377,14 +1376,6 @@ impl<'a> Processor<'a> {
         let from = WorldVec2::from(individual.position);
         let direction = (*next - from).normalize_or_zero();
         Some(Direction::from(direction))
-    }
-
-    fn tile_z(&self, position: WorldVec2) -> f32 {
-        let tile_i = WorldTileIndex::from_(position, &self.world.w);
-        if let Some(tile) = self.world.tile(tile_i) {
-            return tile.z_pixels(&self.world.w);
-        }
-        0. // TODO: manage this as an error
     }
 }
 
