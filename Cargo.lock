@@ -6075,6 +6075,7 @@ dependencies = [
  "clap",
  "derive_more",
  "getset",
+ "glam 0.33.2",
  "oc_geo",
  "oc_individual",
  "oc_mod",

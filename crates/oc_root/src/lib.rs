@@ -95,6 +95,9 @@ pub struct WorldConfig {
     minimap_height_pixels: u64,
     #[getset(get_copy = "pub", set_with = "pub")]
     formation_tiles_between_positions: u64,
+    /// Tile radius around a formation position where deployment looks for the best opacity tile
+    #[getset(get_copy = "pub", set_with = "pub")]
+    formation_tiles_radius_placement: u64,
     #[getset(get_copy = "pub", set_with = "pub")]
     individual_visibility_until: CumulatedOpacity,
     /// Inaccuracy start value
@@ -198,6 +201,7 @@ impl WorldConfig {
         let geo_meters_per_z = Meters(0.1);
 
         let formation_tiles_between_positions = 2;
+        let formation_tiles_radius_placement = 2;
         let individual_visibility_until = CumulatedOpacity(0.6);
         let base_inaccuracy = 0.05;
         let suppress_inaccuracy = 2.0;
@@ -250,6 +254,7 @@ impl WorldConfig {
             minimap_width_pixels,
             minimap_height_pixels,
             formation_tiles_between_positions,
+            formation_tiles_radius_placement,
             individual_visibility_until,
             base_inaccuracy,
             suppress_inaccuracy,

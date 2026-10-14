@@ -26,3 +26,4 @@ serde_yaml.workspace = true
 anyhow.workspace = true
 derive_more = { workspace = true, features = ["constructor"] }
 getset.workspace = true
+glam.workspace = true

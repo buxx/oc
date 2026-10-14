@@ -1,10 +1,15 @@
-use std::path::PathBuf;
+use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::Context;
-use oc_geo::tile::WorldTileIndex;
-use oc_individual::{Individual, IndividualIndex, Weapon, squad::Squad};
+use glam::Vec2;
+use oc_geo::tile::{TileXy, WorldTileIndex};
+use oc_individual::{
+    Individual, IndividualIndex, Weapon,
+    squad::{Squad, SquadFormation},
+};
 use oc_mod::{Mod, illustration::IllustrationKind};
-use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec2, side::Side};
+use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec2, material::MaterialKind, side::Side, y::V};
+use oc_utils::d2::{Angle, Xy};
 use oc_world::{snapshot::Snapshot, spawn::SpawnZone, tile::Tile};
 use serde::{Deserialize, Serialize};
 
@@ -105,9 +110,16 @@ impl Deployments {
         let occupied: Vec<WorldVec2> = snapshot.squads.iter().map(|s| s.position).collect();
         let position = placer.place(spawns, squad.uuid, &occupied);
 
-        for individual_ in &squad.individuals {
-            let individual =
-                self.fill_individual(w, mod_, i, side, individual_, position, tiles)?;
+        // Members are placed on the best opacity tile near their formation place
+        let reference = Vec2::new(position.x, position.y);
+        let count = squad.individuals.len();
+        let places = SquadFormation::Line.positions(w, V::Server, reference, Angle::zero(), count);
+        let mut taken: HashSet<WorldTileIndex> = HashSet::new();
+
+        for (indiv, slot) in squad.individuals.iter().zip(places) {
+            let slot = WorldVec2::new(slot.x, slot.y);
+            let position_ = Self::best_tile_position(w, mod_, tiles, slot, &mut taken);
+            let individual = self.fill_individual(w, mod_, i, side, indiv, position_, tiles)?;
             individuals.push(IndividualIndex(*i));
             snapshot.individuals.push(individual);
             *i += 1;
@@ -124,6 +136,49 @@ impl Deployments {
         snapshot.squads.push(squad);
 
         Ok(())
+    }
+
+    // Warning: AI generated
+    /// Take the free tile with the best opacity within `formation_tiles_radius_placement`
+    /// tiles of `slot`, and mark it as taken. Returns the tile center.
+    fn best_tile_position(
+        w: &WorldConfig,
+        mod_: &Mod,
+        tiles: &[Tile],
+        place: WorldVec2,
+        taken: &mut HashSet<WorldTileIndex>,
+    ) -> WorldVec2 {
+        let radius = w.formation_tiles_radius_placement() as i64;
+        let TileXy(Xy(cx, cy)) = TileXy::from_(place, w);
+        let mut best: Option<(f32, WorldTileIndex, TileXy)> = None;
+
+        for y in (cy as i64 - radius)..=(cy as i64 + radius) {
+            for x in (cx as i64 - radius)..=(cx as i64 + radius) {
+                if x < 0 || y < 0 || x >= w.world_width() as i64 || y >= w.world_height() as i64 {
+                    continue;
+                }
+                let xy = TileXy(Xy(x as u64, y as u64));
+                let index = WorldTileIndex::from_(xy, w);
+                let tile = &tiles[index.0 as usize];
+                if taken.contains(&index) || tile.allow.deny(MaterialKind::Individual) {
+                    continue;
+                }
+
+                let opacity = mod_.nature(tile.nature).opacity;
+                if best.is_none_or(|(best_opacity, _, _)| opacity > best_opacity) {
+                    best = Some((opacity, index, xy));
+                }
+            }
+        }
+
+        // No free walkable tile around: stay on formation place
+        let Some((_, index, xy)) = best else {
+            return place;
+        };
+        taken.insert(index);
+        let [x, y] = xy.point(w);
+        let half = w.geo_pixels_per_tile() as f32 / 2.;
+        WorldVec2::new(x + half, y + half)
     }
 
     fn fill_individual(
