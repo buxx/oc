@@ -1,5 +1,6 @@
 use derive_more::Deref;
 use enum_type_derive::EnumType;
+use glam::Vec2;
 use oc_root::geo::WorldVec2;
 use oc_utils::d2::Direction;
 use rkyv::Archive;
@@ -35,6 +36,26 @@ pub enum Order {
 }
 
 impl Order {
+    /// Direction the order implies, seen from `from`. `individual_position` gives the position of
+    /// an individual (for engage). None if order implies no direction (idle).
+    pub fn direction(
+        &self,
+        from: Vec2,
+        individual_position: impl Fn(IndividualIndex) -> Vec2,
+    ) -> Option<Direction> {
+        match self {
+            Order::Idle => None,
+            Order::Defend(direction) | Order::Hide(direction) => Some(*direction),
+            Order::MoveTo(target)
+            | Order::MoveFastTo(target)
+            | Order::SneakTo(target)
+            | Order::Suppress(target) => Some(Direction::from_points2d(from, (*target).into())),
+            Order::Engage(target) => {
+                Some(Direction::from_points2d(from, individual_position(*target)))
+            }
+        }
+    }
+
     /// Return position if order own it (moves / suppress)
     pub fn position(&self) -> Option<WorldVec2> {
         match self {
