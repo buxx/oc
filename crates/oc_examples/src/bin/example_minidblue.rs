@@ -142,7 +142,8 @@ fn deploy_engaged_battle_middle(
                 *places.get(&"53".into()).unwrap(),
             ),
         ])
-        .with_order(OrderPolicy::Hide);
+        .with_a_order(OrderPolicy::Hide)
+        .with_b_order(OrderPolicy::Defend);
 
     deployments
         // FIXME BS NOW: 1/ Début de partie ne doit pas impliquer mouvement de membres pour se place.
@@ -168,7 +169,9 @@ fn deploy_south_beach(
     snapshot: &mut Snapshot,
 ) -> Result<(), Box<dyn std::error::Error + 'static>> {
     let places = places.iter().map(|(_, p)| *p);
-    let placer = Placer::new(places.collect());
+    let placer = Placer::new(places.collect())
+        .with_b_order(OrderPolicy::Defend)
+        .with_b_order(OrderPolicy::Hide);
 
     deployments
         .mobilize(&w, &mod_, snapshot, &placer, &tiles)

@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use getset::WithSetters;
-use oc_root::geo::WorldVec2;
-use oc_utils::polygon::Polygon;
+use oc_root::{geo::WorldVec2, side::Side};
+use oc_utils::{d2::Direction, polygon::Polygon};
 use oc_world::spawn::SpawnZone;
 use uuid::Uuid;
 
@@ -11,7 +11,9 @@ pub struct Placer {
     places: Vec<WorldVec2>,
     assigned: HashMap<Uuid, WorldVec2>,
     #[getset(set_with = "pub")]
-    order: OrderPolicy,
+    a_order: OrderPolicy,
+    #[getset(set_with = "pub")]
+    b_order: OrderPolicy,
 }
 
 impl Placer {
@@ -19,7 +21,8 @@ impl Placer {
         Self {
             places,
             assigned: HashMap::default(),
-            order: OrderPolicy::default(),
+            a_order: OrderPolicy::default(),
+            b_order: OrderPolicy::default(),
         }
     }
 
@@ -54,31 +57,38 @@ impl Placer {
         snapshot: &oc_world::snapshot::Snapshot,
         squad: &oc_individual::squad::Squad,
     ) -> Vec<oc_individual::order::Order> {
-        match self.order {
-            OrderPolicy::None => vec![],
-            OrderPolicy::Hide => {
-                let opposite_side = squad.side.opposite();
-                let nearest = snapshot
-                    .individuals
-                    .iter()
-                    .filter(|individual| individual.side == opposite_side)
-                    .min_by(|a, b| {
-                        let da = WorldVec2::from(a.position) - squad.position;
-                        let db = WorldVec2::from(b.position) - squad.position;
-                        (da.x * da.x + da.y * da.y).total_cmp(&(db.x * db.x + db.y * db.y))
-                    });
+        let policy = match squad.side {
+            Side::A => &self.a_order,
+            Side::B => &self.b_order,
+        };
 
-                let direction = match nearest {
-                    Some(individual) => oc_utils::d2::Direction::from_points2d(
-                        squad.position.into(),
-                        WorldVec2::from(individual.position).into(),
-                    ),
-                    None => oc_utils::d2::Direction::default(),
-                };
-
-                vec![oc_individual::order::Order::Hide(direction)]
-            }
+        if matches!(policy, OrderPolicy::None) {
+            return vec![];
         }
+
+        let opposite_side = squad.side.opposite();
+        let nearest_enemy = snapshot
+            .individuals
+            .iter()
+            .filter(|individual| individual.side == opposite_side)
+            .min_by(|a, b| {
+                let da = WorldVec2::from(a.position) - squad.position;
+                let db = WorldVec2::from(b.position) - squad.position;
+                (da.x * da.x + da.y * da.y).total_cmp(&(db.x * db.x + db.y * db.y))
+            });
+
+        let direction = match nearest_enemy {
+            Some(individual) => {
+                Direction::from_points2d(squad.position.into(), individual.position.into())
+            }
+            None => oc_utils::d2::Direction::default(),
+        };
+
+        vec![match policy {
+            OrderPolicy::None => unreachable!(),
+            OrderPolicy::Hide => oc_individual::order::Order::Hide(direction),
+            OrderPolicy::Defend => oc_individual::order::Order::Defend(direction),
+        }]
     }
 }
 
@@ -87,4 +97,5 @@ pub enum OrderPolicy {
     None,
     #[default]
     Hide,
+    Defend,
 }
