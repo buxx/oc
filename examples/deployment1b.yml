@@ -6,7 +6,7 @@ squads:
   - uuid: b27d02b6-de3d-496a-931e-2d7ac65a927c
     illustration: default
     weapons:
-      main: MosinNagantM1924
+      main: Mosin Nagant M1924
     magazines:
     - name: MosinNagant5x
     - name: MosinNagant5x
@@ -21,7 +21,7 @@ squads:
   - uuid: 9ac9948d-2a30-4445-91a1-19d8b8a059ba
     illustration: default
     weapons:
-      main: MosinNagantM1924
+      main: Mosin Nagant M1924
     magazines:
     - name: MosinNagant5x
     - name: MosinNagant5x
@@ -36,7 +36,7 @@ squads:
   - uuid: d942fe18-7660-43dd-8caa-3172e83863d5
     illustration: default
     weapons:
-      main: MosinNagantM1924
+      main: Mosin Nagant M1924
     magazines:
     - name: MosinNagant5x
     - name: MosinNagant5x
@@ -55,7 +55,7 @@ squads:
   - uuid: 6a89a62c-931e-4e05-a406-a6016445377e
     illustration: default
     weapons:
-      main: MosinNagantM1924
+      main: Mosin Nagant M1924
     magazines:
     - name: MosinNagant5x
     - name: MosinNagant5x
@@ -70,7 +70,7 @@ squads:
   - uuid: 66b16e69-8b0d-4f35-a79f-3c9cf1892c95
     illustration: default
     weapons:
-      main: MosinNagantM1924
+      main: Mosin Nagant M1924
     magazines:
     - name: MosinNagant5x
     - name: MosinNagant5x
@@ -85,7 +85,7 @@ squads:
   - uuid: 006c3705-ea3b-4d5a-b304-4298ed682a00
     illustration: default
     weapons:
-      main: MosinNagantM1924
+      main: Mosin Nagant M1924
     magazines:
     - name: MosinNagant5x
     - name: MosinNagant5x

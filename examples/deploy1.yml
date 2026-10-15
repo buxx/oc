@@ -6,7 +6,7 @@ squads:
   - count: 3
     illustration: default
     weapons:
-      main: MosinNagantM1924
+      main: Mosin Nagant M1924
     magazines:
     - count: 10
       name: MosinNagant5x

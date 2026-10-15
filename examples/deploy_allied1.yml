@@ -1,0 +1,30 @@
+squads:
+- count: 5
+  label: Riffle
+  illustration: default
+  individuals:
+  - count: 4
+    illustration: default
+    weapons:
+      main: Mosin Nagant M1924
+    magazines:
+    - count: 10
+      name: MosinNagant5x
+- count: 4
+  label: Bren
+  illustration: BrenMark2Squad
+  individuals:
+  - count: 3
+    illustration: default
+    weapons:
+      main: Mosin Nagant M1924
+    magazines:
+    - count: 12
+      name: MosinNagant5x
+  - count: 1
+    illustration: BrenMark2
+    weapons:
+      main: Bren Mark2
+    magazines:
+    - count: 10
+      name: BrenMark2_30x

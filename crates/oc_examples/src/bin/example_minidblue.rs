@@ -54,8 +54,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .unwrap(),
         Case::DeploySouthBeach => deployment::Deployments::from_files(
-            &PathBuf::from("examples/deployment1a.yml"),
-            &PathBuf::from("examples/deployment1b.yml"),
+            &PathBuf::from("examples/deployment_allied1.yml"),
+            &PathBuf::from("examples/deployment_axis1.yml"),
         )
         .unwrap()
         .with_spawns(
