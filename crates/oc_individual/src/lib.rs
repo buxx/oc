@@ -89,6 +89,8 @@ pub struct Individual {
     pub side: Side,
     #[getset(set_with = "pub")]
     pub illustration: IllustrationIndex,
+    #[getset(set_with = "pub")]
+    pub xp: Xp,
     pub position: WorldVec3,
     pub tile: WorldTileIndex,
     pub region: WorldRegionIndex,
@@ -172,6 +174,7 @@ impl Individual {
         Self::new(
             side,
             IllustrationIndex(0),
+            Xp::AVERAGE,
             position,
             tile,
             region,
@@ -292,6 +295,16 @@ impl Individual {
                 HandsGesture::Aiming(_) => "Aiming",
             },
         }
+    }
+
+    // FIXME: add other factors like suppress
+    pub fn aim_factor(&self) -> f32 {
+        1.0 + (1.0 - self.xp.f32())
+    }
+
+    // FIXME: add other factors like suppress
+    pub fn reload_factor(&self) -> f32 {
+        1.0 + (1.0 - self.xp.f32())
     }
 }
 
@@ -581,4 +594,47 @@ pub struct Weapon {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum WeaponKind {
     Primary,
+}
+
+#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Xp(pub u8);
+
+impl Xp {
+    pub const AVERAGE: Xp = Xp(128);
+
+    fn f32(&self) -> f32 {
+        self.0 as f32 / 255.
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn individual_with_xp(xp: u8) -> Individual {
+        let w = WorldConfig::new(1000, 1000);
+        Individual::fresh(&w, Side::A, WorldVec3::new(10., 10., 0.)).with_xp(Xp(xp))
+    }
+
+    #[test]
+    fn aim_factor_is_two_without_xp() {
+        assert_eq!(individual_with_xp(0).aim_factor(), 2.0);
+    }
+
+    #[test]
+    fn aim_factor_is_one_with_max_xp() {
+        assert_eq!(individual_with_xp(255).aim_factor(), 1.0);
+    }
+
+    #[test]
+    fn aim_factor_average_xp_is_about_one_and_a_half() {
+        let factor = individual_with_xp(Xp::AVERAGE.0).aim_factor();
+        assert!((factor - 1.5).abs() < 0.01, "got {factor}");
+    }
+
+    #[test]
+    fn aim_factor_decreases_as_xp_increases() {
+        assert!(individual_with_xp(200).aim_factor() < individual_with_xp(50).aim_factor());
+    }
 }

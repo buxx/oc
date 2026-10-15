@@ -6074,6 +6074,7 @@ dependencies = [
  "anyhow",
  "clap",
  "derive_more",
+ "fastrand",
  "getset",
  "glam 0.33.2",
  "oc_geo",

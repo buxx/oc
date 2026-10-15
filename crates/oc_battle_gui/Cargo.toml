@@ -10,7 +10,7 @@ workspace = true
 debug = ["bevy/bevy_dev_tools", "oc_network/debug"]
 
 [dependencies]
-oc_root = { path = "../oc_root", features = ["bevy"] }
+oc_root = { path = "../oc_root", features = ["bevy", "clap"] }
 oc_network = { path = "../oc_network" }
 oc_utils = { path = "../oc_utils", features = ["bevy"] }
 oc_mod = { path = "../oc_mod" }

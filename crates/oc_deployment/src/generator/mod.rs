@@ -27,6 +27,7 @@ impl Generator {
                     for _ in 0..individual.count {
                         let mut individual_ = Individual::new();
                         individual_.illustration = individual.illustration.clone();
+                        individual_.xp = random_xp(individual.xp);
 
                         individual_.weapons = Weapons::default();
                         if let Some(weapon) = &individual.weapons.main {
@@ -54,4 +55,10 @@ impl Generator {
 
         Ok(deployment)
     }
+}
+
+/// `base` plus or minus a random value in `0..=range`, clamped to `u8`
+fn random_xp([base, range]: [u8; 2]) -> u8 {
+    let (base, range) = (base as i16, range as i16);
+    (base + fastrand::i16(-range..=range)).clamp(0, 255) as u8
 }

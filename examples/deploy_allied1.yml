@@ -5,6 +5,7 @@ squads:
   individuals:
   - count: 4
     illustration: default
+    xp: [149, 40]
     weapons:
       main: Mosin Nagant M1924
     magazines:
@@ -16,6 +17,7 @@ squads:
   individuals:
   - count: 3
     illustration: default
+    xp: [121, 30]
     weapons:
       main: Mosin Nagant M1924
     magazines:
@@ -23,6 +25,7 @@ squads:
       name: MosinNagant5x
   - count: 1
     illustration: BrenMark2
+    xp: [169, 20]
     weapons:
       main: Bren Mark2
     magazines:

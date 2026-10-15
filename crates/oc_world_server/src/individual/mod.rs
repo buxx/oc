@@ -583,8 +583,8 @@ impl<'a> Processor<'a> {
                             // If already aiming, continue
                             oc_individual::HandsGesture::Aiming(progress) => {
                                 let weapon = self.world.mod_.weapon(weapon.i);
-                                // FIXME BS NOW: add random (according to multiple factor) to not have always same reload tick
-                                let (progress, lag) = progress_(tick, progress, weapon.aim(w));
+                                let total = weapon.aim(w) * individual.aim_factor();
+                                let (progress, lag) = progress_(tick, progress, total);
 
                                 tracing::trace!(name="individual-processor-engage-gesture-aiming", i=?self.i, progress=progress.0);
 
@@ -645,8 +645,8 @@ impl<'a> Processor<'a> {
                             // If already reloading, continue
                             oc_individual::HandsGesture::Reloading(progress) => {
                                 let weapon = self.world.mod_.weapon(weapon.i);
-                                // FIXME BS NOW: add random (according to multiple factor) to not have always same reload tick
-                                let (progress, _) = progress_(tick, progress, weapon.reload(w));
+                                let total = weapon.reload(w) * individual.reload_factor();
+                                let (progress, _) = progress_(tick, progress, total);
                                 tracing::trace!(name="individual-processor-engage-gesture-weapon-reloading", i=?self.i, progress=progress.0);
 
                                 match progress.finished() {
@@ -735,7 +735,8 @@ impl<'a> Processor<'a> {
                             // If already aiming, continue
                             oc_individual::HandsGesture::Aiming(progress) => {
                                 let weapon = self.world.mod_.weapon(weapon.i);
-                                let (progress, lag) = progress_(tick, progress, weapon.aim(w));
+                                let total = weapon.aim(w) * individual.aim_factor();
+                                let (progress, lag) = progress_(tick, progress, total);
 
                                 tracing::trace!(name="individual-processor-suppress-gesture-aiming", i=?self.i, progress=progress.0, lag=?lag);
 
@@ -797,7 +798,8 @@ impl<'a> Processor<'a> {
                             // If already reloading, continue
                             oc_individual::HandsGesture::Reloading(progress) => {
                                 let weapon = self.world.mod_.weapon(weapon.i);
-                                let (progress, _) = progress_(tick, progress, weapon.reload(w));
+                                let total = weapon.reload(w) * individual.reload_factor();
+                                let (progress, _) = progress_(tick, progress, total);
 
                                 tracing::trace!(name="individual-processor-suppress-gesture-weapon-reloading", i=?self.i, progress=progress.0);
 

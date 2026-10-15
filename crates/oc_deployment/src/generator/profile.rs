@@ -19,6 +19,9 @@ pub struct Individual {
     #[serde(default = "default_count")]
     pub count: usize,
     pub illustration: String,
+    /// `[base, range]`: individual xp is `base` plus or minus a random value up to `range`
+    #[serde(default = "default_xp")]
+    pub xp: [u8; 2],
     pub weapons: Weapons,
     pub magazines: Vec<Magazine>,
 }
@@ -37,4 +40,8 @@ pub struct Magazine {
 
 fn default_count() -> usize {
     1
+}
+
+fn default_xp() -> [u8; 2] {
+    [128, 75]
 }

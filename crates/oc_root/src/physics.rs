@@ -28,6 +28,14 @@ impl std::ops::Div<f32> for Seconds {
     }
 }
 
+impl std::ops::Add<f32> for Seconds {
+    type Output = Seconds;
+
+    fn add(self, rhs: f32) -> Self::Output {
+        Self(self.0 + rhs)
+    }
+}
+
 impl std::ops::Mul<f32> for Seconds {
     type Output = Seconds;
 

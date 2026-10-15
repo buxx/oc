@@ -5,6 +5,7 @@ squads:
   individuals:
   - count: 4
     illustration: default
+    xp: [159, 40]
     weapons:
       main: Mauser G41
     magazines:
@@ -16,6 +17,7 @@ squads:
   individuals:
   - count: 2
     illustration: default
+    xp: [94, 40]
     weapons:
       main: Mauser G41
     magazines:
@@ -23,6 +25,7 @@ squads:
       name: Mauser5x
   - count: 1
     illustration: Mg34
+    xp: [115, 40]
     weapons:
       main: Mg34
     magazines:

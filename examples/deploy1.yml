@@ -5,6 +5,7 @@ squads:
   individuals:
   - count: 3
     illustration: default
+    xp: [133, 30]
     weapons:
       main: Mosin Nagant M1924
     magazines:

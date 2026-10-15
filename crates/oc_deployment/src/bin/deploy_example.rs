@@ -15,6 +15,7 @@ fn example() -> Profile {
             individuals: vec![Individual {
                 count: 3,
                 illustration: "default".to_string(),
+                xp: [128, 30],
                 weapons: Weapons {
                     main: Some("MosinNagantM1924".to_string()),
                 },
