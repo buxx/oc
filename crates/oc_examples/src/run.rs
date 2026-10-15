@@ -6,7 +6,6 @@ use std::{
 use anyhow::Context;
 use bevy::app::AppExit;
 use bon::Builder;
-#[cfg(feature = "debug")]
 use oc_root::side::Side;
 use oc_root::{files::Files, static_::StaticSource};
 use oc_world::{load::WorldPath, meta::Meta};
@@ -38,7 +37,6 @@ pub struct Example {
     regions_height: u64,
     region_width: Option<u64>,
     region_height: Option<u64>,
-    #[cfg(feature = "debug")]
     #[builder(default = Side::A)]
     side: Side,
 }
@@ -113,7 +111,7 @@ impl Example {
         let server_rx2 = Arc::new(Mutex::new(server_rx2));
         let connect = oc_battle_gui::config::Connect::Embedded(client_tx2, server_rx2);
         let config = oc_battle_gui::config::Config_::builder()
-            .autoconnect(connect)
+            .auto_connect((connect, self.side))
             .regions_width(self.regions_width)
             .regions_height(self.regions_height);
         let config = config.build();

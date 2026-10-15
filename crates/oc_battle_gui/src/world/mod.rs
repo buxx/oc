@@ -296,11 +296,15 @@ impl World {
         self.navmesh.path([from.x, from.y], [to.x, to.y])
     }
 
-    pub fn side_squads(&self, side: oc_root::side::Side) -> impl Iterator<Item = &Squad> + '_ {
+    pub fn side_squads(
+        &self,
+        side: oc_root::side::Side,
+    ) -> impl Iterator<Item = (SquadIndex, &Squad)> + '_ {
         self.squads
             .values()
-            .flat_map(|squads| squads.values())
-            .filter(move |squad| squad.side == side)
+            .flat_map(|squads| squads.iter())
+            .filter(move |(_, squad)| squad.side == side)
+            .map(|(i, squad)| (*i, squad))
     }
 
     pub fn operational(&self, i: IndividualIndex) -> bool {
@@ -347,8 +351,7 @@ fn on_world_resume(
         tracing::trace!(name="world-on-world-resume-trigger-spawn-squad-orders", i=?i, orders=?squad.orders);
         commands.trigger(SpawnSquadOrders(*i, squad.orders.clone()));
 
-        let_some!(squad = world.squads().next(), return);
-        let_some!(squad = world.squad(squad), return);
+        let_some!((_, squad) = world.side_squads(identity.side).next(), return);
         commands.trigger(GoToPoint(squad.position));
     }
 

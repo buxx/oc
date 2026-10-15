@@ -116,7 +116,7 @@ fn opposite_squad_points(
 ) -> Vec<(WorldVec2, Color)> {
     let mut points = vec![];
 
-    for squad in world.side_squads(side) {
+    for (_, squad) in world.side_squads(side) {
         let visible = squad
             .members
             .iter()
@@ -136,7 +136,7 @@ fn owned_squad_points(
 ) -> Vec<(WorldVec2, Color)> {
     let mut points = vec![];
 
-    for squad in world.side_squads(side) {
+    for (_, squad) in world.side_squads(side) {
         let visible = squad.members.iter().any(|i| {
             world
                 .individual(*i)

@@ -10,7 +10,7 @@ use oc_deployment::deployment::{
 };
 use oc_examples::{logging, run, utils::find_spawn};
 use oc_mod::Mod;
-use oc_root::{WorldConfig, battle::BattlePhase, geo::WorldVec2, physics::Meters};
+use oc_root::{WorldConfig, battle::BattlePhase, geo::WorldVec2, physics::Meters, side::Side};
 use oc_world::{
     load::WorldPath, meta::Meta, place::PlaceName, snapshot::Snapshot, spawn::SpawnZoneName,
 };
@@ -21,6 +21,9 @@ use uuid::Uuid;
 struct Args {
     #[arg()]
     case: Case,
+
+    #[arg(long, value_enum, default_value = "a")]
+    side: Side,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -104,7 +107,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let example = run::Example::builder()
         .world(map_)
         .mod_(PathBuf::from("mods/std1"))
-        .snapshot(snapshot_path);
+        .snapshot(snapshot_path)
+        .side(args.side);
     example.build().run()?;
 
     Ok(())

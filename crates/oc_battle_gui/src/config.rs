@@ -9,7 +9,7 @@ use std::{
 use bevy::prelude::*;
 use bon::Builder;
 use oc_network::ToServer;
-use oc_root::files::Connection;
+use oc_root::{files::Connection, side::Side};
 
 use crate::network::input::NetworkMessage;
 
@@ -19,7 +19,7 @@ pub struct Config_ {
     pub regions_width: u64,
     #[builder(default = 10)]
     pub regions_height: u64,
-    pub autoconnect: Option<Connect>,
+    pub auto_connect: Option<(Connect, Side)>,
 }
 
 #[derive(Debug, Clone)]

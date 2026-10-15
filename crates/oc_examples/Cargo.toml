@@ -12,7 +12,7 @@ debug_locks = ["oc_utils/debug"]
 test = ["debug", "oc_world_server/tracker"]
 
 [dependencies]
-oc_root = { path = "../oc_root" }
+oc_root = { path = "../oc_root", features = ["clap"] }
 oc_world_server = { path = "../oc_world_server" }
 oc_world = { path = "../oc_world" }
 oc_network = { path = "../oc_network" }
