@@ -118,8 +118,12 @@ pub fn on_drag_start<T>(
     let was_selected = selected_.0;
     selected_.0 = true;
 
-    // Spawn phantom for each selected entities
-    for (_, _, entity) in selected.iter().filter(|(_, selected, _)| selected.0) {
+    // Spawn phantom for each selected entities.
+    // If the dragged entity was not selected, drag only it: previously selected entities must not follow.
+    for (_, _, entity) in selected
+        .iter()
+        .filter(|(_, selected, entity)| selected.0 && (was_selected || *entity == target))
+    {
         tracing::trace!(name="utils-drag-on-drag-start-spawn", point=?point, entity=?entity);
         T::spawn(&mut commands, Phantom(entity));
     }
