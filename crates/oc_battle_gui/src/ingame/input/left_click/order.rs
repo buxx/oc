@@ -17,6 +17,7 @@ use oc_utils::return_if;
 
 use crate::cursor_to;
 use crate::entity::individual::IndividualIndex;
+use crate::ingame::behavior::DespawnPendingSquadOrders;
 use crate::ingame::behavior::DirectionSquadOrder;
 use crate::ingame::behavior::PositionSquadOrder;
 use crate::ingame::behavior::SpawnSquadOrder;
@@ -420,6 +421,9 @@ pub fn on_set_left_click(
     mut commands: Commands,
     state: Res<crate::ingame::state::State>,
 ) {
+    // Previous preview markers (cancelled or previous order type) must not remain
+    commands.trigger(DespawnPendingSquadOrders);
+
     if let Some(order) = event.0.order()
         && let Some(order) = match order {
             OrderType::Defend => Some(Order::Defend(Direction::NORTH)),

@@ -106,6 +106,9 @@ pub struct DespawnIndividualOrders(pub oc_individual::IndividualIndex);
 pub struct DespawnSquadOrders(pub oc_individual::squad::SquadIndex);
 
 #[derive(Debug, Event)]
+pub struct DespawnPendingSquadOrders;
+
+#[derive(Debug, Event)]
 pub struct DespawnSquadOrder(
     pub oc_individual::squad::SquadIndex,
     oc_individual::order::Order,
@@ -272,6 +275,7 @@ impl Plugin for BehaviorPlugin {
         .add_observer(on_spawn_squad_orders)
         .add_observer(on_despawn_squad_order)
         .add_observer(on_despawn_squad_orders)
+        .add_observer(on_despawn_pending_squad_orders)
         .add_observer(on_listening_region)
         .add_observer(on_forgotten_region)
         .add_observer(on_spawn_squad_order_marker_phantom)
@@ -293,24 +297,13 @@ fn on_refresh_individual_orders(event: On<RefreshIndividualOrdersEvent>, mut com
     }
 }
 
-fn on_refresh_squad_orders(
-    event: On<RefreshSquadsOrdersEvent>,
-    orders: Res<SquadOrders>,
-    mut commands: Commands,
-) {
+fn on_refresh_squad_orders(event: On<RefreshSquadsOrdersEvent>, mut commands: Commands) {
     let (i, orders_) = (event.0, &event.1);
     tracing::trace!(name = "ingame-behavior-on-refresh-squad-orders", i=?i, order=?orders_);
 
     // Despawn all then spawn all to ensure a total refresh
     commands.trigger(DespawnSquadOrders(i));
 
-    // Orders not already displayed are pending (just given)
-    let is_new = |order: &Order| {
-        orders
-            .get(&i)
-            .and_then(|orders| orders.iter().find(|(o, _)| o == order))
-            .is_none()
-    };
     let spawns: Vec<_> = orders_
         .iter()
         .rev()
@@ -327,7 +320,7 @@ fn on_refresh_squad_orders(
                 order.clone(),
             )),
             Order::Defend(_) | Order::Hide(_) => {
-                Some(SpawnSquadOrder::Direction(i, order.clone(), is_new(order)))
+                Some(SpawnSquadOrder::Direction(i, order.clone(), false))
             }
         })
         .collect();
@@ -544,6 +537,20 @@ fn on_despawn_squad_order(
     {
         let (_, entity) = orders.remove(x);
         commands.entity(entity).despawn();
+    }
+}
+
+fn on_despawn_pending_squad_orders(
+    _event: On<DespawnPendingSquadOrders>,
+    mut orders: ResMut<SquadOrders>,
+    pending: Query<Entity, With<PendingOrder>>,
+    mut commands: Commands,
+) {
+    for entity in pending.iter() {
+        commands.entity(entity).despawn();
+    }
+    for orders in orders.values_mut() {
+        orders.retain(|(_, entity)| !pending.contains(*entity));
     }
 }
 
