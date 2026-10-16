@@ -3,6 +3,7 @@ pub mod config;
 pub mod index;
 pub mod individual;
 pub mod network;
+pub mod outline;
 #[cfg(feature = "perfs")]
 pub mod perf;
 pub mod physics;

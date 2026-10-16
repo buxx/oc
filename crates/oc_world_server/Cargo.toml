@@ -45,6 +45,7 @@ bon.workspace = true
 anyhow.workspace = true
 ctrlc.workspace = true
 polyanya.workspace = true
+image.workspace = true
 
 [dev-dependencies]
 tests = { path = "../tests" }

@@ -14,8 +14,8 @@ use oc_world::{World, load::WorldLoader, reader::MapReader, snapshot::Snapshot};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    config::ServerConfig, index::Indexes, routing::Listeners, runner::update::Update, rw_lock,
-    rw_lock_imports,
+    config::ServerConfig, index::Indexes, outline, routing::Listeners, runner::update::Update,
+    rw_lock, rw_lock_imports,
 };
 
 rw_lock_imports!();
@@ -102,7 +102,9 @@ pub fn init<E: Client>(config: ServerConfig, map: &MapReader) -> Result<State<E>
     let mod_ = config.mod_.clone();
 
     let ids = Ids::default();
+    let mod_path = mod_.clone();
     let mod_ = Mod::load(&mod_, Some(&cache))?;
+    outline::cache_soldiers_outline(&mod_, &mod_path, &cache)?;
     let snapshot = Snapshot::load(&config.snapshot)?;
     let w = snapshot
         .w

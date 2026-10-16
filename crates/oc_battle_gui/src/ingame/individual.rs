@@ -37,6 +37,7 @@ use crate::ingame::{self, BattlePhase, InGameState};
 use crate::menu::contextual::close::CloseContextMenu;
 use crate::network::output::ToServerEvent;
 use crate::sprites::IntoAnimation;
+use crate::sprites::outline::IndividualOutline;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
 use crate::states::{AppState, GameConfig, PointerIn};
 use crate::utils::drag::{self, Dragged, Dragging, Phantom};
@@ -281,6 +282,11 @@ pub fn on_insert_individual(
         )
         .id();
 
+    commands.entity(entity).with_child((
+        IndividualOutline,
+        animations.outline_sprite(),
+        Transform::from_xyz(0., 0., -0.01),
+    ));
     state.insert(individual.0, entity);
     commands.trigger(RefreshIndividualOrdersEvent(
         individual.0,

@@ -10,6 +10,7 @@ pub enum File {
     World,
     Minimap,
     HudMinimap,
+    IndividualOutline,
     Region(u64),
     Interior(u32),
 }
@@ -54,6 +55,7 @@ impl Display for File {
             File::World => f.write_str("World"),
             File::Minimap => f.write_str("Minimap"),
             File::HudMinimap => f.write_str("HudMinimap"),
+            File::IndividualOutline => f.write_str("SoldierOutline"),
             File::Region(i) => f.write_str(&format!("Region({i})")),
             File::Interior(i) => f.write_str(&format!("Interior({i})")),
         }
@@ -109,6 +111,11 @@ impl FilesAsServer {
     pub fn hud_minimap(&self) -> PathBuf {
         self.cache
             .join(format!("worlds/{}/hud_minimap.png", self.world))
+    }
+
+    pub fn soldier_outline(&self) -> PathBuf {
+        self.cache
+            .join(format!("mods/{}_soldiers_outline.png", self.mod_))
     }
 
     pub fn region(&self, region: u64, region_width: u64, region_height: u64) -> PathBuf {
@@ -234,6 +241,12 @@ impl FilesAsGui {
             .join(format!("worlds/{}/hud_minimap.png", self.world))
     }
 
+    pub fn soldier_outline(&self) -> PathBuf {
+        self.sources
+            .cache()
+            .join(format!("mods/{}_soldiers_outline.png", self.mod_))
+    }
+
     pub fn region(&self, region: u64, region_width: u64, region_height: u64) -> PathBuf {
         self.sources.cache().join(format!(
             "worlds/{}/region_{region_width}_{region_height}_{region}.png",
@@ -274,6 +287,10 @@ impl FilesAsGui {
                     File::HudMinimap => (
                         Sync::DirectDownload(format!("{base_url}/hud_minimap")),
                         base_target.join(self.hud_minimap()),
+                    ),
+                    File::IndividualOutline => (
+                        Sync::DirectDownload(format!("{base_url}/soldiers_outline")),
+                        base_target.join(self.soldier_outline()),
                     ),
                     File::Region(i) => (
                         Sync::DirectDownload(format!("{base_url}/region/{i}")),

@@ -26,6 +26,7 @@ pub mod material;
 pub mod opacity;
 pub mod physics;
 pub mod side;
+pub mod sprites;
 pub mod static_;
 pub mod utils;
 pub mod y;

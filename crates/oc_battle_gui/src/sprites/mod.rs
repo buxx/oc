@@ -6,6 +6,7 @@ use oc_utils::let_some;
 use crate::{ingame::GameConfigReceived, sprites::soldier::SoldierAnimations};
 
 pub mod order;
+pub mod outline;
 pub mod soldier;
 
 #[derive(Debug, Default)]
@@ -13,7 +14,8 @@ pub struct Animations;
 
 impl Plugin for Animations {
     fn build(&self, app: &mut App) {
-        app.add_observer(on_game_config_received);
+        app.add_observer(on_game_config_received)
+            .add_systems(Update, outline::sync_individual_outlines);
     }
 }
 
@@ -28,7 +30,13 @@ fn on_game_config_received(
     let_some!(files = &files.0, return);
     let sprites = files.sprites();
 
-    let soldier = SoldierAnimations::init(&sprites, &assets, &mut animations, &mut atlas_layouts);
+    let soldier = SoldierAnimations::init(
+        &sprites,
+        &files.soldier_outline(),
+        &assets,
+        &mut animations,
+        &mut atlas_layouts,
+    );
 
     commands.insert_resource(soldier);
 }

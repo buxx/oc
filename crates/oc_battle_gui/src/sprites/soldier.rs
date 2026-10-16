@@ -3,21 +3,16 @@ use std::path::Path;
 use bevy::prelude::*;
 use bevy_spritesheet_animation::prelude::*;
 use derive_more::Constructor;
-use oc_root::side::Side;
+use oc_root::{side::Side, sprites};
 
 use crate::sprites::IntoAnimation;
-
-const COLUMNS: usize = 8;
-const ROWS: usize = 12;
-const IMAGE_WIDTH: u32 = 512;
-const IMAGE_HEIGHT: u32 = 768;
-const SIDE_B_START_ROW: usize = 6;
 
 // soldiers.png
 // TODO: use generative macro to write less code (animations creations and functions to get sprite + animation)
 #[derive(Debug, Resource)]
 pub struct SoldierAnimations {
     sprite: Sprite,
+    outline: Sprite,
     side_a_stand_up: Handle<Animation>,
     side_a_walking: Handle<Animation>,
     side_a_running: Handle<Animation>,
@@ -39,12 +34,17 @@ pub struct SoldierAnimations {
 impl SoldierAnimations {
     pub fn init(
         sprites: &Path,
+        outline: &Path,
         assets: &AssetServer,
         animations: &mut Assets<Animation>,
         atlas_layouts: &mut Assets<TextureAtlasLayout>,
     ) -> Self {
         let image = assets.load(sprites.join("soldiers.png"));
-        let spritesheet = Spritesheet::new(&image, COLUMNS, ROWS);
+        let spritesheet = Spritesheet::new(
+            &image,
+            sprites::individual::COLUMNS,
+            sprites::individual::ROWS,
+        );
 
         let side_a_stand_up = spritesheet
             .create_animation()
@@ -92,37 +92,37 @@ impl SoldierAnimations {
 
         let side_b_stand_up = spritesheet
             .create_animation()
-            .add_horizontal_strip(0, SIDE_B_START_ROW, 2)
+            .add_horizontal_strip(0, sprites::individual::SIDE_B_START_ROW, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
         let side_b_walking = spritesheet
             .create_animation()
-            .add_row(SIDE_B_START_ROW + 1)
+            .add_row(sprites::individual::SIDE_B_START_ROW + 1)
             .set_duration(AnimationDuration::PerFrame(500))
             .build();
         let side_b_running = spritesheet
             .create_animation()
-            .add_row(SIDE_B_START_ROW + 1)
+            .add_row(sprites::individual::SIDE_B_START_ROW + 1)
             .set_duration(AnimationDuration::PerFrame(250))
             .build();
         let side_b_crawling = spritesheet
             .create_animation()
-            .add_row(SIDE_B_START_ROW + 2)
+            .add_row(sprites::individual::SIDE_B_START_ROW + 2)
             .set_duration(AnimationDuration::PerFrame(500))
             .build();
         let side_b_prone = spritesheet
             .create_animation()
-            .add_horizontal_strip(0, SIDE_B_START_ROW + 3, 2)
+            .add_horizontal_strip(0, sprites::individual::SIDE_B_START_ROW + 3, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
         let side_b_dead_prone = spritesheet
             .create_animation()
-            .add_horizontal_strip(0, SIDE_B_START_ROW + 4, 2)
+            .add_horizontal_strip(0, sprites::individual::SIDE_B_START_ROW + 4, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
         let side_b_hurt_prone = spritesheet
             .create_animation()
-            .add_horizontal_strip(0, SIDE_B_START_ROW + 5, 2)
+            .add_horizontal_strip(0, sprites::individual::SIDE_B_START_ROW + 5, 2)
             .set_duration(AnimationDuration::PerFrame(1000))
             .build();
 
@@ -135,11 +135,21 @@ impl SoldierAnimations {
         let side_b_hurt_prone = animations.add(side_b_hurt_prone);
 
         let sprite = spritesheet
-            .with_size_hint(IMAGE_WIDTH, IMAGE_HEIGHT)
+            .with_size_hint(
+                sprites::individual::IMAGE_WIDTH,
+                sprites::individual::IMAGE_HEIGHT,
+            )
             .sprite(atlas_layouts);
+
+        let outline = Sprite {
+            image: assets.load(outline.to_path_buf()),
+            texture_atlas: sprite.texture_atlas.clone(),
+            ..default()
+        };
 
         Self {
             sprite,
+            outline,
             side_a_stand_up,
             side_a_walking,
             side_a_running,
@@ -159,6 +169,10 @@ impl SoldierAnimations {
 
     pub fn sprite(&self) -> Sprite {
         self.sprite.clone()
+    }
+
+    pub fn outline_sprite(&self) -> Sprite {
+        self.outline.clone()
     }
 
     pub fn stand_up(&self, side: Side) -> Handle<Animation> {

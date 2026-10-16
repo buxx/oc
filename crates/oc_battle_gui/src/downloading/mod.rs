@@ -37,22 +37,17 @@ fn download(
     let_some!(files = &files.0, return Ok(()));
 
     tracing::info!("Download");
-    let region_width = g.w.region_width();
-    let region_height = g.w.region_height();
+    let r_width = g.w.region_width();
+    let r_height = g.w.region_height();
 
-    ensure_file(&files, files::File::Mod, region_width, region_height).unwrap(); // TODO
-    ensure_file(&files, files::File::World, region_width, region_height).unwrap(); // TODO
-    ensure_file(&files, files::File::Minimap, region_width, region_height).unwrap(); // TODO
-    ensure_file(&files, files::File::HudMinimap, region_width, region_height).unwrap(); // TODO
+    ensure_file(&files, files::File::Mod, r_width, r_height).unwrap(); // TODO
+    ensure_file(&files, files::File::World, r_width, r_height).unwrap(); // TODO
+    ensure_file(&files, files::File::Minimap, r_width, r_height).unwrap(); // TODO
+    ensure_file(&files, files::File::HudMinimap, r_width, r_height).unwrap(); // TODO
+    ensure_file(&files, files::File::IndividualOutline, r_width, r_height).unwrap(); // TODO
 
     for region in 0..g.w.regions_count() {
-        ensure_file(
-            &files,
-            files::File::Region(region),
-            region_width,
-            region_height,
-        )
-        .unwrap(); // TODO
+        ensure_file(&files, files::File::Region(region), r_width, r_height).unwrap(); // TODO
     }
 
     let world_dir = std::path::Path::new("assets").join(files.world_());
@@ -61,8 +56,8 @@ fn download(
         ensure_file(
             &files,
             files::File::Interior(interior.id),
-            region_width,
-            region_height,
+            r_width,
+            r_height,
         )
         .unwrap(); // TODO
         // TODO: when quit ingame state, must despawn
