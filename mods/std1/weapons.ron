@@ -39,7 +39,7 @@
         amunitions: ["7,7x56"],
         magazines: ["BrenMark2_30x"],
         shots: [
-            Single(sounds:["BrenMark2x1.ogg"]),
+            // Single(sounds:["BrenMark2x1.ogg"]),
             Burst3(interval:Seconds(0.2),sounds:["BrenMark2x3.ogg"])
         ],
         interval: Seconds(1.0),
@@ -53,8 +53,8 @@
         amunitions: ["7,92x57"],
         magazines: ["Mg34_50x"],
         shots: [
-            Single(sounds:["Mg34x1.ogg"]),
-            Burst3(interval:Seconds(0.2),sounds:["Mg34x3.ogg"])
+            // Single(sounds:["Mg34x1.ogg"]),
+            Burst6(interval:Seconds(0.2),sounds:["Mg34x6.ogg"])
         ],
         interval: Seconds(1.0),
         velocity: MetersSeconds(600.0),

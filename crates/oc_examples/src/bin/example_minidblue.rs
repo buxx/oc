@@ -95,7 +95,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             deploy_engaged_battle_middle(mod_, w, deployments, tiles, places, &mut snapshot)?;
         }
         Case::DeploySouthBeach => {
-            deploy_south_beach(mod_, w, deployments, tiles, places, &mut snapshot)?;
+            deploy_south_beach(
+                mod_,
+                w,
+                args.side,
+                deployments,
+                tiles,
+                places,
+                &mut snapshot,
+            )?;
         }
     }
 
@@ -167,15 +175,22 @@ fn deploy_engaged_battle_middle(
 fn deploy_south_beach(
     mod_: Mod,
     w: WorldConfig,
+    side: Side,
     deployments: deployment::Deployments,
     tiles: Vec<oc_world::tile::Tile>,
     places: HashMap<PlaceName, WorldVec2>,
     snapshot: &mut Snapshot,
 ) -> Result<(), Box<dyn std::error::Error + 'static>> {
     let places = places.iter().map(|(_, p)| *p);
-    let placer = Placer::new(places.collect())
-        .with_b_order(OrderPolicy::Defend)
-        .with_b_order(OrderPolicy::Hide);
+    let placer = Placer::new(places.collect());
+    let placer = match side {
+        Side::A => placer
+            .with_a_order(OrderPolicy::Hide)
+            .with_b_order(OrderPolicy::Defend),
+        Side::B => placer
+            .with_a_order(OrderPolicy::Defend)
+            .with_b_order(OrderPolicy::Hide),
+    };
 
     deployments
         .mobilize(&w, &mod_, snapshot, &placer, &tiles)

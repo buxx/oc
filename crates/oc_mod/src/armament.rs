@@ -69,6 +69,10 @@ pub enum ShotMode {
         interval: Seconds,
         sounds: Vec<SoundIndex>,
     },
+    Burst6 {
+        interval: Seconds,
+        sounds: Vec<SoundIndex>,
+    },
 }
 
 #[derive(
@@ -87,6 +91,10 @@ pub enum ShotModeRaw {
         sounds: Vec<String>,
     },
     Burst3 {
+        interval: Seconds,
+        sounds: Vec<String>,
+    },
+    Burst6 {
         interval: Seconds,
         sounds: Vec<String>,
     },
@@ -110,6 +118,14 @@ impl ShotModeRaw {
                     .map(|s| s.index())
                     .collect(),
             },
+            ShotModeRaw::Burst6 { interval, sounds } => ShotMode::Burst6 {
+                interval,
+                sounds: mod_
+                    .find_sounds(&sounds)?
+                    .iter()
+                    .map(|s| s.index())
+                    .collect(),
+            },
         })
     }
 }
@@ -122,6 +138,10 @@ impl ShotMode {
                 interval: _,
                 sounds: _,
             } => "Burst3",
+            ShotMode::Burst6 {
+                interval: _,
+                sounds: _,
+            } => "Burst6",
         }
     }
 
@@ -132,6 +152,10 @@ impl ShotMode {
                 interval: _,
                 sounds: _,
             } => 3,
+            ShotMode::Burst6 {
+                interval: _,
+                sounds: _,
+            } => 6,
         }
     }
 
@@ -142,6 +166,10 @@ impl ShotMode {
                 interval,
                 sounds: _,
             } => *interval,
+            ShotMode::Burst6 {
+                interval,
+                sounds: _,
+            } => *interval,
         }
     }
 
@@ -149,6 +177,10 @@ impl ShotMode {
         match self {
             ShotMode::Single { sounds } => sounds,
             ShotMode::Burst3 {
+                interval: _,
+                sounds,
+            } => sounds,
+            ShotMode::Burst6 {
                 interval: _,
                 sounds,
             } => sounds,
