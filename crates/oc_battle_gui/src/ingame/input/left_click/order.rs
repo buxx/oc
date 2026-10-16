@@ -297,9 +297,8 @@ pub fn on_click(
     network: Res<crate::network::state::State>,
 ) {
     let_some!(g = &g.0, return);
-    let_some!(point = click.hit.position, return);
     let_some!(identity = &network.identity, return);
-    let point = Vec2::new(point.x, point.y);
+    let point = click.pointer_location.position;
     let point = cursor_to!(point, camera, &g.w, WorldVec2);
     let individual = individuals.get(click.event_target()).ok();
     let individual = individual.map(|i| i.0);

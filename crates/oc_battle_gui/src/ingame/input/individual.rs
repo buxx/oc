@@ -80,8 +80,7 @@ pub fn on_click(
         return;
     }
 
-    let_some!(point = click.hit.position, return);
-    let point = Vec2::new(point.x, point.y);
+    let point = click.pointer_location.position;
     let point = cursor_to!(point, camera, &g.w, WorldVec2);
 
     if !ingame.selected_squads().is_empty() && click.button == PointerButton::Secondary {

@@ -140,10 +140,9 @@ pub fn on_drag_stop<T>(
     T: Dragging + std::fmt::Debug + Send + Sync + 'static,
 {
     let_some!(g = &g.0, return);
-    let_some!(point = event.hit.position, return);
-    tracing::trace!(name="utils-drag-on-drag-stop", point=?point);
+    tracing::trace!(name = "utils-drag-on-drag-stop");
 
-    let point = Vec2::new(point.x, point.y);
+    let point = event.pointer_location.position;
     let point = cursor_to!(point, camera, &g.w, WorldVec2);
     let_some!(cursor_ = cursor.0, return);
     let_ok!(mut dragged = dragged.get_mut(event.dropped), return);
