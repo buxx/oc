@@ -122,6 +122,14 @@ impl Physic for Tile {
         }
     }
 
+    fn intercept(&self, kind: MaterialKind, mod_: &Mod) -> f32 {
+        let nature = mod_.nature(self.nature);
+        match kind {
+            MaterialKind::Projectile => nature.intercept.projectile.probability(),
+            MaterialKind::Individual => 0.0,
+        }
+    }
+
     fn ignore_side(&self) -> IgnoreSide {
         IgnoreSide::None
     }

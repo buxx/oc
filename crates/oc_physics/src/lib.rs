@@ -4,6 +4,7 @@ use oc_mod::{Mod, nature::Traversability};
 use oc_root::{
     WcfgFrom, WorldConfig,
     geo::{WorldVec2, WorldVec3},
+    material::MaterialKind,
     physics::MetersSeconds,
     side::Side,
     y::V,
@@ -36,6 +37,9 @@ pub trait Physic: Material {
     fn ignore_side(&self) -> IgnoreSide;
     fn side(&self) -> Option<Side> {
         None
+    }
+    fn intercept(&self, _kind: MaterialKind, _mod_: &Mod) -> f32 {
+        0.0
     }
     fn collision_ignorable(&self) -> bool {
         false
@@ -224,7 +228,12 @@ where
                     );
 
                     for (o, other) in collision_at(xy) {
-                        tracing::trace!(name="physics-step-translation-collision-other", origin=origin, i=?i, o=?o);
+                        let intercept = match kind {
+                            Some(kind) => other.intercept(kind, mod_),
+                            None => 0.0,
+                        };
+
+                        tracing::trace!(name="physics-step-translation-collision-other", origin=origin, i=?i, o=?o, intercept=intercept);
 
                         // Do not test collision or else with itself (it is possible than `collision_at` return it)
                         // NOTE: Maybe not the most optimized thing ?
@@ -253,6 +262,31 @@ where
                         {
                             collision_ignored_pixels += 1;
                             continue;
+                        }
+
+                        if intercept != 0.0 {
+                            if fastrand::f32() < intercept {
+                                tracing::trace!(name="physics-step-translation-intercept", origin=origin, i=?i, p=?position, xy=?xy, o=?o);
+
+                                let left = i.clone().into();
+                                let collision = Event::Collision(left, o);
+                                events.push(collision);
+
+                                proximity_events(
+                                    origin,
+                                    &i,
+                                    object,
+                                    &mut events,
+                                    emit_proximity,
+                                    &proximity_others,
+                                    ProximityKind::Impact,
+                                    pixel,
+                                );
+
+                                // Do not keep this force by stopping this iteration
+                                position = pixel;
+                                continue 'forces;
+                            }
                         }
 
                         for (volume1, traversability1, direction1) in &volumes {
@@ -931,5 +965,97 @@ mod tests {
         assert_eq!(new_position, expected_new_position);
         assert_eq!(new_forces, expected_new_forces);
         assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(2))]);
+    }
+
+    struct MyInterceptor(TileXy, f32);
+
+    impl Physic for MyInterceptor {
+        fn position(&self, w: &WorldConfig) -> WorldVec3 {
+            self.0.into_(w)
+        }
+
+        fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
+            static EMPTY: Vec<Force> = vec![];
+            &EMPTY
+        }
+
+        fn volumes(
+            &self,
+            ref_: WorldVec3,
+            _: bool,
+            w: &WorldConfig,
+            _: &Mod,
+        ) -> Vec<(Volume, Traversability, Direction)> {
+            vec![(
+                Volume::Cube {
+                    x: ref_.x,
+                    y: ref_.y,
+                    z: ref_.z,
+                    width: w.geo_pixels_per_tile() as f32,
+                    height: w.geo_pixels_per_tile() as f32,
+                    depth: f32::MAX,
+                },
+                Traversability::all(),
+                Direction::NORTH,
+            )]
+        }
+
+        fn ignore_side(&self) -> IgnoreSide {
+            IgnoreSide::None
+        }
+
+        fn intercept(&self, _kind: MaterialKind, _mod_: &Mod) -> f32 {
+            self.1
+        }
+    }
+
+    impl Material for MyInterceptor {
+        fn kind(&self) -> Option<MaterialKind> {
+            None
+        }
+    }
+
+    fn run_intercept(intercept: f32) -> (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) {
+        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
+        let w = WorldConfig::new(1000, 1000)
+            .with_physics_tick(Frequency::new(2.0))
+            .with_geo_pixels_per_meters(10.);
+        let force = Force::Translation([1.0, 0.0, 0.0].into(), MetersSeconds(100.0));
+        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
+        let interceptor = MyInterceptor(TileXy(Xy(0, 0)), intercept);
+        let interceptor: &dyn Physic = &interceptor;
+
+        step(
+            &w,
+            w.physics_tick().period(),
+            &mod_,
+            (MyObjectId(0), &object),
+            |_| vec![(MyObjectId(1), interceptor)],
+            |_| vec![],
+            0,
+            "test",
+        )
+    }
+
+    #[test]
+    fn test_intercept_certain_stops_object() {
+        // Given / When
+        let (new_position, new_forces, events) = run_intercept(1.0);
+
+        // Then
+        assert!(new_position.x < 5.0);
+        assert_eq!(new_forces, Vec::<Force>::new());
+        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
+    }
+
+    #[test]
+    fn test_intercept_zero_lets_object_pass() {
+        // Given / When: no intercept and traversable volume
+        let (new_position, _, events) = run_intercept(0.0);
+
+        // Then: object reaches its destination without any collision
+        let expected_new_position: WorldVec3 = [500.0, 0.0, 0.0].into();
+        assert_eq!(new_position, expected_new_position);
+        assert_eq!(events, vec![]);
     }
 }

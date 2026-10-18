@@ -19,6 +19,7 @@ derive_more = { workspace = true, features = ["constructor"] }
 rkyv.workspace = true
 line_drawing.workspace = true
 tracing.workspace = true
+fastrand.workspace = true
 bevy = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true

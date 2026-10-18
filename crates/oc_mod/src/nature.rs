@@ -87,6 +87,127 @@ impl Traversable {
 #[derive(
     Debug,
     Clone,
+    Copy,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum MovementForce {
+    None,
+    Walk,
+    Run,
+    Sneak,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct IndividualMovement {
+    #[serde(default = "default_movement_force")]
+    pub force: MovementForce,
+    #[serde(default = "default_movement_factor")]
+    pub factor: f32,
+}
+
+impl Default for IndividualMovement {
+    fn default() -> Self {
+        Self {
+            force: default_movement_force(),
+            factor: default_movement_factor(),
+        }
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Movement {
+    #[serde(default)]
+    pub individual: IndividualMovement,
+}
+
+impl Default for Movement {
+    fn default() -> Self {
+        Self {
+            individual: IndividualMovement::default(),
+        }
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum Interception {
+    Never,
+    Probability(f32),
+}
+
+impl Interception {
+    pub fn probability(&self) -> f32 {
+        match self {
+            Interception::Never => 0.0,
+            Interception::Probability(p) => p.clamp(0.0, 1.0),
+        }
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Intercept {
+    #[serde(default = "default_interception")]
+    pub projectile: Interception,
+}
+
+impl Default for Intercept {
+    fn default() -> Self {
+        Self {
+            projectile: default_interception(),
+        }
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
     Archive,
     rkyv::Deserialize,
     rkyv::Serialize,
@@ -104,6 +225,10 @@ pub struct NatureRaw {
     pub crawling_opacity_bonus: f32,
     #[serde(default = "default_hiding_opacity_bonus")]
     pub hiding_opacity_bonus: f32,
+    #[serde(default)]
+    pub movement: Movement,
+    #[serde(default)]
+    pub intercept: Intercept,
 }
 
 impl From<NatureRaw> for Nature {
@@ -115,6 +240,8 @@ impl From<NatureRaw> for Nature {
             traversability: Traversability::from_deny_list(value.deny),
             crawling_opacity_bonus: value.crawling_opacity_bonus,
             hiding_opacity_bonus: value.hiding_opacity_bonus,
+            movement: value.movement,
+            intercept: value.intercept,
         }
     }
 }
@@ -137,6 +264,8 @@ pub struct Nature {
     pub traversability: Traversability,
     pub crawling_opacity_bonus: f32,
     pub hiding_opacity_bonus: f32,
+    pub movement: Movement,
+    pub intercept: Intercept,
 }
 
 #[derive(
@@ -246,4 +375,16 @@ fn default_crawling_opacity_bonus() -> f32 {
 
 fn default_hiding_opacity_bonus() -> f32 {
     0.0
+}
+
+fn default_movement_force() -> MovementForce {
+    MovementForce::None
+}
+
+fn default_movement_factor() -> f32 {
+    1.0
+}
+
+fn default_interception() -> Interception {
+    Interception::Never
 }

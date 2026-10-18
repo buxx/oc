@@ -8,6 +8,7 @@ use oc_individual::{
     behavior::{Behavior, Intent, MovePath},
     order::Order,
 };
+use oc_mod::nature::{IndividualMovement, MovementForce};
 use oc_physics::Force;
 use oc_projectile::spawn::SpawnProjectiles;
 #[cfg(feature = "debug")]
@@ -495,7 +496,7 @@ impl<'a> Processor<'a> {
             };
         }
 
-        match intent {
+        let behavior = match intent {
             Intent::Idle(direction) => Behavior::Idle(*direction),
             Intent::MoveTo(_, path) => match self.direction_to_next(individual, path, "move") {
                 Some(direction) => Behavior::Walk(direction),
@@ -515,6 +516,35 @@ impl<'a> Processor<'a> {
             Intent::Hide(direction) => Behavior::Hide(*direction),
             Intent::Engage(individual) => Behavior::Engage(*individual),
             Intent::Suppress(position) => Behavior::Suppress(*position),
+        };
+
+        self.apply_tile_movement_force(individual, behavior)
+    }
+
+    /// Nature of the tile under the individual can force the body gesture when moving
+    fn apply_tile_movement_force(&self, individual: &Individual, behavior: Behavior) -> Behavior {
+        let direction = match &behavior {
+            Behavior::Walk(direction) | Behavior::Run(direction) | Behavior::Crawl(direction) => {
+                *direction
+            }
+            // Other behavior than movement are keep as it
+            _ => return behavior,
+        };
+
+        match self.tile_movement(individual).force {
+            MovementForce::None => behavior,
+            MovementForce::Walk => Behavior::Walk(direction),
+            MovementForce::Run => Behavior::Run(direction),
+            MovementForce::Sneak => Behavior::Crawl(direction),
+        }
+    }
+
+    fn tile_movement(&self, individual: &Individual) -> IndividualMovement {
+        let w = &self.world.w;
+        let tile_i = WorldTileIndex::from_(WorldVec2::from(individual.position), w);
+        match self.world.tile(tile_i) {
+            Some(tile) => self.world.mod_.nature(tile.nature).movement.individual,
+            None => IndividualMovement::default(),
         }
     }
 
@@ -1044,9 +1074,9 @@ impl<'a> Processor<'a> {
         }
     }
 
-    fn move_disability_factor(&self, _individual: &Individual, _behavior: &Behavior) -> f32 {
+    fn move_disability_factor(&self, individual: &Individual, _behavior: &Behavior) -> f32 {
         // TODO: here use fatigue, injures, etc
-        1.0
+        self.tile_movement(individual).factor
     }
 
     // TODO: can change to fire target if any

@@ -131,4 +131,19 @@
         z: Meters(0.0),
         deny: [Individual, Projectile],
     ),
+    (
+        name: "Tschechenigel",
+        opacity: 0.2,
+        z: Meters(1.8),
+        deny: [],
+        movement: (individual: (force: Sneak, factor: 0.5)),
+        intercept: (projectile: Probability(0.35,)),
+    ),
+    (
+        name: "ThickSheetMetal",
+        opacity: 1.0,
+        z: Meters(1.8),
+        deny: [],
+        intercept: (projectile: Probability(0.90,)),
+    ),
 ]
