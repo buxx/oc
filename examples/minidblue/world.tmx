@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="200" height="200" tilewidth="5" tileheight="5" infinite="0" nextlayerid="8" nextobjectid="106">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="200" height="200" tilewidth="5" tileheight="5" infinite="0" nextlayerid="8" nextobjectid="115">
  <tileset firstgid="1" source="terrain.tsx"/>
  <tileset firstgid="2001" source="trees.tsx"/>
  <tileset firstgid="2021" source="height.tsx"/>
@@ -439,68 +439,68 @@
    <polygon points="0,0 1000,0 1000,160 665,160 580,190 450,250 0,250"/>
   </object>
  </objectgroup>
- <objectgroup id="7" name="places" visible="0">
-  <object id="20" x="105" y="950">
+ <objectgroup id="7" name="places">
+  <object id="20" x="50" y="905">
    <point/>
   </object>
-  <object id="21" x="195" y="890">
+  <object id="21" x="150" y="980">
    <point/>
   </object>
-  <object id="22" x="310" y="860">
+  <object id="22" x="285" y="925">
    <point/>
   </object>
-  <object id="23" x="435" y="855">
+  <object id="23" x="395" y="935">
    <point/>
   </object>
-  <object id="24" x="545" y="870">
+  <object id="24" x="535" y="885">
    <point/>
   </object>
   <object id="25" x="650" y="860">
    <point/>
   </object>
-  <object id="26" x="775" y="870">
+  <object id="26" x="755" y="920">
    <point/>
   </object>
-  <object id="27" x="905" y="900">
+  <object id="27" x="930" y="945">
    <point/>
   </object>
-  <object id="28" x="90" y="800">
+  <object id="28" x="125" y="825">
    <point/>
   </object>
-  <object id="29" x="205" y="770">
+  <object id="29" x="235" y="845">
    <point/>
   </object>
-  <object id="30" x="345" y="760">
+  <object id="30" x="420" y="765">
    <point/>
   </object>
   <object id="31" x="480" y="760">
    <point/>
   </object>
-  <object id="32" x="590" y="775">
+  <object id="32" x="525" y="830">
    <point/>
   </object>
-  <object id="33" x="700" y="750">
+  <object id="33" x="675" y="745">
    <point/>
   </object>
-  <object id="34" x="845" y="770">
+  <object id="34" x="855" y="815">
    <point/>
   </object>
-  <object id="35" x="955" y="810">
+  <object id="35" x="935" y="825">
    <point/>
   </object>
-  <object id="36" x="65" y="690">
+  <object id="36" x="40" y="705">
    <point/>
   </object>
-  <object id="37" x="240" y="675">
+  <object id="37" x="230" y="675">
    <point/>
   </object>
-  <object id="38" x="405" y="670">
+  <object id="38" x="350" y="675">
    <point/>
   </object>
-  <object id="39" x="555" y="670">
+  <object id="39" x="595" y="645">
    <point/>
   </object>
-  <object id="40" x="770" y="665">
+  <object id="40" x="815" y="650">
    <point/>
   </object>
   <object id="41" x="945" y="680">
@@ -648,6 +648,33 @@
    <point/>
   </object>
   <object id="89" x="970" y="515">
+   <point/>
+  </object>
+  <object id="106" x="780" y="805">
+   <point/>
+  </object>
+  <object id="107" x="880" y="665">
+   <point/>
+  </object>
+  <object id="108" x="85" y="600">
+   <point/>
+  </object>
+  <object id="109" x="140" y="600">
+   <point/>
+  </object>
+  <object id="110" x="345" y="585">
+   <point/>
+  </object>
+  <object id="111" x="420" y="585">
+   <point/>
+  </object>
+  <object id="112" x="695" y="555">
+   <point/>
+  </object>
+  <object id="113" x="760" y="560">
+   <point/>
+  </object>
+  <object id="114" x="145" y="925">
    <point/>
   </object>
  </objectgroup>
