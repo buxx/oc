@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use crate::utils::selected::Selected;
 use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
@@ -7,6 +8,7 @@ use bevy::{
 use oc_individual::squad::{Squad, SquadIndex};
 use oc_mod::illustration::IllustrationKind;
 use oc_root::files::FilesAsGui;
+use oc_utils::bevy::EntityMapping;
 use oc_utils::{every, let_ok, let_some, true_};
 
 use crate::{
@@ -172,12 +174,26 @@ fn on_click(
     cells: Query<&SquadCell>,
     world: Res<World>,
     mut state: ResMut<ingame::state::State>,
+    individuals: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut selected: Query<&mut Selected>,
 ) {
     let_ok!(cell = cells.get(e.entity), return);
     let i = cell.0;
     let_some!(squad = world.squad(i), return);
     let updated = state.update_selected(vec![i], squad.members.clone(), vec![]);
     commands.trigger(updated);
+
+    // Unselect other
+    for mut s in &mut selected {
+        s.0 = false;
+    }
+
+    // Select member of squad
+    for member in &squad.members {
+        let_some!(entity = individuals.get(member), continue);
+        let_ok!(mut s = selected.get_mut(*entity), continue);
+        s.0 = true;
+    }
     commands.trigger(GoToPoint(squad.position));
 }
 
