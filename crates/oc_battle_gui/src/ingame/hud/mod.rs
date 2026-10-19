@@ -34,7 +34,8 @@ impl Plugin for HudPlugin {
                     .run_if(in_state(AppState::InGame)),
             )
             .add_systems(OnEnter(BattlePhase::Fight), actions::update_fight_button)
-            .add_observer(squad::spawn_rows);
+            .add_observer(squad::spawn_rows)
+            .add_observer(squads::outline_selected_cells);
     }
 }
 

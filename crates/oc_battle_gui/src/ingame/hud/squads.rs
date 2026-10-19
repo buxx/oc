@@ -9,16 +9,21 @@ use oc_mod::illustration::IllustrationKind;
 use oc_root::files::FilesAsGui;
 use oc_utils::{every, let_ok, let_some, true_};
 
-use crate::{ingame::hud::GAP, world::World};
 use crate::{
     ingame::{self, camera::GoToPoint, hud::SCROLL_LINE_PX},
     network,
     sprites::SpriteRect,
     states::GameConfig,
 };
+use crate::{
+    ingame::{hud::GAP, state::SelectionUpdated},
+    world::World,
+};
 
 const CELL_BG: Color = Color::srgb(0.2, 0.25, 0.2);
 const CELL_BG_HOVER: Color = Color::srgb(0.35, 0.45, 0.35);
+
+const CELL_OUTLINE_SELECTED: Color = Color::srgb(0.2, 0.4, 1.0);
 
 const SQUAD_CELL_WIDTH: f32 = 122.;
 const SQUAD_CELL_HEIGHT: f32 = 52.;
@@ -130,6 +135,22 @@ pub fn spawn_squad_cells(
         commands
             .spawn_scene(squad_cell(g, files, i, squad))
             .insert((SquadCell(i), ChildOf(grid)));
+    }
+}
+
+pub fn outline_selected_cells(
+    selection: On<SelectionUpdated>,
+    mut commands: Commands,
+    cells: Query<(Entity, &SquadCell)>,
+) {
+    for (entity, cell) in &cells {
+        if selection.selected_squads.contains(&cell.0) {
+            commands
+                .entity(entity)
+                .insert(Outline::new(px(1), Val::ZERO, CELL_OUTLINE_SELECTED));
+        } else {
+            commands.entity(entity).remove::<Outline>();
+        }
     }
 }
 
