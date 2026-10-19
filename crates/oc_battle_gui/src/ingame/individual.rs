@@ -282,11 +282,14 @@ pub fn on_insert_individual(
         )
         .id();
 
-    commands.entity(entity).with_child((
-        IndividualOutline,
-        animations.outline_sprite(),
-        Transform::from_xyz(0., 0., -0.01),
-    ));
+    if individual.1.side == identity.side {
+        commands.entity(entity).with_child((
+            IndividualOutline,
+            animations.outline_sprite(),
+            Transform::from_xyz(0., 0., -0.01),
+        ));
+    }
+
     state.insert(individual.0, entity);
     commands.trigger(RefreshIndividualOrdersEvent(
         individual.0,
