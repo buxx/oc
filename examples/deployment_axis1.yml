@@ -340,7 +340,7 @@ squads:
     - name: Mauser5x
     - name: Mauser5x
 - uuid: 53f27839-4f3f-486e-bb47-420f382be19c
-  label: Bren
+  label: Mg34
   illustration: Mg34Squad
   individuals:
   - uuid: a2e499cc-b89c-4aa8-ba5e-d945afbfbaf1
@@ -394,7 +394,7 @@ squads:
     - name: Mg34_50x
     - name: Mg34_50x
 - uuid: 03f99100-deff-4bd6-9b24-d3a4e1b3bbf6
-  label: Bren
+  label: Mg34
   illustration: Mg34Squad
   individuals:
   - uuid: 3635f2a8-a62f-4d6b-91a6-6ab59f157a60
@@ -448,4 +448,3 @@ squads:
     - name: Mg34_50x
     - name: Mg34_50x
 spawns: []
-
