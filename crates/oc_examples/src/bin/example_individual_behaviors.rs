@@ -110,6 +110,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             {
                 use oc_world_server::tracker::Tracker;
 
+                let count = args.count;
                 Box::new(move |tracker: Tracker| match args.case {
                     // FIXME: test if squad member reach expected position
                     TestCase::Idle => {}
@@ -121,12 +122,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     | TestCase::MoveFastStraightAheadObstacle => {
                         let tracker = tracker.take();
 
-                        let accomplished = (
-                            oc_individual::IndividualIndex(0),
-                            oc_individual::Update::Accomplished,
-                        );
-                        let accomplished = tracker.individuals.contains(&accomplished);
-                        assert!(accomplished);
+                        for i in 0..count as u64 {
+                            let accomplished = (
+                                oc_individual::IndividualIndex(i),
+                                oc_individual::Update::Accomplished,
+                            );
+                            assert!(
+                                tracker.individuals.contains(&accomplished),
+                                "Individual {i} did not accomplish its orders"
+                            );
+                        }
 
                         println!("✅ (SERVER) All tests passed");
                     }

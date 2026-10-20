@@ -42,7 +42,7 @@ impl<'a> Processor<'a> {
         };
         let updates = vec![
             runner::update::Update::UpdateSquad(self.i, Update::SetPosition(position)),
-            runner::update::Update::UpdateSquad(self.i, Update::SetActives(dead as u8)),
+            runner::update::Update::UpdateSquad(self.i, Update::SetActives((total - dead) as u8)),
             runner::update::Update::UpdateSquad(self.i, Update::SetStatus(status)),
         ];
 
