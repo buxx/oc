@@ -264,7 +264,15 @@ where
                             continue;
                         }
 
-                        if intercept != 0.0 {
+                        let volumes2 = other.volumes(other_position, !ignore_underground, w, mod_);
+
+                        // Intercept is computed only if pixel z is within one of other volumes,
+                        // whatever their traversability
+                        if intercept != 0.0
+                            && volumes2
+                                .iter()
+                                .any(|(volume, _, _)| volume.contains_z(pixel_z as f32))
+                        {
                             if fastrand::f32() < intercept {
                                 tracing::trace!(name="physics-step-translation-intercept", origin=origin, i=?i, p=?position, xy=?xy, o=?o);
 
@@ -290,9 +298,9 @@ where
                         }
 
                         for (volume1, traversability1, direction1) in &volumes {
-                            let volumes2 =
-                                other.volumes(other_position, !ignore_underground, w, mod_);
-                            'other_volumes: for (volume2, traversability2, direction2) in volumes2 {
+                            'other_volumes: for (volume2, traversability2, direction2) in
+                                volumes2.iter()
+                            {
                                 // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
                                 tracing::trace!(name="physics-step-translation-collision-prohibe-test", origin=origin, i=?i, traversability1=?traversability1, traversability2=?traversability2);
                                 if kind.map(|kind| traversability2.allow(kind)).unwrap_or(true) {
@@ -967,7 +975,7 @@ mod tests {
         assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(2))]);
     }
 
-    struct MyInterceptor(TileXy, f32);
+    struct MyInterceptor(TileXy, f32, f32);
 
     impl Physic for MyInterceptor {
         fn position(&self, w: &WorldConfig) -> WorldVec3 {
@@ -993,7 +1001,7 @@ mod tests {
                     z: ref_.z,
                     width: w.geo_pixels_per_tile() as f32,
                     height: w.geo_pixels_per_tile() as f32,
-                    depth: f32::MAX,
+                    depth: self.2,
                 },
                 Traversability::all(),
                 Direction::NORTH,
@@ -1016,13 +1024,21 @@ mod tests {
     }
 
     fn run_intercept(intercept: f32) -> (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) {
+        run_intercept_at(intercept, 0.0, f32::MAX)
+    }
+
+    fn run_intercept_at(
+        intercept: f32,
+        object_z: f32,
+        interceptor_depth: f32,
+    ) -> (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) {
         let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
         let w = WorldConfig::new(1000, 1000)
             .with_physics_tick(Frequency::new(2.0))
             .with_geo_pixels_per_meters(10.);
         let force = Force::Translation([1.0, 0.0, 0.0].into(), MetersSeconds(100.0));
-        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
-        let interceptor = MyInterceptor(TileXy(Xy(0, 0)), intercept);
+        let object = MyObject([0.0, 0.0, object_z].into(), vec![force]);
+        let interceptor = MyInterceptor(TileXy(Xy(0, 0)), intercept, interceptor_depth);
         let interceptor: &dyn Physic = &interceptor;
 
         step(
@@ -1057,5 +1073,25 @@ mod tests {
         let expected_new_position: WorldVec3 = [500.0, 0.0, 0.0].into();
         assert_eq!(new_position, expected_new_position);
         assert_eq!(events, vec![]);
+    }
+
+    #[test]
+    fn test_intercept_ignored_when_over_volume_z() {
+        // Given / When
+        let (new_position, _, events) = run_intercept_at(1.0, 20.0, 10.0);
+
+        // Then: object passes without any collision
+        let expected_new_position: WorldVec3 = [500.0, 0.0, 20.0].into();
+        assert_eq!(new_position, expected_new_position);
+        assert_eq!(events, vec![]);
+    }
+
+    #[test]
+    fn test_intercept_applied_when_in_volume_z() {
+        // Given / When
+        let (_, _, events) = run_intercept_at(1.0, 5.0, 10.0);
+
+        // Then
+        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
     }
 }

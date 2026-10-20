@@ -58,6 +58,14 @@ impl Volume {
         self
     }
 
+    /// Whether `z` lies within the volume z extent (rotation ignored).
+    pub fn contains_z(&self, z_: f32) -> bool {
+        match self {
+            Volume::Point { z, .. } => *z == z_,
+            Volume::Cube { z, depth, .. } => z_ >= *z && z_ <= *z + *depth,
+        }
+    }
+
     /// Collision test with per-volume rotation.
     ///
     /// `self_rotation` / `other_rotation` rotate each volume about its own
