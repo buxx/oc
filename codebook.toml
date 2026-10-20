@@ -9,4 +9,5 @@ words = [
     "navmesh",
     "polyanya",
     "rosegment",
+    "traversability",
 ]

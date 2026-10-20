@@ -14,6 +14,7 @@ use oc_utils::{
     number::almost_equal,
 };
 use rkyv::Archive;
+use std::fmt::Debug;
 
 pub mod collision;
 pub mod corps;
@@ -22,6 +23,8 @@ pub mod reactive;
 pub mod translation;
 pub mod update;
 pub mod volume;
+
+type PhysicVolumes = Vec<(Volume, Traversability, Direction)>;
 
 pub trait Physic: Material {
     // TODO: maby position should be `Geo` instead `Physics`...
@@ -33,7 +36,7 @@ pub trait Physic: Material {
         include_underground: bool,
         w: &WorldConfig,
         mod_: &Mod,
-    ) -> Vec<(Volume, Traversability, Direction)>;
+    ) -> PhysicVolumes;
     fn ignore_side(&self) -> IgnoreSide;
     fn side(&self) -> Option<Side> {
         None
@@ -117,6 +120,9 @@ pub trait World<Z> {
     fn at(&self, xy: Xy) -> Vec<(Z, Box<dyn Physic>)>;
 }
 
+/// Apply forces of `object` during `delta` seconds.
+///
+/// Returns the new position, the forces to keep for next step and the emitted events.
 #[inline]
 #[allow(clippy::too_many_arguments)]
 pub fn step<'a, I, O, C, P, Z>(
@@ -130,273 +136,328 @@ pub fn step<'a, I, O, C, P, Z>(
     origin: &str,
 ) -> (WorldVec3, Vec<Force>, Vec<Event<Z>>)
 where
-    I: Clone + Into<Z> + std::fmt::Debug,
+    I: Clone + Into<Z> + Debug,
     O: Physic,
     C: Fn(Xy) -> Vec<(Z, &'a dyn Physic)>,
     P: Fn(Xy) -> Vec<(Z, &'a dyn Physic)>,
-    Z: std::fmt::Debug + serde::Serialize + PartialEq + std::marker::Copy,
+    Z: Debug + serde::Serialize + PartialEq + Copy,
 {
     let (i, object) = object;
-    let mut events = vec![];
-    let mut position = object.position(w);
-    let mut forces = vec![];
-    let kind = object.kind();
-    let mut collision_ignored_pixels = 0usize;
-    let emit_proximity = object.emit_proximity();
-    let ignore_underground = object.ignore_underground();
-    let receive_z = object.receive_z();
-    let mut apply_z: Option<f32> = None;
-    let want_stop = object.want_stop();
-    tracing::trace!(name="physics-step-start", origin=origin, i=?i, p=?position, forces=?object.forces(w));
+    Stepper {
+        w,
+        delta,
+        mod_,
+        origin,
+        id: i.clone().into(),
+        i,
+        object,
+        kind: object.kind(),
+        emit_proximity: object.emit_proximity(),
+        ignore_underground: object.ignore_underground(),
+        receive_z: object.receive_z(),
+        want_stop: object.want_stop(),
+        collision_at,
+        proximity_at,
+        collision_ignore_pixels,
+        collision_ignored_pixels: 0,
+        apply_z: None,
+        events: vec![],
+    }
+    .run()
+}
 
-    'forces: for force in object.forces(w) {
-        match force {
-            Force::Translation(direction, speed) => {
-                let speed = speed.0 * delta;
-                let pixels = speed * w.geo_pixels_per_meters();
-                let [x, y, z] = position.into();
-                let (x_, y_, z_) = (
-                    x + direction.x * pixels,
-                    y + direction.y * pixels,
-                    z + direction.z * pixels,
-                );
+/// What happened to a force once its translation has been simulated.
+enum Translation {
+    /// Force is still applicable on next step (end reached, or world border hit)
+    Kept(WorldVec3),
+    /// Force is consumed (collision or want stop): object stops at given position
+    Dropped(WorldVec3),
+}
 
-                tracing::trace!(
-                    name = "physics-step-translation-start", origin=origin, i=?i,
-                    x = x,
-                    y = y,
-                    z = z,
-                    x_ = x_,
-                    y_ = y_,
-                    z_ = z_,
-                    speed = speed,
-                    pixels = pixels,
-                    ignore_underground = ignore_underground,
-                );
+/// What happen to a new pixel compute when compute line of translation
+enum PixelOutcome {
+    Pass,
+    Stop,
+}
 
-                let start = (x.ceil() as isize, y.ceil() as isize, z.ceil() as isize);
-                let end = (x_.ceil() as isize, y_.ceil() as isize, z_.ceil() as isize);
-                let world_width = w.world_width_pixels();
-                let world_height = w.world_width_pixels();
-                let mut interupted = false;
+struct Stepper<'a, 's, I, O, C, P, Z: serde::Serialize> {
+    // Inputs
+    w: &'s WorldConfig,
+    delta: f32,
+    mod_: &'s Mod,
+    origin: &'s str,
+    i: I,
+    id: Z,
+    object: &'a O,
+    collision_at: C,
+    proximity_at: P,
+    collision_ignore_pixels: usize,
 
-                'pixels: for (pixel_x, pixel_y, pixel_z) in Bresenham3d::new(start, end) {
-                    if pixel_x < 0
-                        || pixel_y < 0
-                        || pixel_x >= world_width as isize
-                        || pixel_y >= world_height as isize
-                    {
-                        tracing::trace!(name="physics-step-translation-outside", origin=origin, i=?i, pixel=?(pixel_x, pixel_y, pixel_z));
-                        // Outside world
-                        interupted = true;
-                        let i = i.clone().into();
-                        events.push(Event::NoTile(i));
-                        break 'pixels;
-                    }
+    // Object properties
+    kind: Option<MaterialKind>,
+    emit_proximity: bool,
+    ignore_underground: bool,
+    receive_z: bool,
+    want_stop: Option<(WorldVec2, f32)>,
 
-                    let pixel: WorldVec3 = [pixel_x as f32, pixel_y as f32, pixel_z as f32].into();
-                    let xy = Xy::from_((pixel_x, pixel_y), w);
-                    position = [pixel_x as f32, pixel_y as f32, pixel_z as f32].into();
+    // Accumulated state
+    collision_ignored_pixels: usize,
+    apply_z: Option<f32>,
+    events: Vec<Event<Z>>,
+}
 
-                    tracing::trace!(name="physics-step-translation-line-pixel", origin=origin, i=?i, pixel=?pixel, xy=?xy);
+impl<'a, I, O, C, P, Z> Stepper<'a, '_, I, O, C, P, Z>
+where
+    I: Clone + Into<Z> + Debug,
+    O: Physic,
+    C: Fn(Xy) -> Vec<(Z, &'a dyn Physic)>,
+    P: Fn(Xy) -> Vec<(Z, &'a dyn Physic)>,
+    Z: Debug + serde::Serialize + PartialEq + Copy,
+{
+    fn run(mut self) -> (WorldVec3, Vec<Force>, Vec<Event<Z>>) {
+        let w = self.w;
+        let mut position = self.object.position(w);
+        let mut forces = vec![];
+        tracing::trace!(name="physics-step-start", origin=self.origin, i=?self.i, p=?position, forces=?self.object.forces(w));
 
-                    if let Some((p, tolerance)) = want_stop {
-                        if almost_equal(p.x, position.x, tolerance)
-                            && almost_equal(p.y, position.y, tolerance)
-                        {
-                            tracing::trace!(name="physics-step-translation-line-pixel-want-stop-stop", origin=origin, i=?i, pixel=?pixel, xy=?xy);
-
-                            events.push(Event::WantStop(i.clone().into(), position));
-                            // Do not keep this force by stopping this iteration
-                            position = pixel;
-                            continue 'forces;
+        for force in self.object.forces(w) {
+            match force {
+                Force::Translation(direction, speed) => {
+                    match self.translate(position, direction, speed) {
+                        Translation::Kept(new_position) => {
+                            position = new_position;
+                            forces.push(force.clone());
                         }
-                    }
-
-                    let volumes = object.volumes(pixel, !ignore_underground, w, mod_);
-
-                    let proximity_others = proximity_at(xy);
-                    proximity_events(
-                        origin,
-                        &i,
-                        object,
-                        &mut events,
-                        emit_proximity,
-                        &proximity_others,
-                        ProximityKind::Fly,
-                        pixel,
-                    );
-
-                    for (o, other) in collision_at(xy) {
-                        let intercept = match kind {
-                            Some(kind) => other.intercept(kind, mod_),
-                            None => 0.0,
-                        };
-
-                        tracing::trace!(name="physics-step-translation-collision-other", origin=origin, i=?i, o=?o, intercept=intercept);
-
-                        // Do not test collision or else with itself (it is possible than `collision_at` return it)
-                        // NOTE: Maybe not the most optimized thing ?
-                        if o == i.clone().into() {
-                            continue;
-                        }
-
-                        if receive_z && let Some(z) = other.apply_z(w) {
-                            apply_z = Some(z);
-                        }
-
-                        // Do not apply if object must be ignored
-                        if other
-                            .side()
-                            .map(|s| object.ignore_side().ignore(s))
-                            .unwrap_or_default()
-                        {
-                            tracing::trace!(name="physics-step-translation-collision-ignore-side", origin=origin, i=?i, o=?o);
-                            continue;
-                        }
-
-                        let other_position = other.position(w);
-                        // This permit to ignore some firsts tile collisions (z edge problem)
-                        if other.collision_ignorable()
-                            && collision_ignored_pixels < collision_ignore_pixels
-                        {
-                            collision_ignored_pixels += 1;
-                            continue;
-                        }
-
-                        let volumes2 = other.volumes(other_position, !ignore_underground, w, mod_);
-
-                        // Intercept is computed only if pixel z is within one of other volumes,
-                        // whatever their traversability
-                        if intercept != 0.0
-                            && volumes2
-                                .iter()
-                                .any(|(volume, _, _)| volume.contains_z(pixel_z as f32))
-                        {
-                            if fastrand::f32() < intercept {
-                                tracing::trace!(name="physics-step-translation-intercept", origin=origin, i=?i, p=?position, xy=?xy, o=?o);
-
-                                let left = i.clone().into();
-                                let collision = Event::Collision(left, o);
-                                events.push(collision);
-
-                                proximity_events(
-                                    origin,
-                                    &i,
-                                    object,
-                                    &mut events,
-                                    emit_proximity,
-                                    &proximity_others,
-                                    ProximityKind::Impact,
-                                    pixel,
-                                );
-
-                                // Do not keep this force by stopping this iteration
-                                position = pixel;
-                                continue 'forces;
-                            }
-                        }
-
-                        for (volume1, traversability1, direction1) in &volumes {
-                            'other_volumes: for (volume2, traversability2, direction2) in
-                                volumes2.iter()
-                            {
-                                // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
-                                tracing::trace!(name="physics-step-translation-collision-prohibe-test", origin=origin, i=?i, traversability1=?traversability1, traversability2=?traversability2);
-                                if kind.map(|kind| traversability2.allow(kind)).unwrap_or(true) {
-                                    tracing::trace!(name="physics-step-translation-collision-prohibe-allow", origin=origin, i=?i);
-                                    continue 'other_volumes;
-                                }
-
-                                tracing::trace!(name="physics-step-translation-collision-test-collide-with", origin=origin, i=?i, p=?position, xy=?xy, o=?o, op=?other_position, volume1=?volume1, volume2=?volume2);
-                                if volume1.collide(
-                                    direction1.quat(V::Server),
-                                    &volume2,
-                                    direction2.quat(V::Server),
-                                ) {
-                                    tracing::trace!(name="physics-step-translation-collision-collide", origin=origin, i=?i, p=?position, xy=?xy);
-
-                                    let left = i.clone().into();
-                                    let collision = Event::Collision(left, o);
-                                    events.push(collision);
-
-                                    proximity_events(
-                                        origin,
-                                        &i,
-                                        object,
-                                        &mut events,
-                                        emit_proximity,
-                                        &proximity_others,
-                                        ProximityKind::Impact,
-                                        pixel,
-                                    );
-
-                                    // Do not keep this force by stopping this iteration
-                                    position = pixel;
-                                    continue 'forces;
-                                }
-                            }
-                        }
+                        Translation::Dropped(new_position) => position = new_position,
                     }
                 }
-
-                if !interupted {
-                    // If not interupted, position is now end of translation (bresenham3d accept only usize)
-                    position = [x_, y_, z_].into();
-
-                    if let Some(z) = apply_z {
-                        position.z = z;
-                    }
-                }
-
-                tracing::trace!(name="physics-step-translation-updated", origin=origin, i=?i, p=?position);
             }
         }
 
-        forces.push(force.clone());
+        tracing::trace!(name="physics-step-finished", position=?position, forces=?forces, events=self.events.len());
+        (position, forces, self.events)
     }
 
-    tracing::trace!(name="physics-step-finished", position=?position, forces=?forces, events=events.len());
-    (position, forces, events)
-}
+    /// Simulate a translation force pixel by pixel from `position`.
+    fn translate(
+        &mut self,
+        position: WorldVec3,
+        direction: &WorldVec3,
+        speed: &MetersSeconds,
+    ) -> Translation {
+        let (origin, i) = (self.origin, self.i.clone());
+        let pixels = speed.0 * self.delta * self.w.geo_pixels_per_meters();
+        let [x, y, z] = position.into();
+        let (x_, y_, z_) = (
+            x + direction.x * pixels,
+            y + direction.y * pixels,
+            z + direction.z * pixels,
+        );
 
-#[allow(clippy::too_many_arguments)]
-fn proximity_events<I, O, Z>(
-    origin: &str,
-    i: &I,
-    object: &O,
-    events: &mut Vec<Event<Z>>,
-    emit_proximity: bool,
-    proximity_others: &[(Z, &dyn Physic)],
-    kind: ProximityKind,
-    p: WorldVec3,
-) where
-    I: Clone + Into<Z> + std::fmt::Debug,
-    O: Physic,
-    Z: std::fmt::Debug + serde::Serialize + PartialEq + std::marker::Copy,
-{
-    for (o, other) in proximity_others {
-        tracing::trace!(name="physics-step-translation-proximity-other", origin=origin, i=?i, o=?o);
+        tracing::trace!(
+            name = "physics-step-translation-start", origin=origin, i=?i,
+            x = x, y = y, z = z, x_ = x_, y_ = y_, z_ = z_,
+            pixels = pixels,
+            ignore_underground = self.ignore_underground,
+        );
 
-        // Do not test proximity or else with itself (it is possible than `proximity_at` return it)
+        let start = (x.ceil() as isize, y.ceil() as isize, z.ceil() as isize);
+        let end = (x_.ceil() as isize, y_.ceil() as isize, z_.ceil() as isize);
+        let world_width = self.w.world_width_pixels() as isize;
+        let world_height = self.w.world_height_pixels() as isize;
+
+        let mut position = position;
+        for (pixel_x, pixel_y, pixel_z) in Bresenham3d::new(start, end) {
+            if pixel_x < 0 || pixel_y < 0 || pixel_x >= world_width || pixel_y >= world_height {
+                tracing::trace!(name="physics-step-translation-outside", origin=origin, i=?i, pixel=?(pixel_x, pixel_y, pixel_z));
+                self.events.push(Event::NoTile(self.id));
+                return Translation::Dropped(position);
+            }
+
+            let pixel: WorldVec3 = [pixel_x as f32, pixel_y as f32, pixel_z as f32].into();
+            let xy = Xy::from_((pixel_x, pixel_y), self.w);
+            position = pixel;
+
+            tracing::trace!(name="physics-step-translation-line-pixel", origin=origin, i=?i, pixel=?pixel, xy=?xy);
+
+            if let PixelOutcome::Stop = self.step_pixel(pixel, xy) {
+                return Translation::Dropped(pixel);
+            }
+        }
+
+        // Not interrupted: position is now end of translation (bresenham3d accept only isize)
+        let mut position: WorldVec3 = [x_, y_, z_].into();
+        if let Some(z) = self.apply_z {
+            position.z = z;
+        }
+
+        tracing::trace!(name="physics-step-translation-updated", origin=origin, i=?i, p=?position);
+        Translation::Kept(position)
+    }
+
+    /// Test object at `pixel` (on tile `xy`): want stop, proximities and collisions.
+    fn step_pixel(&mut self, pixel: WorldVec3, xy: Xy) -> PixelOutcome {
+        if self.reached_want_stop(pixel) {
+            tracing::trace!(name="physics-step-translation-line-pixel-want-stop-stop", origin=self.origin, i=?self.i, pixel=?pixel, xy=?xy);
+            self.events.push(Event::WantStop(self.id, pixel));
+            return PixelOutcome::Stop;
+        }
+
+        let volumes = self
+            .object
+            .volumes(pixel, !self.ignore_underground, self.w, self.mod_);
+
+        let proximity_others = (self.proximity_at)(xy);
+        self.push_proximity_events(&proximity_others, ProximityKind::Fly, pixel);
+
+        for (o, other) in (self.collision_at)(xy) {
+            if self.collide_with(o, other, pixel, &volumes) {
+                self.events.push(Event::Collision(self.id, o));
+                self.push_proximity_events(&proximity_others, ProximityKind::Impact, pixel);
+                return PixelOutcome::Stop;
+            }
+        }
+
+        PixelOutcome::Pass
+    }
+
+    fn reached_want_stop(&self, pixel: WorldVec3) -> bool {
+        self.want_stop.is_some_and(|(p, tolerance)| {
+            almost_equal(p.x, pixel.x, tolerance) && almost_equal(p.y, pixel.y, tolerance)
+        })
+    }
+
+    /// Does object (whose volumes at `pixel` are `volumes`) collide with `other` (identified by `o`) ?
+    fn collide_with(
+        &mut self,
+        o: Z,
+        other: &dyn Physic,
+        pixel: WorldVec3,
+        volumes: &PhysicVolumes,
+    ) -> bool {
+        let (origin, i) = (self.origin, &self.i);
+        tracing::trace!(name="physics-step-translation-collision-other", origin=origin, i=?i, o=?o);
+
+        // Do not test collision or else with itself (it is possible than `collision_at` return it)
         // NOTE: Maybe not the most optimized thing ?
-        if *o == i.clone().into() {
-            continue;
+        if o == self.id {
+            return false;
         }
 
-        // Do not apply if object must be ignored
-        if other
-            .side()
-            .map(|s| object.ignore_side().ignore(s))
-            .unwrap_or_default()
+        if self.receive_z
+            && let Some(z) = other.apply_z(self.w)
         {
-            tracing::trace!(name="physics-step-translation-ignore-side", origin=origin, i=?i, o=?o);
-            continue;
+            self.apply_z = Some(z);
         }
 
-        // Emit proximity event if object emit and other receive
-        if emit_proximity && other.receive_proximity() {
-            events.push(Event::Proximity(kind, i.clone().into(), *o, p.into()));
+        if self.ignores_side_of(other) {
+            tracing::trace!(name="physics-step-translation-collision-ignore-side", origin=origin, i=?i, o=?o);
+            return false;
+        }
+
+        // This permit to ignore some firsts tile collisions (z edge problem)
+        if other.collision_ignorable()
+            && self.collision_ignored_pixels < self.collision_ignore_pixels
+        {
+            self.collision_ignored_pixels += 1;
+            return false;
+        }
+
+        let volumes2 = other.volumes(
+            other.position(self.w),
+            !self.ignore_underground,
+            self.w,
+            self.mod_,
+        );
+
+        self.intercepted_by(other, &volumes2, pixel) || self.volumes_collide(volumes, &volumes2, o)
+    }
+
+    /// Random interception, computed only if pixel z is within one of other volumes,
+    /// whatever their traversability.
+    fn intercepted_by(
+        &self,
+        other: &dyn Physic,
+        volumes2: &PhysicVolumes,
+        pixel: WorldVec3,
+    ) -> bool {
+        let intercept = self
+            .kind
+            .map_or(0.0, |kind| other.intercept(kind, self.mod_));
+
+        if intercept == 0.0
+            || !volumes2
+                .iter()
+                .any(|(volume, _, _)| volume.contains_z(pixel.z))
+        {
+            return false;
+        }
+
+        if fastrand::f32() < intercept {
+            tracing::trace!(name="physics-step-translation-intercept", origin=self.origin, i=?self.i, p=?pixel);
+            return true;
+        }
+
+        false
+    }
+
+    fn volumes_collide(&self, volumes: &PhysicVolumes, volumes2: &PhysicVolumes, o: Z) -> bool {
+        let (origin, i) = (self.origin, &self.i);
+
+        volumes.iter().any(|(volume1, _, direction1)| {
+            volumes2.iter().any(|(volume2, traversability2, direction2)| {
+                // Test volumes collision only if object own a kind and other own too, and prohibe it on its tile
+                if self.kind.is_none_or(|kind| traversability2.allow(kind)) {
+                    tracing::trace!(name="physics-step-translation-collision-prohibe-allow", origin=origin, i=?i);
+                    return false;
+                }
+
+                tracing::trace!(name="physics-step-translation-collision-test-collide-with", origin=origin, i=?i, o=?o, volume1=?volume1, volume2=?volume2);
+                let collide = volume1.collide(
+                    direction1.quat(V::Server),
+                    volume2,
+                    direction2.quat(V::Server),
+                );
+                if collide {
+                    tracing::trace!(name="physics-step-translation-collision-collide", origin=origin, i=?i, o=?o);
+                }
+                collide
+            })
+        })
+    }
+
+    /// Must `other` be ignored because of its side ?
+    fn ignores_side_of(&self, other: &dyn Physic) -> bool {
+        other
+            .side()
+            .is_some_and(|side| self.object.ignore_side().ignore(side))
+    }
+
+    /// Emit proximity events for each of `others` if object emit and other receive.
+    fn push_proximity_events(
+        &mut self,
+        others: &[(Z, &dyn Physic)],
+        kind: ProximityKind,
+        pixel: WorldVec3,
+    ) {
+        for (o, other) in others {
+            tracing::trace!(name="physics-step-translation-proximity-other", origin=self.origin, i=?self.i, o=?o);
+
+            // Do not test proximity or else with itself (it is possible than `proximity_at` return it)
+            // NOTE: Maybe not the most optimized thing ?
+            if *o == self.id {
+                continue;
+            }
+
+            if self.ignores_side_of(*other) {
+                tracing::trace!(name="physics-step-translation-ignore-side", origin=self.origin, i=?self.i, o=?o);
+                continue;
+            }
+
+            if self.emit_proximity && other.receive_proximity() {
+                self.events
+                    .push(Event::Proximity(kind, self.id, *o, pixel.into()));
+            }
         }
     }
 }
@@ -612,369 +673,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_unidirectional_translation_x() {
-        // Given
-        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000)
-            .with_physics_tick(Frequency::new(2.0))
-            .with_geo_pixels_per_meters(10.);
-        let direction = [1.0, 0.0, 0.0].into();
-        let speed = MetersSeconds(1.0);
-        let force = Force::Translation(direction, speed);
-        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
-
-        // When
-        let (new_position, _, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
-            &w,
-            w.physics_tick().period(),
-            &mod_,
-            (MyObjectId(0), &object),
-            |_| vec![],
-            |_| vec![],
-            0,
-            "test",
-        );
-
-        // Then
-        let expected_new_position: WorldVec3 = [5.0, 0.0, 0.0].into();
-        assert_eq!(new_position, expected_new_position);
-    }
-
-    #[test]
-    fn test_unidirectional_translation_outside() {
-        // Given
-        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(10, 10)
-            .with_physics_tick(Frequency::new(1.0))
-            .with_geo_pixels_per_meters(10.);
-        let direction = [1.0, 0.0, 0.0];
-        let speed = MetersSeconds(100.0);
-        let force = Force::Translation(direction.into(), speed);
-        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
-
-        // When
-        let (new_position, _, events): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
-            &w,
-            w.physics_tick().period(),
-            &mod_,
-            (MyObjectId(0), &object),
-            |_| vec![],
-            |_| vec![],
-            0,
-            "test",
-        );
-
-        // Then
-        let expected_new_position: WorldVec3 = [49.0, 0.0, 0.0].into();
-        assert_eq!(new_position, expected_new_position);
-        assert_eq!(events, vec![Event::NoTile(MyObjectId(0))]);
-    }
-
-    #[test]
-    fn test_unidirectional_translation_multisteps() {
-        // Given
-        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000)
-            .with_physics_tick(Frequency::new(1.0))
-            .with_geo_pixels_per_meters(10.);
-        let direction = [1.0, 0.0, 0.0]; // South
-        let speed = MetersSeconds(0.01); // 1% of 10 pixels = 0.1 pixel
-        let force = Force::Translation(direction.into(), speed);
-        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
-
-        // When
-        let (new_position, _, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
-            &w,
-            w.physics_tick().period(),
-            &mod_,
-            (MyObjectId(0), &object),
-            |_| vec![],
-            |_| vec![],
-            0,
-            "test",
-        );
-
-        // Then
-        let expected_new_x = "0.1"; // step must complete bresenham pixel (which are isize) with end (force) position
-        assert_eq!(&format!("{:.01}", new_position.x), expected_new_x);
-    }
-
-    #[test]
-    fn test_unidirectional_translation_collision() {
-        // Given
-        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000)
-            .with_physics_tick(Frequency::new(2.0))
-            .with_geo_pixels_per_meters(10.);
-        let direction = [1.0, 0.0, 0.0]; // South
-        let speed = MetersSeconds(100.0);
-        let force = Force::Translation(direction.into(), speed);
-        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
-        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Traversability::all());
-        let my_traversable_tile: &dyn Physic = &my_traversable_tile;
-        let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
-        let my_solid_tile: &dyn Physic = &my_solid_tile;
-        let objects = |xy| {
-            if xy == Xy(0, 0) {
-                vec![(MyObjectId(1), my_traversable_tile)]
-            } else {
-                vec![(MyObjectId(2), my_solid_tile)]
-            }
-        };
-
-        // When
-        let (new_position, new_forces, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
-            &w,
-            w.physics_tick().period(),
-            &mod_,
-            (MyObjectId(0), &object),
-            objects,
-            |_| vec![],
-            0,
-            "test",
-        );
-
-        // Then
-        let expected_new_position: WorldVec3 = [5.0, 0.0, 0.0].into();
-        let expected_new_forces: Vec<Force> = vec![];
-        assert_eq!(new_position, expected_new_position);
-        assert_eq!(new_forces, expected_new_forces);
-    }
-
-    #[test]
-    fn test_unidirectional_translation_high_speed() {
-        // Given
-        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000)
-            .with_physics_tick(Frequency::new(1.0))
-            .with_geo_pixels_per_meters(10.);
-        let direction = [1.0, 0.0, 0.0]; // South
-        let speed = MetersSeconds(10.0);
-        let force = Force::Translation(direction.into(), speed);
-        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
-
-        // When
-        let (new_position, _, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
-            &w,
-            w.physics_tick().period(),
-            &mod_,
-            (MyObjectId(0), &object),
-            |_| vec![],
-            |_| vec![],
-            0,
-            "test",
-        );
-
-        // Then
-        let expected_new_position: WorldVec3 = [100.0, 0.0, 0.0].into();
-        assert_eq!(new_position, expected_new_position);
-    }
-
-    #[test]
-    fn test_unidirectional_translation_high_speed_collision() {
-        // Given
-        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000)
-            .with_physics_tick(Frequency::new(1.0))
-            .with_geo_pixels_per_meters(10.);
-        let direction = [1.0, 0.0, 0.0]; // South
-        let speed = MetersSeconds(100.0);
-        let force = Force::Translation(direction.into(), speed);
-        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
-        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Traversability::all());
-        let my_traversable_tile: &dyn Physic = &my_traversable_tile;
-        let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
-        let my_solid_tile: &dyn Physic = &my_solid_tile;
-        let objects = |xy| {
-            if xy == Xy(0, 0) {
-                vec![(MyObjectId(1), my_traversable_tile)]
-            } else {
-                vec![(MyObjectId(2), my_solid_tile)]
-            }
-        };
-
-        // When
-        let (new_position, new_forces, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
-            &w,
-            w.physics_tick().period(),
-            &mod_,
-            (MyObjectId(0), &object),
-            objects,
-            |_| vec![],
-            0,
-            "test",
-        );
-
-        // Then
-        let expected_new_position: WorldVec3 = [5., 0.0, 0.0].into();
-        let expected_new_forces: Vec<Force> = vec![];
-        assert_eq!(new_position, expected_new_position);
-        assert_eq!(new_forces, expected_new_forces);
-    }
-
-    #[test]
-    fn test_bidirectional_translation() {
-        // Given
-        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000)
-            .with_physics_tick(Frequency::new(1.0))
-            .with_geo_pixels_per_meters(10.);
-        let direction = [1.0, 1.0, 0.0]; // South
-        let speed = MetersSeconds(1.0);
-        let force = Force::Translation(direction.into(), speed);
-        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
-
-        // When
-        let (new_position, _, _): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
-            &w,
-            w.physics_tick().period(),
-            &mod_,
-            (MyObjectId(0), &object),
-            |_| vec![],
-            |_| vec![],
-            0,
-            "test",
-        );
-
-        // Then
-        let expected_new_position: WorldVec3 = [10.0, 10.0, 0.0].into();
-        assert_eq!(new_position, expected_new_position);
-    }
-
-    #[test]
-    fn test_collision_with_volume_on_same_tile_centered() {
-        // Given
-        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000)
-            .with_physics_tick(Frequency::new(1.0))
-            .with_geo_pixels_per_meters(10.)
-            .with_geo_pixels_per_tile(5);
-        let direction = [-1.0, 0.0, 0.0]; // West
-        let speed = MetersSeconds(1.0);
-        let force = Force::Translation(direction.into(), speed);
-        let object = MyObject([7.0, 2.0, 5.0].into(), vec![force]);
-        let individual = MyIndividual([2.0, 2.0, 0.0].into()); // MyIndividual volume is 2 px !
-        let individual: &dyn Physic = &individual;
-
-        let objects = |xy| {
-            // Expect collision when on tile 0,0
-            if xy == Xy(0, 0) {
-                vec![(MyObjectId(1), individual)]
-            } else {
-                vec![]
-            }
-        };
-
-        // When
-        let (position, forces, events): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
-            &w,
-            w.physics_tick().period(),
-            &mod_,
-            (MyObjectId(0), &object),
-            objects,
-            |_| vec![],
-            0,
-            "test",
-        );
-
-        // Then
-        let expected_position: WorldVec3 = [4.0, 2.0, 5.0].into();
-        assert_eq!(position, expected_position); // x axis hit first, at MySubject (x) 2.0 (position) + 2.0 (width)
-        assert_eq!(forces, Vec::<Force>::new());
-        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
-    }
-
-    #[test]
-    fn test_collision_with_volume_on_same_tile_decal() {
-        // Given
-        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000)
-            .with_physics_tick(Frequency::new(1.0))
-            .with_geo_pixels_per_meters(10.)
-            .with_geo_pixels_per_tile(5);
-        let direction = [-1.0, 0.0, 0.0]; // West
-        let speed = MetersSeconds(1.0);
-        let force = Force::Translation(direction.into(), speed);
-        let object = MyObject([7.5, 2.5, 5.0].into(), vec![force]); // Tile 1 (.5) on x; tile 0 (0.5) on y
-        let individual = MyIndividual([1.0, 1.0, 0.0].into()); // MyIndividual volume size (see MyIndividual Physics impl) should be impacted
-        let individual: &dyn Physic = &individual;
-
-        let objects = |xy| {
-            // Expect collision when on tile 0,0
-            if xy == Xy(0, 0) {
-                vec![(MyObjectId(1), individual)]
-            } else {
-                vec![]
-            }
-        };
-
-        // When
-        let (position, forces, events): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) = step(
-            &w,
-            w.physics_tick().period(),
-            &mod_,
-            (MyObjectId(0), &object),
-            objects,
-            |_| vec![],
-            0,
-            "test",
-        );
-
-        // Then
-        let expected_position: WorldVec3 = [3.0, 3.0, 5.0].into();
-        assert_eq!(position, expected_position);
-        assert_eq!(forces, Vec::<Force>::new());
-        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
-    }
-
-    #[test]
-    fn test_unidirectional_translation_collision_ignore() {
-        // Given
-        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000)
-            .with_physics_tick(Frequency::new(1.0))
-            .with_geo_pixels_per_meters(10.);
-        let direction = [1.0, 0.0, 0.0]; // South
-        let speed = MetersSeconds(100.0);
-        let force = Force::Translation(direction.into(), speed);
-        let object = MyObject([0.0, 0.0, 0.0].into(), vec![force]);
-        // Tile 0 is solid but ignorable (should be crossed thanks to collision_ignore)
-        let my_ignorable_solid_tile = MyIgnorableTile(TileXy(Xy(0, 0)), Traversability::none());
-        let my_ignorable_solid_tile: &dyn Physic = &my_ignorable_solid_tile;
-        // Tile 1 is solid and NOT ignorable (should still block the object)
-        let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
-        let my_solid_tile: &dyn Physic = &my_solid_tile;
-        let objects = |xy| {
-            if xy == Xy(0, 0) {
-                vec![(MyObjectId(1), my_ignorable_solid_tile)]
-            } else {
-                vec![(MyObjectId(2), my_solid_tile)]
-            }
-        };
-
-        // When: collision_ignore covers every pixel of tile 0, so its (ignorable) collisions
-        // are all skipped and the object only stops when it reaches the non-ignorable tile 1
-        let (new_position, new_forces, events): (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) =
-            step(
-                &w,
-                w.physics_tick().period(),
-                &mod_,
-                (MyObjectId(0), &object),
-                objects,
-                |_| vec![],
-                5,
-                "test",
-            );
-
-        // Then
-        let expected_new_position: WorldVec3 = [5.0, 0.0, 0.0].into();
-        let expected_new_forces: Vec<Force> = vec![];
-        assert_eq!(new_position, expected_new_position);
-        assert_eq!(new_forces, expected_new_forces);
-        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(2))]);
-    }
-
     struct MyInterceptor(TileXy, f32, f32);
 
     impl Physic for MyInterceptor {
@@ -1023,33 +721,269 @@ mod tests {
         }
     }
 
-    fn run_intercept(intercept: f32) -> (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) {
+    type StepResult = (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>);
+
+    fn load_mod() -> Mod {
+        Mod::load(&workspace_root().join("mods/tests1"), None).unwrap()
+    }
+
+    fn world(size: u64, tick_hz: f32) -> WorldConfig {
+        WorldConfig::new(size, size)
+            .with_physics_tick(Frequency::new(tick_hz))
+            .with_geo_pixels_per_meters(10.)
+    }
+
+    fn translation(direction: [f32; 3], speed: f32) -> Force {
+        Force::Translation(direction.into(), MetersSeconds(speed))
+    }
+
+    fn moving_object(position: [f32; 3], force: Force) -> MyObject {
+        MyObject(position.into(), vec![force])
+    }
+
+    /// Run one step of `object` (id 0), without proximity and with `collision_at` objects.
+    fn run_step<'a>(
+        w: &WorldConfig,
+        object: &'a MyObject,
+        collision_at: impl Fn(Xy) -> Vec<(MyObjectId, &'a dyn Physic)>,
+        collision_ignore_pixels: usize,
+    ) -> StepResult {
+        step(
+            w,
+            w.physics_tick().period(),
+            &load_mod(),
+            (MyObjectId(0), object),
+            collision_at,
+            |_| vec![],
+            collision_ignore_pixels,
+            "test",
+        )
+    }
+
+    /// Run one step of `object` (id 0) alone in the world.
+    fn run_free_step(w: &WorldConfig, object: &MyObject) -> StepResult {
+        run_step(w, object, |_| vec![], 0)
+    }
+
+    /// Tile 0 (traversable, id 1), then tile 1 (solid, id 2) and further.
+    fn traversable_then_solid<'a>(
+        traversable: &'a dyn Physic,
+        solid: &'a dyn Physic,
+    ) -> impl Fn(Xy) -> Vec<(MyObjectId, &'a dyn Physic)> {
+        move |xy| {
+            if xy == Xy(0, 0) {
+                vec![(MyObjectId(1), traversable)]
+            } else {
+                vec![(MyObjectId(2), solid)]
+            }
+        }
+    }
+
+    /// Only `other` (id 1), and only on tile 0,0.
+    fn only_on_first_tile<'a>(
+        other: &'a dyn Physic,
+    ) -> impl Fn(Xy) -> Vec<(MyObjectId, &'a dyn Physic)> {
+        move |xy| {
+            if xy == Xy(0, 0) {
+                vec![(MyObjectId(1), other)]
+            } else {
+                vec![]
+            }
+        }
+    }
+
+    #[test]
+    fn test_unidirectional_translation_x() {
+        // Given
+        let w = world(1000, 2.0);
+        let object = moving_object([0.0, 0.0, 0.0], translation([1.0, 0.0, 0.0], 1.0));
+
+        // When
+        let (new_position, _, _) = run_free_step(&w, &object);
+
+        // Then
+        let expected_new_position: WorldVec3 = [5.0, 0.0, 0.0].into();
+        assert_eq!(new_position, expected_new_position);
+    }
+
+    #[test]
+    fn test_unidirectional_translation_outside() {
+        // Given
+        let w = world(10, 1.0);
+        let object = moving_object([0.0, 0.0, 0.0], translation([1.0, 0.0, 0.0], 100.0));
+
+        // When
+        let (new_position, _, events) = run_free_step(&w, &object);
+
+        // Then
+        let expected_new_position: WorldVec3 = [49.0, 0.0, 0.0].into();
+        assert_eq!(new_position, expected_new_position);
+        assert_eq!(events, vec![Event::NoTile(MyObjectId(0))]);
+    }
+
+    #[test]
+    fn test_unidirectional_translation_multisteps() {
+        // Given
+        let w = world(1000, 1.0);
+        // 1% of 10 pixels = 0.1 pixel
+        let object = moving_object([0.0, 0.0, 0.0], translation([1.0, 0.0, 0.0], 0.01));
+
+        // When
+        let (new_position, _, _) = run_free_step(&w, &object);
+
+        // Then
+        let expected_new_x = "0.1"; // step must complete bresenham pixel (which are isize) with end (force) position
+        assert_eq!(&format!("{:.01}", new_position.x), expected_new_x);
+    }
+
+    #[test]
+    fn test_unidirectional_translation_collision() {
+        // Given
+        let w = world(1000, 2.0);
+        let object = moving_object([0.0, 0.0, 0.0], translation([1.0, 0.0, 0.0], 100.0));
+        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Traversability::all());
+        let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
+
+        // When
+        let (new_position, new_forces, _) = run_step(
+            &w,
+            &object,
+            traversable_then_solid(&my_traversable_tile, &my_solid_tile),
+            0,
+        );
+
+        // Then
+        let expected_new_position: WorldVec3 = [5.0, 0.0, 0.0].into();
+        assert_eq!(new_position, expected_new_position);
+        assert_eq!(new_forces, Vec::<Force>::new());
+    }
+
+    #[test]
+    fn test_unidirectional_translation_high_speed() {
+        // Given
+        let w = world(1000, 1.0);
+        let object = moving_object([0.0, 0.0, 0.0], translation([1.0, 0.0, 0.0], 10.0));
+
+        // When
+        let (new_position, _, _) = run_free_step(&w, &object);
+
+        // Then
+        let expected_new_position: WorldVec3 = [100.0, 0.0, 0.0].into();
+        assert_eq!(new_position, expected_new_position);
+    }
+
+    #[test]
+    fn test_unidirectional_translation_high_speed_collision() {
+        // Given
+        let w = world(1000, 1.0);
+        let object = moving_object([0.0, 0.0, 0.0], translation([1.0, 0.0, 0.0], 100.0));
+        let my_traversable_tile = MyTile(TileXy(Xy(0, 0)), Traversability::all());
+        let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
+
+        // When
+        let (new_position, new_forces, _) = run_step(
+            &w,
+            &object,
+            traversable_then_solid(&my_traversable_tile, &my_solid_tile),
+            0,
+        );
+
+        // Then
+        let expected_new_position: WorldVec3 = [5., 0.0, 0.0].into();
+        assert_eq!(new_position, expected_new_position);
+        assert_eq!(new_forces, Vec::<Force>::new());
+    }
+
+    #[test]
+    fn test_bidirectional_translation() {
+        // Given
+        let w = world(1000, 1.0);
+        let object = moving_object([0.0, 0.0, 0.0], translation([1.0, 1.0, 0.0], 1.0));
+
+        // When
+        let (new_position, _, _) = run_free_step(&w, &object);
+
+        // Then
+        let expected_new_position: WorldVec3 = [10.0, 10.0, 0.0].into();
+        assert_eq!(new_position, expected_new_position);
+    }
+
+    #[test]
+    fn test_collision_with_volume_on_same_tile_centered() {
+        // Given
+        let w = world(1000, 1.0).with_geo_pixels_per_tile(5);
+        let object = moving_object([7.0, 2.0, 5.0], translation([-1.0, 0.0, 0.0], 1.0));
+        let individual = MyIndividual([2.0, 2.0, 0.0].into()); // MyIndividual volume is 2 px !
+
+        // When: expect collision when on tile 0,0
+        let (position, forces, events) = run_step(&w, &object, only_on_first_tile(&individual), 0);
+
+        // Then
+        let expected_position: WorldVec3 = [4.0, 2.0, 5.0].into();
+        assert_eq!(position, expected_position); // x axis hit first, at MySubject (x) 2.0 (position) + 2.0 (width)
+        assert_eq!(forces, Vec::<Force>::new());
+        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
+    }
+
+    #[test]
+    fn test_collision_with_volume_on_same_tile_decal() {
+        // Given
+        let w = world(1000, 1.0).with_geo_pixels_per_tile(5);
+        // Tile 1 (.5) on x; tile 0 (0.5) on y
+        let object = moving_object([7.5, 2.5, 5.0], translation([-1.0, 0.0, 0.0], 1.0));
+        // MyIndividual volume size (see MyIndividual Physics impl) should be impacted
+        let individual = MyIndividual([1.0, 1.0, 0.0].into());
+
+        // When: expect collision when on tile 0,0
+        let (position, forces, events) = run_step(&w, &object, only_on_first_tile(&individual), 0);
+
+        // Then
+        let expected_position: WorldVec3 = [3.0, 3.0, 5.0].into();
+        assert_eq!(position, expected_position);
+        assert_eq!(forces, Vec::<Force>::new());
+        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
+    }
+
+    #[test]
+    fn test_unidirectional_translation_collision_ignore() {
+        // Given
+        let w = world(1000, 1.0);
+        let object = moving_object([0.0, 0.0, 0.0], translation([1.0, 0.0, 0.0], 100.0));
+        // Tile 0 is solid but ignorable (should be crossed thanks to collision_ignore)
+        let my_ignorable_solid_tile = MyIgnorableTile(TileXy(Xy(0, 0)), Traversability::none());
+        // Tile 1 is solid and NOT ignorable (should still block the object)
+        let my_solid_tile = MyTile(TileXy(Xy(1, 0)), Traversability::none());
+
+        // When: collision_ignore covers every pixel of tile 0, so its (ignorable) collisions
+        // are all skipped and the object only stops when it reaches the non-ignorable tile 1
+        let (new_position, new_forces, events) = run_step(
+            &w,
+            &object,
+            traversable_then_solid(&my_ignorable_solid_tile, &my_solid_tile),
+            5,
+        );
+
+        // Then
+        let expected_new_position: WorldVec3 = [5.0, 0.0, 0.0].into();
+        assert_eq!(new_position, expected_new_position);
+        assert_eq!(new_forces, Vec::<Force>::new());
+        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(2))]);
+    }
+
+    fn run_intercept(intercept: f32) -> StepResult {
         run_intercept_at(intercept, 0.0, f32::MAX)
     }
 
-    fn run_intercept_at(
-        intercept: f32,
-        object_z: f32,
-        interceptor_depth: f32,
-    ) -> (WorldVec3, Vec<Force>, Vec<Event<MyObjectId>>) {
-        let mod_ = Mod::load(&workspace_root().join("mods/tests1"), None).unwrap();
-        let w = WorldConfig::new(1000, 1000)
-            .with_physics_tick(Frequency::new(2.0))
-            .with_geo_pixels_per_meters(10.);
-        let force = Force::Translation([1.0, 0.0, 0.0].into(), MetersSeconds(100.0));
-        let object = MyObject([0.0, 0.0, object_z].into(), vec![force]);
+    fn run_intercept_at(intercept: f32, object_z: f32, interceptor_depth: f32) -> StepResult {
+        let w = world(1000, 2.0);
+        let object = moving_object([0.0, 0.0, object_z], translation([1.0, 0.0, 0.0], 100.0));
         let interceptor = MyInterceptor(TileXy(Xy(0, 0)), intercept, interceptor_depth);
-        let interceptor: &dyn Physic = &interceptor;
 
-        step(
+        run_step(
             &w,
-            w.physics_tick().period(),
-            &mod_,
-            (MyObjectId(0), &object),
-            |_| vec![(MyObjectId(1), interceptor)],
-            |_| vec![],
+            &object,
+            |_| vec![(MyObjectId(1), &interceptor as &dyn Physic)],
             0,
-            "test",
         )
     }
 
