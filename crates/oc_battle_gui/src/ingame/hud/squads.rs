@@ -194,7 +194,10 @@ fn on_click(
         let_ok!(mut s = selected.get_mut(*entity), continue);
         s.0 = true;
     }
-    commands.trigger(GoToPoint(squad.position));
+
+    if e.count >= 2 {
+        commands.trigger(GoToPoint(squad.position));
+    }
 }
 
 pub fn update_squad_behaviors(
