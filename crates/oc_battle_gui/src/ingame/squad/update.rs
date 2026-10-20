@@ -83,6 +83,10 @@ fn update_squad(
                 squad.actives = *actives;
                 (None, vec![])
             }
+            Update::SetStatus(status) => {
+                squad.status = *status;
+                (None, vec![])
+            }
             Update::Accomplished => (None, vec![]),
         }
     };

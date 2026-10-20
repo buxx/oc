@@ -186,6 +186,7 @@ fn individuals(
                 actives: 2,
                 formation: SquadFormation::Line,
                 orders: vec![order.clone()],
+                status: oc_individual::squad::SquadStatus::Operational,
             }
         })
         .collect();

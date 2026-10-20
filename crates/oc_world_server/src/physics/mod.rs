@@ -248,7 +248,8 @@ impl<'x, E: Client> Processor<'x, E> {
                     (ObjectId::Projectile(projectile_id), ObjectId::Individual(individual_i)) => {
                         updates.extend(self.gunshot(projectile_id, individual_i));
                     }
-                    (ObjectId::Projectile(id), ObjectId::Tile(_)) => {
+                    (ObjectId::Projectile(id), ObjectId::Tile(tile)) => {
+                        updates.extend(self.impact_sound(id, tile));
                         updates.push(crate::runner::update::Update::RemoveProjectile(id));
                     }
                 },
@@ -286,6 +287,24 @@ impl<'x, E: Client> Processor<'x, E> {
         updates.extend(proximity);
 
         updates
+    }
+
+    fn impact_sound(
+        &self,
+        id: ProjectileId,
+        tile: WorldTileIndex,
+    ) -> Option<crate::runner::update::Update> {
+        let world = self.ctx.state.world();
+        let projectile = world.projectile(&id)?;
+        let tile = world.tile(tile)?;
+        let mod_ = self.ctx.state._mod();
+        let sound = mod_.pick_impact_sound(mod_.nature(tile.nature).impact)?;
+
+        Some(crate::runner::update::Update::PlaySoundWithGeo(
+            sound,
+            projectile.position(),
+            projectile.region(),
+        ))
     }
 
     fn increase_suppress(

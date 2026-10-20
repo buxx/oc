@@ -666,7 +666,7 @@ impl<'a> Processor<'a> {
                                 match self.can_reload(individual, weapon) {
                                     true => (
                                         oc_individual::HandsGesture::Reloading(U8Progress::zero()),
-                                        vec![],
+                                        self.reload_sound(individual, weapon),
                                     ),
                                     // This weapon can't be reloaded, next individual tick will choose another weapon if any
                                     false => (oc_individual::HandsGesture::Idle, vec![]),
@@ -819,7 +819,7 @@ impl<'a> Processor<'a> {
                                 match self.can_reload(individual, weapon) {
                                     true => (
                                         oc_individual::HandsGesture::Reloading(U8Progress::zero()),
-                                        vec![],
+                                        self.reload_sound(individual, weapon),
                                     ),
                                     // This weapon can't be reloaded, next individual tick will choose another weapon if any
                                     false => (oc_individual::HandsGesture::Idle, vec![]),
@@ -892,6 +892,23 @@ impl<'a> Processor<'a> {
         if_true!(weapon.filled.is_some(), return true);
         let weapon = self.world.mod_.weapon(weapon.i);
         self.compatible_magazine(individual, weapon).is_some()
+    }
+
+    fn reload_sound(
+        &self,
+        individual: &Individual,
+        weapon: &oc_individual::Weapon,
+    ) -> Vec<runner::update::Update> {
+        let weapon = self.world.mod_.weapon(weapon.i);
+
+        match weapon.reload_sound() {
+            Some(sound) => vec![runner::update::Update::PlaySoundWithGeo(
+                sound,
+                individual.position,
+                individual.region(),
+            )],
+            None => vec![],
+        }
     }
 
     fn reloaded(&self, individual: &Individual, kind: WeaponKind) -> Vec<runner::update::Update> {

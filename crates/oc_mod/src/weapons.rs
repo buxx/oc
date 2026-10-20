@@ -18,6 +18,7 @@ use crate::{
 };
 
 pub const WEAPONS_RON: &str = "weapons.ron";
+pub const DEFAULT_RELOAD_SOUND: &str = "ReloadGeneric1.ogg";
 
 #[derive(
     Debug,
@@ -125,6 +126,13 @@ impl WeaponRaw {
         }
     }
 
+    pub fn reload_sound(&self) -> Option<&str> {
+        match self {
+            WeaponRaw::Rifle(rifle) => rifle.reload_sound.as_deref(),
+            WeaponRaw::MachineGun(machine_gun) => machine_gun.reload_sound.as_deref(),
+        }
+    }
+
     pub fn shots(&self) -> &Vec<ShotModeRaw> {
         match self {
             WeaponRaw::Rifle(rifle) => &rifle.shots,
@@ -220,6 +228,20 @@ impl Weapon {
         }
     }
 
+    pub fn reload_sound(&self) -> Option<SoundIndex> {
+        match self {
+            Weapon::Rifle(rifle) => rifle.reload_sound,
+            Weapon::MachineGun(machine_gun) => machine_gun.reload_sound,
+        }
+    }
+
+    fn set_reload_sound(&mut self, value: Option<SoundIndex>) {
+        match self {
+            Weapon::Rifle(rifle) => rifle.reload_sound = value,
+            Weapon::MachineGun(machine_gun) => machine_gun.reload_sound = value,
+        }
+    }
+
     pub fn aim(&self, w: &WorldConfig) -> Seconds {
         match self {
             Weapon::Rifle(rifle) => rifle.aim / w.speed(),
@@ -271,6 +293,7 @@ pub struct Rifle {
     interval: Seconds,
     velocity: MetersSeconds,
     reload: Seconds,
+    reload_sound: Option<SoundIndex>,
     aim: Seconds,
     inaccuracy: f32,
 }
@@ -285,6 +308,8 @@ pub struct RifleRaw {
     interval: Seconds,
     velocity: MetersSeconds,
     reload: Seconds,
+    #[serde(default)]
+    reload_sound: Option<String>,
     aim: Seconds,
     inaccuracy: f32,
 }
@@ -299,6 +324,7 @@ impl From<RifleRaw> for Rifle {
             interval: val.interval,
             velocity: val.velocity,
             reload: val.reload,
+            reload_sound: None,
             aim: val.aim,
             inaccuracy: val.inaccuracy,
         }
@@ -324,6 +350,7 @@ pub struct MachineGun {
     interval: Seconds,
     velocity: MetersSeconds,
     reload: Seconds,
+    reload_sound: Option<SoundIndex>,
     aim: Seconds,
     inaccuracy: f32,
 }
@@ -338,6 +365,8 @@ pub struct MachineGunRaw {
     interval: Seconds,
     velocity: MetersSeconds,
     reload: Seconds,
+    #[serde(default)]
+    reload_sound: Option<String>,
     aim: Seconds,
     inaccuracy: f32,
 }
@@ -352,6 +381,7 @@ impl From<MachineGunRaw> for MachineGun {
             interval: val.interval,
             velocity: val.velocity,
             reload: val.reload,
+            reload_sound: None,
             aim: val.aim,
             inaccuracy: val.inaccuracy,
         }
@@ -389,7 +419,16 @@ pub fn load(path: &Path, mod_: &Mod) -> Result<Vec<IndexedWeapon>, Error> {
                 .map(|(i, shot)| IndexedShotMode(ShotModeIndex(i as u32), shot))
                 .collect();
 
+            // Explicit reload sound must exist, but the default one is optional
+            let reload_sound = match weapon_.reload_sound() {
+                Some(name) => Some(mod_.find_sound(name).map_err(|e| {
+                    Error::ReloadSound(weapon_.name().to_string(), e.to_string())
+                })?),
+                None => mod_.find_sound(DEFAULT_RELOAD_SOUND).ok(),
+            };
+
             let mut weapon: Weapon = weapon_.into();
+            weapon.set_reload_sound(reload_sound);
 
             weapon.set_ammunitions(amunitions);
             weapon.set_magazines(magazines);
@@ -441,6 +480,8 @@ pub enum Error {
     AmunitionRef(String, String),
     #[error("Magazine error ({0}): {1}")]
     MagazineRef(String, String),
+    #[error("Reload sound error ({0}): {1}")]
+    ReloadSound(String, String),
     #[error("Invalid shot mode ({0}): {1}")]
     ShotMode(String, String),
 }

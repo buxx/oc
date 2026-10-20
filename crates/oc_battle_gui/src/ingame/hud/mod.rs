@@ -26,6 +26,7 @@ impl Plugin for HudPlugin {
                     squads::spawn_squad_cells,
                     squads::scroll_squad_grid,
                     squads::update_squad_behaviors,
+                    squads::update_squad_status_colors,
                     squad::update_rows,
                     minimap::load_image,
                     minimap::update_squad_markers,

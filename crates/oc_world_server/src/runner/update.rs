@@ -8,6 +8,7 @@ use oc_geo::region::{Region, WorldRegionIndex};
 use oc_individual::IndividualIndex;
 use oc_individual::squad::SquadIndex;
 use oc_mod::PickSound;
+use oc_mod::sound::SoundIndex;
 use oc_network::ToClient;
 use oc_physics::fx;
 use oc_projectile::NextProjectileId;
@@ -16,6 +17,7 @@ use oc_projectile::spawn::SpawnProjectile;
 use oc_projectile::spawn::SpawnProjectiles;
 use oc_root::Client;
 use oc_root::battle::BattlePhase;
+use oc_root::geo::WorldVec3;
 use oc_root::side::Side;
 use oc_world::visibility::Visibilities;
 use oc_world::visibility::Visibility;
@@ -31,6 +33,7 @@ pub enum Update {
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
     UpdateSquad(SquadIndex, oc_individual::squad::Update),
     SetBattlePhase(BattlePhase),
+    PlaySoundWithGeo(SoundIndex, WorldVec3, WorldRegionIndex),
 }
 
 pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
@@ -53,6 +56,9 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         Update::UpdateVisibilities(visibilities) => state.update_visibilities(visibilities),
         Update::UpdateSquad(i, update) => state.update_squad(i, update),
         Update::SetBattlePhase(phase) => state.set_battle_phase(phase),
+        Update::PlaySoundWithGeo(sound, position, region) => {
+            state.play_sound(sound, position, region)
+        }
     } {
         tracing::trace!(name="runner-update-broadcast", filter=?filter, messages=?messages);
         ctx.broadcast(filter, messages);
@@ -157,6 +163,10 @@ impl<E: Client> super::State<E> {
                 squad.actives = *actives;
                 update.clone()
             }
+            oc_individual::squad::Update::SetStatus(status) => {
+                squad.status = *status;
+                update.clone()
+            }
         };
 
         let update = oc_individual::network::Squad::Update(i, update);
@@ -219,7 +229,7 @@ impl<E: Client> super::State<E> {
         messages.push(insert);
 
         if let Some(sound) = sound {
-            let fx = fx::Fx::Audio(fx::Audio::PlayOnce(sound, position));
+            let fx = fx::Fx::Audio(fx::Audio::PlayWithGeo(sound, position));
             let fx = ToClient::Fx(fx);
             messages.push(fx);
         }
@@ -253,5 +263,15 @@ impl<E: Client> super::State<E> {
     fn set_battle_phase(&self, phase: BattlePhase) -> Vec<(Listening, Vec<ToClient>)> {
         self.world_mut().set_phase(phase);
         vec![(Listening::Any, vec![ToClient::SetBattlePhase(phase)])]
+    }
+
+    fn play_sound(
+        &self,
+        sound: SoundIndex,
+        position: WorldVec3,
+        region: WorldRegionIndex,
+    ) -> Vec<(Listening, Vec<ToClient>)> {
+        let fx = ToClient::Fx(fx::Fx::Audio(fx::Audio::PlayWithGeo(sound, position)));
+        vec![(Listening::Regions(vec![region]), vec![fx])]
     }
 }

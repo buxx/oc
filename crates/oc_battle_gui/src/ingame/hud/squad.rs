@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use oc_individual::{Individual, IndividualIndex};
+use oc_individual::{Individual, IndividualIndex, Status};
 use oc_mod::{Mod, illustration::IllustrationKind};
 use oc_root::files::FilesAsGui;
 use oc_utils::{every, let_ok, let_some};
@@ -14,6 +14,8 @@ use crate::{
 };
 
 const ROW_BG: Color = Color::srgb(0.2, 0.25, 0.2);
+const STATUS_OPERATIONAL_BG: Color = Color::srgb(0.1, 0.5, 0.15);
+const STATUS_DEAD_BG: Color = Color::srgb(0.25, 0.25, 0.25);
 const ROW_HEIGHT: f32 = 32.;
 const COLUMNS_WIDTH: f32 = 200.;
 const INDIVIDUAL_ICON_WIDTH: f32 = 30.;
@@ -24,6 +26,9 @@ pub struct SquadDetails;
 
 #[derive(Component)]
 pub struct IndividualRow;
+
+#[derive(Component, Default, Clone)]
+pub struct IndividualNameText(pub Option<IndividualIndex>);
 
 #[derive(Component, Default, Clone)]
 pub struct IndividualStatusText(pub Option<IndividualIndex>);
@@ -58,6 +63,7 @@ fn row(
     let rect = illustration.inner().rect();
     let action = individual.action_hud_label().to_string();
     let rounds = format!("{} rnds.", primary_rounds(&g.mod_, individual));
+    let status_color = status_color(individual.status);
 
     bsn! {
         Node {
@@ -81,8 +87,10 @@ fn row(
             Children [
                 // Name
                 (
+                    IndividualNameText(i)
                     Text({format!("Individual {}", i.0)})
                     TextFont { font_size: px(11) }
+                    BackgroundColor(status_color)
                     Pickable::IGNORE
                 ),
                 // Status
@@ -145,6 +153,7 @@ pub fn update_rows(
     g: Res<GameConfig>,
     mut texts: Query<(&IndividualStatusText, &mut Text), Without<IndividualRoundsText>>,
     mut rounds: Query<(&IndividualRoundsText, &mut Text), Without<IndividualStatusText>>,
+    mut names: Query<(&IndividualNameText, &mut BackgroundColor)>,
     time: Res<Time>,
     mut timer: Local<Option<Timer>>,
 ) {
@@ -157,10 +166,23 @@ pub fn update_rows(
         text.0 = individual.action_hud_label().to_string();
     }
 
+    for (individual, mut bg) in &mut names {
+        let_some!(individual = individual.0, continue);
+        let_some!(individual = world.individual(individual), continue);
+        bg.0 = status_color(individual.status);
+    }
+
     for (individual, mut text) in &mut rounds {
         let_some!(individual = individual.0, continue);
         let_some!(individual = world.individual(individual), continue);
         text.0 = format!("{} rnds.", primary_rounds(&g.mod_, individual));
+    }
+}
+
+fn status_color(status: Status) -> Color {
+    match status {
+        Status::Operational => STATUS_OPERATIONAL_BG,
+        Status::Dead => STATUS_DEAD_BG,
     }
 }
 

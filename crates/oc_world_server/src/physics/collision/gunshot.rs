@@ -42,6 +42,13 @@ impl<'x, E: Client> Processor<'x, E> {
                     updates.push(Update::UpdateIndividual(i, status));
                     updates.push(Update::UpdateIndividual(i, forces));
                 }
+                if let Some(sound) = self.ctx.state._mod().pick_die_sound() {
+                    updates.push(Update::PlaySoundWithGeo(
+                        sound,
+                        individual.position,
+                        individual.region(),
+                    ));
+                }
                 updates.push(Update::RemoveProjectile(projectile));
             }
         }

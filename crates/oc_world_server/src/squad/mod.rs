@@ -1,7 +1,7 @@
 use derive_more::Constructor;
 use oc_individual::{
     Individual,
-    squad::{SquadIndex, Update},
+    squad::{SquadIndex, SquadStatus, Update},
 };
 use oc_world::World;
 
@@ -29,13 +29,21 @@ impl<'a> Processor<'a> {
             .collect();
 
         let position = leader.position.into();
-        let actives = members
-            .into_iter()
-            .filter(|m| m.can_follow_orders())
-            .count();
+        let total = members.len();
+        let dead = members.into_iter().filter(|m| m.status.is_dead()).count();
+        let status = if dead == 0 {
+            SquadStatus::Operational
+        } else if dead == total {
+            SquadStatus::Destroyed
+        } else if dead * 2 >= total {
+            SquadStatus::PartiallyDestroyed
+        } else {
+            SquadStatus::Casualities
+        };
         let updates = vec![
             runner::update::Update::UpdateSquad(self.i, Update::SetPosition(position)),
-            runner::update::Update::UpdateSquad(self.i, Update::SetActives(actives as u8)),
+            runner::update::Update::UpdateSquad(self.i, Update::SetActives(dead as u8)),
+            runner::update::Update::UpdateSquad(self.i, Update::SetStatus(status)),
         ];
 
         tracing::trace!(name = "squad-step-updates", i=?self.i, updates=?updates);

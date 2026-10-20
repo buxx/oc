@@ -319,13 +319,13 @@ impl World {
 
 fn on_world_resume(
     event: On<WorldResumeEvent>,
-    g: Res<GameConfig>,
+    g_res: Res<GameConfig>,
     mut world: ResMut<World>,
     mut commands: Commands,
     mut phase: ResMut<NextState<BattlePhase>>,
     network: Res<crate::network::state::State>,
 ) {
-    let_some!(g = &g.0, return);
+    let_some!(g = &g_res.0, return);
     let_some!(identity = &network.identity, return);
 
     for (i, squad) in &event.0.squads {
@@ -364,4 +364,5 @@ fn on_world_resume(
         oc_root::battle::BattlePhase::Fight => BattlePhase::Fight,
     };
     *phase = NextState::Pending(phase_);
+    crate::fx::play_phase_start(&mut commands, &g_res, phase_);
 }

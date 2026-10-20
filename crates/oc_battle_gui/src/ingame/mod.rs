@@ -26,7 +26,7 @@ use crate::{
     },
     network::{self, output::ToServerEvent},
     setup::spawn_camera2d,
-    states::AppState,
+    states::{AppState, GameConfig},
     world::WorldPlugin,
 };
 
@@ -288,13 +288,17 @@ fn on_set_battle_phase(
     event: On<SetBattlePhase>,
     mut commands: Commands,
     mut phase: ResMut<NextState<BattlePhase>>,
+    g: Res<GameConfig>,
 ) {
     *phase = NextState::Pending(event.0);
 
     match event.0 {
-        BattlePhase::Deployment => {}
+        BattlePhase::Deployment => {
+            crate::fx::play_phase_start(&mut commands, &g, BattlePhase::Deployment)
+        }
         BattlePhase::Fight => {
             commands.trigger(spawn::HideSpawnZones);
+            crate::fx::play_phase_start(&mut commands, &g, BattlePhase::Fight);
         }
     }
 }

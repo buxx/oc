@@ -2,7 +2,7 @@ use bon::Builder;
 use oc_individual::{
     IndividualIndex,
     order::Order,
-    squad::{Squad, SquadFormation},
+    squad::{Squad, SquadFormation, SquadStatus},
 };
 use oc_mod::illustration::IllustrationIndex;
 use oc_root::{geo::WorldVec2, side::Side};
@@ -30,6 +30,7 @@ impl TestSquad {
             formation: self.formation,
             orders: self.orders,
             position: self.position,
+            status: SquadStatus::Operational,
         }
     }
 }

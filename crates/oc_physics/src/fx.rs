@@ -11,5 +11,6 @@ pub enum Fx {
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Audio {
-    PlayOnce(SoundIndex, WorldVec3),
+    PlayWithGeo(SoundIndex, WorldVec3),
+    Play(SoundIndex),
 }

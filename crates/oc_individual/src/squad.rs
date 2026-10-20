@@ -62,6 +62,9 @@ pub struct Squad {
     /// Computed position of the squad (leader position)
     #[getset(set_with = "pub")]
     pub position: WorldVec2,
+    /// Computed status
+    #[getset(set_with = "pub")]
+    pub status: SquadStatus,
 }
 
 impl Squad {
@@ -75,6 +78,7 @@ impl Squad {
             formation: SquadFormation::Line,
             orders: vec![],
             position,
+            status: SquadStatus::Operational,
         }
     }
 
@@ -86,6 +90,25 @@ impl Squad {
     }
 }
 
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    serde::Serialize,
+    serde::Deserialize,
+    PartialEq,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum SquadStatus {
+    Operational,
+    Casualities,
+    PartiallyDestroyed,
+    Destroyed,
+}
+
 #[derive(Debug, Clone, Archive, rkyv::Deserialize, rkyv::Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Update {
@@ -93,6 +116,7 @@ pub enum Update {
     SetOrderPosition(OrderIndex, WorldVec2),
     SetPosition(WorldVec2),
     SetActives(u8),
+    SetStatus(SquadStatus),
     Accomplished,
 }
 

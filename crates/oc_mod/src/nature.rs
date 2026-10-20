@@ -205,6 +205,27 @@ impl Default for Intercept {
     }
 }
 
+/// Kind of bullet impact on a nature (select impact sounds)
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum ImpactKind {
+    #[default]
+    Ground,
+    Wall,
+    Metal,
+}
+
 #[derive(
     Debug,
     Clone,
@@ -229,6 +250,8 @@ pub struct NatureRaw {
     pub movement: Movement,
     #[serde(default)]
     pub intercept: Intercept,
+    #[serde(default)]
+    pub impact: ImpactKind,
 }
 
 impl From<NatureRaw> for Nature {
@@ -242,6 +265,7 @@ impl From<NatureRaw> for Nature {
             hiding_opacity_bonus: value.hiding_opacity_bonus,
             movement: value.movement,
             intercept: value.intercept,
+            impact: value.impact,
         }
     }
 }
@@ -266,6 +290,7 @@ pub struct Nature {
     pub hiding_opacity_bonus: f32,
     pub movement: Movement,
     pub intercept: Intercept,
+    pub impact: ImpactKind,
 }
 
 #[derive(

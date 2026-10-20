@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use oc_physics::fx::{Audio, Fx};
 use oc_utils::let_some;
 
-use crate::states::GameConfig;
+use crate::{ingame::BattlePhase, states::GameConfig};
 
 #[derive(Debug, Event)]
 pub struct FxEvent(pub Fx);
@@ -20,6 +20,17 @@ impl Plugin for FxPlugin {
             .add_systems(Startup, setup)
             .add_systems(Update, update_listener);
     }
+}
+
+pub fn play_phase_start(commands: &mut Commands, g: &GameConfig, phase: BattlePhase) {
+    let_some!(g = &g.0, return);
+    let groups = &g.mod_.sound_groups;
+    let sound = match phase {
+        BattlePhase::Deployment => groups.deployment_start,
+        BattlePhase::Fight => groups.fight_start,
+    };
+    let_some!(sound = sound, return);
+    commands.trigger(FxEvent(Fx::Audio(Audio::Play(sound))));
 }
 
 fn setup(mut commands: Commands) {
@@ -43,7 +54,7 @@ fn on_fx(
 
     match &fx.0 {
         Fx::Audio(audio) => match audio {
-            Audio::PlayOnce(sound, position) => {
+            Audio::PlayWithGeo(sound, position) => {
                 let sound = g.mod_.sound(*sound);
                 let path = path.join(&sound.name);
                 commands.spawn((
@@ -51,6 +62,14 @@ fn on_fx(
                     Transform::from_translation(Vec3::new(position.x, position.y, 0.0)),
                     AudioPlayer::new(asset_server.load(path)),
                     PlaybackSettings::ONCE.with_spatial(true),
+                ));
+            }
+            Audio::Play(sound) => {
+                let sound = g.mod_.sound(*sound);
+                let path = path.join(&sound.name);
+                commands.spawn((
+                    AudioPlayer::new(asset_server.load(path)),
+                    PlaybackSettings::DESPAWN,
                 ));
             }
         },

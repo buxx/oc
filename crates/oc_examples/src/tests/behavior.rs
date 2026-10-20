@@ -135,6 +135,7 @@ fn squads(
             actives: count as u8,
             formation: SquadFormation::Line,
             orders: orders.clone(),
+            status: oc_individual::squad::SquadStatus::Operational,
         })
         .collect()
 }

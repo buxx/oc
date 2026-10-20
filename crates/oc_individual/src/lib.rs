@@ -459,6 +459,10 @@ impl Status {
             Status::Dead => "Dead",
         }
     }
+
+    pub fn is_dead(&self) -> bool {
+        matches!(self, Self::Dead)
+    }
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]

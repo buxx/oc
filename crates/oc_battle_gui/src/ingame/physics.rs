@@ -108,7 +108,6 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
                 commands.trigger(ForgotProjectile(*i));
             }
         },
-        // TODO: implement fragments / rebound
         oc_physics::Event::Collision(a, b) => {
             match (a, b) {
                 (ObjectId::Individual(_), ObjectId::Individual(_))
@@ -122,7 +121,6 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
                     // TODO: compute kill too ? or wait server
                 }
                 (ObjectId::Projectile(i), ObjectId::Tile(_)) => {
-                    // TODO impact sound
                     commands.trigger(ForgotProjectile(*i));
                 }
             }

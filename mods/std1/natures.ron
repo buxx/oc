@@ -59,12 +59,14 @@
     ),
     (
         name: "BrickWall",
+        impact: Wall,
         opacity: 1.0,
         z: Meters(2.5),
         deny: [Projectile],
     ),
     (
         name: "Trunk",
+        impact: Wall,
         opacity: 0.8,
         z: Meters(4.0),
         deny: [Projectile],
@@ -121,18 +123,21 @@
     ),
     (
         name: "BigRock",
+        impact: Wall,
         opacity: 1.0,
         z: Meters(2.5),
         deny: [Individual, Projectile],
     ),
     (
         name: "Cliff",
+        impact: Wall,
         opacity: 0.0,
         z: Meters(0.0),
         deny: [Individual, Projectile],
     ),
     (
         name: "Tschechenigel",
+        impact: Metal,
         opacity: 0.2,
         z: Meters(1.8),
         deny: [],
@@ -141,6 +146,7 @@
     ),
     (
         name: "ThickSheetMetal",
+        impact: Metal,
         opacity: 1.0,
         z: Meters(1.8),
         deny: [],

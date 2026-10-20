@@ -5,7 +5,7 @@ use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
 };
-use oc_individual::squad::{Squad, SquadIndex};
+use oc_individual::squad::{Squad, SquadIndex, SquadStatus};
 use oc_mod::illustration::IllustrationKind;
 use oc_root::files::FilesAsGui;
 use oc_utils::bevy::EntityMapping;
@@ -27,6 +27,11 @@ const CELL_BG_HOVER: Color = Color::srgb(0.35, 0.45, 0.35);
 
 const CELL_OUTLINE_SELECTED: Color = Color::srgb(0.2, 0.4, 1.0);
 
+const STATUS_BG_OPERATIONAL: Color = Color::srgb(0.1, 0.5, 0.1);
+const STATUS_BG_CASUALITIES: Color = Color::srgb(0.7, 0.6, 0.05);
+const STATUS_BG_PARTIALLY_DESTROYED: Color = Color::srgb(0.7, 0.1, 0.1);
+const STATUS_BG_DESTROYED: Color = Color::srgb(0.25, 0.25, 0.25);
+
 const SQUAD_CELL_WIDTH: f32 = 122.;
 const SQUAD_CELL_HEIGHT: f32 = 52.;
 const SQUAD_ICON_WIDTH: f32 = 50.;
@@ -34,6 +39,9 @@ const SQUAD_ICON_HEIGHT: f32 = 50.;
 
 #[derive(Component, Default, Clone)]
 pub struct SquadGrid;
+
+#[derive(Component, Default, Clone)]
+pub struct SquadNameText(pub Option<SquadIndex>);
 
 #[derive(Component, Default, Clone)]
 pub struct SquadBehaviorText(pub Option<SquadIndex>);
@@ -54,6 +62,15 @@ pub fn squads() -> impl Scene {
             column_gap: px(GAP),
             overflow: Overflow::scroll_y(),
         }
+    }
+}
+
+fn status_color(status: &SquadStatus) -> Color {
+    match status {
+        SquadStatus::Operational => STATUS_BG_OPERATIONAL,
+        SquadStatus::Casualities => STATUS_BG_CASUALITIES,
+        SquadStatus::PartiallyDestroyed => STATUS_BG_PARTIALLY_DESTROYED,
+        SquadStatus::Destroyed => STATUS_BG_DESTROYED,
     }
 }
 
@@ -95,10 +112,11 @@ fn squad_cell(
                 Pickable::IGNORE
                 Children [
                     (
+                        SquadNameText(i)
                         Text({format!("Squad {}", i.0)})
                         TextFont { font_size: px(14) }
                         Pickable::IGNORE
-                        BackgroundColor(Color::srgb(0.1, 0.5, 0.1))
+                        BackgroundColor(status_color(&squad.status))
                     ),
                     (
                         SquadBehaviorText(i)
@@ -216,6 +234,24 @@ pub fn update_squad_behaviors(
             .first()
             .map(|o| o.hud_label().to_string())
             .unwrap_or_default();
+    }
+}
+
+pub fn update_squad_status_colors(
+    world: Res<World>,
+    mut texts: Query<(&SquadNameText, &mut BackgroundColor)>,
+    time: Res<Time>,
+    mut timer: Local<Option<Timer>>,
+) {
+    every!(timer, time, Duration::from_secs(1));
+
+    for (name, mut bg) in &mut texts {
+        let_some!(i = name.0, continue);
+        let_some!(squad = world.squad(i), continue);
+        let color = status_color(&squad.status);
+        if bg.0 != color {
+            bg.0 = color;
+        }
     }
 }
 

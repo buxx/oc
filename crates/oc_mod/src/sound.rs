@@ -67,6 +67,61 @@ pub struct Sound {
     pub name: String,
 }
 
+/// Sounds groups as written in mod.ron (sounds file names)
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+#[serde(default)]
+pub struct SoundGroupsNames {
+    pub die: Vec<String>,
+    pub main_click: Option<String>,
+    pub secondary_click: Option<String>,
+    pub deployment_start: Option<String>,
+    pub fight_start: Option<String>,
+    pub bullet_impact_ground: Vec<String>,
+    pub bullet_wall_impact: Vec<String>,
+    pub bullet_metal_impact: Vec<String>,
+}
+
+/// Sounds groups resolved to sounds indexes
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct SoundGroups {
+    pub die: Vec<SoundIndex>,
+    pub main_click: Option<SoundIndex>,
+    pub secondary_click: Option<SoundIndex>,
+    pub deployment_start: Option<SoundIndex>,
+    pub fight_start: Option<SoundIndex>,
+    pub bullet_impact_ground: Vec<SoundIndex>,
+    pub bullet_wall_impact: Vec<SoundIndex>,
+    pub bullet_metal_impact: Vec<SoundIndex>,
+}
+
+/// Pick randomly one of the given sounds
+pub fn pick(sounds: &[SoundIndex]) -> Option<SoundIndex> {
+    if sounds.is_empty() {
+        return None;
+    }
+    sounds.get(fastrand::usize(..sounds.len())).copied()
+}
+
 pub fn load(path: &Path) -> Result<Vec<IndexedSound>, Error> {
     let path = path.join(SOUNDS_FOLDER);
     let mut sounds = vec![];

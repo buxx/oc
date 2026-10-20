@@ -16,7 +16,7 @@ use crate::{
     illustration::{IllustrationIndex, IllustrationKind, IndexedIllustration},
     magazine::{IndexedMagazine, MagazineIndex},
     nature::{Nature, NatureIndex},
-    sound::IndexedSound,
+    sound::{IndexedSound, SoundIndex},
     weapons::{IndexedWeapon, WeaponIndex},
 };
 
@@ -52,6 +52,10 @@ pub struct Mod {
     pub natures: Vec<nature::IndexedNature>,
     #[serde(skip, default)]
     pub sounds: Vec<sound::IndexedSound>,
+    #[serde(default, rename = "sound_groups")]
+    pub sound_groups_names: sound::SoundGroupsNames,
+    #[serde(skip, default)]
+    pub sound_groups: sound::SoundGroups,
     #[serde(skip, default)]
     pub ammunitions: Vec<ammunition::IndexedAmmunition>,
     #[serde(skip, default)]
@@ -71,6 +75,7 @@ impl Mod {
 
         mod_.natures = nature::load(path)?;
         mod_.sounds = sound::load(path)?;
+        mod_.sound_groups = mod_.resolve_sound_groups()?;
         mod_.ammunitions = ammunition::load(path)?;
         mod_.magazines = magazine::load(path)?;
         mod_.weapons = weapons::load(path, &mod_)?;
@@ -183,6 +188,55 @@ impl Mod {
                     .ok_or(Error::UnknownSoundName(name.clone()))
             })
             .collect()
+    }
+
+    pub(crate) fn find_sound(&self, name: &str) -> Result<SoundIndex, Error> {
+        self.sounds
+            .iter()
+            .find(|s| s.name == name)
+            .map(|s| s.index())
+            .ok_or(Error::UnknownSoundName(name.to_string()))
+    }
+
+    fn resolve_sound_groups(&self) -> Result<sound::SoundGroups, Error> {
+        let names = &self.sound_groups_names;
+        let many = |names: &Vec<String>| -> Result<Vec<SoundIndex>, Error> {
+            Ok(self
+                .find_sounds(names)?
+                .into_iter()
+                .map(|s| s.index())
+                .collect())
+        };
+        let one = |name: &Option<String>| -> Result<Option<SoundIndex>, Error> {
+            name.as_deref()
+                .map(|name| self.find_sound(name))
+                .transpose()
+        };
+
+        Ok(sound::SoundGroups {
+            die: many(&names.die)?,
+            main_click: one(&names.main_click)?,
+            secondary_click: one(&names.secondary_click)?,
+            deployment_start: one(&names.deployment_start)?,
+            fight_start: one(&names.fight_start)?,
+            bullet_impact_ground: many(&names.bullet_impact_ground)?,
+            bullet_wall_impact: many(&names.bullet_wall_impact)?,
+            bullet_metal_impact: many(&names.bullet_metal_impact)?,
+        })
+    }
+
+    /// Pick randomly a bullet impact sound according to impacted nature
+    pub fn pick_impact_sound(&self, kind: nature::ImpactKind) -> Option<SoundIndex> {
+        let groups = &self.sound_groups;
+        match kind {
+            nature::ImpactKind::Ground => sound::pick(&groups.bullet_impact_ground),
+            nature::ImpactKind::Wall => sound::pick(&groups.bullet_wall_impact),
+            nature::ImpactKind::Metal => sound::pick(&groups.bullet_metal_impact),
+        }
+    }
+
+    pub fn pick_die_sound(&self) -> Option<SoundIndex> {
+        sound::pick(&self.sound_groups.die)
     }
 
     pub fn illustration_from_name(
@@ -320,4 +374,30 @@ pub enum CacheError {
 
 fn default_human_default_stand_up_fire_meters() -> f32 {
     DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS.0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn std1_sound_groups() {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../mods/std1");
+        let mod_ = Mod::load(&path, None).unwrap();
+        let groups = &mod_.sound_groups;
+
+        assert_eq!(groups.die.len(), 13);
+        assert!(groups.main_click.is_some());
+        assert!(groups.secondary_click.is_some());
+        assert!(groups.deployment_start.is_some());
+        assert!(groups.fight_start.is_some());
+        for kind in [
+            nature::ImpactKind::Ground,
+            nature::ImpactKind::Wall,
+            nature::ImpactKind::Metal,
+        ] {
+            assert!(mod_.pick_impact_sound(kind).is_some());
+        }
+        assert!(mod_.weapons.iter().all(|w| w.reload_sound().is_some()));
+    }
 }
