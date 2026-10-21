@@ -91,4 +91,19 @@
    <property name="ID" value="BigRock"/>
   </properties>
  </tile>
+ <tile id="204">
+  <properties>
+   <property name="ID" value="Cliff"/>
+  </properties>
+ </tile>
+ <tile id="205">
+  <properties>
+   <property name="ID" value="Tschechenigel"/>
+  </properties>
+ </tile>
+ <tile id="206">
+  <properties>
+   <property name="ID" value="ThickSheetMetal"/>
+  </properties>
+ </tile>
 </tileset>

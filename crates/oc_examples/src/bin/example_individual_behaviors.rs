@@ -225,7 +225,19 @@ fn end_when_success_or_timeout(
             | TestCase::MoveStraightAheadObstacle
             | TestCase::MoveFastStraightAhead
             | TestCase::MoveFastStraightAheadObstacle => {
-                (tracking.accomplished.len() >= 2 * args.0.count).then(Instant::now)
+                {
+                    // Leader accomplish its two orders; members' orders are replaced by the
+                    // leader's current one, so they must accomplish at least one.
+                    let accomplished = |i: u64| {
+                        tracking
+                            .accomplished
+                            .iter()
+                            .filter(|e| ***e == oc_individual::IndividualIndex(i))
+                            .count()
+                    };
+                    (accomplished(0) >= 2 && (1..args.0.count as u64).all(|i| accomplished(i) >= 1))
+                        .then(Instant::now)
+                }
             }
         },
         Some(value) => {

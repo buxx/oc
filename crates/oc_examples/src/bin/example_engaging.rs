@@ -341,7 +341,7 @@ fn individuals(
                 .position(WorldVec3::new(119., 92., 0.))
                 .weapons(
                     TestWeapons::builder()
-                        .primary(TestWeapon::filled(mod_, "MosinNagantM1924").make())
+                        .primary(TestWeapon::filled(mod_, "Mosin Nagant M1924").make())
                         .build()
                         .make(),
                 )
@@ -352,7 +352,7 @@ fn individuals(
                 .position(WorldVec3::new(119., 99., 0.))
                 .weapons(
                     TestWeapons::builder()
-                        .primary(TestWeapon::filled(mod_, "MosinNagantM1924").make())
+                        .primary(TestWeapon::filled(mod_, "Mosin Nagant M1924").make())
                         .build()
                         .make(),
                 )
@@ -363,7 +363,7 @@ fn individuals(
                 .position(WorldVec3::new(389., 64., 0.))
                 .weapons(
                     TestWeapons::builder()
-                        .primary(TestWeapon::filled(mod_, "MosinNagantM1924").make())
+                        .primary(TestWeapon::filled(mod_, "Mosin Nagant M1924").make())
                         .build()
                         .make(),
                 )
@@ -374,7 +374,7 @@ fn individuals(
                 .position(WorldVec3::new(389., 71., 0.))
                 .weapons(
                     TestWeapons::builder()
-                        .primary(TestWeapon::filled(mod_, "MosinNagantM1924").make())
+                        .primary(TestWeapon::filled(mod_, "Mosin Nagant M1924").make())
                         .build()
                         .make(),
                 )
@@ -387,7 +387,7 @@ fn individuals(
                 .position(WorldVec3::new(119., 92., 0.))
                 .weapons(
                     TestWeapons::builder()
-                        .primary(TestWeapon::filled(mod_, "MosinNagantM1924").make())
+                        .primary(TestWeapon::filled(mod_, "Mosin Nagant M1924").make())
                         .build()
                         .make(),
                 )
@@ -398,7 +398,7 @@ fn individuals(
                 .position(WorldVec3::new(119., 99., 0.))
                 .weapons(
                     TestWeapons::builder()
-                        .primary(TestWeapon::filled(mod_, "MosinNagantM1924").make())
+                        .primary(TestWeapon::filled(mod_, "Mosin Nagant M1924").make())
                         .build()
                         .make(),
                 )

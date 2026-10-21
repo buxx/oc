@@ -125,4 +125,22 @@
         z: Meters(2.5),
         deny: [Individual, Projectile],
     ),
+    (
+        name: "Cliff",
+        opacity: 0.0,
+        z: Meters(0.0),
+        deny: [Individual, Projectile],
+    ),
+    (
+        name: "Tschechenigel",
+        opacity: 0.2,
+        z: Meters(1.8),
+        deny: [],
+    ),
+    (
+        name: "ThickSheetMetal",
+        opacity: 1.0,
+        z: Meters(1.8),
+        deny: [],
+    ),
 ]
