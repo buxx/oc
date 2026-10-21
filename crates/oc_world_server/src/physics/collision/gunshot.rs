@@ -24,6 +24,10 @@ impl<'x, E: Client> Processor<'x, E> {
                 let dead = oc_individual::Status::Dead;
                 let status = oc_individual::Update::SetStatus(dead);
                 let forces = oc_individual::Update::SetForces(vec![]);
+                let orders = oc_individual::Update::SetOrders(vec![]);
+                let intent = oc_individual::Update::SetIntent(
+                    oc_individual::behavior::Intent::Idle(individual.gesture.direction()),
+                );
                 #[cfg(feature = "tracker")]
                 {
                     self.ctx
@@ -36,11 +40,15 @@ impl<'x, E: Client> Processor<'x, E> {
                 {
                     updates.push(Update::UpdateIndividual(i, status));
                     updates.push(Update::UpdateIndividual(i, forces));
+                    updates.push(Update::UpdateIndividual(i, orders));
+                    updates.push(Update::UpdateIndividual(i, intent));
                 }
                 #[cfg(feature = "debug")]
                 if !WorldConfig::immortality() {
                     updates.push(Update::UpdateIndividual(i, status));
                     updates.push(Update::UpdateIndividual(i, forces));
+                    updates.push(Update::UpdateIndividual(i, orders));
+                    updates.push(Update::UpdateIndividual(i, intent));
                 }
                 if let Some(sound) = self.ctx.state._mod().pick_die_sound() {
                     updates.push(Update::PlaySoundWithGeo(

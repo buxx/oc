@@ -548,7 +548,8 @@ impl<'a> Processor<'a> {
                     self.resolve_suppress_order(individual, situation, *target)
                 }
             },
-            false => individual.intent.clone(),
+            // Dead (or unable) individuals do nothing: no movement intent is kept
+            false => Intent::Idle(individual.gesture.direction()),
         };
 
         tracing::trace!(name="individual-step-decide", i=?self.i, order=?order, intent=?intent);
