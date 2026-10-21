@@ -11,6 +11,9 @@ pub struct FxEvent(pub Fx);
 #[derive(Component, Default)]
 struct Emitter;
 
+/// Too many at once starve the output buffer. Extra spatial sounds are dropped.
+const MAX_CONCURRENT_EMITTERS: usize = 24;
+
 pub struct FxPlugin;
 
 // See https://taintedcoders.com/bevy/audio
@@ -47,6 +50,7 @@ fn on_fx(
     mut commands: Commands,
     g: Res<GameConfig>,
     files: Res<GuiFiles>,
+    emitters: Query<(), With<Emitter>>,
 ) {
     let_some!(g = &g.0, return);
     let_some!(files = &files.0, return);
@@ -55,13 +59,16 @@ fn on_fx(
     match &fx.0 {
         Fx::Audio(audio) => match audio {
             Audio::PlayWithGeo(sound, position) => {
+                if emitters.iter().count() >= MAX_CONCURRENT_EMITTERS {
+                    return;
+                }
                 let sound = g.mod_.sound(*sound);
                 let path = path.join(&sound.name);
                 commands.spawn((
                     Emitter,
                     Transform::from_translation(Vec3::new(position.x, position.y, 0.0)),
                     AudioPlayer::new(asset_server.load(path)),
-                    PlaybackSettings::ONCE.with_spatial(true),
+                    PlaybackSettings::DESPAWN.with_spatial(true),
                 ));
             }
             Audio::Play(sound) => {

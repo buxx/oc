@@ -137,6 +137,9 @@ pub struct WorldConfig {
     /// A proportional value of given distance will be used.
     #[getset(get_copy = "pub", set_with = "pub")]
     proximity_projectile_impact_tick_increase_value: (Meters, Suppress),
+    /// Chance (0.0..=1.0) that a projectile impact plays a sound
+    #[getset(get_copy = "pub", set_with = "pub")]
+    impact_sound_chance: f32,
     /// Decrease each individual suppress value at tick by this value
     #[getset(get_copy = "pub", set_with = "pub")]
     individual_tick_decrease_suppress: Suppress,
@@ -218,6 +221,7 @@ impl WorldConfig {
         let proximity_individual_rayon = 4;
         let proximity_projectile_fly_tick_increase_value = (Meters(20.), Suppress(50));
         let proximity_projectile_impact_tick_increase_value = (Meters(30.), Suppress(100));
+        let impact_sound_chance = 0.35;
         let individual_tick_decrease_suppress = Suppress(20);
         let individual_suppress_limit_hide = Suppress(200);
         let individual_hide_engage_distance = Meters(40.0);
@@ -270,6 +274,7 @@ impl WorldConfig {
             proximity_individual_rayon,
             proximity_projectile_fly_tick_increase_value,
             proximity_projectile_impact_tick_increase_value,
+            impact_sound_chance,
             individual_tick_decrease_suppress,
             individual_suppress_limit_hide,
             individual_hide_engage_distance,

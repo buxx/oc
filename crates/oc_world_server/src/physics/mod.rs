@@ -315,6 +315,9 @@ impl<'x, E: Client> Processor<'x, E> {
         id: ProjectileId,
         tile: WorldTileIndex,
     ) -> Option<crate::runner::update::Update> {
+        if fastrand::f32() >= self.ctx.state.w.impact_sound_chance() {
+            return None;
+        }
         let world = self.ctx.state.world();
         let projectile = world.projectile(&id)?;
         let tile = world.tile(tile)?;

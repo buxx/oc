@@ -6352,6 +6352,7 @@ dependencies = [
  "clap",
  "ctrlc",
  "derive_more",
+ "fastrand",
  "glam 0.33.2",
  "image 0.25.10",
  "message-io",
