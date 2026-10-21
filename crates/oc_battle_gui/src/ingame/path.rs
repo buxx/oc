@@ -12,7 +12,7 @@ use oc_utils::let_some;
 use crate::ingame::camera::squad::ShowFormationPositions;
 use crate::{
     entity::individual::{IndividualIndex, Intent},
-    ingame,
+    ingame::{self, BattlePhase},
     states::GameConfig,
     world::World,
 };
@@ -106,6 +106,7 @@ pub fn draw(
     g: Res<GameConfig>,
     intents: Query<(&Intent, &Position), With<IndividualIndex>>,
     display: Res<DisplayPaths>,
+    phase: Res<State<BattlePhase>>,
     mut gizmos: Gizmos<PathGizmos>,
     #[cfg(feature = "debug")] debug: Res<ShowFormationPositions>,
 ) {
@@ -134,7 +135,11 @@ pub fn draw(
         }
     }
 
-    // Individual intent paths
+    // Individual intent paths are only visible during fight
+    if !matches!(phase.get(), BattlePhase::Fight) {
+        return;
+    }
+
     for (intent, position) in intents {
         match &intent.0 {
             oc_individual::behavior::Intent::Idle(_)

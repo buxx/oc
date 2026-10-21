@@ -150,8 +150,7 @@ impl Plugin for IngamePlugin {
                 Update,
                 (path::draw,)
                     .run_if(in_state(AppState::InGame))
-                    .run_if(in_state(InGameState::Battle))
-                    .run_if(in_state(BattlePhase::Fight)),
+                    .run_if(in_state(InGameState::Battle)),
             );
 
         #[cfg(feature = "debug")]
