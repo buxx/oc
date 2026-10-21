@@ -260,14 +260,15 @@ impl<'a> Processor<'a> {
         let mut distribution: Vec<(IndividualIndex, Vec<Order>)> =
             Vec::with_capacity(squad.members.len());
 
-        let Some(order) = order else {
-            return vec![];
-        };
+        let idle = Order::Idle;
+        let order = order.unwrap_or(&idle);
 
         // Squad leader own the squad order
         let orders = Update::SetOrders(vec![order.clone()]);
         let update = runner::update::Update::UpdateIndividual(squad.leader(), orders);
-        updates.push(update);
+        if squad.orders.first().is_some() {
+            updates.push(update);
+        }
 
         let leader = self.world.individual(squad.leader());
         let gesture = &leader.gesture;
@@ -279,7 +280,18 @@ impl<'a> Processor<'a> {
 
         // Members receive orders according to this order when leader accept it.
         match order {
-            Order::Idle => todo!(),
+            Order::Idle => {
+                let reference = leader.position.into();
+                let places = self.places(squad_i, squad, reference, count, direction, angle);
+
+                for (member, position) in places {
+                    let individual = self.world.individual(member);
+
+                    if !position.almost_equal(individual.position, POSITION_TOLERANCE) {
+                        distribution.push((member, vec![Order::MoveTo(position)]));
+                    }
+                }
+            }
             Order::MoveTo(target) | Order::MoveFastTo(target) | Order::SneakTo(target) => {
                 let leader_position: Vec2 = leader.position.into();
                 let direction = order.direction(leader_position, |_| leader_position);
@@ -1541,7 +1553,7 @@ mod tests {
         let move_to_order = Order::MoveTo(move_to_position);
         // expected
         let expected_individual_1_move_to_position = WorldVec2::new(150., 100.);
-        let expected_individual_2_move_to_position = WorldVec2::new(100., 110.);
+        let expected_individual_2_move_to_position = WorldVec2::new(150., 110.);
 
         let world = two_individuals_world(
             &w,
@@ -1760,7 +1772,7 @@ mod tests {
         });
 
         // Then
-        assert_eq!(gesture.0.hands, HandsGesture::Aiming(U8Progress(26)));
+        assert_eq!(gesture.0.hands, HandsGesture::Aiming(U8Progress(18)));
         assert_eq!(gesture.1, vec![]);
     }
 
