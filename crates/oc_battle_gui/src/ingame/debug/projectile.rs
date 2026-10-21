@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use bevy::prelude::*;
 
@@ -40,7 +40,12 @@ pub fn show_collisions(
 
     let mut collisions = Vec::with_capacity(state.collisions.len());
     while let Some((instant, position)) = state.collisions.pop() {
-        if instant.elapsed() <= DISPLAY_DURATION {
+        // Collision is displayed once its lag is elapsed
+        let Some(elapsed) = Instant::now().checked_duration_since(instant) else {
+            collisions.push((instant, position));
+            continue;
+        };
+        if elapsed <= DISPLAY_DURATION {
             let position_ = Vec2::new(position.x, position.y.to_gui_y(&g.w));
             gizmos.circle_2d(position_, 1.0, COLOR);
             collisions.push((instant, position))

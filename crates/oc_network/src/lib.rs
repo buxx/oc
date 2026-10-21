@@ -79,5 +79,6 @@ pub enum SquadMessage {
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Debug {
-    Collision(WorldVec3),
+    /// Collision position, and lag to wait before displaying it
+    Collision(WorldVec3, std::time::Duration),
 }

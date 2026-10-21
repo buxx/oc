@@ -11,6 +11,6 @@ pub mod visibility;
 
 pub fn on_debug_input(event: On<DebugEvent>, mut state: ResMut<crate::ingame::state::State>) {
     match event.0 {
-        Debug::Collision(position) => state.collisions.push((Instant::now(), position)),
+        Debug::Collision(position, lag) => state.collisions.push((Instant::now() + lag, position)),
     }
 }
