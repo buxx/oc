@@ -307,7 +307,7 @@ test-interiors-enter:
 
 test-all:
     just test
-    just test-e2e
+    just test-e2e fast
 
 list:
     just --list

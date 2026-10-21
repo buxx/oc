@@ -1,3 +1,6 @@
+use std::time::{Duration, Instant};
+
+use crate::runner::update::Update as Update_;
 use derive_more::Constructor;
 use oc_geo::{
     Geo, UpdateGeo,
@@ -5,7 +8,7 @@ use oc_geo::{
     tile::{TileXy, WorldTileIndex},
 };
 use oc_individual::IndividualIndex;
-use oc_physics::{Event, Force, Physic, UpdatePhysic, update::Update};
+use oc_physics::{Event, Force, Physic, TickProgress, UpdatePhysic, update::Update};
 use oc_projectile::ProjectileId;
 use oc_root::{Client, WcfgInto, WorldConfig, geo::WorldVec3};
 use oc_utils::collections::WithIds;
@@ -220,7 +223,7 @@ impl<'x, E: Client> Processor<'x, E> {
             {
                 use oc_network::ToClient;
 
-                if let Event::Collision(ObjectId::Projectile(projectile_id), _) = event
+                if let Event::Collision(ObjectId::Projectile(projectile_id), _, _) = event
                     && let Some(projectile) = self.ctx.state.world().projectile(&projectile_id)
                 {
                     let position = projectile.position();
@@ -237,7 +240,7 @@ impl<'x, E: Client> Processor<'x, E> {
                         updates.push(crate::runner::update::Update::RemoveProjectile(id));
                     }
                 },
-                Event::Collision(a, b) => match (a, b) {
+                Event::Collision(a, b, progress) => match (a, b) {
                     (ObjectId::Individual(_), ObjectId::Individual(_))
                     | (ObjectId::Individual(_), ObjectId::Projectile(_))
                     | (ObjectId::Projectile(_), ObjectId::Projectile(_))
@@ -246,10 +249,19 @@ impl<'x, E: Client> Processor<'x, E> {
                     | (ObjectId::Tile(_), ObjectId::Projectile(_))
                     | (ObjectId::Tile(_), ObjectId::Tile(_)) => {}
                     (ObjectId::Projectile(projectile_id), ObjectId::Individual(individual_i)) => {
-                        updates.extend(self.gunshot(projectile_id, individual_i));
+                        let lag = self.lag(progress);
+                        updates.extend(
+                            self.gunshot(projectile_id, individual_i)
+                                .into_iter()
+                                .map(|update| delay_sound(update, lag)),
+                        );
                     }
                     (ObjectId::Projectile(id), ObjectId::Tile(tile)) => {
-                        updates.extend(self.impact_sound(id, tile));
+                        let lag = self.lag(progress);
+                        updates.extend(
+                            self.impact_sound(id, tile)
+                                .map(|update| delay_sound(update, lag)),
+                        );
                         updates.push(crate::runner::update::Update::RemoveProjectile(id));
                     }
                 },
@@ -287,6 +299,15 @@ impl<'x, E: Client> Processor<'x, E> {
         updates.extend(proximity);
 
         updates
+    }
+
+    fn lag(&self, progress: TickProgress) -> Duration {
+        self.ctx
+            .state
+            .w
+            .physics_tick()
+            .interval()
+            .mul_f32(progress.0)
     }
 
     fn impact_sound(
@@ -475,5 +496,15 @@ impl From<IndividualIndex> for ObjectId {
 impl From<ProjectileId> for ObjectId {
     fn from(value: ProjectileId) -> Self {
         ObjectId::Projectile(value)
+    }
+}
+
+/// Sounds must be played at the real instant of the event, not at the end of the physics tick
+fn delay_sound(update: Update_, lag: Duration) -> Update_ {
+    match update {
+        Update_::PlaySoundWithGeo(..) if !lag.is_zero() => {
+            Update_::Schedule(Instant::now() + lag, Box::new(update))
+        }
+        update => update,
     }
 }

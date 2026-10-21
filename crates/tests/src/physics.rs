@@ -92,7 +92,7 @@ mod test {
         (5.1, 5.1, Meters(0.)), vec![Force::Translation([-1., -1., -1.].into(), MetersSeconds(1.))],
         // produce collision
         Meters(0.),
-        ([4.0, 4.0, -2.0].into(), vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
+        ([4.0, 4.0, -2.0].into(), vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)), Default::default())])
     )]
     // Case 3
     #[case(
@@ -100,7 +100,7 @@ mod test {
         (5.1, 5.1, Meters(10.)), vec![Force::Translation([-1., -1., 0.].into(), MetersSeconds(1.))],
         // produce collision with a tile at 12 meters
         Meters(12.),
-        ([4.0, 4.0, 50.0].into(), vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)))])
+        ([4.0, 4.0, 50.0].into(), vec![], vec![Event::Collision(ObjectsId::Object(ObjectId(0)), ObjectsId::Tile(WorldTileIndex(0)), Default::default())])
     )]
     fn test_tile_collision_in_meters_zero(
         #[case] object_pos: (f32, f32, Meters),

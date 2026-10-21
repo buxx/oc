@@ -108,7 +108,7 @@ pub fn on_physics_event(event: On<PhysicEvent>, mut commands: Commands) {
                 commands.trigger(ForgotProjectile(*i));
             }
         },
-        oc_physics::Event::Collision(a, b) => {
+        oc_physics::Event::Collision(a, b, _) => {
             match (a, b) {
                 (ObjectId::Individual(_), ObjectId::Individual(_))
                 | (ObjectId::Individual(_), ObjectId::Projectile(_))

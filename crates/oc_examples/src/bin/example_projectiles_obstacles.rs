@@ -100,6 +100,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 oc_physics::Event::Collision(
                                     ObjectId::Projectile(_),
                                     ObjectId::Tile(_),
+                                    _,
                                 )
                             )
                         })
@@ -119,6 +120,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 oc_physics::Event::Collision(
                                     ObjectId::Projectile(_),
                                     ObjectId::Tile(_),
+                                    _,
                                 )
                             )
                         })
@@ -137,6 +139,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 oc_physics::Event::Collision(
                                     ObjectId::Projectile(_),
                                     ObjectId::Tile(_),
+                                    _,
                                 )
                             )
                         })

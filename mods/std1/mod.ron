@@ -22,8 +22,29 @@ Mod (
     secondary_click: Some("Clac1.ogg"),
     deployment_start: Some("DrumMultiHits.ogg"),
     fight_start: Some("TrumpetLongHall.ogg"),
-    bullet_impact_ground: ["BulletGroundImpact1.ogg"],
-    bullet_wall_impact: ["BulletWallImpact1.ogg"],
-    bullet_metal_impact: ["BulletMetalImpact1.ogg"],
+    bullet_impact_ground: [
+      "BulletGroundImpact1.ogg",
+      "BulletGroundImpact2.ogg",
+      "BulletGroundImpact3.ogg",
+      "BulletGroundImpact4.ogg",
+      "BulletGroundImpact5.ogg",
+      "BulletGroundImpact6.ogg",
+    ],
+    bullet_wall_impact: [
+      "BulletWallImpact1.ogg",
+      "BulletWallImpact2.ogg",
+      "BulletWallImpact3.ogg",
+      "BulletWallImpact4.ogg",
+      "BulletWallImpact5.ogg",
+      "BulletWallImpact6.ogg",
+    ],
+    bullet_metal_impact: [
+      "BulletMetalImpact1.ogg",
+      "BulletMetalImpact2.ogg",
+      "BulletMetalImpact3.ogg",
+      "BulletMetalImpact4.ogg",
+      "BulletMetalImpact5.ogg",
+      "BulletMetalImpact6.ogg"
+      ],
   ),
 )

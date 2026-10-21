@@ -98,12 +98,23 @@ pub enum Force {
     Translation(WorldVec3, MetersSeconds),
 }
 
+/// Ratio of a physics tick elapsed when an event occurred.
+#[derive(Debug, Clone, Copy, Default, serde::Serialize)]
+pub struct TickProgress(pub f32);
+
+impl PartialEq for TickProgress {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub enum Event<T: serde::Serialize> {
     /// Physics application result position outside the world
     NoTile(T),
     /// Physics application result a collide between two objects
-    Collision(T, T),
+    /// With progress of the tick when the collision occurred
+    Collision(T, T, TickProgress),
     /// Object which emit proximity is on same tile than other
     Proximity(ProximityKind, T, T, [f32; 3]),
     /// Object want stop here by its own decision
@@ -162,8 +173,17 @@ where
         collision_ignored_pixels: 0,
         apply_z: None,
         events: vec![],
+        tick_progress: 0.0,
     }
     .run()
+}
+
+/// Ratio of a translation of `total` pixels done when reaching `to` from `from`
+fn progress(from: WorldVec3, to: WorldVec3, total: f32) -> f32 {
+    if total <= 0.0 {
+        return 0.0;
+    }
+    (from.distance(to) / total).clamp(0.0, 1.0)
 }
 
 /// What happened to a force once its translation has been simulated.
@@ -204,6 +224,8 @@ struct Stepper<'a, 's, I, O, C, P, Z: serde::Serialize> {
     collision_ignored_pixels: usize,
     apply_z: Option<f32>,
     events: Vec<Event<Z>>,
+    /// Progress of the current translation
+    tick_progress: f32,
 }
 
 impl<'a, I, O, C, P, Z> Stepper<'a, '_, I, O, C, P, Z>
@@ -277,6 +299,7 @@ where
             let pixel: WorldVec3 = [pixel_x as f32, pixel_y as f32, pixel_z as f32].into();
             let xy = Xy::from_((pixel_x, pixel_y), self.w);
             position = pixel;
+            self.tick_progress = progress(WorldVec3::new(x, y, z), pixel, pixels);
 
             tracing::trace!(name="physics-step-translation-line-pixel", origin=origin, i=?i, pixel=?pixel, xy=?xy);
 
@@ -312,7 +335,11 @@ where
 
         for (o, other) in (self.collision_at)(xy) {
             if self.collide_with(o, other, pixel, &volumes) {
-                self.events.push(Event::Collision(self.id, o));
+                self.events.push(Event::Collision(
+                    self.id,
+                    o,
+                    TickProgress(self.tick_progress),
+                ));
                 self.push_proximity_events(&proximity_others, ProximityKind::Impact, pixel);
                 return PixelOutcome::Stop;
             }
@@ -922,7 +949,14 @@ mod tests {
         let expected_position: WorldVec3 = [4.0, 2.0, 5.0].into();
         assert_eq!(position, expected_position); // x axis hit first, at MySubject (x) 2.0 (position) + 2.0 (width)
         assert_eq!(forces, Vec::<Force>::new());
-        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
+        assert_eq!(
+            events,
+            vec![Event::Collision(
+                MyObjectId(0),
+                MyObjectId(1),
+                TickProgress(0.)
+            )]
+        );
     }
 
     #[test]
@@ -941,7 +975,14 @@ mod tests {
         let expected_position: WorldVec3 = [3.0, 3.0, 5.0].into();
         assert_eq!(position, expected_position);
         assert_eq!(forces, Vec::<Force>::new());
-        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
+        assert_eq!(
+            events,
+            vec![Event::Collision(
+                MyObjectId(0),
+                MyObjectId(1),
+                TickProgress(0.)
+            )]
+        );
     }
 
     #[test]
@@ -967,7 +1008,14 @@ mod tests {
         let expected_new_position: WorldVec3 = [5.0, 0.0, 0.0].into();
         assert_eq!(new_position, expected_new_position);
         assert_eq!(new_forces, Vec::<Force>::new());
-        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(2))]);
+        assert_eq!(
+            events,
+            vec![Event::Collision(
+                MyObjectId(0),
+                MyObjectId(2),
+                TickProgress(0.)
+            )]
+        );
     }
 
     fn run_intercept(intercept: f32) -> StepResult {
@@ -995,7 +1043,14 @@ mod tests {
         // Then
         assert!(new_position.x < 5.0);
         assert_eq!(new_forces, Vec::<Force>::new());
-        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
+        assert_eq!(
+            events,
+            vec![Event::Collision(
+                MyObjectId(0),
+                MyObjectId(1),
+                TickProgress(0.)
+            )]
+        );
     }
 
     #[test]
@@ -1026,6 +1081,13 @@ mod tests {
         let (_, _, events) = run_intercept_at(1.0, 5.0, 10.0);
 
         // Then
-        assert_eq!(events, vec![Event::Collision(MyObjectId(0), MyObjectId(1))]);
+        assert_eq!(
+            events,
+            vec![Event::Collision(
+                MyObjectId(0),
+                MyObjectId(1),
+                TickProgress(0.)
+            )]
+        );
     }
 }

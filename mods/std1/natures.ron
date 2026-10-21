@@ -138,18 +138,18 @@
     (
         name: "Tschechenigel",
         impact: Metal,
-        opacity: 0.2,
+        opacity: 0.05,
         z: Meters(1.8),
         deny: [],
         movement: (individual: (force: Sneak, factor: 0.5)),
-        intercept: (projectile: Probability(0.35,)),
+        intercept: (projectile: Probability(0.2,)),
     ),
     (
         name: "ThickSheetMetal",
         impact: Metal,
-        opacity: 1.0,
+        opacity: 0.8,
         z: Meters(1.8),
         deny: [],
-        intercept: (projectile: Probability(0.90,)),
+        intercept: (projectile: Probability(0.7,)),
     ),
 ]

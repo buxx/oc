@@ -25,7 +25,7 @@ use oc_world::visibility::Visibility;
 #[derive(Debug, PartialEq)]
 #[allow(clippy::enum_variant_names)]
 pub enum Update {
-    // Schedule(Instant, Box<Update>),
+    Schedule(Instant, Box<Update>),
     SpawnProjectiles(SpawnProjectiles),
     SpawnProjectile(SpawnProjectile, bool), // bool = fx
     RemoveProjectile(ProjectileId),
@@ -41,7 +41,7 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
     tracing::trace!(name="runner-update", update=?update);
 
     for (filter, messages) in match update {
-        // Update::Schedule(instant, update) => state.schedule(instant, *update),
+        Update::Schedule(instant, update) => state.schedule(instant, *update),
         Update::SpawnProjectiles(spawns) => state.spawn_projectiles(spawns),
         Update::SpawnProjectile(spawn, fx) => state.spawn_projectile(spawn, fx),
         Update::RemoveProjectile(i) => state.remove_projectile(i),

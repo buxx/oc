@@ -3,11 +3,11 @@ use std::{collections::HashSet, path::PathBuf};
 use anyhow::Context;
 use glam::Vec2;
 use oc_geo::tile::{TileXy, WorldTileIndex};
+use oc_individual::Xp;
 use oc_individual::{
     Individual, IndividualIndex, Weapon,
     squad::{Squad, SquadFormation},
 };
-use oc_individual::Xp;
 use oc_mod::{Mod, illustration::IllustrationKind};
 use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec2, material::MaterialKind, side::Side, y::V};
 use oc_utils::d2::{Angle, Xy};
@@ -211,18 +211,19 @@ impl Deployments {
         let tile = &tiles[tile.0 as usize];
         let z = tile.z_pixels(w);
         let position = squad_position.extend(z);
-        let mut individual = Individual::fresh(w, side, position).with_illustration(
-            mod_.illustration_from_name(
-                IllustrationKind::IngameIndividual,
-                &individual_.illustration,
+        let mut individual = Individual::fresh(w, side, position)
+            .with_illustration(
+                mod_.illustration_from_name(
+                    IllustrationKind::IngameIndividual,
+                    &individual_.illustration,
+                )
+                .context(format!(
+                    "Use individual ingame illustration '{}'",
+                    individual_.illustration
+                ))?
+                .index(),
             )
-            .context(format!(
-                "Use individual ingame illustration '{}'",
-                individual_.illustration
-            ))?
-            .index(),
-        )
-        .with_xp(Xp(individual_.xp));
+            .with_xp(Xp(individual_.xp));
 
         // Magazine inserted in the weapon is no longer carried
         let mut inserted = None;

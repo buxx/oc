@@ -420,12 +420,13 @@ pub fn load(path: &Path, mod_: &Mod) -> Result<Vec<IndexedWeapon>, Error> {
                 .collect();
 
             // Explicit reload sound must exist, but the default one is optional
-            let reload_sound = match weapon_.reload_sound() {
-                Some(name) => Some(mod_.find_sound(name).map_err(|e| {
-                    Error::ReloadSound(weapon_.name().to_string(), e.to_string())
-                })?),
-                None => mod_.find_sound(DEFAULT_RELOAD_SOUND).ok(),
-            };
+            let reload_sound =
+                match weapon_.reload_sound() {
+                    Some(name) => Some(mod_.find_sound(name).map_err(|e| {
+                        Error::ReloadSound(weapon_.name().to_string(), e.to_string())
+                    })?),
+                    None => mod_.find_sound(DEFAULT_RELOAD_SOUND).ok(),
+                };
 
             let mut weapon: Weapon = weapon_.into();
             weapon.set_reload_sound(reload_sound);

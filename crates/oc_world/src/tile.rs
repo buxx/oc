@@ -273,7 +273,7 @@ mod test {
         assert_eq!(forces, Vec::<Force>::new());
         assert_eq!(
             events,
-            vec![oc_physics::Event::Collision(MyObjectId(0), MyObjectId(1))]
+            vec![oc_physics::Event::Collision(MyObjectId(0), MyObjectId(1), Default::default())]
         );
     }
 }

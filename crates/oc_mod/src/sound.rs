@@ -93,15 +93,7 @@ pub struct SoundGroupsNames {
 }
 
 /// Sounds groups resolved to sounds indexes
-#[derive(
-    Debug,
-    Clone,
-    Default,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-)]
+#[derive(Debug, Clone, Default, Archive, rkyv::Deserialize, rkyv::Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct SoundGroups {
     pub die: Vec<SoundIndex>,
