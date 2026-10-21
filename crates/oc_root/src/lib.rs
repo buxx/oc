@@ -216,7 +216,7 @@ impl WorldConfig {
         let prone_inaccuracy = 0.0;
         let opacity_inaccuracy = 2.0;
         let ignore_firsts_lov_tiles = 2;
-        let ignore_firsts_physics_pixels = 8;
+        let ignore_firsts_physics_pixels = (geo_pixels_per_tile * 4).clamp(0, 255) as u8;
 
         let proximity_individual_rayon = 4;
         let proximity_projectile_fly_tick_increase_value = (Meters(20.), Suppress(50));
