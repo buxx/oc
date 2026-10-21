@@ -30,7 +30,7 @@ const CELL_OUTLINE_SELECTED: Color = Color::srgb(0.2, 0.4, 1.0);
 const STATUS_BG_OPERATIONAL: Color = Color::srgb(0.1, 0.5, 0.1);
 const STATUS_BG_CASUALITIES: Color = Color::srgb(0.7, 0.6, 0.05);
 const STATUS_BG_PARTIALLY_DESTROYED: Color = Color::srgb(0.7, 0.1, 0.1);
-const STATUS_BG_DESTROYED: Color = Color::srgb(0.25, 0.25, 0.25);
+const STATUS_BG_DESTROYED: Color = Color::srgb(0.5, 0., 0.);
 
 const SQUAD_CELL_WIDTH: f32 = 122.;
 const SQUAD_CELL_HEIGHT: f32 = 52.;
