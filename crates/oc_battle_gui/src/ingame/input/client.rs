@@ -4,10 +4,9 @@ use oc_network::ToClient;
 use oc_projectile::network::Projectile;
 use oc_root::{Wcfg, files};
 
-#[cfg(feature = "debug")]
-use crate::debug::DebugEvent;
 use crate::{
     fx::FxEvent,
+    ingame::collision::CollisionEvent,
     ingame::{
         BattlePhase, GameConfigReceived, SetBattlePhase, WorldResumeEvent,
         individual::ForgotIndividual,
@@ -102,7 +101,6 @@ pub fn on_to_client(
             };
             commands.trigger(SetBattlePhase(phase));
         }
-        #[cfg(feature = "debug")]
-        ToClient::Debug(debug) => commands.trigger(DebugEvent(debug.clone())),
+        ToClient::Collision(position, lag) => commands.trigger(CollisionEvent(*position, *lag)),
     }
 }

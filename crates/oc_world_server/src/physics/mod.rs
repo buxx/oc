@@ -219,18 +219,14 @@ impl<'x, E: Client> Processor<'x, E> {
         for event in events {
             tracing::trace!(name="physics-event", event=?event);
 
-            #[cfg(feature = "debug")]
+            if let Event::Collision(ObjectId::Projectile(projectile_id), _, progress) = event
+                && let Some(projectile) = self.ctx.state.world().projectile(&projectile_id)
             {
                 use oc_network::ToClient;
 
-                if let Event::Collision(ObjectId::Projectile(projectile_id), _, progress) = event
-                    && let Some(projectile) = self.ctx.state.world().projectile(&projectile_id)
-                {
-                    let position = projectile.position();
-                    let debug = oc_network::Debug::Collision(position, self.lag(progress));
-                    let messages = vec![ToClient::Debug(debug)];
-                    self.ctx.broadcast(Listening::Any, messages);
-                }
+                let position = projectile.position();
+                let messages = vec![ToClient::Collision(position, self.lag(progress))];
+                self.ctx.broadcast(Listening::Any, messages);
             }
 
             match event {

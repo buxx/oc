@@ -32,6 +32,7 @@ use crate::{
 
 pub mod behavior;
 pub mod camera;
+pub mod collision;
 #[cfg(feature = "debug")]
 pub mod debug;
 pub mod draw;
@@ -153,22 +154,28 @@ impl Plugin for IngamePlugin {
                     .run_if(in_state(InGameState::Battle)),
             );
 
+        app.init_gizmo_group::<collision::CollisionGizmos>()
+            .add_systems(Startup, collision::setup)
+            .add_observer(collision::on_collision)
+            .add_systems(
+                Update,
+                collision::show_collisions
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle)),
+            );
+
         #[cfg(feature = "debug")]
-        app.init_gizmo_group::<debug::projectile::CollisionGizmos>()
-            .init_gizmo_group::<debug::behavior::HideEngageDistanceGizmos>()
+        app.init_gizmo_group::<debug::behavior::HideEngageDistanceGizmos>()
             .init_resource::<ShowVisibility>()
-            .add_systems(Startup, debug::projectile::setup)
             .add_systems(Startup, debug::behavior::setup)
             .add_observer(region::debug::on_listening_region)
             .add_observer(region::debug::on_spawn_region_wire_frame_debug)
             .add_observer(region::debug::on_forgotten_region)
             .add_observer(region::debug::on_despawn_region_wire_frame_debug)
-            .add_observer(debug::on_debug_input)
             .add_observer(debug::visibility::on_toggle_show_formation_positions)
             .add_systems(
                 Update,
                 (
-                    debug::projectile::show_collisions,
                     debug::visibility::show_visibilities,
                     debug::behavior::show_hide_engage_distances,
                 )

@@ -103,7 +103,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let collision = tracker.physics.iter().find(|event| {
                 matches!(
                     event,
-                    oc_physics::Event::Collision(ObjectId::Projectile(_), ObjectId::Individual(_), _)
+                    oc_physics::Event::Collision(
+                        ObjectId::Projectile(_),
+                        ObjectId::Individual(_),
+                        _
+                    )
                 )
             });
             let dead = tracker.individuals.iter().find(|event| {

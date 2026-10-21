@@ -10,10 +10,12 @@ use oc_mod::Mod;
 use oc_physics::fx::Fx;
 use oc_projectile::network::Projectile;
 use oc_projectile::spawn::SpawnProjectiles;
-#[cfg(feature = "debug")]
-use oc_root::geo::WorldVec3;
 use oc_root::{
-    WorldConfig, battle::BattlePhase, geo::WorldVec2, identity::Identity, static_::StaticSource,
+    WorldConfig,
+    battle::BattlePhase,
+    geo::{WorldVec2, WorldVec3},
+    identity::Identity,
+    static_::StaticSource,
 };
 use oc_world::{meta::Meta, resume::WorldResume, tile::Tile, visibility::Visibility};
 use rkyv::{Archive, Deserialize, Serialize};
@@ -30,8 +32,7 @@ pub enum ToClient {
     Fx(Fx),
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
     SetBattlePhase(BattlePhase),
-    #[cfg(feature = "debug")]
-    Debug(Debug),
+    Collision(WorldVec3, std::time::Duration), // Duration is lag
 }
 
 impl From<Individual> for ToClient {
@@ -73,12 +74,4 @@ pub enum SquadMessage {
     SetOrders(Vec<Order>),
     SetPositionOrderPosition(OrderIndex, WorldVec2),
     SetLeaderPosition(WorldVec2),
-}
-
-#[cfg(feature = "debug")]
-#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub enum Debug {
-    /// Collision position, and lag to wait before displaying it
-    Collision(WorldVec3, std::time::Duration),
 }
