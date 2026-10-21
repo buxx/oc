@@ -40,6 +40,14 @@ pub mod update;
 
 const POSITION_TOLERANCE: f32 = 3.0;
 
+// Tolerance to consider a path step reached. Must stay under the navmesh agent radius (2.5px), or
+// individuals cut corners and enter walls.
+const PATH_STEP_TOLERANCE: f32 = 1.5;
+
+// When defending/hiding/engaging/suppress, formation positions must permit to fire at least this distance (meters)
+// in the order direction.
+const FORMATION_MIN_FIRE: Meters = Meters(10.0);
+
 // AI generated
 // When individual has no path from its position (see `resolve_path`), look for path from points
 // around it, until this radius (pixels).
@@ -235,7 +243,7 @@ impl<'a> Processor<'a> {
                     return updates;
                 };
 
-                if next.almost_equal(individual.position, POSITION_TOLERANCE) {
+                if next.almost_equal(individual.position, PATH_STEP_TOLERANCE) {
                     let update = Update::MoveStepAccomplished;
                     let update = runner::update::Update::UpdateIndividual(self.i, update);
                     updates.get_or_insert(vec![]).push(update);
@@ -282,7 +290,7 @@ impl<'a> Processor<'a> {
         match order {
             Order::Idle => {
                 let reference = leader.position.into();
-                let places = self.places(squad_i, squad, reference, count, direction, angle);
+                let places = self.places(squad_i, squad, reference, count, direction, angle, None);
 
                 for (member, position) in places {
                     let individual = self.world.individual(member);
@@ -297,7 +305,15 @@ impl<'a> Processor<'a> {
                 let direction = order.direction(leader_position, |_| leader_position);
                 let_some!(direction = direction, return updates);
                 let angle = direction.angle(V::Server);
-                let places = self.places(squad_i, squad, (*target).into(), count, direction, angle);
+                let places = self.places(
+                    squad_i,
+                    squad,
+                    (*target).into(),
+                    count,
+                    direction,
+                    angle,
+                    None,
+                );
 
                 for (member, position) in places {
                     let individual = self.world.individual(member);
@@ -316,7 +332,15 @@ impl<'a> Processor<'a> {
                 let reference: Vec2 = leader.position.into();
                 let direction = order.direction(reference, individual_position);
                 let_some!(direction = direction, return updates);
-                let places = self.places(squad_i, squad, reference, count, direction, angle);
+                let places = self.places(
+                    squad_i,
+                    squad,
+                    reference,
+                    count,
+                    direction,
+                    angle,
+                    Some(direction),
+                );
 
                 for (member, position) in places {
                     let member_ = self.world.individual(member);
@@ -343,7 +367,9 @@ impl<'a> Processor<'a> {
         updates
     }
 
-    /// Find places according to formation and position
+    /// Find places according to formation and position. When `fire_direction` is given, places
+    /// individual which can't fire in this direction to the nearest tile which can.
+    #[allow(clippy::too_many_arguments)]
     fn places(
         &self,
         squad_i: oc_individual::squad::SquadIndex,
@@ -352,8 +378,9 @@ impl<'a> Processor<'a> {
         count: usize,
         direction: Direction,
         angle: oc_utils::d2::Angle,
+        fire: Option<Direction>,
     ) -> Vec<(IndividualIndex, WorldVec2)> {
-        let mut available_positions: Vec<WorldVec2> = squad
+        let mut available: Vec<WorldVec2> = squad
             .formation
             // List one more position to prevent position in in opposite place
             .positions(&self.world.w, V::Server, reference, angle, count + 1)
@@ -361,7 +388,11 @@ impl<'a> Processor<'a> {
             .skip(1) // drop leader's own slot
             .map(|p| WorldVec2::new(p.x, p.y))
             .collect();
-        tracing::trace!(name="individual-step-distribute-formation", i=?self.i, squad_i=?squad_i, reference=?reference, direction=?direction, angle=?angle, available_positions=?available_positions);
+        if let Some(fire) = fire {
+            let leader = self.world.individual(squad.leader());
+            available = self.fireable_positions(leader.position.z, available, fire);
+        }
+        tracing::trace!(name="individual-step-distribute-formation", i=?self.i, squad_i=?squad_i, reference=?reference, direction=?direction, angle=?angle, available_positions=?available);
 
         let mut remaining_members: Vec<IndividualIndex> = squad
             .members
@@ -374,13 +405,13 @@ impl<'a> Processor<'a> {
         let mut assignments: Vec<(IndividualIndex, WorldVec2)> =
             Vec::with_capacity(remaining_members.len());
 
-        while !remaining_members.is_empty() && !available_positions.is_empty() {
+        while !remaining_members.is_empty() && !available.is_empty() {
             let mut best: Option<(usize, usize, f32)> = None;
 
             for (mi, member_i) in remaining_members.iter().enumerate() {
                 let member_position = self.world.individual(*member_i).position;
                 let member_xy = Vec2::new(member_position.x, member_position.y);
-                for (pi, position) in available_positions.iter().enumerate() {
+                for (pi, position) in available.iter().enumerate() {
                     let distance = member_xy.distance(Vec2::from(*position));
                     if best.is_none_or(|(_, _, best_distance)| distance < best_distance) {
                         best = Some((mi, pi, distance));
@@ -390,11 +421,70 @@ impl<'a> Processor<'a> {
 
             let (mi, pi, _) = best.expect("remaining_members and available_positions non-empty");
             let member = remaining_members.remove(mi);
-            let position = available_positions.remove(pi);
+            let position = available.remove(pi);
 
             assignments.push((member, position));
         }
         assignments
+    }
+
+    // Warning: AI generated
+    /// Positions which don't permit to fire in direction to the nearest ones which do.
+    fn fireable_positions(
+        &self,
+        start_z: f32,
+        positions: Vec<WorldVec2>,
+        direction: Direction,
+    ) -> Vec<WorldVec2> {
+        let w = &self.world.w;
+        let mod_ = &self.world.mod_;
+        let distance = FORMATION_MIN_FIRE;
+        let at = |xy, z| path_objects_at(w, mod_, self.world, xy, z);
+        let tile_px = w.geo_pixels_per_tile() as f32;
+        let radius = w.formation_tiles_radius_placement() as i64;
+        let fire = Vec2::from(direction).normalize_or_zero() * distance.pixels(w);
+        let weapon_z = BodyGesture::Crawling(Default::default())
+            .weapon_z()
+            .pixels(w);
+
+        let height = start_z + weapon_z;
+        let can_fire = |position: Vec2| -> bool {
+            let end = position + fire;
+            let from = WorldVec3::new(position.x, position.y, height);
+            let to = WorldVec3::new(end.x, end.y, height);
+            let modifier = oc_lov::Modifier::None(true);
+            visibility(w, at, from, to, modifier).visible
+        };
+
+        // offsets to list tiles where test fire
+        let mut offsets: Vec<(i64, i64)> = (-radius..=radius)
+            .flat_map(|dx| (-radius..=radius).map(move |dy| (dx, dy)))
+            .collect();
+        offsets.sort_by_key(|(dx, dy)| dx * dx + dy * dy);
+
+        // Starts with original positions; each one is replaced by its chosen position in turn.
+        let mut occupied: Vec<Vec2> = positions.iter().map(|p| Vec2::from(*p)).collect();
+
+        for index in 0..occupied.len() {
+            let original = occupied[index];
+            occupied[index] = offsets
+                .iter()
+                .map(|(dx, dy)| original + Vec2::new(*dx as f32, *dy as f32) * tile_px)
+                .filter(|c| {
+                    *c == original
+                        || occupied
+                            .iter()
+                            .enumerate()
+                            .all(|(i, o)| i == index || o.distance(*c) >= tile_px)
+                })
+                .find(|c| can_fire(*c))
+                .unwrap_or(original);
+        }
+
+        occupied
+            .into_iter()
+            .map(|p| WorldVec2::new(p.x, p.y))
+            .collect()
     }
 
     /// Build object which reflect individual situation against environment

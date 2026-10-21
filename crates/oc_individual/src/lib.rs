@@ -57,7 +57,8 @@ pub const INDIVIDUAL_PRONE_VOLUME_WIDTH: Meters = Meters(0.8);
 pub const INDIVIDUAL_PRONE_VOLUME_HEIGHT: Meters = Meters(1.8);
 pub const INDIVIDUAL_PRONE_VOLUME_DEPTH: Meters = Meters(0.8);
 
-pub const WANT_STOP_TOLERANCE: f32 = 2.0;
+// Must stay under the navmesh agent radius (2.5px), or individuals cut corners and enter walls.
+pub const WANT_STOP_TOLERANCE: f32 = 1.0;
 
 #[derive(
     Archive,
