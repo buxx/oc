@@ -3,7 +3,7 @@ use std::{
         Arc,
         mpsc::{Receiver, Sender},
     },
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use derive_more::Constructor;
@@ -23,6 +23,8 @@ use crate::{
     bridge::Event, config::ServerConfig, individual, physics, runner::input::Dealer, squad,
     state::State, utils::context::Context,
 };
+
+const WORLD_INTERVAL: Duration = Duration::from_secs(5);
 
 pub mod input;
 pub mod update;
@@ -51,6 +53,7 @@ impl<E: Client> Runner<E> {
         self.start_individuals();
         self.start_visibilities();
         self.start_squads();
+        self.start_world();
         self.start_scheduler();
 
         let _ = ready.send(Ok(()));
@@ -250,6 +253,45 @@ impl<E: Client> Runner<E> {
                 ctx.state.perf.increment_visibilities();
 
                 update::update(&ctx, update::Update::UpdateVisibilities(visibilities));
+            }
+        });
+    }
+
+    fn start_world(&self) {
+        tracing::debug!("Start world");
+
+        let ctx = Context::new(
+            self.state.clone(),
+            self.output.clone(),
+            #[cfg(feature = "tracker")]
+            self.tracker.clone(),
+            #[cfg(feature = "debug")]
+            self.direct.clone(),
+        );
+
+        std::thread::spawn(move || {
+            let mut last = Instant::now();
+
+            loop {
+                let elapsed = last.elapsed();
+                let wait = WORLD_INTERVAL - elapsed.min(WORLD_INTERVAL);
+
+                tracing::trace!(name = "runner-world-sleep", wait=?wait);
+                std::thread::sleep(wait);
+                last = Instant::now();
+
+                let flags = {
+                    let world = &ctx.state.world();
+                    tracing::trace!(name = "runner-world");
+
+                    // if !matches!(world.phase, BattlePhase::Fight) {
+                    //     continue;
+                    // }
+
+                    crate::world::Processor::new(world).compute()
+                };
+
+                update::update(&ctx, update::Update::UpdateFlags(flags));
             }
         });
     }

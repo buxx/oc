@@ -14,7 +14,8 @@ use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    meta::Meta, resume::WorldResume, spawn::SpawnZoneName, tile::Tile, visibility::Visibilities,
+    flag::Flags, meta::Meta, resume::WorldResume, spawn::SpawnZoneName, tile::Tile,
+    visibility::Visibilities,
 };
 
 pub mod cache;
@@ -46,6 +47,7 @@ pub struct World {
     pub phase: BattlePhase,
     pub side_a_spawns: Vec<SpawnZoneName>,
     pub side_b_spawns: Vec<SpawnZoneName>,
+    pub flags: Flags,
     pub tiles: Vec<Tile>,
     pub navmesh: polyanya::Mesh,
     pub visibilities: Visibilities,
@@ -207,6 +209,7 @@ mod tests {
             BattlePhase::Fight,
             vec![],
             vec![],
+            Flags::default(),
             tiles,
             polyanya::Mesh::default(),
             Visibilities::empty(0),

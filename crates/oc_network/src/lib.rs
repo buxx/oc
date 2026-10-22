@@ -17,7 +17,7 @@ use oc_root::{
     identity::Identity,
     static_::StaticSource,
 };
-use oc_world::{meta::Meta, resume::WorldResume, tile::Tile, visibility::Visibility};
+use oc_world::{flag::Flags, meta::Meta, resume::WorldResume, tile::Tile, visibility::Visibility};
 use rkyv::{Archive, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize)]
@@ -32,6 +32,7 @@ pub enum ToClient {
     Fx(Fx),
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
     SetBattlePhase(BattlePhase),
+    Flags(Flags),
     Collision(WorldVec3, std::time::Duration), // Duration is lag
 }
 

@@ -16,10 +16,12 @@ use thiserror::Error;
 use crate::{
     World,
     cache::{self, CacheRegionBackgroundError},
+    flag::Flags,
     meta::{self, Meta},
     navmesh::{Walls, navmesh},
     reader::{MapReader, MapReaderError},
     snapshot::Snapshot,
+    spawn::SpawnZone,
     utils::image::crop::crop_polygon,
     visibility::Visibilities,
 };
@@ -57,13 +59,27 @@ impl WorldLoader {
             .map(|projectile| (ids.next_projectile_id(), projectile))
             .collect();
         let phase = snapshot.phase;
-        let side_a_spawns = snapshot.side_a_spawns;
-        let side_b_spawns = snapshot.side_b_spawns;
+        let a_spawns = snapshot.side_a_spawns;
+        let b_spawns = snapshot.side_b_spawns;
         tracing::debug!("Build navmesh grid");
         let walls = tiles.as_walls(&mod_);
 
         tracing::debug!("Build navmesh (from grid with len {})", walls.len());
         let navmesh = navmesh(&w, &walls);
+
+        let flags = map.flags()?;
+        let spawn_zones = map.spawn_zones()?;
+        let a_spawns_: Vec<SpawnZone> = spawn_zones
+            .iter()
+            .filter(|s| a_spawns.contains(&s.name))
+            .cloned()
+            .collect();
+        let b_spawns_: Vec<SpawnZone> = spawn_zones
+            .iter()
+            .filter(|s| b_spawns.contains(&s.name))
+            .cloned()
+            .collect();
+        let flags = Flags::from_control(flags, &a_spawns_, &b_spawns_);
 
         tracing::debug!("World built");
         Ok(World::new(
@@ -71,8 +87,9 @@ impl WorldLoader {
             mod_,
             meta,
             phase,
-            side_a_spawns,
-            side_b_spawns,
+            a_spawns,
+            b_spawns,
+            flags,
             tiles,
             navmesh,
             visibilities,
@@ -322,6 +339,8 @@ pub enum Error {
     Cache(#[from] CacheError),
     #[error("Meta error: {0}")]
     Meta(#[from] MetaError),
+    #[error("Map read: {0}")]
+    MapReader(#[from] MapReaderError),
 }
 
 pub trait WorldPath {

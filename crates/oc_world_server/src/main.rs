@@ -34,6 +34,7 @@ mod static_;
 pub mod tracker;
 mod utils;
 pub mod visibility;
+mod world;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]

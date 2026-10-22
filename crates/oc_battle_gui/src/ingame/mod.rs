@@ -36,6 +36,7 @@ pub mod collision;
 #[cfg(feature = "debug")]
 pub mod debug;
 pub mod draw;
+pub mod flag;
 pub mod height;
 pub mod hud;
 pub mod individual;
@@ -140,6 +141,13 @@ impl Plugin for IngamePlugin {
             .add_observer(spawn::on_show_spawn_zones)
             .add_observer(spawn::on_hide_spawn_zones)
             .add_observer(on_set_battle_phase)
+            .add_observer(flag::on_update_flags)
+            .add_systems(
+                Update,
+                flag::hovered
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle)),
+            )
             // TODO: despawn entities on OnExit(AppState::InGame)
             .add_systems(Startup, (path::setup,))
             .add_systems(Startup, (init::init,))

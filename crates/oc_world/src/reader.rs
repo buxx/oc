@@ -287,7 +287,7 @@ impl MapReader {
         Ok(places)
     }
 
-    fn flags(&self) -> Result<Vec<Flag>, MapReaderError> {
+    pub fn flags(&self) -> Result<Vec<Flag>, MapReaderError> {
         let mut flags = vec![];
 
         for object in self.flags_layer()?.objects() {

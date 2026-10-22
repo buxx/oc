@@ -1,20 +1,41 @@
+use derive_more::Constructor;
 use oc_root::geo::WorldVec2;
 use oc_utils::d2::Shape;
 use oc_utils::polygon::Polygon;
-use serde::{Deserialize, Serialize};
 
-use crate::{map::Map, spawn::SpawnZone};
+use crate::spawn::SpawnZone;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(
+    Debug,
+    Constructor,
+    serde::Deserialize,
+    serde::Serialize,
+    Clone,
+    rkyv::Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
 pub struct FlagName(pub String);
 
-#[derive(Clone)]
+#[derive(
+    Debug,
+    serde::Deserialize,
+    serde::Serialize,
+    Clone,
+    rkyv::Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Flag {
     pub name: FlagName,
     pub start: WorldVec2,
     pub width: f32,
     pub height: f32,
-    corners: [WorldVec2; 4],
+    pub corners: [WorldVec2; 4],
 }
 
 impl Flag {
@@ -52,122 +73,64 @@ impl Polygon for Flag {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-pub enum FlagOwnership {
+#[derive(
+    Debug,
+    serde::Deserialize,
+    serde::Serialize,
+    Clone,
+    rkyv::Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum Ownership {
     Nobody,
     A,
     B,
     Both,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-pub struct FlagsOwnership {
-    ownerships: Vec<(FlagName, FlagOwnership)>,
-}
+#[derive(
+    Debug,
+    Constructor,
+    serde::Deserialize,
+    serde::Serialize,
+    Clone,
+    rkyv::Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    Default,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Flags(Vec<(Flag, Ownership)>);
 
-impl FlagsOwnership {
-    pub fn new(ownerships: Vec<(FlagName, FlagOwnership)>) -> Self {
-        Self { ownerships }
-    }
-
-    pub fn empty() -> Self {
-        Self { ownerships: vec![] }
-    }
-
-    pub fn from_control(map: &Map, a_spawns: &[SpawnZone], b_spawns: &[SpawnZone]) -> Self {
+impl Flags {
+    pub fn from_control(flags: Vec<Flag>, a_spawns: &[SpawnZone], b_spawns: &[SpawnZone]) -> Self {
         let mut ownerships = vec![];
 
-        for flag in map.flags() {
+        for flag in flags {
             let is_a_control = a_spawns.iter().any(|s| s.include_shape(&flag.shape()));
             let is_b_control = b_spawns.iter().any(|s| s.include_shape(&flag.shape()));
 
             let flag_ownership = match (is_a_control, is_b_control) {
-                (true, true) => FlagOwnership::Both,
-                (true, false) => FlagOwnership::A,
-                (false, true) => FlagOwnership::B,
-                (false, false) => FlagOwnership::Nobody,
+                (true, true) => Ownership::Both,
+                (true, false) => Ownership::A,
+                (false, true) => Ownership::B,
+                (false, false) => Ownership::Nobody,
             };
-            ownerships.push((flag.name.clone(), flag_ownership));
+            ownerships.push((flag, flag_ownership));
         }
 
-        Self { ownerships }
+        Self(ownerships)
     }
 
-    pub fn ownerships(&self) -> &Vec<(FlagName, FlagOwnership)> {
-        &self.ownerships
+    pub fn iter(&self) -> impl Iterator<Item = &(Flag, Ownership)> {
+        self.0.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut (Flag, Ownership)> {
+        self.0.iter_mut()
     }
 }
-
-// #[cfg(test)]
-// pub mod test {
-//     use rstest::*;
-
-//     use crate::{decor::Decor, spawn::SpawnZone};
-
-//     use super::*;
-//     use std::path::PathBuf;
-
-//     fn map(spawn_zones: Vec<SpawnZone>, flags: Vec<Flag>) -> Map {
-//         Map::new(
-//             PathBuf::from("."),
-//             PathBuf::from("."),
-//             PathBuf::from("."),
-//             vec![],
-//             spawn_zones,
-//             10,
-//             10,
-//             Decor::new(vec![], vec![], Vec2::new(0., 0.)),
-//             flags,
-//             vec![],
-//         )
-//     }
-
-//     #[cfg(test)]
-//     #[fixture]
-//     fn spawn_zones1() -> Vec<SpawnZone> {
-//         vec![SpawnZone::new(
-//             SpawnZoneName::North,
-//             0.,
-//             0.,
-//             10.,
-//             10.,
-//             10.,
-//             10.,
-//         )]
-//     }
-
-//     #[cfg(test)]
-//     #[fixture]
-//     fn flag1() -> Flag {
-//         Flag::new(FlagName("FlagName".to_string()), 1., 1., 8., 8.)
-//     }
-
-//     #[rstest]
-//     #[case(MapControl::new(vec![SpawnZoneName::North]), MapControl::new(vec![]), FlagOwnership::A)]
-//     #[case(MapControl::new(vec![]), MapControl::new(vec![SpawnZoneName::North]), FlagOwnership::B)]
-//     #[case(MapControl::new(vec![SpawnZoneName::North]), MapControl::new(vec![SpawnZoneName::North]), FlagOwnership::Both)]
-//     #[case(MapControl::new(vec![SpawnZoneName::North]), MapControl::new(vec![]), FlagOwnership::A)]
-//     #[case(MapControl::new(vec![]), MapControl::new(vec![]), FlagOwnership::Nobody)]
-//     fn flag_owned_by_a(
-//         spawn_zones1: Vec<SpawnZone>,
-//         flag1: Flag,
-//         #[case] a_control: MapControl,
-//         #[case] b_control: MapControl,
-//         #[case] ownership: FlagOwnership,
-//     ) {
-//         // Given
-//         let flags = vec![flag1];
-//         let map = map(spawn_zones1, flags);
-
-//         // When
-//         let flags_ownership = FlagsOwnership::from_control(&map, &a_control, &b_control);
-
-//         // Then
-//         assert_eq!(
-//             flags_ownership,
-//             FlagsOwnership {
-//                 ownerships: vec![(FlagName("FlagName".to_string()), ownership)]
-//             }
-//         )
-//     }
-// }

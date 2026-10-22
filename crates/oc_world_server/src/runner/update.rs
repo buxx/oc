@@ -19,6 +19,7 @@ use oc_root::Client;
 use oc_root::battle::BattlePhase;
 use oc_root::geo::WorldVec3;
 use oc_root::side::Side;
+use oc_world::flag::Flags;
 use oc_world::visibility::Visibilities;
 use oc_world::visibility::Visibility;
 
@@ -33,6 +34,7 @@ pub enum Update {
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
     UpdateSquad(SquadIndex, oc_individual::squad::Update),
     SetBattlePhase(BattlePhase),
+    UpdateFlags(Flags),
     PlaySoundWithGeo(SoundIndex, WorldVec3, WorldRegionIndex),
 }
 
@@ -56,6 +58,7 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         Update::UpdateVisibilities(visibilities) => state.update_visibilities(visibilities),
         Update::UpdateSquad(i, update) => state.update_squad(i, update),
         Update::SetBattlePhase(phase) => state.set_battle_phase(phase),
+        Update::UpdateFlags(flags) => state.update_flags(flags),
         Update::PlaySoundWithGeo(sound, position, region) => {
             state.play_sound(sound, position, region)
         }
@@ -263,6 +266,11 @@ impl<E: Client> super::State<E> {
     fn set_battle_phase(&self, phase: BattlePhase) -> Vec<(Listening, Vec<ToClient>)> {
         self.world_mut().set_phase(phase);
         vec![(Listening::Any, vec![ToClient::SetBattlePhase(phase)])]
+    }
+
+    fn update_flags(&self, flags: Flags) -> Vec<(Listening, Vec<ToClient>)> {
+        self.world_mut().flags = flags.clone();
+        vec![(Listening::Any, vec![ToClient::Flags(flags)])]
     }
 
     fn play_sound(
