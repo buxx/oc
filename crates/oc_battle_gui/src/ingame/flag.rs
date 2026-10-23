@@ -11,7 +11,7 @@ use crate::{
 
 const SIZE: UVec2 = UVec2::new(50, 25);
 const ROWS: u32 = 4;
-const DEFAULT_ALPHA: f32 = 0.8;
+const DEFAULT_ALPHA: f32 = 0.4;
 const HOVER_ALPHA: f32 = 0.2; // When cursor hover sprite
 
 #[derive(Debug, Event)]
