@@ -28,6 +28,7 @@ pub fn actions(world: &crate::world::World, phase: &BattlePhase) -> impl Scene {
                 battle_state_button(world, phase)
                 on(on_battle_phase_click)
             ),
+            ({ super::morale::morale() }),
         ]
     }
 }

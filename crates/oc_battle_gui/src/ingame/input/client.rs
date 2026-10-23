@@ -7,7 +7,6 @@ use oc_root::{Wcfg, files};
 use crate::{
     fx::FxEvent,
     ingame::collision::CollisionEvent,
-    ingame::flag::UpdateFlags,
     ingame::{
         BattlePhase, GameConfigReceived, SetBattlePhase, WorldResumeEvent,
         individual::ForgotIndividual,
@@ -20,6 +19,7 @@ use crate::{
         },
         projectile::ForgotProjectile,
     },
+    ingame::{flag::UpdateFlags, hud::morale::UpdateMorale},
     network,
     network::input::ToClientEvent,
     states::{GameConfig, GuiFiles},
@@ -103,6 +103,7 @@ pub fn on_to_client(
             commands.trigger(SetBattlePhase(phase));
         }
         ToClient::Flags(flags) => commands.trigger(UpdateFlags(flags.clone())),
+        ToClient::Morale(morale) => commands.trigger(UpdateMorale(*morale)),
         ToClient::Collision(position, lag) => commands.trigger(CollisionEvent(*position, *lag)),
     }
 }

@@ -27,6 +27,7 @@ pub mod interior;
 pub mod load;
 pub mod map;
 pub mod meta;
+pub mod morale;
 pub mod navmesh;
 pub mod place;
 pub mod reader;

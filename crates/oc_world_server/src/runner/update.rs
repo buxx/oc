@@ -20,6 +20,7 @@ use oc_root::battle::BattlePhase;
 use oc_root::geo::WorldVec3;
 use oc_root::side::Side;
 use oc_world::flag::Flags;
+use oc_world::morale::Morale;
 use oc_world::visibility::Visibilities;
 use oc_world::visibility::Visibility;
 
@@ -35,6 +36,7 @@ pub enum Update {
     UpdateSquad(SquadIndex, oc_individual::squad::Update),
     SetBattlePhase(BattlePhase),
     UpdateFlags(Flags),
+    UpdateMorale(Morale),
     PlaySoundWithGeo(SoundIndex, WorldVec3, WorldRegionIndex),
 }
 
@@ -59,6 +61,7 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         Update::UpdateSquad(i, update) => state.update_squad(i, update),
         Update::SetBattlePhase(phase) => state.set_battle_phase(phase),
         Update::UpdateFlags(flags) => state.update_flags(flags),
+        Update::UpdateMorale(morale) => state.update_morale(morale),
         Update::PlaySoundWithGeo(sound, position, region) => {
             state.play_sound(sound, position, region)
         }
@@ -271,6 +274,10 @@ impl<E: Client> super::State<E> {
     fn update_flags(&self, flags: Flags) -> Vec<(Listening, Vec<ToClient>)> {
         self.world_mut().flags = flags.clone();
         vec![(Listening::Any, vec![ToClient::Flags(flags)])]
+    }
+
+    fn update_morale(&self, morale: Morale) -> Vec<(Listening, Vec<ToClient>)> {
+        vec![(Listening::Any, vec![ToClient::Morale(morale)])]
     }
 
     fn play_sound(

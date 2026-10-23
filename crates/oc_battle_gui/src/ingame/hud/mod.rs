@@ -4,6 +4,7 @@ use crate::{ingame::BattlePhase, states::AppState};
 
 pub mod actions;
 pub mod minimap;
+pub mod morale;
 pub mod squad;
 pub mod squads;
 
@@ -36,7 +37,8 @@ impl Plugin for HudPlugin {
             )
             .add_systems(OnEnter(BattlePhase::Fight), actions::update_fight_button)
             .add_observer(squad::spawn_rows)
-            .add_observer(squads::outline_selected_cells);
+            .add_observer(squads::outline_selected_cells)
+            .add_observer(morale::on_update_morale);
     }
 }
 

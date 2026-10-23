@@ -280,18 +280,16 @@ impl<E: Client> Runner<E> {
                 std::thread::sleep(wait);
                 last = Instant::now();
 
-                let flags = {
+                let updates = {
                     let world = &ctx.state.world();
                     tracing::trace!(name = "runner-world");
-
-                    // if !matches!(world.phase, BattlePhase::Fight) {
-                    //     continue;
-                    // }
 
                     crate::world::Processor::new(world).compute()
                 };
 
-                update::update(&ctx, update::Update::UpdateFlags(flags));
+                for update in updates {
+                    update::update(&ctx, update);
+                }
             }
         });
     }
