@@ -142,7 +142,7 @@
         z: Meters(1.8),
         deny: [],
         movement: (individual: (force: Sneak, factor: 0.5)),
-        intercept: (projectile: Probability(0.05,)),
+        intercept: (projectile: Probability(0.1,)),
     ),
     (
         name: "ThickSheetMetal",
@@ -150,6 +150,6 @@
         opacity: 0.8,
         z: Meters(1.8),
         deny: [],
-        intercept: (projectile: Probability(0.1,)),
+        intercept: (projectile: Probability(0.15,)),
     ),
 ]
