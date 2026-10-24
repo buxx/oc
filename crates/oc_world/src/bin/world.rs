@@ -6,7 +6,7 @@ use clap::Parser;
 use oc_mod::Mod;
 use oc_root::{WorldConfig, battle::BattlePhase};
 use oc_utils::image;
-use oc_world::{reader, snapshot::Snapshot, terrain::Terrain};
+use oc_world::{DEFAULT_FIGHT_DURATION, reader, snapshot::Snapshot, terrain::Terrain};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
@@ -200,6 +200,8 @@ fn snapshot_(
         vec![],
         vec![],
         BattlePhase::Deployment,
+        DEFAULT_FIGHT_DURATION,
+        None,
         vec![],
         vec![],
     );

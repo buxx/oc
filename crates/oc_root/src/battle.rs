@@ -13,6 +13,7 @@
 pub enum BattlePhase {
     Deployment,
     Fight,
+    End,
 }
 
 impl BattlePhase {
@@ -20,6 +21,7 @@ impl BattlePhase {
         match self {
             BattlePhase::Deployment => false,
             BattlePhase::Fight => true,
+            BattlePhase::End => false,
         }
     }
 }

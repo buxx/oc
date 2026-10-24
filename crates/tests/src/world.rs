@@ -29,6 +29,9 @@ pub struct TestWorld {
     meta: Meta,
     #[builder(default = BattlePhase::Fight)]
     phase: BattlePhase,
+    #[builder(default = oc_world::DEFAULT_FIGHT_DURATION)]
+    duration: std::time::Duration,
+    start: Option<std::time::Instant>,
     #[builder(default)]
     side_a_spawns: Vec<SpawnZoneName>,
     #[builder(default)]
@@ -80,6 +83,8 @@ impl TestWorld {
             squads,
             projectiles: self.projectiles,
             phase: self.phase,
+            duration: self.duration,
+            start: self.start,
             side_a_spawns: self.side_a_spawns.clone(),
             side_b_spawns: self.side_b_spawns.clone(),
             flags: Default::default(),

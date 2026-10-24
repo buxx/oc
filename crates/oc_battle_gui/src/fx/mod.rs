@@ -31,6 +31,7 @@ pub fn play_phase_start(commands: &mut Commands, g: &GameConfig, phase: BattlePh
     let sound = match phase {
         BattlePhase::Deployment => groups.deployment_start,
         BattlePhase::Fight => groups.fight_start,
+        BattlePhase::End => None,
     };
     let_some!(sound = sound, return);
     commands.trigger(FxEvent(Fx::Audio(Audio::Play(sound))));

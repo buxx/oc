@@ -2,6 +2,7 @@ use std::{
     io,
     path::PathBuf,
     sync::{Arc, atomic::AtomicU32},
+    time::Instant,
 };
 
 use derive_more::Constructor;
@@ -59,6 +60,13 @@ impl WorldLoader {
             .map(|projectile| (ids.next_projectile_id(), projectile))
             .collect();
         let phase = snapshot.phase;
+        let duration = snapshot.duration;
+        let start = snapshot.start.map(|start| {
+            let elapsed = start.elapsed().unwrap_or_default();
+            Instant::now()
+                .checked_sub(elapsed)
+                .unwrap_or_else(Instant::now)
+        });
         let a_spawns = snapshot.side_a_spawns;
         let b_spawns = snapshot.side_b_spawns;
         tracing::debug!("Build navmesh grid");
@@ -87,6 +95,8 @@ impl WorldLoader {
             mod_,
             meta,
             phase,
+            duration,
+            start,
             a_spawns,
             b_spawns,
             flags,

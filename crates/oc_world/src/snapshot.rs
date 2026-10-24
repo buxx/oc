@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::time::{Duration, SystemTime};
 
 use derive_more::Constructor;
 use oc_individual::Individual;
@@ -7,13 +8,16 @@ use oc_projectile::Projectile;
 use oc_root::WorldConfig;
 use oc_root::battle::BattlePhase;
 use rkyv::rancor::Error;
-use rkyv::{Archive, Deserialize, Serialize};
+use rkyv::{
+    Archive, Deserialize, Serialize,
+    with::{AsUnixTime, Map},
+};
 
+use crate::DEFAULT_FIGHT_DURATION;
 use crate::spawn::SpawnZoneName;
 use crate::tile::Tile;
 
 #[derive(Debug, Archive, Deserialize, Serialize, Constructor)]
-#[rkyv(compare(PartialEq))]
 pub struct Snapshot {
     pub w: WorldConfig,
     pub tiles: Vec<Tile>,
@@ -21,6 +25,9 @@ pub struct Snapshot {
     pub squads: Vec<Squad>,
     pub projectiles: Vec<Projectile>,
     pub phase: BattlePhase,
+    pub duration: Duration,
+    #[rkyv(with = Map<AsUnixTime>)]
+    pub start: Option<SystemTime>,
     pub side_a_spawns: Vec<SpawnZoneName>,
     pub side_b_spawns: Vec<SpawnZoneName>,
 }
@@ -34,6 +41,8 @@ impl Snapshot {
             squads: vec![],
             projectiles: vec![],
             phase: BattlePhase::Deployment,
+            duration: DEFAULT_FIGHT_DURATION,
+            start: None,
             side_a_spawns: vec![],
             side_b_spawns: vec![],
         }

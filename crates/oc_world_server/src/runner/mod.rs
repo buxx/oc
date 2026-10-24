@@ -109,6 +109,10 @@ impl<E: Client> Runner<E> {
                     std::thread::sleep(wait);
                     last = Instant::now();
 
+                    if ended(&ctx) {
+                        continue;
+                    }
+
                     for update_ in physics::Processor::new(&ctx).step(i) {
                         update::update(&ctx, update_);
                     }
@@ -169,6 +173,10 @@ impl<E: Client> Runner<E> {
 
                         std::thread::sleep(wait);
                         last = Instant::now();
+
+                        if ended(&ctx) {
+                            continue;
+                        }
 
                         for i in &indexes {
                             let i = IndividualIndex(*i as u64);
@@ -280,6 +288,10 @@ impl<E: Client> Runner<E> {
                 std::thread::sleep(wait);
                 last = Instant::now();
 
+                if ended(&ctx) {
+                    continue;
+                }
+
                 let updates = {
                     let world = &ctx.state.world();
                     tracing::trace!(name = "runner-world");
@@ -346,6 +358,10 @@ impl<E: Client> Runner<E> {
 
                         std::thread::sleep(wait);
                         last = Instant::now();
+
+                        if ended(&ctx) {
+                            continue;
+                        }
 
                         for i in &indexes {
                             let i = SquadIndex(*i as u64);
@@ -482,4 +498,8 @@ impl<E: Client> Runner<E> {
             }
         });
     }
+}
+
+fn ended<E: Client>(ctx: &Context<E>) -> bool {
+    matches!(ctx.state.world().phase, BattlePhase::End)
 }

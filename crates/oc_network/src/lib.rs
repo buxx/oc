@@ -35,6 +35,7 @@ pub enum ToClient {
     Fx(Fx),
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
     SetBattlePhase(BattlePhase),
+    Elapsed(std::time::Duration, std::time::Duration), // elapsed, total duration
     Flags(Flags),
     Morale(Morale),
     Collision(WorldVec3, std::time::Duration), // Duration is lag

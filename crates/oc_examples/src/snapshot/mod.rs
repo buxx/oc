@@ -75,6 +75,8 @@ where
             squads,
             projectiles,
             phase,
+            duration: oc_world::DEFAULT_FIGHT_DURATION,
+            start: None,
             side_a_spawns,
             side_b_spawns,
         };

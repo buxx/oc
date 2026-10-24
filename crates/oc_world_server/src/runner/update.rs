@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use crate::projectile;
 use crate::routing::Listening;
@@ -37,6 +37,7 @@ pub enum Update {
     SetBattlePhase(BattlePhase),
     UpdateFlags(Flags),
     UpdateMorale(Morale),
+    UpdateElapsed(Duration, Duration), // elapsed, total duration
     PlaySoundWithGeo(SoundIndex, WorldVec3, WorldRegionIndex),
 }
 
@@ -62,6 +63,7 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         Update::SetBattlePhase(phase) => state.set_battle_phase(phase),
         Update::UpdateFlags(flags) => state.update_flags(flags),
         Update::UpdateMorale(morale) => state.update_morale(morale),
+        Update::UpdateElapsed(elapsed, duration) => state.update_elapsed(elapsed, duration),
         Update::PlaySoundWithGeo(sound, position, region) => {
             state.play_sound(sound, position, region)
         }
@@ -278,6 +280,14 @@ impl<E: Client> super::State<E> {
 
     fn update_morale(&self, morale: Morale) -> Vec<(Listening, Vec<ToClient>)> {
         vec![(Listening::Any, vec![ToClient::Morale(morale)])]
+    }
+
+    fn update_elapsed(
+        &self,
+        elapsed: Duration,
+        duration: Duration,
+    ) -> Vec<(Listening, Vec<ToClient>)> {
+        vec![(Listening::Any, vec![ToClient::Elapsed(elapsed, duration)])]
     }
 
     fn play_sound(

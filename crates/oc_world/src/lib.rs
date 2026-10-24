@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use derive_more::Constructor;
 use oc_geo::{
     region::{RegionXy, WorldRegionIndex},
@@ -17,6 +19,8 @@ use crate::{
     flag::Flags, meta::Meta, resume::WorldResume, spawn::SpawnZoneName, tile::Tile,
     visibility::Visibilities,
 };
+
+pub const DEFAULT_FIGHT_DURATION: Duration = Duration::from_secs(15 * 60);
 
 pub mod cache;
 pub mod control;
@@ -46,6 +50,8 @@ pub struct World {
     pub mod_: Mod, // Maybe its place is not in world (when want to access, need to read lock World, but Mod never change)
     pub meta: Meta,
     pub phase: BattlePhase,
+    pub duration: Duration,
+    pub start: Option<Instant>,
     pub side_a_spawns: Vec<SpawnZoneName>,
     pub side_b_spawns: Vec<SpawnZoneName>,
     pub flags: Flags,
@@ -161,7 +167,14 @@ impl World {
         }
     }
 
+    pub fn elapsed(&self) -> Option<Duration> {
+        self.start.map(|start| start.elapsed())
+    }
+
     pub fn set_phase(&mut self, value: BattlePhase) {
+        if matches!(value, BattlePhase::Fight) && self.start.is_none() {
+            self.start = Some(Instant::now());
+        }
         self.phase = value;
     }
 
@@ -208,6 +221,8 @@ mod tests {
             mod_,
             meta,
             BattlePhase::Fight,
+            DEFAULT_FIGHT_DURATION,
+            Some(Instant::now()),
             vec![],
             vec![],
             Flags::default(),

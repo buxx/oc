@@ -1,6 +1,6 @@
 use crate::runner::update::Update;
 use derive_more::Constructor;
-use oc_root::side::Side;
+use oc_root::{battle::BattlePhase, side::Side};
 use oc_utils::polygon::Polygon;
 use oc_world::{
     World,
@@ -15,10 +15,26 @@ pub struct Processor<'a> {
 
 impl Processor<'_> {
     pub fn compute(&self) -> Vec<Update> {
-        vec![
+        let mut updates = vec![
             Update::UpdateFlags(self.compute_flags()),
             Update::UpdateMorale(self.compute_morale()),
-        ]
+        ];
+
+        updates.extend(self.time());
+        updates
+    }
+
+    fn time(&self) -> Vec<Update> {
+        let mut updates = vec![];
+
+        if let Some(elapsed) = self.world.elapsed() {
+            updates.push(Update::UpdateElapsed(elapsed, self.world.duration));
+            if elapsed >= self.world.duration {
+                updates.push(Update::SetBattlePhase(BattlePhase::End));
+            }
+        }
+
+        updates
     }
 
     fn compute_flags(&self) -> Flags {

@@ -29,6 +29,7 @@ pub fn actions(world: &crate::world::World, phase: &BattlePhase) -> impl Scene {
                 on(on_battle_phase_click)
             ),
             ({ super::morale::morale() }),
+            ({ super::remaining::remaining() }),
         ]
     }
 }
@@ -82,6 +83,7 @@ fn on_battle_phase_click(
                 .unwrap_or(window::battle::fight::Window);
             commands.trigger(ToggleWindow(window::Window::Fight(window)));
         }
+        BattlePhase::End => {}
         BattlePhase::Fight => {
             // FIXME: surrender
             tracing::debug!("Surrender");

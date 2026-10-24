@@ -8,7 +8,7 @@ use crate::{
     fx::FxEvent,
     ingame::collision::CollisionEvent,
     ingame::{
-        BattlePhase, GameConfigReceived, SetBattlePhase, WorldResumeEvent,
+        GameConfigReceived, SetBattlePhase, WorldResumeEvent,
         individual::ForgotIndividual,
         input::{
             individual::{
@@ -19,7 +19,10 @@ use crate::{
         },
         projectile::ForgotProjectile,
     },
-    ingame::{flag::UpdateFlags, hud::morale::UpdateMorale},
+    ingame::{
+        flag::UpdateFlags,
+        hud::{morale::UpdateMorale, remaining::UpdateRemaining},
+    },
     network,
     network::input::ToClientEvent,
     states::{GameConfig, GuiFiles},
@@ -96,11 +99,10 @@ pub fn on_to_client(
         }
         ToClient::SetBattlePhase(phase) => {
             tracing::trace!(name = "ingame-input-set-battle-phase");
-            let phase = match phase {
-                oc_root::battle::BattlePhase::Deployment => BattlePhase::Deployment,
-                oc_root::battle::BattlePhase::Fight => BattlePhase::Fight,
-            };
-            commands.trigger(SetBattlePhase(phase));
+            commands.trigger(SetBattlePhase((*phase).into()));
+        }
+        ToClient::Elapsed(elapsed, duration) => {
+            commands.trigger(UpdateRemaining(duration.saturating_sub(*elapsed)))
         }
         ToClient::Flags(flags) => commands.trigger(UpdateFlags(flags.clone())),
         ToClient::Morale(morale) => commands.trigger(UpdateMorale(*morale)),

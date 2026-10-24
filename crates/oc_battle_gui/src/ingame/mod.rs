@@ -87,6 +87,7 @@ pub enum BattlePhase {
     #[default]
     Deployment,
     Fight,
+    End,
 }
 
 impl BattlePhase {
@@ -94,6 +95,17 @@ impl BattlePhase {
         match self {
             BattlePhase::Deployment => "Fight",
             BattlePhase::Fight => "Surrender",
+            BattlePhase::End => "End",
+        }
+    }
+}
+
+impl From<oc_root::battle::BattlePhase> for BattlePhase {
+    fn from(value: oc_root::battle::BattlePhase) -> Self {
+        match value {
+            oc_root::battle::BattlePhase::Deployment => BattlePhase::Deployment,
+            oc_root::battle::BattlePhase::Fight => BattlePhase::Fight,
+            oc_root::battle::BattlePhase::End => BattlePhase::End,
         }
     }
 }
@@ -303,6 +315,7 @@ fn on_set_battle_phase(
     event: On<SetBattlePhase>,
     mut commands: Commands,
     mut phase: ResMut<NextState<BattlePhase>>,
+    mut window: ResMut<crate::states::Window>,
     g: Res<GameConfig>,
 ) {
     *phase = NextState::Pending(event.0);
@@ -314,6 +327,11 @@ fn on_set_battle_phase(
         BattlePhase::Fight => {
             commands.trigger(spawn::HideSpawnZones);
             crate::fx::play_phase_start(&mut commands, &g, BattlePhase::Fight);
+        }
+        BattlePhase::End => {
+            window.0 = Some(crate::window::Window::BattleEnd(
+                crate::window::battle::end::Window,
+            ));
         }
     }
 }
