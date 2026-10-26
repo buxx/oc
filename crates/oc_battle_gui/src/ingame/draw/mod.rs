@@ -9,6 +9,7 @@ pub const Z_FLAG: f32 = 0.07;
 pub const Z_TERRAIN_TILE: f32 = 0.1;
 pub const Z_INDIVIDUAL: f32 = 2.0;
 pub const Z_PROJECTILE: f32 = 3.0;
+pub const Z_EXPLOSION: f32 = 3.5;
 pub const Z_SELECT_WIRES: f32 = 5.0;
 #[cfg(feature = "debug")]
 pub const Z_REGION_WIREFRAME: f32 = 1.0;

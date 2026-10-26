@@ -4,7 +4,7 @@ use oc_world::support::SupportType;
 
 use crate::ingame::{
     hud::GAP,
-    input::left_click::{LeftClickMode, SetLeftClick},
+    input::left_click::{LeftClickMode, SetLeftClick, support::RequestedSupports},
 };
 use crate::world::World;
 
@@ -114,8 +114,13 @@ pub fn on_set_support_availability(
     mut world: ResMut<World>,
     mut buttons: Query<(&mut SupportButton, &mut BackgroundColor, &Children)>,
     mut texts: Query<&mut TextColor>,
+    mut requested: ResMut<RequestedSupports>,
 ) {
     let SetSupportAvailabilityEvent(type_, value) = *event;
+
+    if !value {
+        requested.remove(type_);
+    }
 
     for (t, available) in world.supports.iter_mut() {
         if *t == type_ {

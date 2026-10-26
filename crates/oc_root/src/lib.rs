@@ -18,6 +18,7 @@ use crate::{
 pub mod battle;
 pub mod behavior;
 pub mod end;
+pub mod explosion;
 pub mod files;
 pub mod geo;
 pub mod identity;

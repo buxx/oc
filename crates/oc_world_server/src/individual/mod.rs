@@ -35,6 +35,7 @@ use crate::{
     visibility::{path_objects_at, visibility},
 };
 
+pub mod death;
 pub mod situation;
 pub mod update;
 

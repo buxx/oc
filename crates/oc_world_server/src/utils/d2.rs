@@ -1,5 +1,5 @@
 use oc_geo::tile::{TileXy, WorldTileIndex};
-use oc_root::{WcfgFrom, WorldConfig};
+use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec2, physics::Meters};
 use oc_utils::d2::Xy;
 
 pub fn shape_from_tile(i: WorldTileIndex, radius: u64, w: &WorldConfig) -> Vec<WorldTileIndex> {
@@ -22,6 +22,19 @@ pub fn shape_from_tile(i: WorldTileIndex, radius: u64, w: &WorldConfig) -> Vec<W
     }
 
     result
+}
+
+pub fn random_position_around(w: &WorldConfig, center: WorldVec2, radius: Meters) -> WorldVec2 {
+    let radius = radius.0 * w.geo_pixels_per_meters();
+    let distance = radius * fastrand::f32().sqrt();
+    let angle = fastrand::f32() * std::f32::consts::TAU;
+    let x = center.x + distance * angle.cos();
+    let y = center.y + distance * angle.sin();
+
+    WorldVec2::new(
+        x.clamp(0., (w.world_width_pixels() - 1) as f32),
+        y.clamp(0., (w.world_height_pixels() - 1) as f32),
+    )
 }
 
 #[cfg(test)]

@@ -26,7 +26,9 @@ use crate::{
 
 const WORLD_INTERVAL: Duration = Duration::from_secs(5);
 
+pub mod explosion;
 pub mod input;
+pub mod support;
 pub mod update;
 
 #[derive(Constructor)]
@@ -480,17 +482,14 @@ impl<E: Client> Runner<E> {
 
         std::thread::spawn(move || {
             loop {
-                {
-                    let now = Instant::now();
-                    let mut tasks = vec![];
-                    while let Some((instant, update_)) = ctx.state.scheduled().pop() {
-                        if now >= instant {
-                            update::update(&ctx, update_);
-                        } else {
-                            tasks.push((instant, update_))
-                        }
-                    }
-                    *ctx.state.scheduled() = tasks;
+                let now = Instant::now();
+                // Take all tasks at once: lock must be released before run updates
+                let tasks = std::mem::take(&mut *ctx.state.scheduled());
+                let (due, later): (Vec<_>, Vec<_>) =
+                    tasks.into_iter().partition(|(instant, _)| now >= *instant);
+                ctx.state.scheduled().extend(later);
+                for (_, update_) in due {
+                    update::update(&ctx, update_);
                 }
 
                 // TODO: This is a very basic system of scheduler ...

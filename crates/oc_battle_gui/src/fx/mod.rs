@@ -1,9 +1,11 @@
 use crate::states::GuiFiles;
 use bevy::prelude::*;
-use oc_physics::fx::{Audio, Fx};
+use oc_physics::fx::{Audio, Fx, Visual};
 use oc_utils::let_some;
 
 use crate::{ingame::BattlePhase, states::GameConfig};
+
+mod explosion;
 
 #[derive(Debug, Event)]
 pub struct FxEvent(pub Fx);
@@ -21,7 +23,7 @@ impl Plugin for FxPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(on_fx)
             .add_systems(Startup, setup)
-            .add_systems(Update, update_listener);
+            .add_systems(Update, (update_listener, explosion::animate));
     }
 }
 
@@ -52,6 +54,7 @@ fn on_fx(
     g: Res<GameConfig>,
     files: Res<GuiFiles>,
     emitters: Query<(), With<Emitter>>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let_some!(g = &g.0, return);
     let_some!(files = &files.0, return);
@@ -61,6 +64,7 @@ fn on_fx(
         Fx::Audio(audio) => match audio {
             Audio::PlayWithGeo(sound, position) => {
                 if emitters.iter().count() >= MAX_CONCURRENT_EMITTERS {
+                    tracing::debug!(name = "fx-too-many-emitters", sound=?sound);
                     return;
                 }
                 let sound = g.mod_.sound(*sound);
@@ -79,6 +83,20 @@ fn on_fx(
                     AudioPlayer::new(asset_server.load(path)),
                     PlaybackSettings::DESPAWN,
                 ));
+            }
+        },
+        Fx::Visual(visual) => match visual {
+            Visual::Explosion(position, rayon) => {
+                tracing::debug!(name = "fx-explosion", position=?position, rayon=?rayon);
+                explosion::spawn(
+                    &mut commands,
+                    &asset_server,
+                    &mut layouts,
+                    &g,
+                    &files,
+                    *position,
+                    *rayon,
+                );
             }
         },
     }

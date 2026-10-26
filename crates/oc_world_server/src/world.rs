@@ -47,18 +47,20 @@ impl Processor<'_> {
 
         for pending in &self.world.pending_supports {
             if !pending.is_started() {
+                tracing::trace!(name="world-start-support", pending=?pending);
                 updates.extend([
                     Update::SetSupportAvailability(pending.side(), pending.type_(), false),
                     Update::StartPendingSupport(pending.side(), pending.type_()),
                 ]);
             }
 
-            if !pending.is_ready() {
+            if !pending.is_ready(&self.world.mod_.support) {
+                tracing::trace!(name="world-support-not-ready", pending=?pending);
                 continue;
             }
 
-            // TODO: spawn the support projectiles (Projectile::ExternalShell) around pending.position
-            tracing::debug!(name="world-compute-support", pending=?pending);
+            tracing::debug!(name="world-support-ready", pending=?pending);
+            updates.push(Update::RealizeSupport(pending.side(), pending.type_()));
             updates.push(Update::RemovePendingSupport(pending.clone()));
         }
 

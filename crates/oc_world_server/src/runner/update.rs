@@ -17,6 +17,8 @@ use oc_projectile::spawn::SpawnProjectile;
 use oc_projectile::spawn::SpawnProjectiles;
 use oc_root::Client;
 use oc_root::battle::BattlePhase;
+use oc_root::explosion::Explosion;
+use oc_root::geo::WorldVec2;
 use oc_root::geo::WorldVec3;
 use oc_root::side::Side;
 use oc_world::flag::Flags;
@@ -43,7 +45,9 @@ pub enum Update {
     SetSupportAvailability(Side, SupportType, bool),
     AddPendingSupport(PendingSupport),
     StartPendingSupport(Side, SupportType),
+    RealizeSupport(Side, SupportType),
     RemovePendingSupport(PendingSupport),
+    SpawnExplosion(Explosion, WorldVec2),
 }
 
 pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
@@ -76,22 +80,30 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
             state.set_support_availability(side, type_, availability)
         }
         Update::AddPendingSupport(pending) => {
-            state.world_mut().pending_supports.push(pending);
+            let mut world = state.world_mut();
+            world
+                .pending_supports
+                .retain(|p| !(p.side == pending.side && p.type_ == pending.type_));
+            world.pending_supports.push(pending);
             vec![]
         }
         Update::StartPendingSupport(side, type_) => {
             let mut world = state.world_mut();
-            for pending in world.pending_supports.iter_mut() {
-                if pending.side == side && pending.type_ == type_ {
-                    pending.start();
-                }
+            if let Some(pending) = world
+                .pending_supports
+                .iter_mut()
+                .find(|p| p.side == side && p.type_ == type_)
+            {
+                pending.start();
             }
             vec![]
         }
+        Update::RealizeSupport(side, type_) => state.realize_support(side, type_),
         Update::RemovePendingSupport(pending) => {
             state.world_mut().pending_supports.retain(|p| p != &pending);
             vec![]
         }
+        Update::SpawnExplosion(explosion, position) => state.spawn_explosion(explosion, position),
     } {
         tracing::trace!(name="runner-update-broadcast", filter=?filter, messages=?messages);
         ctx.broadcast(filter, messages);
@@ -99,7 +111,7 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
 }
 
 impl<E: Client> super::State<E> {
-    fn schedule(&self, instant: Instant, update: Update) -> Vec<(Listening, Vec<ToClient>)> {
+    pub fn schedule(&self, instant: Instant, update: Update) -> Vec<(Listening, Vec<ToClient>)> {
         self.scheduled().push((instant, update));
         vec![]
     }

@@ -1,5 +1,5 @@
 use derive_more::{Constructor, Deref};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use oc_root::{geo::WorldVec2, side::Side};
 
@@ -25,13 +25,6 @@ impl SupportType {
     pub fn name(&self) -> &'static str {
         match self {
             SupportType::NavalBombard => "Naval bombard",
-        }
-    }
-
-    /// Delay between the beginning of the fight (or the request) and the support execution
-    pub fn prepare(&self) -> Duration {
-        match self {
-            SupportType::NavalBombard => Duration::from_secs(15),
         }
     }
 }
@@ -130,9 +123,12 @@ impl PendingSupport {
         self.start = Some(Instant::now());
     }
 
-    pub fn is_ready(&self) -> bool {
+    pub fn is_ready(&self, support: &oc_mod::support::Support) -> bool {
+        let prepare = match self.type_ {
+            SupportType::NavalBombard => support.naval_bombard_prepare(),
+        };
         self.start
-            .map(|s| s.elapsed() >= self.type_.prepare())
+            .map(|s| s.elapsed() >= prepare)
             .unwrap_or_default()
     }
 }

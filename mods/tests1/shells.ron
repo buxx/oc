@@ -1,0 +1,10 @@
+[
+  (
+    name: "Common Mark 15 Mods 1 through 14",
+    kill_rayon: Meters(5.0),
+    stunned_rayon: Meters(15.0),
+    shrapnel_rayon: Meters(25.0),
+    shrapnel_quantity: 75,
+    penetration_force: 1.0,
+  ),
+]

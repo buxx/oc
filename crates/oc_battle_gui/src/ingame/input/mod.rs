@@ -32,6 +32,7 @@ impl Plugin for InputPlugin {
             .init_gizmo_group::<left_click::select::AreaGizmos>()
             .init_resource::<State>()
             .init_resource::<left_click::LeftClick>()
+            .init_resource::<left_click::support::RequestedSupports>()
             .add_observer(client::on_to_client)
             .add_observer(left_click::on_set_left_click)
             .add_observer(left_click::on_spawn_clicks_line)
@@ -116,6 +117,12 @@ impl Plugin for InputPlugin {
                     .run_if(in_state(InGameState::Battle))
                     .run_if(in_state(LeftClickModeType::Support))
                     .run_if(in_state(PointerIn::Battle)),
+            )
+            .add_systems(
+                Update,
+                left_click::support::draw_requested
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle)),
             )
             .add_systems(Update, pointer_in);
 

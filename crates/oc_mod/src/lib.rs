@@ -16,6 +16,7 @@ use crate::{
     illustration::{IllustrationIndex, IllustrationKind, IndexedIllustration},
     magazine::{IndexedMagazine, MagazineIndex},
     nature::{Nature, NatureIndex},
+    shell::{IndexedShell, ShellIndex},
     sound::{IndexedSound, SoundIndex},
     weapons::{IndexedWeapon, WeaponIndex},
 };
@@ -25,7 +26,9 @@ pub mod armament;
 pub mod illustration;
 pub mod magazine;
 pub mod nature;
+pub mod shell;
 pub mod sound;
+pub mod support;
 pub mod weapons;
 
 pub const MOD_RON: &str = "mod.ron";
@@ -64,6 +67,10 @@ pub struct Mod {
     pub weapons: Vec<weapons::IndexedWeapon>,
     #[serde(skip, default)]
     pub illustrations: illustration::IndexedIllustrations,
+    #[serde(skip, default)]
+    pub shells: Vec<shell::IndexedShell>,
+    #[serde(skip, default)]
+    pub support: support::Support,
     // Below game specs
     #[serde(default = "default_human_default_stand_up_fire_meters")]
     pub human_default_stand_up_fire_meters: f32,
@@ -80,6 +87,8 @@ impl Mod {
         mod_.magazines = magazine::load(path)?;
         mod_.weapons = weapons::load(path, &mod_)?;
         mod_.illustrations = illustration::load(path)?;
+        mod_.shells = shell::load(path)?;
+        mod_.support = mod_.resolve_support(support::load(path)?)?;
 
         // TODO: centralize caching at server startup
         if let Some(cache_) = cache_ {
@@ -138,6 +147,29 @@ impl Mod {
             .iter()
             .find(|a| a.name() == name)
             .ok_or(Error::UnknownAmmunitionName(name.to_string()))
+    }
+
+    pub fn shell_from_name(&self, name: &str) -> Result<&IndexedShell, Error> {
+        self.shells
+            .iter()
+            .find(|s| s.name == name)
+            .ok_or(Error::UnknownShellName(name.to_string()))
+    }
+
+    pub fn shell(&self, index: ShellIndex) -> &IndexedShell {
+        &self.shells[index.0 as usize]
+    }
+
+    fn resolve_support(&self, raw: support::SupportRaw) -> Result<support::Support, Error> {
+        Ok(support::Support {
+            naval_bombard_shell: self.shell_from_name(&raw.naval_bombard_shell)?.index(),
+            naval_bombard_series: raw.naval_bombard_series,
+            naval_bombard_shells_by_serie: raw.naval_bombard_shells_by_serie,
+            naval_bombard_radius: raw.naval_bombard_radius,
+            naval_bombard_prepare_seconds: raw.naval_bombard_prepare_seconds,
+            naval_bombard_serie_interval_ms: raw.naval_bombard_serie_interval_ms,
+            naval_bombard_shell_interval_ms: raw.naval_bombard_shell_interval_ms,
+        })
     }
 
     pub fn weapon_from_name(&self, name: &str) -> Result<&IndexedWeapon, Error> {
@@ -346,6 +378,12 @@ pub enum Error {
     UnknownMagazineName(String),
     #[error("Unknown sound name: {0}")]
     UnknownSoundName(String),
+    #[error("Unknown shell name: {0}")]
+    UnknownShellName(String),
+    #[error("Shells: {0}")]
+    Shells(#[from] shell::Error),
+    #[error("Support: {0}")]
+    Support(#[from] support::Error),
     #[error("Unknown illustration name: {0}")]
     UnknownIllustrationName(String),
     #[error("Illustrations: {0}")]
