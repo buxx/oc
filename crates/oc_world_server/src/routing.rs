@@ -38,8 +38,7 @@ impl<T: Clone + PartialEq + Hash + std::cmp::Eq> Listeners<T> {
             .push(listener);
     }
 
-    #[allow(unused)]
-    pub fn identity(&mut self, listener: &T) -> Option<&Identity> {
+    pub fn identity(&self, listener: &T) -> Option<&Identity> {
         self.identities.get(listener)
     }
 

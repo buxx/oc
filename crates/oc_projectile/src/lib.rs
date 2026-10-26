@@ -11,7 +11,7 @@ use oc_root::{WorldConfig, geo::WorldVec3, ids::Ids, material::MaterialKind};
 use oc_utils::{collections::WithIds, d2::Direction};
 use rkyv::{Archive, Deserialize, Serialize};
 
-use crate::bullet::Bullet;
+use crate::{bullet::Bullet, shell::ExternalShell};
 
 // FIXME: projectiles hould have an forced life end.
 // As we don't compute la perte de vitesse et donc la chute,
@@ -19,6 +19,7 @@ use crate::bullet::Bullet;
 // ou alors on calcule la chute et le ralentissement ...
 pub mod bullet;
 pub mod network;
+pub mod shell;
 pub mod spawn;
 
 #[derive(
@@ -53,18 +54,21 @@ impl From<&ProjectileId> for ProjectileId {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Projectile {
     Bullet(Bullet),
+    ExternalShell(ExternalShell),
 }
 
 impl Projectile {
     pub fn position(&self) -> WorldVec3 {
         match self {
             Projectile::Bullet(bullet) => bullet.position,
+            Projectile::ExternalShell(shell) => shell.position,
         }
     }
 
     pub fn tile(&self) -> WorldTileIndex {
         match self {
             Projectile::Bullet(bullet) => bullet.tile,
+            Projectile::ExternalShell(shell) => shell.tile,
         }
     }
 
@@ -72,6 +76,7 @@ impl Projectile {
     pub fn shooter(&self) -> Option<oc_individual::IndividualIndex> {
         match self {
             Projectile::Bullet(bullet) => bullet.shooter,
+            Projectile::ExternalShell(_) => None,
         }
     }
 }
@@ -80,12 +85,14 @@ impl Region for Projectile {
     fn region(&self) -> WorldRegionIndex {
         match self {
             Projectile::Bullet(bullet) => bullet.region,
+            Projectile::ExternalShell(shell) => shell.region,
         }
     }
 
     fn set_region(&mut self, value: WorldRegionIndex) {
         match self {
             Projectile::Bullet(bullet) => bullet.region = value,
+            Projectile::ExternalShell(shell) => shell.region = value,
         }
     }
 }
@@ -94,12 +101,14 @@ impl Physic for Projectile {
     fn position(&self, _: &WorldConfig) -> WorldVec3 {
         match self {
             Projectile::Bullet(bullet) => bullet.position,
+            Projectile::ExternalShell(shell) => shell.position,
         }
     }
 
     fn forces(&self, _: &WorldConfig) -> &Vec<Force> {
         match self {
             Projectile::Bullet(bullet) => &bullet.forces,
+            Projectile::ExternalShell(shell) => &shell.forces,
         }
     }
 
@@ -124,6 +133,7 @@ impl Physic for Projectile {
     fn ignore_side(&self) -> IgnoreSide {
         match self {
             Projectile::Bullet(bullet) => IgnoreSide::Side(bullet.side),
+            Projectile::ExternalShell(shell) => IgnoreSide::Side(shell.side),
         }
     }
 
@@ -140,18 +150,21 @@ impl UpdatePhysic for Projectile {
     fn set_position(&mut self, value: WorldVec3) {
         match self {
             Projectile::Bullet(bullet) => bullet.position = value,
+            Projectile::ExternalShell(shell) => shell.position = value,
         }
     }
 
     fn push_force(&mut self, value: Force) {
         match self {
             Projectile::Bullet(bullet) => bullet.forces.push(value),
+            Projectile::ExternalShell(shell) => shell.forces.push(value),
         }
     }
 
     fn remove_force(&mut self, value: &Force) {
         match self {
             Projectile::Bullet(bullet) => bullet.forces.retain(|f| f != value),
+            Projectile::ExternalShell(shell) => shell.forces.retain(|f| f != value),
         }
     }
 
@@ -164,6 +177,7 @@ impl Geo for Projectile {
     fn tile(&self) -> WorldTileIndex {
         match self {
             Projectile::Bullet(bullet) => bullet.tile,
+            Projectile::ExternalShell(shell) => shell.tile,
         }
     }
 }
@@ -172,6 +186,7 @@ impl UpdateGeo for Projectile {
     fn set_tile(&mut self, value: WorldTileIndex) {
         match self {
             Projectile::Bullet(bullet) => bullet.tile = value,
+            Projectile::ExternalShell(shell) => shell.tile = value,
         }
     }
 }

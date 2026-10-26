@@ -12,7 +12,11 @@ use oc_root::battle::BattlePhase;
 use oc_root::identity::Identity;
 use oc_root::{Client, WcfgFrom, geo::WorldVec2};
 use oc_utils::error::OkOrLogError;
-use oc_world::tile::IntoTiles;
+use oc_utils::{let_some, true_};
+use oc_world::{
+    support::{PendingSupport, SupportType},
+    tile::IntoTiles,
+};
 
 use crate::{
     network::IntoNetworkInsert, runner::update::Update, state::State, utils::subject::IntoSubject,
@@ -38,6 +42,7 @@ impl<'a, E: Client> Dealer<'a, E> {
             ToServer::ExplodeProjectile(spawn) => self.spawn_projectiles(spawn),
             ToServer::Squad(squad, message) => self.squad_message(squad, message),
             ToServer::Fight => self.fight(),
+            ToServer::RequestSupport(type_, position) => self.request_support(type_, position),
         }
     }
 
@@ -137,6 +142,23 @@ impl<'a, E: Client> Dealer<'a, E> {
     fn fight(&self) -> Vec<Update> {
         // FIXME BS NOW: Against AI: fight immediately; Against human both must want fight to fight
         vec![Update::SetBattlePhase(BattlePhase::Fight)]
+    }
+
+    fn request_support(&self, type_: SupportType, position: WorldVec2) -> Vec<Update> {
+        let Some(identity) = self.state.listeners().identity(&self.endpoint).cloned() else {
+            return vec![];
+        };
+
+        let world = self.state.world();
+        let supports = world.supports.side(identity.side);
+        let support = supports.iter().find(|(t, _)| t == &type_);
+        let_some!((_, available) = support, return vec![]);
+        true_!(available, return vec![]);
+
+        tracing::debug!(name="runner-input-request-support", type_=?type_, side=?identity.side, position=?position);
+        let pending = PendingSupport::fresh(identity.side, type_, position);
+
+        vec![Update::AddPendingSupport(pending)]
     }
 
     fn set_leader_position(&self, squad: SquadIndex, position: WorldVec2) -> Vec<Update> {

@@ -12,7 +12,12 @@ use oc_examples::{logging, run, utils::find_spawn};
 use oc_mod::Mod;
 use oc_root::{WorldConfig, battle::BattlePhase, geo::WorldVec2, physics::Meters, side::Side};
 use oc_world::{
-    load::WorldPath, meta::Meta, place::PlaceName, snapshot::Snapshot, spawn::SpawnZoneName,
+    load::WorldPath,
+    meta::Meta,
+    place::PlaceName,
+    snapshot::Snapshot,
+    spawn::SpawnZoneName,
+    support::{Support, SupportType, Supports},
 };
 use uuid::Uuid;
 
@@ -72,7 +77,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .map(|p| (p.name.clone(), WorldVec2::new(p.x, p.y)))
         .collect();
-    let mut snapshot = Snapshot::empty(w.clone()).with_tiles(tiles.clone());
+    let mut snapshot = Snapshot::empty(w.clone())
+        .with_tiles(tiles.clone())
+        .with_supports(match args.case {
+            Case::Empty => Supports::default(),
+            Case::EnagedBattleMiddle => Supports::default(),
+            Case::DeploySouthBeach => Supports::new(
+                Support(vec![(SupportType::NavalBombard, true)]),
+                Support::default(),
+            ),
+        });
 
     snapshot.side_a_spawns = deployments
         .side_a

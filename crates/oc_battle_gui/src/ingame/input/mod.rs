@@ -59,6 +59,13 @@ impl Plugin for InputPlugin {
                     .run_if(in_state(PointerIn::Battle)),
             )
             .add_observer(
+                left_click::support::on_click
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(LeftClickModeType::Support))
+                    .run_if(in_state(PointerIn::Battle)),
+            )
+            .add_observer(
                 left_click::order::on_set_left_click
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
@@ -100,6 +107,14 @@ impl Plugin for InputPlugin {
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))
                     .run_if(in_state(LeftClickModeType::LineOfView))
+                    .run_if(in_state(PointerIn::Battle)),
+            )
+            .add_systems(
+                Update,
+                (left_click::support::system)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(LeftClickModeType::Support))
                     .run_if(in_state(PointerIn::Battle)),
             )
             .add_systems(Update, pointer_in);

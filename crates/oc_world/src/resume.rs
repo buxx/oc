@@ -1,7 +1,7 @@
 use oc_individual::squad::{Squad, SquadIndex};
 use oc_root::battle::BattlePhase;
 
-use crate::spawn::SpawnZoneName;
+use crate::{spawn::SpawnZoneName, support::SupportType};
 
 #[derive(
     Debug,
@@ -18,4 +18,5 @@ pub struct WorldResume {
     pub side_a_spawns: Vec<SpawnZoneName>,
     pub side_b_spawns: Vec<SpawnZoneName>,
     pub phase: BattlePhase,
+    pub support: Vec<(SupportType, bool)>,
 }

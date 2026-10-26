@@ -69,6 +69,12 @@ impl WorldLoader {
         });
         let a_spawns = snapshot.side_a_spawns;
         let b_spawns = snapshot.side_b_spawns;
+        let supports = snapshot.supports;
+        let pending_supports = snapshot
+            .pending_supports
+            .into_iter()
+            .map(Into::into)
+            .collect();
         tracing::debug!("Build navmesh grid");
         let walls = tiles.as_walls(&mod_);
 
@@ -100,6 +106,8 @@ impl WorldLoader {
             a_spawns,
             b_spawns,
             flags,
+            supports,
+            pending_supports,
             tiles,
             navmesh,
             visibilities,

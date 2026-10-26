@@ -79,6 +79,8 @@ where
             start: None,
             side_a_spawns,
             side_b_spawns,
+            supports: Default::default(),
+            pending_supports: vec![],
         };
         snapshot.save(&snapshot_path)?;
 

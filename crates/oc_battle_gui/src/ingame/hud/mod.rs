@@ -8,6 +8,7 @@ pub mod morale;
 pub mod remaining;
 pub mod squad;
 pub mod squads;
+pub mod supports;
 
 const HUD_HEIGHT: f32 = 200.;
 const GAP: f32 = 4.;
@@ -26,6 +27,7 @@ impl Plugin for HudPlugin {
                 Update,
                 (
                     squads::spawn_squad_cells,
+                    supports::spawn_support_buttons,
                     squads::scroll_squad_grid,
                     squads::update_squad_behaviors,
                     squads::update_squad_status_colors,
@@ -37,6 +39,7 @@ impl Plugin for HudPlugin {
                     .run_if(in_state(AppState::InGame)),
             )
             .add_systems(OnEnter(BattlePhase::Fight), actions::update_fight_button)
+            .add_observer(supports::on_set_support_availability)
             .add_observer(squad::spawn_rows)
             .add_observer(squads::outline_selected_cells)
             .add_observer(morale::on_update_morale)
@@ -70,7 +73,7 @@ fn hud(world: &crate::world::World, phase: &BattlePhase) -> impl Scene {
         BackgroundColor(HUD_BG)
         Children [
             // Squads
-            ({ squads::squads() }),
+            ({ squads::squads_column() }),
             // Squad
             ({ squad::squad() }),
             // Actions

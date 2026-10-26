@@ -49,12 +49,27 @@ pub struct SquadBehaviorText(pub Option<SquadIndex>);
 #[derive(Component)]
 pub struct SquadCell(pub SquadIndex);
 
-pub fn squads() -> impl Scene {
+pub fn squads_column() -> impl Scene {
+    bsn! {
+        Node {
+            flex_grow: 1.,
+            height: percent(100),
+            flex_direction: FlexDirection::Column,
+            row_gap: px(GAP),
+        }
+        Children [
+            ({ squads() }),
+            ({ super::supports::supports() }),
+        ]
+    }
+}
+
+fn squads() -> impl Scene {
     bsn! {
         SquadGrid
         Node {
             flex_grow: 1.,
-            height: percent(100),
+            min_height: px(0),
             flex_direction: FlexDirection::Row,
             flex_wrap: FlexWrap::Wrap,
             align_content: AlignContent::FlexStart,

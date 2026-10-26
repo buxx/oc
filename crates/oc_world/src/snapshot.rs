@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 
 use derive_more::Constructor;
 use oc_individual::Individual;
@@ -7,6 +7,8 @@ use oc_individual::squad::Squad;
 use oc_projectile::Projectile;
 use oc_root::WorldConfig;
 use oc_root::battle::BattlePhase;
+use oc_root::geo::WorldVec2;
+use oc_root::side::Side;
 use rkyv::rancor::Error;
 use rkyv::{
     Archive, Deserialize, Serialize,
@@ -15,6 +17,7 @@ use rkyv::{
 
 use crate::DEFAULT_FIGHT_DURATION;
 use crate::spawn::SpawnZoneName;
+use crate::support::{PendingSupport, SupportType, Supports};
 use crate::tile::Tile;
 
 #[derive(Debug, Archive, Deserialize, Serialize, Constructor)]
@@ -30,6 +33,50 @@ pub struct Snapshot {
     pub start: Option<SystemTime>,
     pub side_a_spawns: Vec<SpawnZoneName>,
     pub side_b_spawns: Vec<SpawnZoneName>,
+    pub supports: Supports,
+    pub pending_supports: Vec<SnapshotPendingSupport>,
+}
+
+/// Persistable form of PendingSupport (Instant can't be persisted)
+#[derive(Debug, Clone, Archive, Deserialize, Serialize)]
+pub struct SnapshotPendingSupport {
+    pub type_: SupportType,
+    pub side: Side,
+    pub position: WorldVec2,
+    #[rkyv(with = Map<AsUnixTime>)]
+    pub start: Option<SystemTime>,
+}
+
+impl From<&PendingSupport> for SnapshotPendingSupport {
+    fn from(value: &PendingSupport) -> Self {
+        Self {
+            type_: value.type_,
+            side: value.side,
+            position: value.position,
+            start: value.start.map(|start| {
+                SystemTime::now()
+                    .checked_sub(start.elapsed())
+                    .unwrap_or_else(SystemTime::now)
+            }),
+        }
+    }
+}
+
+impl From<SnapshotPendingSupport> for PendingSupport {
+    fn from(value: SnapshotPendingSupport) -> Self {
+        let start = value.start.map(|start| {
+            let elapsed = start.elapsed().unwrap_or_default();
+            Instant::now()
+                .checked_sub(elapsed)
+                .unwrap_or_else(Instant::now)
+        });
+        Self {
+            type_: value.type_,
+            side: value.side,
+            position: value.position,
+            start,
+        }
+    }
 }
 
 impl Snapshot {
@@ -45,6 +92,8 @@ impl Snapshot {
             start: None,
             side_a_spawns: vec![],
             side_b_spawns: vec![],
+            supports: Supports::default(),
+            pending_supports: vec![],
         }
     }
 
@@ -83,6 +132,11 @@ impl Snapshot {
 
     pub fn with_phase(mut self, value: BattlePhase) -> Self {
         self.phase = value;
+        self
+    }
+
+    pub fn with_supports(mut self, value: Supports) -> Self {
+        self.supports = value;
         self
     }
 

@@ -4,6 +4,7 @@ use oc_network::ToClient;
 use oc_projectile::network::Projectile;
 use oc_root::{Wcfg, files};
 
+use crate::ingame::hud::supports::SetSupportAvailabilityEvent;
 use crate::{
     fx::FxEvent,
     ingame::collision::CollisionEvent,
@@ -106,6 +107,9 @@ pub fn on_to_client(
         }
         ToClient::Flags(flags) => commands.trigger(UpdateFlags(flags.clone())),
         ToClient::Morale(morale) => commands.trigger(UpdateMorale(*morale)),
+        ToClient::SetSupportAvailability(type_, available) => {
+            commands.trigger(SetSupportAvailabilityEvent(*type_, *available))
+        }
         ToClient::Collision(position, lag) => commands.trigger(CollisionEvent(*position, *lag)),
     }
 }

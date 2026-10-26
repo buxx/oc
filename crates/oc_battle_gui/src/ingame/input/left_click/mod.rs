@@ -7,6 +7,7 @@ use oc_root::WcfgFrom;
 use oc_root::geo::ScreenVec2;
 use oc_root::geo::WorldVec2;
 use oc_utils::let_some;
+use oc_world::support::SupportType;
 use strum_macros::EnumIter;
 
 use crate::cursor_to;
@@ -23,6 +24,7 @@ pub mod order;
 pub mod select;
 #[cfg(feature = "debug")]
 pub mod spawn_projectile;
+pub mod support;
 
 #[derive(Debug, Deref, DerefMut, Event)]
 pub struct SetLeftClick(pub LeftClickMode);
@@ -67,6 +69,8 @@ pub enum LeftClickMode {
     LineOfView(SpawnLovConfig),
     /// User is going to give a squad order
     Order(OrderType),
+    /// User is going to request a support
+    Support(SupportType),
 }
 
 impl LeftClickMode {
@@ -76,6 +80,7 @@ impl LeftClickMode {
             #[cfg(feature = "debug")]
             LeftClickMode::SpawnProjectile(_) => false,
             LeftClickMode::LineOfView(_) => true,
+            LeftClickMode::Support(_) => false,
             LeftClickMode::Order(order) => match order {
                 OrderType::Idle
                 | OrderType::MoveTo
@@ -94,6 +99,7 @@ impl LeftClickMode {
             #[cfg(feature = "debug")]
             LeftClickMode::SpawnProjectile(_) => None,
             LeftClickMode::LineOfView(_) => None,
+            LeftClickMode::Support(_) => None,
             LeftClickMode::Order(type_) => Some(type_),
         }
     }
@@ -116,6 +122,7 @@ impl LeftClickModeType {
             LeftClickModeType::SpawnProjectile => "Spawn projectile",
             LeftClickModeType::LineOfView => "Line of view",
             LeftClickModeType::Order => "Order",
+            LeftClickModeType::Support => "Support",
         }
     }
 }
@@ -179,7 +186,8 @@ pub fn update_spawn_projectile_clicks_line(
         LeftClickMode::Select
         | LeftClickMode::Dragging
         | LeftClickMode::LineOfView(_)
-        | LeftClickMode::Order(_) => {}
+        | LeftClickMode::Order(_)
+        | LeftClickMode::Support(_) => {}
         LeftClickMode::SpawnProjectile(_) => {
             if !state.clicks.is_empty() {
                 commands.trigger(DespawnClicksLine);

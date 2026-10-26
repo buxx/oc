@@ -21,6 +21,7 @@ use oc_root::geo::WorldVec3;
 use oc_root::side::Side;
 use oc_world::flag::Flags;
 use oc_world::morale::Morale;
+use oc_world::support::{PendingSupport, SupportType};
 use oc_world::visibility::Visibilities;
 use oc_world::visibility::Visibility;
 
@@ -39,6 +40,10 @@ pub enum Update {
     UpdateMorale(Morale),
     UpdateElapsed(Duration, Duration), // elapsed, total duration
     PlaySoundWithGeo(SoundIndex, WorldVec3, WorldRegionIndex),
+    SetSupportAvailability(Side, SupportType, bool),
+    AddPendingSupport(PendingSupport),
+    StartPendingSupport(Side, SupportType),
+    RemovePendingSupport(PendingSupport),
 }
 
 pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
@@ -66,6 +71,26 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         Update::UpdateElapsed(elapsed, duration) => state.update_elapsed(elapsed, duration),
         Update::PlaySoundWithGeo(sound, position, region) => {
             state.play_sound(sound, position, region)
+        }
+        Update::SetSupportAvailability(side, type_, availability) => {
+            state.set_support_availability(side, type_, availability)
+        }
+        Update::AddPendingSupport(pending) => {
+            state.world_mut().pending_supports.push(pending);
+            vec![]
+        }
+        Update::StartPendingSupport(side, type_) => {
+            let mut world = state.world_mut();
+            for pending in world.pending_supports.iter_mut() {
+                if pending.side == side && pending.type_ == type_ {
+                    pending.start();
+                }
+            }
+            vec![]
+        }
+        Update::RemovePendingSupport(pending) => {
+            state.world_mut().pending_supports.retain(|p| p != &pending);
+            vec![]
         }
     } {
         tracing::trace!(name="runner-update-broadcast", filter=?filter, messages=?messages);
@@ -280,6 +305,23 @@ impl<E: Client> super::State<E> {
 
     fn update_morale(&self, morale: Morale) -> Vec<(Listening, Vec<ToClient>)> {
         vec![(Listening::Any, vec![ToClient::Morale(morale)])]
+    }
+
+    fn set_support_availability(
+        &self,
+        side: Side,
+        type_: SupportType,
+        available: bool,
+    ) -> Vec<(Listening, Vec<ToClient>)> {
+        self.world_mut()
+            .supports
+            .side_mut(side)
+            .set_availability(type_, available);
+
+        vec![(
+            Listening::Side(side),
+            vec![ToClient::SetSupportAvailability(type_, available)],
+        )]
     }
 
     fn update_elapsed(

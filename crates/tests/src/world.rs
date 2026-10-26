@@ -88,6 +88,8 @@ impl TestWorld {
             side_a_spawns: self.side_a_spawns.clone(),
             side_b_spawns: self.side_b_spawns.clone(),
             flags: Default::default(),
+            supports: Default::default(),
+            pending_supports: vec![],
         }
     }
 }

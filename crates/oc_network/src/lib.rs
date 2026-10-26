@@ -18,7 +18,7 @@ use oc_root::{
     static_::StaticSource,
 };
 use oc_world::{
-    flag::Flags, meta::Meta, morale::Morale, resume::WorldResume, tile::Tile,
+    flag::Flags, meta::Meta, morale::Morale, resume::WorldResume, support::SupportType, tile::Tile,
     visibility::Visibility,
 };
 use rkyv::{Archive, Deserialize, Serialize};
@@ -38,6 +38,7 @@ pub enum ToClient {
     Elapsed(std::time::Duration, std::time::Duration), // elapsed, total duration
     Flags(Flags),
     Morale(Morale),
+    SetSupportAvailability(SupportType, bool),
     Collision(WorldVec3, std::time::Duration), // Duration is lag
 }
 
@@ -63,6 +64,7 @@ pub enum ToServer {
     ExplodeProjectile(SpawnProjectiles),
     Squad(SquadIndex, SquadMessage),
     Fight,
+    RequestSupport(SupportType, WorldVec2),
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq, Constructor)]

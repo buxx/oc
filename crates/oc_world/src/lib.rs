@@ -16,7 +16,12 @@ use oc_utils::d2::Xy;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    flag::Flags, meta::Meta, resume::WorldResume, spawn::SpawnZoneName, tile::Tile,
+    flag::Flags,
+    meta::Meta,
+    resume::WorldResume,
+    spawn::SpawnZoneName,
+    support::{PendingSupport, Supports},
+    tile::Tile,
     visibility::Visibilities,
 };
 
@@ -38,6 +43,7 @@ pub mod reader;
 pub mod resume;
 pub mod snapshot;
 pub mod spawn;
+pub mod support;
 pub mod terrain;
 pub mod tile;
 pub mod utils;
@@ -55,6 +61,8 @@ pub struct World {
     pub side_a_spawns: Vec<SpawnZoneName>,
     pub side_b_spawns: Vec<SpawnZoneName>,
     pub flags: Flags,
+    pub supports: Supports,
+    pub pending_supports: Vec<PendingSupport>,
     pub tiles: Vec<Tile>,
     pub navmesh: polyanya::Mesh,
     pub visibilities: Visibilities,
@@ -156,6 +164,7 @@ impl World {
             })
             .collect();
         let phase = self.phase.clone();
+        let support = self.supports.side(identity.side).0.clone();
         let side_a_spawns = self.side_a_spawns.clone();
         let side_b_spawns = self.side_b_spawns.clone();
 
@@ -164,6 +173,7 @@ impl World {
             phase,
             side_a_spawns,
             side_b_spawns,
+            support,
         }
     }
 
@@ -226,6 +236,8 @@ mod tests {
             vec![],
             vec![],
             Flags::default(),
+            Supports::default(),
+            vec![],
             tiles,
             polyanya::Mesh::default(),
             Visibilities::empty(0),

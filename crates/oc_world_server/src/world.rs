@@ -20,6 +20,7 @@ impl Processor<'_> {
             Update::UpdateMorale(self.compute_morale()),
         ];
 
+        updates.extend(self.compute_support());
         updates.extend(self.time());
         updates
     }
@@ -32,6 +33,33 @@ impl Processor<'_> {
             if elapsed >= self.world.duration {
                 updates.push(Update::SetBattlePhase(BattlePhase::End));
             }
+        }
+
+        updates
+    }
+
+    fn compute_support(&self) -> Vec<Update> {
+        if self.world.phase != BattlePhase::Fight {
+            return vec![];
+        }
+
+        let mut updates = vec![];
+
+        for pending in &self.world.pending_supports {
+            if !pending.is_started() {
+                updates.extend([
+                    Update::SetSupportAvailability(pending.side(), pending.type_(), false),
+                    Update::StartPendingSupport(pending.side(), pending.type_()),
+                ]);
+            }
+
+            if !pending.is_ready() {
+                continue;
+            }
+
+            // TODO: spawn the support projectiles (Projectile::ExternalShell) around pending.position
+            tracing::debug!(name="world-compute-support", pending=?pending);
+            updates.push(Update::RemovePendingSupport(pending.clone()));
         }
 
         updates

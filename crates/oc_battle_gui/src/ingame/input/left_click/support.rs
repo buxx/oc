@@ -1,0 +1,67 @@
+use bevy::color::palettes::css::RED;
+use bevy::prelude::*;
+use oc_network::ToServer;
+use oc_root::WcfgFrom;
+use oc_root::geo::WorldVec2;
+use oc_utils::{let_ok, let_some};
+
+use crate::cursor_to;
+use crate::ingame::input::left_click::{LeftClick, LeftClickMode, SetLeftClick};
+use crate::network::output::ToServerEvent;
+use crate::states::GameConfig;
+
+const RADIUS: f32 = 35.;
+
+pub fn system(
+    mut commands: Commands,
+    mut gizmos: Gizmos,
+    window: Single<&Window>,
+    camera: Single<(&Camera, &GlobalTransform)>,
+    mode: Res<LeftClick>,
+    keys: Res<ButtonInput<KeyCode>>,
+) {
+    if !matches!(mode.0, LeftClickMode::Support(_)) {
+        return;
+    }
+
+    if keys.just_pressed(KeyCode::Escape) {
+        commands.trigger(SetLeftClick(LeftClickMode::Select));
+        return;
+    }
+
+    let_some!(cursor = window.cursor_position(), return);
+    let (camera, transform) = *camera;
+    let position = camera.viewport_to_world_2d(transform, cursor);
+    let_ok!(position = position, return);
+
+    gizmos.circle_2d(position, RADIUS, RED);
+}
+
+pub fn on_click(
+    mut click: On<Pointer<Click>>,
+    g: Res<GameConfig>,
+    mut commands: Commands,
+    camera: Single<(&Camera, &GlobalTransform)>,
+    left_click: Res<LeftClick>,
+) {
+    let_some!(g = &g.0, return);
+    let LeftClickMode::Support(type_) = &left_click.0 else {
+        return;
+    };
+
+    match click.button {
+        PointerButton::Primary => {
+            let point = click.pointer_location.position;
+            let point = cursor_to!(point, camera, &g.w, WorldVec2);
+            tracing::trace!(name="ingame-input-left-click-support-request", type_=?type_, point=?point);
+            commands.trigger(ToServerEvent(ToServer::RequestSupport(*type_, point)));
+            commands.trigger(SetLeftClick(LeftClickMode::Select));
+        }
+        PointerButton::Secondary => {
+            commands.trigger(SetLeftClick(LeftClickMode::Select));
+        }
+        PointerButton::Middle => {}
+    }
+
+    click.propagate(false);
+}
