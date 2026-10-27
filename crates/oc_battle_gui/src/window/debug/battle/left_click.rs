@@ -205,6 +205,7 @@ impl super::Context {
                     commands.trigger(SetLeftClick(LeftClickMode::SpawnProjectile(spawn)));
                 }
             }
+            LeftClickModeType::Support => {}
         }
 
         if left_click_mode_before != self.left_click_mode {
