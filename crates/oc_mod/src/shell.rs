@@ -2,6 +2,8 @@ use std::{ops::Deref, path::Path};
 
 use anyhow::Context;
 use oc_root::{explosion::Explosion, physics::Meters};
+
+use crate::{Mod, sound::SoundIndex};
 use rkyv::Archive;
 use thiserror::Error;
 
@@ -81,6 +83,25 @@ pub struct Shell {
     pub shrapnel_rayon: Meters,
     pub shrapnel_quantity: u32,
     pub penetration_force: f32,
+    pub sounds: Vec<SoundIndex>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct ShellRaw {
+    name: String,
+    kill_rayon: Meters,
+    stunned_rayon: Meters,
+    shrapnel_rayon: Meters,
+    shrapnel_quantity: u32,
+    penetration_force: f32,
+    #[serde(default)]
+    sounds: Vec<String>,
+}
+
+impl Shell {
+    pub fn pick_sound(&self) -> Option<SoundIndex> {
+        crate::sound::pick(&self.sounds)
+    }
 }
 
 impl From<Shell> for Explosion {
@@ -95,17 +116,34 @@ impl From<Shell> for Explosion {
     }
 }
 
-pub fn load(path: &Path) -> Result<Vec<IndexedShell>, Error> {
+pub fn load(path: &Path, mod_: &Mod) -> Result<Vec<IndexedShell>, Error> {
     let path = path.join(SHELLS_RON);
     let shells = std::fs::read_to_string(&path);
     let shells = shells.context(format!("Read {}", path.display()))?;
-    let shells: Vec<Shell> = ron::from_str(&shells)?;
+    let shells: Vec<ShellRaw> = ron::from_str(&shells)?;
 
-    Ok(shells
+    shells
         .into_iter()
         .enumerate()
-        .map(|(i, s)| IndexedShell(ShellIndex(i as u16), s))
-        .collect())
+        .map(|(i, s)| {
+            let sounds = s
+                .sounds
+                .iter()
+                .map(|name| mod_.find_sound(name))
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(Box::new)?;
+            let shell = Shell {
+                name: s.name,
+                kill_rayon: s.kill_rayon,
+                stunned_rayon: s.stunned_rayon,
+                shrapnel_rayon: s.shrapnel_rayon,
+                shrapnel_quantity: s.shrapnel_quantity,
+                penetration_force: s.penetration_force,
+                sounds,
+            };
+            Ok(IndexedShell(ShellIndex(i as u16), shell))
+        })
+        .collect()
 }
 
 #[derive(Debug, Error)]
@@ -114,4 +152,6 @@ pub enum Error {
     Any(#[from] anyhow::Error),
     #[error("Format: {0}")]
     Format(#[from] ron::de::SpannedError),
+    #[error("{0}")]
+    Mod(#[from] Box<crate::Error>),
 }

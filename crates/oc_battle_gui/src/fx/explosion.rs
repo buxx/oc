@@ -10,7 +10,6 @@ use oc_utils::let_some;
 
 use crate::ingame::draw::Z_EXPLOSION;
 
-/// Frames of "explosions.png" sprite sheet (one row)
 const FRAME_SIZE: UVec2 = UVec2::new(196, 190);
 const FRAMES: u32 = 11;
 const FRAME_DURATION: f32 = 0.15;
@@ -61,6 +60,64 @@ pub fn animate(
             commands.entity(entity).despawn();
         } else {
             atlas.index += 1;
+        }
+    }
+}
+
+#[cfg(feature = "debug")]
+#[derive(Component)]
+pub struct ExplosionDebugDisplay {
+    timer: Timer,
+    center: Vec2,
+    kill_rayon: f32,
+    stunned_rayon: f32,
+    shrapnel_rayon: f32,
+    shrapnels: Vec<(Vec2, Vec2)>,
+}
+
+#[cfg(feature = "debug")]
+pub fn spawn_debug(
+    commands: &mut Commands,
+    g: &GameConfig,
+    debug: &oc_physics::fx::ExplosionDebug,
+) {
+    commands.spawn(ExplosionDebugDisplay {
+        timer: Timer::from_seconds(FRAMES as f32 * FRAME_DURATION, TimerMode::Once),
+        center: ScreenVec2::from_(debug.position, &g.w).into(),
+        kill_rayon: debug.kill_rayon.pixels(&g.w),
+        stunned_rayon: debug.stunned_rayon.pixels(&g.w),
+        shrapnel_rayon: debug.shrapnel_rayon.pixels(&g.w),
+        shrapnels: debug
+            .shrapnels
+            .iter()
+            .map(|(a, b)| {
+                (
+                    ScreenVec2::from_(*a, &g.w).into(),
+                    ScreenVec2::from_(*b, &g.w).into(),
+                )
+            })
+            .collect(),
+    });
+}
+
+#[cfg(feature = "debug")]
+pub fn draw_debug(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut displays: Query<(Entity, &mut ExplosionDebugDisplay)>,
+    mut gizmos: Gizmos,
+) {
+    for (entity, mut display) in &mut displays {
+        if display.timer.tick(time.delta()).is_finished() {
+            commands.entity(entity).despawn();
+            continue;
+        }
+        let center = display.center;
+        gizmos.circle_2d(center, display.kill_rayon, Color::srgb(1., 0., 0.));
+        gizmos.circle_2d(center, display.stunned_rayon, Color::srgb(1., 0.6, 0.));
+        gizmos.circle_2d(center, display.shrapnel_rayon, Color::srgb(1., 1., 0.));
+        for (a, b) in &display.shrapnels {
+            gizmos.line_2d(*a, *b, Color::srgb(1., 1., 1.));
         }
     }
 }

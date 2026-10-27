@@ -7,7 +7,7 @@ edition = "2024"
 workspace = true
 
 [features]
-debug = ["oc_network/debug", "oc_projectile/debug", "oc_world/debug", "oc_root/debug"]
+debug = ["oc_network/debug", "oc_projectile/debug", "oc_world/debug", "oc_root/debug", "oc_physics/debug"]
 debug_locks = ["oc_utils/debug"]
 perfs = []
 tracker = []

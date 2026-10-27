@@ -43,6 +43,12 @@ impl<'a, E: Client> Dealer<'a, E> {
             ToServer::Squad(squad, message) => self.squad_message(squad, message),
             ToServer::Fight => self.fight(),
             ToServer::RequestSupport(type_, position) => self.request_support(type_, position),
+            #[cfg(feature = "debug")]
+            ToServer::DebugExplosion(shell, position) => {
+                let explosion = self._mod.shell(shell).inner().clone().into();
+                let origin = super::update::ExplosionOrigin::Shell(shell);
+                vec![Update::SpawnExplosion(explosion, position, origin)]
+            }
         }
     }
 

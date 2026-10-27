@@ -17,6 +17,7 @@ use strum_macros::EnumIter;
 pub mod component;
 pub mod cursor;
 pub mod left_click;
+pub mod mixing;
 pub mod refresh;
 pub mod states;
 pub mod weapons;
@@ -71,6 +72,9 @@ pub struct Context {
     spawn_repeat: u8,
     spawn_projectile_plus_z: Meters,
     spawn_projectile_side: Side,
+    explosion_shell: Option<oc_mod::shell::ShellIndex>,
+    master_volume: f32,
+    bus_volumes: Vec<(oc_physics::fx::SoundBus, f32)>,
     lov_click_mode: LovClickMode,
     lov_start_plus_z: Meters,
     lov_end_plus_z: Meters,
@@ -78,6 +82,12 @@ pub struct Context {
 
 impl Default for Context {
     fn default() -> Self {
+        let volumes = crate::fx::BusVolumes::default();
+        let bus_volumes = oc_physics::fx::SoundBus::ALL
+            .iter()
+            .map(|bus| (*bus, volumes.linear(*bus)))
+            .collect();
+
         Self {
             refresh: Default::default(),
             show_tiles: Default::default(),
@@ -103,6 +113,9 @@ impl Default for Context {
             spawn_repeat: 1,
             spawn_projectile_plus_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS,
             spawn_projectile_side: Side::A,
+            explosion_shell: Default::default(),
+            master_volume: crate::fx::BusVolumes::default().master,
+            bus_volumes,
             lov_click_mode: Default::default(),
             lov_start_plus_z: DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS,
             lov_end_plus_z: Meters(0.),
@@ -128,6 +141,7 @@ pub enum Tab {
     Components,
     Leftclick,
     Weapons,
+    Mixing,
 }
 
 impl Display for Tab {
@@ -138,6 +152,7 @@ impl Display for Tab {
             Tab::Components => f.write_str("Components"),
             Tab::Leftclick => f.write_str("Left click"),
             Tab::Weapons => f.write_str("Weapons"),
+            Tab::Mixing => f.write_str("Mixing"),
         }
     }
 }
@@ -163,6 +178,7 @@ impl<'a, 'b, 'w, 's, 'c, 'z> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's, 
             Tab::Components => context.ui_components(w, ui, commands, mod_, world, ingame),
             Tab::Leftclick => context.ui_left_click(w, ui, commands, mod_, world, ingame),
             Tab::Weapons => context.weapons(w, ui, commands, mod_, world, ingame),
+            Tab::Mixing => context.mixing(ui, commands),
         }
     }
 }

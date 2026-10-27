@@ -324,6 +324,7 @@ impl<'x, E: Client> Processor<'x, E> {
             sound,
             projectile.position(),
             projectile.region(),
+            oc_physics::fx::SoundBus::Effects,
         ))
     }
 

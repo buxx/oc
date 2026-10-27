@@ -87,7 +87,7 @@ impl Mod {
         mod_.magazines = magazine::load(path)?;
         mod_.weapons = weapons::load(path, &mod_)?;
         mod_.illustrations = illustration::load(path)?;
-        mod_.shells = shell::load(path)?;
+        mod_.shells = shell::load(path, &mod_)?;
         mod_.support = mod_.resolve_support(support::load(path)?)?;
 
         // TODO: centralize caching at server startup

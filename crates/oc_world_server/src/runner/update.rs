@@ -8,6 +8,7 @@ use oc_geo::region::{Region, WorldRegionIndex};
 use oc_individual::IndividualIndex;
 use oc_individual::squad::SquadIndex;
 use oc_mod::PickSound;
+use oc_mod::shell::ShellIndex;
 use oc_mod::sound::SoundIndex;
 use oc_network::ToClient;
 use oc_physics::fx;
@@ -41,13 +42,18 @@ pub enum Update {
     UpdateFlags(Flags),
     UpdateMorale(Morale),
     UpdateElapsed(Duration, Duration), // elapsed, total duration
-    PlaySoundWithGeo(SoundIndex, WorldVec3, WorldRegionIndex),
+    PlaySoundWithGeo(SoundIndex, WorldVec3, WorldRegionIndex, fx::SoundBus),
     SetSupportAvailability(Side, SupportType, bool),
     AddPendingSupport(PendingSupport),
     StartPendingSupport(Side, SupportType),
     RealizeSupport(Side, SupportType),
     RemovePendingSupport(PendingSupport),
-    SpawnExplosion(Explosion, WorldVec2),
+    SpawnExplosion(Explosion, WorldVec2, ExplosionOrigin),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ExplosionOrigin {
+    Shell(ShellIndex),
 }
 
 pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
@@ -73,8 +79,8 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         Update::UpdateFlags(flags) => state.update_flags(flags),
         Update::UpdateMorale(morale) => state.update_morale(morale),
         Update::UpdateElapsed(elapsed, duration) => state.update_elapsed(elapsed, duration),
-        Update::PlaySoundWithGeo(sound, position, region) => {
-            state.play_sound(sound, position, region)
+        Update::PlaySoundWithGeo(sound, position, region, bus) => {
+            state.play_sound(sound, position, region, bus)
         }
         Update::SetSupportAvailability(side, type_, availability) => {
             state.set_support_availability(side, type_, availability)
@@ -103,7 +109,9 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
             state.world_mut().pending_supports.retain(|p| p != &pending);
             vec![]
         }
-        Update::SpawnExplosion(explosion, position) => state.spawn_explosion(explosion, position),
+        Update::SpawnExplosion(explosion, position, origin) => {
+            state.spawn_explosion(explosion, position, origin)
+        }
     } {
         tracing::trace!(name="runner-update-broadcast", filter=?filter, messages=?messages);
         ctx.broadcast(filter, messages);
@@ -274,7 +282,7 @@ impl<E: Client> super::State<E> {
         messages.push(insert);
 
         if let Some(sound) = sound {
-            let fx = fx::Fx::Audio(fx::Audio::PlayWithGeo(sound, position));
+            let fx = fx::Fx::Audio(fx::Audio::PlayWithGeo(sound, position, fx::SoundBus::Fire));
             let fx = ToClient::Fx(fx);
             messages.push(fx);
         }
@@ -349,8 +357,9 @@ impl<E: Client> super::State<E> {
         sound: SoundIndex,
         position: WorldVec3,
         region: WorldRegionIndex,
+        bus: fx::SoundBus,
     ) -> Vec<(Listening, Vec<ToClient>)> {
-        let fx = ToClient::Fx(fx::Fx::Audio(fx::Audio::PlayWithGeo(sound, position)));
+        let fx = ToClient::Fx(fx::Fx::Audio(fx::Audio::PlayWithGeo(sound, position, bus)));
         vec![(Listening::Regions(vec![region]), vec![fx])]
     }
 }

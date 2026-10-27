@@ -1,29 +1,118 @@
 use crate::states::GuiFiles;
+use bevy::audio::Volume;
 use bevy::prelude::*;
-use oc_physics::fx::{Audio, Fx, Visual};
+use oc_physics::fx::{Audio, Fx, SoundBus, Visual};
+use oc_root::{WcfgFrom, geo::ScreenVec2};
 use oc_utils::let_some;
 
 use crate::{ingame::BattlePhase, states::GameConfig};
 
 mod explosion;
 
+/// Too many at once starve the output buffer. Extra spatial sounds are dropped.
+const MAX_CONCURRENT_EMITTERS: usize = 64;
+
 #[derive(Debug, Event)]
 pub struct FxEvent(pub Fx);
 
-#[derive(Component, Default)]
+/// Spatial sound
+#[derive(Component)]
 struct Emitter;
 
-/// Too many at once starve the output buffer. Extra spatial sounds are dropped.
-const MAX_CONCURRENT_EMITTERS: usize = 24;
+#[derive(Component)]
+struct Bus(SoundBus);
+
+#[derive(Debug, Resource)]
+pub struct BusVolumes {
+    pub master: f32,
+    pub fire: f32,
+    pub effects: f32,
+    pub explosion: f32,
+    pub ui: f32,
+}
+
+impl Default for BusVolumes {
+    fn default() -> Self {
+        Self {
+            master: 1.0,
+            fire: 0.7,
+            effects: 0.7,
+            explosion: 2.5,
+            ui: 0.6,
+        }
+    }
+}
+
+#[derive(Debug, Event)]
+pub struct SetBusVolume(pub SoundBus, pub f32);
+
+#[derive(Debug, Event)]
+pub struct SetMasterVolume(pub f32);
+
+fn on_set_bus_volume(set: On<SetBusVolume>, mut volumes: ResMut<BusVolumes>) {
+    *volumes.bus_mut(set.0) = set.1;
+}
+
+fn on_set_master_volume(set: On<SetMasterVolume>, mut volumes: ResMut<BusVolumes>) {
+    volumes.master = set.0;
+}
+
+impl BusVolumes {
+    pub fn linear(&self, bus: SoundBus) -> f32 {
+        match bus {
+            SoundBus::Fire => self.fire,
+            SoundBus::Effects => self.effects,
+            SoundBus::Explosion => self.explosion,
+            SoundBus::Ui => self.ui,
+        }
+    }
+
+    fn bus_mut(&mut self, bus: SoundBus) -> &mut f32 {
+        match bus {
+            SoundBus::Fire => &mut self.fire,
+            SoundBus::Effects => &mut self.effects,
+            SoundBus::Explosion => &mut self.explosion,
+            SoundBus::Ui => &mut self.ui,
+        }
+    }
+
+    pub fn volume(&self, bus: SoundBus) -> Volume {
+        Volume::Linear(self.master * self.linear(bus))
+    }
+}
+
+fn apply_bus_volumes(
+    volumes: Res<BusVolumes>,
+    mut spatial: Query<(&mut SpatialAudioSink, &Bus)>,
+    mut flat: Query<(&mut AudioSink, &Bus)>,
+) {
+    if !volumes.is_changed() {
+        return;
+    }
+    for (mut sink, bus) in &mut spatial {
+        sink.set_volume(volumes.volume(bus.0));
+    }
+    for (mut sink, bus) in &mut flat {
+        sink.set_volume(volumes.volume(bus.0));
+    }
+}
 
 pub struct FxPlugin;
 
 // See https://taintedcoders.com/bevy/audio
 impl Plugin for FxPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(on_fx)
+        app.init_resource::<BusVolumes>()
+            .add_observer(on_fx)
+            .add_observer(on_set_bus_volume)
+            .add_observer(on_set_master_volume)
             .add_systems(Startup, setup)
-            .add_systems(Update, (update_listener, explosion::animate));
+            .add_systems(
+                Update,
+                (update_listener, apply_bus_volumes, explosion::animate),
+            );
+        #[cfg(feature = "debug")]
+        app.add_systems(Update, explosion::draw_debug);
     }
 }
 
@@ -41,8 +130,7 @@ pub fn play_phase_start(commands: &mut Commands, g: &GameConfig, phase: BattlePh
 
 fn setup(mut commands: Commands) {
     // Space between the two ears
-    // FIXME: window width / 2
-    let gap = 800.0; // FIXME: update when window size change
+    let gap = 350.0; // FIXME: update when window size change ?
 
     commands.spawn((Transform::default(), SpatialListener::new(gap)));
 }
@@ -53,6 +141,7 @@ fn on_fx(
     mut commands: Commands,
     g: Res<GameConfig>,
     files: Res<GuiFiles>,
+    volumes: Res<BusVolumes>,
     emitters: Query<(), With<Emitter>>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
@@ -62,26 +151,32 @@ fn on_fx(
 
     match &fx.0 {
         Fx::Audio(audio) => match audio {
-            Audio::PlayWithGeo(sound, position) => {
+            Audio::PlayWithGeo(sound, position, bus) => {
                 if emitters.iter().count() >= MAX_CONCURRENT_EMITTERS {
                     tracing::debug!(name = "fx-too-many-emitters", sound=?sound);
                     return;
                 }
                 let sound = g.mod_.sound(*sound);
                 let path = path.join(&sound.name);
+                tracing::debug!(name = "fx-audio-geo", path=?path, position=?position);
+                let position = ScreenVec2::from_(*position, &g.w);
                 commands.spawn((
                     Emitter,
+                    Bus(*bus),
                     Transform::from_translation(Vec3::new(position.x, position.y, 0.0)),
                     AudioPlayer::new(asset_server.load(path)),
-                    PlaybackSettings::DESPAWN.with_spatial(true),
+                    PlaybackSettings::DESPAWN
+                        .with_spatial(true)
+                        .with_volume(volumes.volume(*bus)),
                 ));
             }
             Audio::Play(sound) => {
                 let sound = g.mod_.sound(*sound);
                 let path = path.join(&sound.name);
                 commands.spawn((
+                    Bus(SoundBus::Ui),
                     AudioPlayer::new(asset_server.load(path)),
-                    PlaybackSettings::DESPAWN,
+                    PlaybackSettings::DESPAWN.with_volume(volumes.volume(SoundBus::Ui)),
                 ));
             }
         },
@@ -98,6 +193,8 @@ fn on_fx(
                     *rayon,
                 );
             }
+            #[cfg(feature = "debug")]
+            Visual::ExplosionDebug(debug) => explosion::spawn_debug(&mut commands, &g, debug),
         },
     }
 }

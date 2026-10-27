@@ -37,6 +37,9 @@ struct Args {
 
     #[arg(long)]
     test: bool,
+
+    #[arg(long = "mod", default_value = "tests1")]
+    mod_: String,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -60,7 +63,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         panic!("Execute with --test need `test` feature enabled")
     }
 
-    let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None)?;
+    let mod_path = PathBuf::from("mods").join(&args.mod_);
+    let mod_ = Mod::load(&mod_path, None)?;
     let meta = Meta::from_file(&PathBuf::from(MAP).join("meta.toml"))?;
     let map = oc_world::reader::MapReader::new(&PathBuf::from(MAP));
     let map = map.context(format!("Read map {MAP}"))?;
@@ -89,7 +93,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let example = run::Example::builder()
         .world(PathBuf::from(MAP))
-        .mod_(PathBuf::from("mods/tests1"))
+        .mod_(mod_path)
         .install(Box::new(move |app| setup(app, center, speed)))
         .snapshot(snapshot);
     example.build().run()?;

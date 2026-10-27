@@ -8,6 +8,7 @@ workspace = true
 
 [features]
 bevy = ["dep:bevy"]
+debug = []
 default = []
 
 [dependencies]

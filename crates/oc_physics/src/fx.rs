@@ -13,12 +13,46 @@ pub enum Fx {
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Audio {
-    PlayWithGeo(SoundIndex, WorldVec3),
+    PlayWithGeo(SoundIndex, WorldVec3, SoundBus),
     Play(SoundIndex),
+}
+
+/// Mixing group of a sound: the gui applies one volume per bus
+#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone, Copy, Eq, Hash)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub enum SoundBus {
+    Fire,
+    /// Reloads, bullet impacts, deaths
+    Effects,
+    Explosion,
+    /// Non geo sounds (interface, phases)
+    Ui,
+}
+
+impl SoundBus {
+    pub const ALL: [SoundBus; 4] = [
+        SoundBus::Fire,
+        SoundBus::Effects,
+        SoundBus::Explosion,
+        SoundBus::Ui,
+    ];
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Visual {
     Explosion(WorldVec2, Meters),
+    #[cfg(feature = "debug")]
+    ExplosionDebug(ExplosionDebug),
+}
+
+#[cfg(feature = "debug")]
+#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct ExplosionDebug {
+    pub position: WorldVec2,
+    pub kill_rayon: Meters,
+    pub stunned_rayon: Meters,
+    pub shrapnel_rayon: Meters,
+    pub shrapnels: Vec<(WorldVec2, WorldVec2)>,
 }
