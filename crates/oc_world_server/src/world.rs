@@ -54,7 +54,7 @@ impl Processor<'_> {
                 ]);
             }
 
-            if !pending.is_ready(&self.world.mod_.support) {
+            if !pending.is_ready(&self.world.mod_.support, self.world.w.speed()) {
                 tracing::trace!(name="world-support-not-ready", pending=?pending);
                 continue;
             }

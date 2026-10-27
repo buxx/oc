@@ -63,6 +63,9 @@ example-stress-server-projectiles:
 example-weapons *args:
     cargo run --bin example_weapons --features debug {{ args }}
 
+example-world *args:
+    cargo run --bin example_world --features debug -- {{ args }}
+
 example-interiors *args:
     cargo run --bin example_interiorsweapons --features debug {{ args }}
 
@@ -186,6 +189,7 @@ test-e2e speed="":
         test-engaging-move-to-hiding-then-discover
         test-height-climb
         test-interiors-enter
+        test-world-support
     )
     for t in "${tests[@]}"; do
         just "$t" || exit 1
@@ -304,6 +308,9 @@ test-height-climb:
 
 test-interiors-enter:
     RUST_LOG=ERROR cargo run --bin example_interiors --features test,debug -- enter --test
+
+test-world-support:
+    RUST_LOG=ERROR cargo run --bin example_world --features test -- support --test
 
 test-all:
     just test

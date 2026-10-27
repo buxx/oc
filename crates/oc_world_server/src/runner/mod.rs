@@ -284,7 +284,8 @@ impl<E: Client> Runner<E> {
 
             loop {
                 let elapsed = last.elapsed();
-                let wait = WORLD_INTERVAL - elapsed.min(WORLD_INTERVAL);
+                let interval = WORLD_INTERVAL.div_f32(ctx.state.w.speed());
+                let wait = interval - elapsed.min(interval);
 
                 tracing::trace!(name = "runner-world-sleep", wait=?wait);
                 std::thread::sleep(wait);

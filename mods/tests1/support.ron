@@ -1,9 +1,9 @@
 (
-  naval_bombard_shell: "naval_bombard",
-  naval_bombard_series: 3,
-  naval_bombard_shells_by_serie: 5,
-  naval_bombard_radius: Meters(200.0),
-  naval_bombard_prepare_seconds: 15,
-  naval_bombard_serie_interval_ms: 5000,
-  naval_bombard_shell_interval_ms: 500,
+  naval_bombard_shell: "Common Mark 15 Mods 1 through 14",
+  naval_bombard_series: 1,
+  naval_bombard_shells_by_serie: 1,
+  naval_bombard_radius: Meters(1.0),
+  naval_bombard_prepare_seconds: 1,
+  naval_bombard_serie_interval_ms: 0,
+  naval_bombard_shell_interval_ms: 0,
 )

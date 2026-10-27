@@ -123,9 +123,9 @@ impl PendingSupport {
         self.start = Some(Instant::now());
     }
 
-    pub fn is_ready(&self, support: &oc_mod::support::Support) -> bool {
+    pub fn is_ready(&self, support: &oc_mod::support::Support, speed: f32) -> bool {
         let prepare = match self.type_ {
-            SupportType::NavalBombard => support.naval_bombard_prepare(),
+            SupportType::NavalBombard => support.naval_bombard_prepare().div_f32(speed),
         };
         self.start
             .map(|s| s.elapsed() >= prepare)

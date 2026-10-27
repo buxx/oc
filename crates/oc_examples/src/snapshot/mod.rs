@@ -7,6 +7,7 @@ use oc_root::{WorldConfig, battle::BattlePhase};
 use oc_world::{
     snapshot::{SaveError, Snapshot},
     spawn::SpawnZoneName,
+    support::Supports,
     tile::Tile,
 };
 
@@ -29,6 +30,7 @@ where
     phase: BattlePhase,
     side_a_spawns: Vec<SpawnZoneName>,
     side_b_spawns: Vec<SpawnZoneName>,
+    supports: Supports,
 }
 
 impl<T, I, S, P> SnapshotBuilder<T, I, S, P>
@@ -55,7 +57,13 @@ where
             phase,
             side_a_spawns,
             side_b_spawns,
+            supports: Supports::default(),
         }
+    }
+
+    pub fn with_supports(mut self, supports: Supports) -> Self {
+        self.supports = supports;
+        self
     }
 
     pub fn build(&self, w: WorldConfig, mod_: &Mod) -> Result<PathBuf, Error> {
@@ -79,7 +87,7 @@ where
             start: None,
             side_a_spawns,
             side_b_spawns,
-            supports: Default::default(),
+            supports: self.supports.clone(),
             pending_supports: vec![],
         };
         snapshot.save(&snapshot_path)?;

@@ -44,16 +44,17 @@ impl<E: Client> super::State<E> {
                     })
                     .collect();
 
+                let speed = world.w.speed();
                 let mut decal = Duration::ZERO;
                 for serie in series {
                     for position in serie {
                         let instant = Instant::now() + decal;
                         let explosion = shell.inner().clone().into();
-                        decal = decal + support.naval_bombard_shell_interval();
+                        decal = decal + support.naval_bombard_shell_interval().div_f32(speed);
                         tracing::debug!(name="runner-update-realize-support-nava-bombard-spawn-explosion", explosion=?explosion, position=?position, decal=?decal);
                         self.schedule(instant, Update::SpawnExplosion(explosion, position));
                     }
-                    decal = decal + support.naval_bombard_serie_interval();
+                    decal = decal + support.naval_bombard_serie_interval().div_f32(speed);
                 }
             }
         }
