@@ -70,7 +70,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let map = map.context(format!("Read map {MAP}"))?;
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
         .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
-    // WorldVec2 is in pixels
     let speed = w.speed();
     let center = WorldVec2::new(
         w.world_width_pixels() as f32 / 2.,

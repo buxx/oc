@@ -5,6 +5,7 @@ use oc_lov::Modifier;
 use oc_root::{WcfgFrom, WorldConfig, opacity::CumulatedOpacity};
 use oc_utils::d2::Xy;
 use oc_world::{World, visibility::Visibility};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::index::Indexes;
 
@@ -15,26 +16,40 @@ pub struct Processor<'a> {
 }
 
 impl<'a> Processor<'a> {
+    /// Visibilities of all opposite sides pairs
+    #[allow(dead_code)]
     pub fn compute(&self) -> Vec<(IndividualIndex, IndividualIndex, Visibility)> {
+        let a = self.index.side_a_individuals();
+        let b = self.index.side_b_individuals();
+        let mut visibilities = self.compute_for(a, b);
+        visibilities.extend(self.compute_for(b, a));
+        visibilities
+    }
+
+    /// Visibilities of given watchers on given targets. Computing by chunks of watchers, with
+    /// world locks released between chunks, avoids to block writers during the whole computation.
+    pub fn compute_for(
+        &self,
+        watchers: &[IndividualIndex],
+        targets: &[IndividualIndex],
+    ) -> Vec<(IndividualIndex, IndividualIndex, Visibility)> {
         let w = &self.world.w;
         let mod_ = &self.world.mod_;
-        let count = self.world.individuals().len();
-        let mut visibilities = Vec::with_capacity(count * 2);
         let at = |xy, z| path_objects_at(w, mod_, self.world, xy, z);
 
-        let mut compute_pair = |i1: &IndividualIndex, i2: &IndividualIndex| {
+        let compute_pair = |i1: &IndividualIndex, i2: &IndividualIndex| {
             tracing::trace!(name = "visibility-processor-compute", i1=?i1, i2=?i2);
 
             let individual1 = self.world.individual(*i1);
             if !individual1.can_lov() {
                 tracing::trace!(name="visibility-processor-compute-cant-lov", i1=?i1, i2=?i2);
-                return;
+                return None;
             }
 
             let individual2 = self.world.individual(*i2);
             if !individual2.is_lov_target() {
                 tracing::trace!(name="visibility-processor-compute-cant-be-lov", i1=?i1, i2=?i2);
-                return;
+                return None;
             }
 
             let p1 = individual1
@@ -57,22 +72,14 @@ impl<'a> Processor<'a> {
             };
 
             let visibility = visibility(w, at, p1, p2, modifier);
-            visibilities.push((*i1, *i2, visibility));
+            Some((*i1, *i2, visibility))
         };
 
-        for i1 in self.index.side_a_individuals() {
-            for i2 in self.index.side_b_individuals() {
-                compute_pair(i1, i2);
-            }
-        }
-
-        for i1 in self.index.side_b_individuals() {
-            for i2 in self.index.side_a_individuals() {
-                compute_pair(i1, i2);
-            }
-        }
-
-        visibilities
+        // Pairs are independent: compute them in parallel (one task by watcher), keeping order
+        watchers
+            .par_iter()
+            .flat_map_iter(|i1| targets.iter().filter_map(|i2| compute_pair(i1, i2)))
+            .collect::<Vec<_>>()
     }
 }
 

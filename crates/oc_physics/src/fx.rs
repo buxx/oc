@@ -22,10 +22,8 @@ pub enum Audio {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum SoundBus {
     Fire,
-    /// Reloads, bullet impacts, deaths
     Effects,
     Explosion,
-    /// Non geo sounds (interface, phases)
     Ui,
 }
 
