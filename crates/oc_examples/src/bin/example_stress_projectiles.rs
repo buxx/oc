@@ -156,7 +156,6 @@ fn orbit(
                 directions,
                 Side::A,
                 Duration::ZERO,
-                #[cfg(feature = "debug")]
                 None,
             ),
         )));

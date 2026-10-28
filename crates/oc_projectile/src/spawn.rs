@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use derive_more::Constructor;
-#[cfg(feature = "debug")]
 use oc_individual::IndividualIndex;
 use oc_mod::{ammunition::AmmunitionIndex, armament::ShotModeIndex, weapons::WeaponIndex};
 use oc_root::{geo::WorldVec3, side::Side};
@@ -19,7 +18,6 @@ pub struct SpawnProjectiles {
     pub directions: Vec<WorldVec3>,
     pub side: Side,
     pub lag: Duration,
-    #[cfg(feature = "debug")]
     pub shooter: Option<IndividualIndex>,
 }
 
@@ -32,7 +30,6 @@ pub struct SpawnProjectile {
     pub from: WorldVec3,
     pub direction: WorldVec3,
     pub side: Side,
-    #[cfg(feature = "debug")]
     pub shooter: Option<IndividualIndex>,
 }
 
@@ -45,7 +42,6 @@ impl SpawnProjectiles {
             from: spawns.from,
             direction,
             side: spawns.side,
-            #[cfg(feature = "debug")]
             shooter: spawns.shooter,
         }
     }

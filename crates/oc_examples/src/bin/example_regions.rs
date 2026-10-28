@@ -264,7 +264,6 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 directions,
                 Side::A,
                 Duration::ZERO,
-                #[cfg(feature = "debug")]
                 None,
             );
             commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
@@ -283,7 +282,6 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 directions,
                 Side::A,
                 Duration::ZERO,
-                #[cfg(feature = "debug")]
                 None,
             );
             commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));

@@ -1,7 +1,8 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite::Anchor};
 use bevy_spritesheet_animation::prelude::*;
 use oc_geo::region::WorldRegionIndex;
 use oc_mod::magazine::MagazineIndex;
+use oc_mod::weapons::WeaponType;
 use oc_network::{SquadMessage, ToServer};
 use oc_physics::Physic;
 use oc_physics::collision::{Material, Material_};
@@ -39,6 +40,9 @@ use crate::network::output::ToServerEvent;
 use crate::sprites::IntoAnimation;
 use crate::sprites::outline::IndividualOutline;
 use crate::sprites::soldier::{SoldierAnimationInfos, SoldierAnimations};
+use crate::sprites::weapon::{
+    FLASH_X, FLASH_Y, IndividualMuzzleFlash, IndividualWeapon, MuzzleFlashOf, WeaponAnimations,
+};
 use crate::states::{AppState, GameConfig, PointerIn};
 use crate::utils::drag::{self, Dragged, Dragging, Phantom};
 use crate::utils::hover::{self, Hovered, HoveredPlugin};
@@ -187,7 +191,9 @@ pub fn on_insert_individual(
     mut commands: Commands,
     g: Res<GameConfig>,
     mut state: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
+    mut flashes: ResMut<EntityMapping<MuzzleFlashOf>>,
     animations: Res<SoldierAnimations>,
+    weapon_animations: Res<WeaponAnimations>,
     world: Res<crate::world::World>,
     network: Res<crate::network::state::State>,
 ) {
@@ -289,6 +295,25 @@ pub fn on_insert_individual(
             Transform::from_xyz(0., 0., -0.01),
         ));
     }
+
+    // Weapon overlay
+    commands.entity(entity).with_child((
+        IndividualWeapon,
+        weapon_animations.sprite(WeaponType::Rifle),
+        Visibility::Hidden,
+        Transform::from_xyz(0., 0., 0.01),
+    ));
+    let flash = commands
+        .spawn((
+            IndividualMuzzleFlash::default(),
+            weapon_animations.flash_sprite(),
+            Anchor::BOTTOM_CENTER,
+            Visibility::Hidden,
+            Transform::from_xyz(FLASH_X, FLASH_Y, 0.02),
+            ChildOf(entity),
+        ))
+        .id();
+    flashes.insert(MuzzleFlashOf(individual.0), flash);
 
     state.insert(individual.0, entity);
     commands.trigger(RefreshIndividualOrdersEvent(
@@ -741,7 +766,9 @@ pub fn on_forgot_individual(
     individual: On<ForgotIndividual>,
     mut commands: Commands,
     mut individuals: ResMut<EntityMapping<oc_individual::IndividualIndex>>,
+    mut flashes: ResMut<EntityMapping<MuzzleFlashOf>>,
 ) {
+    flashes.remove(&MuzzleFlashOf(individual.0));
     if let Some(entity) = individuals.remove(&individual.0) {
         tracing::trace!(name = "remove-individual", i=?individual);
         commands.entity(entity).despawn();

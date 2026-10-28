@@ -3,19 +3,32 @@ use bevy::prelude::*;
 use bevy_spritesheet_animation::prelude::*;
 use oc_utils::let_some;
 
-use crate::{ingame::GameConfigReceived, sprites::soldier::SoldierAnimations};
+use crate::{
+    ingame::GameConfigReceived,
+    sprites::{soldier::SoldierAnimations, weapon::WeaponAnimations},
+};
 
 pub mod order;
 pub mod outline;
 pub mod soldier;
+pub mod weapon;
 
 #[derive(Debug, Default)]
 pub struct Animations;
 
 impl Plugin for Animations {
     fn build(&self, app: &mut App) {
-        app.add_observer(on_game_config_received)
-            .add_systems(Update, outline::sync_individual_outlines);
+        app.init_resource::<oc_utils::bevy::EntityMapping<weapon::MuzzleFlashOf>>()
+            .add_observer(on_game_config_received)
+            .add_observer(weapon::on_fire)
+            .add_systems(
+                Update,
+                (
+                    outline::sync_individual_outlines,
+                    weapon::sync_individual_weapons,
+                    weapon::hide_muzzle_flashes,
+                ),
+            );
     }
 }
 
@@ -38,7 +51,10 @@ fn on_game_config_received(
         &mut atlas_layouts,
     );
 
+    let weapons = WeaponAnimations::init(&sprites, &soldier.sprite(), &assets);
+
     commands.insert_resource(soldier);
+    commands.insert_resource(weapons);
 }
 
 pub trait IntoAnimation<A> {

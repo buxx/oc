@@ -320,7 +320,6 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 vec![direction],
                 Side::B,
                 Duration::ZERO,
-                #[cfg(feature = "debug")]
                 None,
             ),
         )));

@@ -68,7 +68,6 @@ impl Projectile {
         }
     }
 
-    #[cfg(feature = "debug")]
     pub fn shooter(&self) -> Option<oc_individual::IndividualIndex> {
         match self {
             Projectile::Bullet(bullet) => bullet.shooter,

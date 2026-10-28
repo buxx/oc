@@ -119,7 +119,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             directions,
                             Side::A,
                             Duration::ZERO,
-                            #[cfg(feature = "debug")]
                             None,
                         )),
                     ))

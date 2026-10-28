@@ -1109,7 +1109,6 @@ impl<'a> Processor<'a> {
             directions,
             side: individual.side,
             lag,
-            #[cfg(feature = "debug")]
             shooter: Some(self.i),
         };
         tracing::trace!(name="individual-processor-spawn-projectiles", i=?self.i, spawn=?spawn, weapons=?weapons);
