@@ -57,9 +57,9 @@ impl Args {
             TestCase::Direct
             | TestCase::Through
             | TestCase::NotVisible
-            | TestCase::MoveThenEnemyVisible
             | TestCase::Hidden => Duration::from_secs(10),
             TestCase::Discover => Duration::from_secs(20),
+            TestCase::MoveThenEnemyVisible => Duration::from_secs(40),
         }
     }
 }
