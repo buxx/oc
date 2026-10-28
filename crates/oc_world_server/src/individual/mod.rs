@@ -1010,6 +1010,7 @@ impl<'a> Processor<'a> {
                 sound,
                 individual.position,
                 individual.region(),
+                oc_physics::fx::SoundBus::Effects,
             )],
             None => vec![],
         }

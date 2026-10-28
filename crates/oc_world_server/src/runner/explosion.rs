@@ -13,6 +13,7 @@ use oc_utils::let_some;
 use oc_world::World;
 use rustc_hash::FxHashSet;
 
+use super::update::ExplosionOrigin;
 use crate::individual::death::die;
 use crate::routing::Listening;
 use crate::visibility::path_objects_at;
@@ -23,8 +24,9 @@ impl<E: Client> super::State<E> {
         &self,
         explosion: Explosion,
         position: WorldVec2,
+        origin: ExplosionOrigin,
     ) -> Vec<(Listening, Vec<ToClient>)> {
-        let (updates, region) = {
+        let (updates, region, debug_fx, sound) = {
             let world = self.world();
             let indexes = self.indexes();
             let w = &world.w;
@@ -76,11 +78,35 @@ impl<E: Client> super::State<E> {
                 .copied()
                 .filter(|i| !killed.contains(i))
                 .collect();
-            for i in shrapnels(&world, mod_, &explosion, start, &candidates) {
+            let (shrapnel_killed, _shrapnel_lines) =
+                shrapnels(&world, mod_, &explosion, start, &candidates);
+            for i in shrapnel_killed {
                 updates.extend(die(&world, mod_, i));
             }
 
-            (updates, region)
+            #[cfg(feature = "debug")]
+            let debug_fx = fx::Fx::Visual(fx::Visual::ExplosionDebug(fx::ExplosionDebug {
+                position,
+                kill_rayon: explosion.kill_rayon,
+                stunned_rayon: explosion.stunned_rayon,
+                shrapnel_rayon: explosion.shrapnel_rayon,
+                shrapnels: _shrapnel_lines,
+            }));
+            #[cfg(not(feature = "debug"))]
+            let debug_fx = None::<fx::Fx>;
+
+            let sound = match origin {
+                ExplosionOrigin::Shell(shell) => mod_.shell(shell).pick_sound(),
+            }
+            .map(|sound| {
+                fx::Fx::Audio(fx::Audio::PlayWithGeo(
+                    sound,
+                    start,
+                    fx::SoundBus::Explosion,
+                ))
+            });
+
+            (updates, region, debug_fx, sound)
         };
 
         let now = Instant::now();
@@ -89,7 +115,14 @@ impl<E: Client> super::State<E> {
         }
 
         let fx = fx::Fx::Visual(fx::Visual::Explosion(position, explosion.stunned_rayon));
-        vec![(Listening::Regions(vec![region]), vec![ToClient::Fx(fx)])]
+        let mut messages = vec![ToClient::Fx(fx)];
+        messages.extend(sound.map(ToClient::Fx));
+        #[cfg(feature = "debug")]
+        messages.push(ToClient::Fx(debug_fx));
+        #[cfg(not(feature = "debug"))]
+        let _ = debug_fx;
+
+        vec![(Listening::Regions(vec![region]), messages)]
     }
 }
 
@@ -101,7 +134,7 @@ fn shrapnels(
     explosion: &Explosion,
     start: WorldVec3,
     candidates: &[IndividualIndex],
-) -> FxHashSet<IndividualIndex> {
+) -> (FxHashSet<IndividualIndex>, Vec<(WorldVec2, WorldVec2)>) {
     let w = &world.w;
     let shrapnel_rayon = explosion.shrapnel_rayon.pixels(w);
     let hit_radius = INDIVIDUAL_PRONE_VOLUME_WIDTH.pixels(w) / 2.; // Arbitrary choice to simplify
@@ -117,10 +150,7 @@ fn shrapnels(
         .filter(|i| distance(*i) <= shrapnel_rayon + hit_radius)
         .collect();
     let mut killed = FxHashSet::default();
-
-    if candidates.is_empty() {
-        return killed;
-    }
+    let mut lines = Vec::with_capacity(explosion.shrapnel_quantity as usize);
 
     for _ in 0..explosion.shrapnel_quantity {
         let angle = fastrand::f32() * std::f32::consts::TAU;
@@ -130,6 +160,11 @@ fn shrapnels(
             start.y + length * angle.sin(),
             start.z,
         );
+
+        lines.push((
+            WorldVec2::new(start.x, start.y),
+            WorldVec2::new(end.x, end.y),
+        ));
 
         for i in &candidates {
             let p = world.individual(*i).position;
@@ -146,7 +181,7 @@ fn shrapnels(
         }
     }
 
-    killed
+    (killed, lines)
 }
 
 // WARNING: AI generated

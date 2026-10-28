@@ -141,6 +141,14 @@ impl Plugin for InputPlugin {
                     .run_if(in_state(InGameState::Battle))
                     .run_if(in_state(LeftClickModeType::SpawnProjectile))
                     .run_if(in_state(PointerIn::Battle)),
+            )
+            .add_systems(
+                Update,
+                (left_click::explosion::system)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(LeftClickModeType::Explosion))
+                    .run_if(in_state(PointerIn::Battle)),
             );
     }
 }

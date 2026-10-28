@@ -25,6 +25,8 @@ use crate::{
 };
 
 const WORLD_INTERVAL: Duration = Duration::from_secs(5);
+/// Watchers computed by visibilities thread between two releases of world locks
+const VISIBILITIES_CHUNK: usize = 16;
 
 pub mod explosion;
 pub mod input;
@@ -248,15 +250,37 @@ impl<E: Client> Runner<E> {
                 last = Instant::now();
 
                 let visibilities = {
-                    let world = &ctx.state.world();
-                    let indexes = &ctx.state.indexes();
-                    tracing::trace!(name = "runner-visibilities");
+                    // Short lock to start: sides individuals
+                    let sides = {
+                        let world = &ctx.state.world();
+                        let indexes = &ctx.state.indexes();
+                        tracing::trace!(name = "runner-visibilities");
 
-                    if !matches!(world.phase, BattlePhase::Fight) {
+                        matches!(world.phase, BattlePhase::Fight).then(|| {
+                            (
+                                indexes.side_a_individuals().to_vec(),
+                                indexes.side_b_individuals().to_vec(),
+                            )
+                        })
+                    };
+                    let Some((side_a, side_b)) = sides else {
                         continue;
-                    }
+                    };
 
-                    crate::visibility::Processor::new(world, indexes).compute()
+                    // Then compute by chunks of watchers, releasing locks between chunks to let
+                    // writers (individuals, physics, ...) go through
+                    let mut visibilities = vec![];
+                    for (watchers, targets) in [(&side_a, &side_b), (&side_b, &side_a)] {
+                        for chunk in watchers.chunks(VISIBILITIES_CHUNK) {
+                            let world = &ctx.state.world();
+                            let indexes = &ctx.state.indexes();
+                            visibilities.extend(
+                                crate::visibility::Processor::new(world, indexes)
+                                    .compute_for(chunk, targets),
+                            );
+                        }
+                    }
+                    visibilities
                 };
 
                 #[cfg(feature = "perfs")]

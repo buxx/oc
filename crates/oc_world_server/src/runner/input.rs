@@ -43,6 +43,18 @@ impl<'a, E: Client> Dealer<'a, E> {
             ToServer::Squad(squad, message) => self.squad_message(squad, message),
             ToServer::Fight => self.fight(),
             ToServer::RequestSupport(type_, position) => self.request_support(type_, position),
+            #[cfg(feature = "debug")]
+            ToServer::DebugExplosion(shell, position) => {
+                let explosion = self._mod.shell(shell).inner().clone().into();
+                let origin = super::update::ExplosionOrigin::Shell(shell);
+                vec![Update::SpawnExplosion(explosion, position, origin)]
+            }
+            #[cfg(feature = "debug")]
+            ToServer::DebugRequestSupport(side, type_, position) => {
+                vec![Update::AddPendingSupport(PendingSupport::fresh(
+                    side, type_, position,
+                ))]
+            }
         }
     }
 
@@ -84,11 +96,19 @@ impl<'a, E: Client> Dealer<'a, E> {
 
     fn refresh_region(&self, region: WorldRegionIndex) {
         tracing::trace!(name="dealer-refresh-region", endpoint=?self.endpoint, region=?region);
-        let indexes = self.state.indexes();
+        // Lock order is world then indexes everywhere: don't hold indexes while sending subjects
+        // (which locks world), or a queued writer makes a deadlock.
+        let (individuals, projectiles) = {
+            let indexes = self.state.indexes();
+            (
+                indexes.region_individuals(region).clone(),
+                indexes.region_projectiles(region).clone(),
+            )
+        };
 
         self.send_tiles(region);
-        self.send_subjects(indexes.region_individuals(region));
-        self.send_subjects(indexes.region_projectiles(region));
+        self.send_subjects(&individuals);
+        self.send_subjects(&projectiles);
     }
 
     fn send_subjects<I, T>(&self, subjects: &Vec<I>)

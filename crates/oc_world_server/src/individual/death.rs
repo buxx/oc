@@ -45,6 +45,7 @@ pub fn die(world: &World, mod_: &Mod, i: IndividualIndex) -> Vec<Update> {
             sound,
             individual.position,
             individual.region(),
+            oc_physics::fx::SoundBus::Effects,
         ));
     }
 

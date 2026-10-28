@@ -1,10 +1,11 @@
 [
   (
     name: "Common Mark 15 Mods 1 through 14",
-    kill_rayon: Meters(10.0),
+    kill_rayon: Meters(8.0),
     stunned_rayon: Meters(15.0),
     shrapnel_rayon: Meters(40.0),
     shrapnel_quantity: 70,
     penetration_force: 1.0,
+    sounds: ["Ren1.ogg", "Ren2.ogg", "Ren3.ogg"],
   ),
 ]

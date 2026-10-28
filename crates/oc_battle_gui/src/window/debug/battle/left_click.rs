@@ -206,6 +206,28 @@ impl super::Context {
                 }
             }
             LeftClickModeType::Support => {}
+            LeftClickModeType::Explosion => {
+                let shell = &mut self.explosion_shell;
+                let shell_before = *shell;
+                let selected = shell
+                    .map(|i| mod_.shell(i).name.as_str())
+                    .unwrap_or_default();
+
+                egui::ComboBox::new("explosion_shell", "Shell")
+                    .selected_text(selected)
+                    .show_ui(ui, |ui| {
+                        for item in &mod_.shells {
+                            ui.selectable_value(shell, Some(item.index()), item.name.as_str());
+                        }
+                    });
+
+                if let Some(shell) = *shell
+                    && (Some(shell) != shell_before
+                        || left_click_mode_before != self.left_click_mode)
+                {
+                    commands.trigger(SetLeftClick(LeftClickMode::Explosion(shell)));
+                }
+            }
         }
 
         if left_click_mode_before != self.left_click_mode {

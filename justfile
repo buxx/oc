@@ -69,6 +69,9 @@ example-world *args:
 example-interiors *args:
     cargo run --bin example_interiorsweapons --features debug {{ args }}
 
+example-stress *args:
+    cargo run --bin example_stress --features debug --release {{ args }}
+
 [working-directory: 'crates/oc_battle_gui']
 test-battle_gui:
     if grep -rqE '#\[(test|rstest)\]' src tests 2>/dev/null; then cargo nextest run; fi

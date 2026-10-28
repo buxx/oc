@@ -19,6 +19,8 @@ use crate::ingame::lov::SpawnLovConfig;
 use crate::ingame::lov::SpawnProjectileClickMode;
 use crate::states::GameConfig;
 
+#[cfg(feature = "debug")]
+pub mod explosion;
 pub mod lov;
 pub mod order;
 pub mod select;
@@ -65,6 +67,9 @@ pub enum LeftClickMode {
     /// For debug, ability to spawn projectile from mouse
     #[cfg(feature = "debug")]
     SpawnProjectile(SpawnProjectileProfile),
+    /// For debug, ability to explode a shell from mouse
+    #[cfg(feature = "debug")]
+    Explosion(oc_mod::shell::ShellIndex),
     /// User can see a line of view from arbitrary place
     LineOfView(SpawnLovConfig),
     /// User is going to give a squad order
@@ -79,6 +84,8 @@ impl LeftClickMode {
             LeftClickMode::Select | LeftClickMode::Dragging => false,
             #[cfg(feature = "debug")]
             LeftClickMode::SpawnProjectile(_) => false,
+            #[cfg(feature = "debug")]
+            LeftClickMode::Explosion(_) => false,
             LeftClickMode::LineOfView(_) => true,
             LeftClickMode::Support(_) => false,
             LeftClickMode::Order(order) => match order {
@@ -98,6 +105,8 @@ impl LeftClickMode {
             LeftClickMode::Select | LeftClickMode::Dragging => None,
             #[cfg(feature = "debug")]
             LeftClickMode::SpawnProjectile(_) => None,
+            #[cfg(feature = "debug")]
+            LeftClickMode::Explosion(_) => None,
             LeftClickMode::LineOfView(_) => None,
             LeftClickMode::Support(_) => None,
             LeftClickMode::Order(type_) => Some(type_),
@@ -123,6 +132,7 @@ impl LeftClickModeType {
             LeftClickModeType::LineOfView => "Line of view",
             LeftClickModeType::Order => "Order",
             LeftClickModeType::Support => "Support",
+            LeftClickModeType::Explosion => "Explosion",
         }
     }
 }
@@ -187,6 +197,7 @@ pub fn update_spawn_projectile_clicks_line(
         | LeftClickMode::Dragging
         | LeftClickMode::LineOfView(_)
         | LeftClickMode::Order(_)
+        | LeftClickMode::Explosion(_)
         | LeftClickMode::Support(_) => {}
         LeftClickMode::SpawnProjectile(_) => {
             if !state.clicks.is_empty() {

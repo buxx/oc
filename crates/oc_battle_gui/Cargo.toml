@@ -7,7 +7,7 @@ edition = "2024"
 workspace = true
 
 [features]
-debug = ["bevy/bevy_dev_tools", "oc_network/debug"]
+debug = ["bevy/bevy_dev_tools", "oc_network/debug", "oc_physics/debug"]
 
 [dependencies]
 oc_root = { path = "../oc_root", features = ["bevy", "clap"] }

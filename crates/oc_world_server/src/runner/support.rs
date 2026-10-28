@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use crate::routing::Listening;
-use crate::runner::update::Update;
+use crate::runner::update::{ExplosionOrigin, Update};
 use crate::utils::d2::random_position_around;
 use oc_network::ToClient;
 use oc_root::Client;
@@ -52,7 +52,14 @@ impl<E: Client> super::State<E> {
                         let explosion = shell.inner().clone().into();
                         decal = decal + support.naval_bombard_shell_interval().div_f32(speed);
                         tracing::debug!(name="runner-update-realize-support-nava-bombard-spawn-explosion", explosion=?explosion, position=?position, decal=?decal);
-                        self.schedule(instant, Update::SpawnExplosion(explosion, position));
+                        self.schedule(
+                            instant,
+                            Update::SpawnExplosion(
+                                explosion,
+                                position,
+                                ExplosionOrigin::Shell(shell.index()),
+                            ),
+                        );
                     }
                     decal = decal + support.naval_bombard_serie_interval().div_f32(speed);
                 }

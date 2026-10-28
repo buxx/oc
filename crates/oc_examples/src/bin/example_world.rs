@@ -37,6 +37,9 @@ struct Args {
 
     #[arg(long)]
     test: bool,
+
+    #[arg(long = "mod", default_value = "tests1")]
+    mod_: String,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -60,13 +63,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         panic!("Execute with --test need `test` feature enabled")
     }
 
-    let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None)?;
+    let mod_path = PathBuf::from("mods").join(&args.mod_);
+    let mod_ = Mod::load(&mod_path, None)?;
     let meta = Meta::from_file(&PathBuf::from(MAP).join("meta.toml"))?;
     let map = oc_world::reader::MapReader::new(&PathBuf::from(MAP));
     let map = map.context(format!("Read map {MAP}"))?;
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
         .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
-    // WorldVec2 is in pixels
     let speed = w.speed();
     let center = WorldVec2::new(
         w.world_width_pixels() as f32 / 2.,
@@ -89,7 +92,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let example = run::Example::builder()
         .world(PathBuf::from(MAP))
-        .mod_(PathBuf::from("mods/tests1"))
+        .mod_(mod_path)
         .install(Box::new(move |app| setup(app, center, speed)))
         .snapshot(snapshot);
     example.build().run()?;
