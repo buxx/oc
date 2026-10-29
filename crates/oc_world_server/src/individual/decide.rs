@@ -1,0 +1,279 @@
+use glam::Vec2;
+use oc_individual::{
+    Individual, IndividualIndex,
+    behavior::{Intent, MovePath},
+    order::Order,
+};
+use oc_root::geo::WorldVec2;
+use oc_utils::d2::Direction;
+
+use super::{Processor, situation::Situation};
+
+// AI generated
+// When individual has no path from its position (see `resolve_path`), look for path from points
+// around it, until this radius (pixels).
+const PATH_UNSTUCK_MAX_RADIUS: usize = 5;
+const PATH_UNSTUCK_DIRECTIONS: [(f32, f32); 8] = [
+    (1., 0.),
+    (-1., 0.),
+    (0., 1.),
+    (0., -1.),
+    (0.7, 0.7),
+    (-0.7, 0.7),
+    (0.7, -0.7),
+    (-0.7, -0.7),
+];
+
+type MoveIntent = fn(WorldVec2, MovePath) -> Intent;
+
+impl Processor<'_> {
+    /// Decide the individual's intent for this tick. Will be influenced by situation.
+    pub fn decide(&self, situation: &Situation) -> Intent {
+        let individual = self.world.individual(self.i);
+        let order = individual.orders.first();
+
+        let intent = match individual.can_follow_orders() {
+            // FIXME BS NOW: suppress ?
+            true => match order {
+                None | Some(Order::Idle) => self.resolve_idle_order(individual, situation),
+                Some(Order::Defend(direction)) => {
+                    self.resolve_defend_order(individual, situation, *direction)
+                }
+                Some(Order::Hide(direction)) => {
+                    self.resolve_hide_order(individual, situation, *direction)
+                }
+                Some(Order::MoveTo(position)) => {
+                    // Move fast as enemy can fire on them
+                    // FIXME BS NOW: must move fast only if direction do not is direction of enemy !
+                    let make = match situation.visibles.is_empty() {
+                        true => Intent::MoveTo as MoveIntent,
+                        false => Intent::MoveFastTo as MoveIntent,
+                    };
+                    self.resolve_move_order(individual, *position, make)
+                }
+                Some(Order::MoveFastTo(position)) => {
+                    self.resolve_move_order(individual, *position, Intent::MoveFastTo)
+                }
+                Some(Order::SneakTo(position)) => {
+                    self.resolve_move_order(individual, *position, Intent::SneakTo)
+                }
+                Some(Order::Engage(target)) => {
+                    self.resolve_engage_order(individual, situation, *target)
+                }
+                Some(Order::Suppress(target)) => self.resolve_suppress_order(individual, *target),
+            },
+            // Dead (or unable) individuals do nothing: no movement intent is kept
+            false => Intent::Idle(individual.gesture.direction()),
+        };
+
+        tracing::trace!(name="individual-step-decide", i=?self.i, order=?order, intent=?intent);
+        intent
+    }
+
+    /// When suppressed enough, individual hides whatever its order is.
+    fn suppressed_hide(&self, individual: &Individual) -> Option<Intent> {
+        match individual.suppress >= self.world.w.individual_suppress_limit_hide() {
+            true => {
+                tracing::trace!(name="individual-processor-resolve-order-suppressed", i=?self.i);
+                Some(Intent::Hide(individual.gesture.direction()))
+            }
+            false => None,
+        }
+    }
+
+    pub fn resolve_idle_order(&self, individual: &Individual, situation: &Situation) -> Intent {
+        tracing::trace!(name="individual-processor-resolve-idle-order", i=?self.i);
+        let direction = individual.gesture.direction();
+
+        if let Some(intent) = self.suppressed_hide(individual) {
+            return intent;
+        }
+
+        // FIXME: introduce suppressed, etc (refactored way!)
+        match &individual.intent {
+            // If already engaging, continue try to engage this target
+            Intent::Engage(target) => self.engage_intent(situation, *target, direction),
+            // TODO: something somewhere to prevent all squad members fire same individual (because nearest) ?
+            _ => match situation.visibles.first() {
+                Some(visible) => self.engage_intent(situation, visible.individual, direction),
+                None => Intent::Idle(direction),
+            },
+        }
+    }
+
+    fn engage_intent(
+        &self,
+        situation: &Situation,
+        target: IndividualIndex,
+        direction: Direction,
+    ) -> Intent {
+        match situation.visible(target).is_some() {
+            true => Intent::Engage(target),
+            false => Intent::Idle(direction),
+        }
+    }
+
+    pub fn resolve_defend_order(
+        &self,
+        individual: &Individual,
+        situation: &Situation,
+        direction: Direction,
+    ) -> Intent {
+        tracing::trace!(name="individual-processor-resolve-defend-order", i=?self.i);
+
+        if let Some(intent) = self.suppressed_hide(individual) {
+            return intent;
+        }
+
+        // FIXME: introduce suppressed, etc (refactored way!)
+        match &individual.intent {
+            // If already engaging, continue only if target is visible and not dead
+            Intent::Engage(target)
+                if situation.visible(*target).is_some()
+                    && self.world.individual(*target).status.is_target() =>
+            {
+                Intent::Engage(*target)
+            }
+            _ => match situation.visibles.first() {
+                Some(visible) => Intent::Engage(visible.individual),
+                None => Intent::Defend(direction),
+            },
+        }
+    }
+
+    fn resolve_hide_order(
+        &self,
+        individual: &Individual,
+        situation: &Situation,
+        direction: Direction,
+    ) -> Intent {
+        tracing::trace!(name="individual-processor-resolve-hide-order", i=?self.i);
+        let w = &self.world.w;
+
+        if let Some(intent) = self.suppressed_hide(individual) {
+            return intent;
+        }
+
+        // If currently engaging, continue it only if individual is in near area
+        if let Intent::Engage(target) = &individual.intent
+            && situation
+                .visible(*target)
+                .is_some_and(|v| v.distance <= w.individual_hide_engage_distance())
+        {
+            return Intent::Engage(*target);
+        }
+
+        // FIXME: this will engage first soldier entering in area. So other ennemi=y soldiers will hide and
+        // not enter in zone. Add a second area which permit to continue to engage (but how to do that ...?)
+        match situation
+            .visibles
+            .iter()
+            .find(|v| v.distance <= w.individual_hide_engage_distance())
+        {
+            Some(visible) => Intent::Engage(visible.individual),
+            None => Intent::Hide(direction),
+        }
+    }
+
+    /// Move (or sneak) order: `make` builds the intent from the position and the path to follow.
+    // FIXME BS NOW: sneak if tired (and can't run)
+    // FIXME BS NOW: impact of suppress ?
+    fn resolve_move_order(
+        &self,
+        individual: &Individual,
+        position: WorldVec2,
+        make: MoveIntent,
+    ) -> Intent {
+        tracing::trace!(name="individual-processor-resolve-move-order", i=?self.i);
+
+        if let Some(intent) = self.suppressed_hide(individual) {
+            return intent;
+        }
+
+        match self.resolve_path(individual, position) {
+            Some(path) => make(position, path),
+            None => {
+                tracing::trace!(name="individual-processor-resolve-move-order-no-path", i=?self.i);
+                let reference = individual.position.into();
+                let target: Vec2 = position.into();
+                let direction = Direction::from_points3d(reference, target.extend(0.));
+                Intent::Hide(direction)
+            }
+        }
+    }
+
+    // FIXME BS NOW: impact of suppress ?
+    // FIXME BS NOW: impact of no ammo / weapon for target ?
+    fn resolve_engage_order(
+        &self,
+        individual: &Individual,
+        situation: &Situation,
+        target: IndividualIndex,
+    ) -> Intent {
+        tracing::trace!(name="individual-processor-resolve-engage-order", i=?self.i, target=?target);
+
+        if let Some(intent) = self.suppressed_hide(individual) {
+            return intent;
+        }
+
+        // Target is visible, engage it
+        if situation.visible(target).is_some() {
+            return Intent::Engage(target);
+        }
+
+        // Target is not visible: try to find another one, else hide
+        match situation.visibles.first() {
+            Some(other) => Intent::Engage(other.individual),
+            None => {
+                // Use original target as direction
+                let target = self.world.individual(target);
+                let reference = individual.position.into();
+                let direction = Direction::from_points3d(reference, target.position.into());
+                Intent::Hide(direction)
+            }
+        }
+    }
+
+    // FIXME BS NOW: impact of suppress ?
+    fn resolve_suppress_order(&self, individual: &Individual, target: WorldVec2) -> Intent {
+        tracing::trace!(name="individual-processor-resolve-suppress-order", i=?self.i);
+
+        if let Some(intent) = self.suppressed_hide(individual) {
+            return intent;
+        }
+
+        Intent::Suppress(target)
+    }
+
+    /// Compute path to target, or reuse current if already known path
+    fn resolve_path(&self, individual: &Individual, target: WorldVec2) -> Option<MovePath> {
+        if let Some((current_target, current_path)) = individual.intent.path()
+            && current_target == target
+            && current_path.iter().next().is_some()
+        {
+            return Some(current_path.clone());
+        }
+
+        let from = (individual.position.x, individual.position.y);
+        let to = (target.x, target.y);
+        if let Some(path) = self.world.navmesh.path(from, to) {
+            return Some(path.into());
+        }
+
+        // AI generated (maybe found another solution)
+        // Individual can be stuck against a wall (physics stops it on the wall edge, which is out
+        // of the navmesh because of the agent radius): look for a path from a nearby free point
+        // to let it go out.
+        for radius in 1..=PATH_UNSTUCK_MAX_RADIUS {
+            for (dx, dy) in PATH_UNSTUCK_DIRECTIONS {
+                let from = (from.0 + dx * radius as f32, from.1 + dy * radius as f32);
+                if let Some(path) = self.world.navmesh.path(from, to) {
+                    tracing::trace!(name="individual-resolve-path-unstuck", i=?self.i, from=?from);
+                    return Some(path.into());
+                }
+            }
+        }
+
+        None
+    }
+}
