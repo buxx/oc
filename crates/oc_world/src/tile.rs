@@ -134,6 +134,10 @@ impl Physic for Tile {
         IgnoreSide::None
     }
 
+    fn collision_ignorable(&self) -> bool {
+        true
+    }
+
     fn side(&self) -> Option<oc_root::side::Side> {
         None
     }

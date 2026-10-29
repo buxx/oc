@@ -62,7 +62,16 @@
         impact: Wall,
         opacity: 1.0,
         z: Meters(2.5),
-        deny: [Projectile],
+        deny: [],
+        intercept: (projectile: Probability(0.6,)),
+    ),
+    (
+        name: "ConcreteWall",
+        impact: Wall,
+        opacity: 1.0,
+        z: Meters(2.5),
+        deny: [],
+        intercept: (projectile: Probability(0.9,)),
     ),
     (
         name: "Trunk",

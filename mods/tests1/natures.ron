@@ -64,6 +64,15 @@
         deny: [Projectile],
     ),
     (
+        name: "ConcreteWall",
+        impact: Wall,
+        opacity: 1.0,
+        z: Meters(2.5),
+        deny: [],
+        // For test where individual shot from inside building
+        intercept: (projectile: Probability(1.0,)),
+    ),
+    (
         name: "Trunk",
         opacity: 0.8,
         z: Meters(4.0),

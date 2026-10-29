@@ -457,6 +457,16 @@ impl<'a> Processor<'a> {
             visibility(w, at, from, to, modifier).visible
         };
 
+        // Opacity of the tile under a position
+        let opacity_at = |position: Vec2| -> f32 {
+            let xy = oc_geo::tile::TileXy::from_([position.x, position.y], w);
+            let index = oc_geo::tile::WorldTileIndex::from_(xy, w);
+            self.world
+                .tile(index)
+                .map(|t| mod_.nature(t.nature).opacity)
+                .unwrap_or(0.0)
+        };
+
         // offsets to list tiles where test fire
         let mut offsets: Vec<(i64, i64)> = (-radius..=radius)
             .flat_map(|dx| (-radius..=radius).map(move |dy| (dx, dy)))
@@ -468,7 +478,8 @@ impl<'a> Processor<'a> {
 
         for index in 0..occupied.len() {
             let original = occupied[index];
-            occupied[index] = offsets
+            // Best opacity first (cover), then nearest (offsets are sorted by distance)
+            let mut candidates: Vec<(f32, Vec2)> = offsets
                 .iter()
                 .map(|(dx, dy)| original + Vec2::new(*dx as f32, *dy as f32) * tile_px)
                 .filter(|c| {
@@ -478,7 +489,13 @@ impl<'a> Processor<'a> {
                             .enumerate()
                             .all(|(i, o)| i == index || o.distance(*c) >= tile_px)
                 })
-                .find(|c| can_fire(*c))
+                .map(|c| (opacity_at(c), c))
+                .collect();
+            candidates.sort_by(|a, b| b.0.total_cmp(&a.0));
+            occupied[index] = candidates
+                .into_iter()
+                .find(|(_, c)| can_fire(*c))
+                .map(|(_, c)| c)
                 .unwrap_or(original);
         }
 

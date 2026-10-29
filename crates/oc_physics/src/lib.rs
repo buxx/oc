@@ -47,6 +47,9 @@ pub trait Physic: Material {
     fn collision_ignorable(&self) -> bool {
         false
     }
+    fn collision_ignore_origin(&self) -> Option<WorldVec3> {
+        None
+    }
     fn emit_proximity(&self) -> bool {
         false
     }
@@ -170,7 +173,7 @@ where
         collision_at,
         proximity_at,
         collision_ignore_pixels,
-        collision_ignored_pixels: 0,
+        collision_ignore_origin: object.collision_ignore_origin(),
         apply_z: None,
         events: vec![],
         tick_progress: 0.0,
@@ -212,6 +215,7 @@ struct Stepper<'a, 's, I, O, C, P, Z: serde::Serialize> {
     collision_at: C,
     proximity_at: P,
     collision_ignore_pixels: usize,
+    collision_ignore_origin: Option<WorldVec3>,
 
     // Object properties
     kind: Option<MaterialKind>,
@@ -221,7 +225,6 @@ struct Stepper<'a, 's, I, O, C, P, Z: serde::Serialize> {
     want_stop: Option<(WorldVec2, f32)>,
 
     // Accumulated state
-    collision_ignored_pixels: usize,
     apply_z: Option<f32>,
     events: Vec<Event<Z>>,
     /// Progress of the current translation
@@ -382,11 +385,8 @@ where
             return false;
         }
 
-        // This permit to ignore some firsts tile collisions (z edge problem)
-        if other.collision_ignorable()
-            && self.collision_ignored_pixels < self.collision_ignore_pixels
-        {
-            self.collision_ignored_pixels += 1;
+        // This permit to ignore tile collisions near the object origin (z edge problem)
+        if other.collision_ignorable() && self.in_collision_ignore_range(pixel) {
             return false;
         }
 
@@ -398,6 +398,14 @@ where
         );
 
         self.intercepted_by(other, &volumes2, pixel) || self.volumes_collide(volumes, &volumes2, o)
+    }
+
+    /// Is `pixel` close enough to the object origin to ignore collisions
+    fn in_collision_ignore_range(&self, pixel: WorldVec3) -> bool {
+        self.collision_ignore_origin.is_some_and(|origin| {
+            let (dx, dy) = (pixel.x - origin.x, pixel.y - origin.y);
+            (dx * dx + dy * dy).sqrt() < self.collision_ignore_pixels as f32
+        })
     }
 
     /// Random interception, computed only if pixel z is within one of other volumes,
@@ -543,6 +551,10 @@ mod tests {
 
         fn side(&self) -> Option<Side> {
             None
+        }
+
+        fn collision_ignore_origin(&self) -> Option<WorldVec3> {
+            Some(self.0)
         }
     }
 

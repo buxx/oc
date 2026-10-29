@@ -133,6 +133,12 @@ impl Physic for Projectile {
     fn emit_proximity(&self) -> bool {
         true
     }
+
+    fn collision_ignore_origin(&self) -> Option<WorldVec3> {
+        match self {
+            Projectile::Bullet(bullet) => Some(bullet.origin),
+        }
+    }
 }
 
 impl UpdatePhysic for Projectile {

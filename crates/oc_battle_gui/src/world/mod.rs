@@ -343,17 +343,23 @@ fn on_world_resume(
             .or_default()
             .insert(*i, squad.clone());
         world.squads_refs.insert(*i, region);
-        // Opposite squads are only known to display them on minimap
-        if squad.side != identity.side {
-            continue;
+        let own = squad.side == identity.side;
+
+        // Opposite squads are only known to display them on minimap. In debug, also index their
+        // members to permit selecting them.
+        if squad.side == identity.side || cfg!(feature = "debug") {
+            for member in &squad.members {
+                world.individual_squad.insert(*member, *i);
+            }
         }
-        for member in &squad.members {
-            world.individual_squad.insert(*member, *i);
+        if !own {
+            continue;
         }
 
         tracing::trace!(name="world-on-world-resume-trigger-spawn-squad-orders", i=?i, orders=?squad.orders);
         commands.trigger(SpawnSquadOrders(*i, squad.orders.clone()));
 
+        // Move screen to first found squad
         let_some!((_, squad) = world.side_squads(identity.side).next(), return);
         commands.trigger(GoToPoint(squad.position));
     }

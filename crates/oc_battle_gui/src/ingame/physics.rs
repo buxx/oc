@@ -26,6 +26,9 @@ pub struct PhysicsUpdatedPosition<I>(pub I, pub WorldVec3, pub WorldVec3);
 #[derive(Debug, Clone, Event)]
 pub struct PhysicEvent(oc_physics::Event<ObjectId>);
 
+#[derive(Debug, Component)]
+pub struct IgnoreOrigin(pub WorldVec3);
+
 #[derive(Debug, Deref, Component)]
 pub struct Direction(pub oc_utils::d2::Direction);
 
@@ -41,6 +44,7 @@ pub fn physics_step<I, C>(
         &Volumes,
         &Direction,
         &mut Transform,
+        Option<&IgnoreOrigin>,
     )>,
     index: Res<World>,
 ) where
@@ -51,7 +55,17 @@ pub fn physics_step<I, C>(
 
     tracing::trace!(name = "projectile-physics-start");
 
-    for (object, mut position, mut forces, material, volume, direction, mut transform) in query {
+    for (
+        object,
+        mut position,
+        mut forces,
+        material,
+        volume,
+        direction,
+        mut transform,
+        ignore_origin,
+    ) in query
+    {
         let i = object.as_ref();
         tracing::trace!(name = "projectile-physics-object", i=?i);
 
@@ -74,6 +88,7 @@ pub fn physics_step<I, C>(
             volume.0.clone(),
             None,
             IgnoreSide::All, // Gui prevent all "side" collision (let server manage it)
+            ignore_origin.map(|o| o.0),
         );
         let (position_, forces_, events) = oc_physics::step(
             &g.w,

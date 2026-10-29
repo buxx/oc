@@ -159,6 +159,9 @@ test-e2e speed="":
         test-projectiles-obstacles-one-hill
         test-projectiles-obstacles-multiple-hill
         test-projectiles-obstacles-one-traverse-volumes
+        test-projectiles-obstacles-one-start-inside-wall
+        test-projectiles-obstacles-individual-shot-traverse-volume
+        test-projectiles-obstacles-individual-shot-blocked-by-volume
         test-individual-shots-same-pixel
         test-individual-shots-in-volume
         test-individual-shots-different-tile
@@ -212,6 +215,15 @@ test-projectiles-obstacles-multiple-hill:
 
 test-projectiles-obstacles-one-traverse-volumes:
     RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-traverse-volumes --test
+
+test-projectiles-obstacles-one-start-inside-wall:
+    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-start-inside-wall --test
+
+test-projectiles-obstacles-individual-shot-traverse-volume:
+    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- individual-shot-traverse-volume --test
+
+test-projectiles-obstacles-individual-shot-blocked-by-volume:
+    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- individual-shot-blocked-by-volume --test
 
 test-individual-shots-same-pixel:
     RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- same-pixel --test

@@ -15,6 +15,7 @@ pub struct Corps<I: Clone + std::fmt::Debug> {
     pub volumes: Vec<(Volume, Traversability)>,
     pub side: Option<Side>,
     pub ignore_side: IgnoreSide,
+    pub collision_ignore_origin: Option<WorldVec3>,
 }
 
 impl<I: Clone + std::fmt::Debug> Corps<I> {
@@ -28,6 +29,7 @@ impl<I: Clone + std::fmt::Debug> Corps<I> {
         volumes: Vec<(Volume, Traversability)>,
         side: Option<Side>,
         ignore_side: IgnoreSide,
+        collision_ignore_origin: Option<WorldVec3>,
     ) -> Self {
         Self {
             i,
@@ -38,6 +40,7 @@ impl<I: Clone + std::fmt::Debug> Corps<I> {
             volumes,
             side,
             ignore_side,
+            collision_ignore_origin,
         }
     }
 }
@@ -71,6 +74,10 @@ impl<I: Clone + std::fmt::Debug> Physic for Corps<I> {
 
     fn side(&self) -> Option<Side> {
         self.side
+    }
+
+    fn collision_ignore_origin(&self) -> Option<WorldVec3> {
+        self.collision_ignore_origin
     }
 }
 

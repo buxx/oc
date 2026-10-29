@@ -11,6 +11,7 @@ use rkyv::{Archive, Deserialize, Serialize};
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Bullet {
     pub position: WorldVec3,
+    pub origin: WorldVec3,
     pub side: Side,
     pub tile: WorldTileIndex,
     pub region: WorldRegionIndex,
@@ -32,6 +33,7 @@ impl Bullet {
 
         Self {
             position,
+            origin: position,
             side,
             tile,
             region,

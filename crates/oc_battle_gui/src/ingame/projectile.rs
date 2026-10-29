@@ -15,7 +15,7 @@ use crate::ingame;
 use crate::ingame::draw::Z_PROJECTILE;
 use crate::ingame::input::individual::UpdateProjectilePhysicsEvent;
 use crate::ingame::input::projectile::InsertProjectileEvent;
-use crate::ingame::physics::{Direction, PhysicsUpdatedPosition};
+use crate::ingame::physics::{Direction, IgnoreOrigin, PhysicsUpdatedPosition};
 use crate::ingame::region::ForgottenRegion;
 use crate::states::{AppState, GameConfig};
 
@@ -75,6 +75,7 @@ pub fn on_insert_projectile(
             Material_(Some(oc_root::material::MaterialKind::Projectile)),
             Volumes(volumes),
             Direction(oc_utils::d2::Direction::NORTH),
+            IgnoreOrigin(projectile.1.collision_ignore_origin().unwrap_or(position)),
             Mesh2d(meshes.add(line)),
             MeshMaterial2d(materials.add(Color::from(RED))),
             Transform::from_xyz(position_.x, position_.y, Z_PROJECTILE),

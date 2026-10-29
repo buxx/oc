@@ -11,6 +11,7 @@ use oc_battle_gui::{
     states::{Game, GameConfig},
 };
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use oc_individual::{Individual, IndividualIndex, order::Order, squad::Squad};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_root::{WorldConfig, battle::BattlePhase, geo::WorldVec3, physics::Meters, side::Side};
@@ -18,6 +19,11 @@ use oc_utils::let_some;
 use oc_world::{load::WorldPath, meta::Meta, reader};
 #[cfg(feature = "test")]
 use oc_world_server::state::ObjectId;
+use tests::{
+    individual::TestIndividual,
+    squad::TestSquad,
+    weapons::{TestWeapon, TestWeapons},
+};
 
 use oc_projectile::spawn::SpawnProjectiles;
 
@@ -38,6 +44,9 @@ enum TestCase {
     OneAgainstHill,
     MultipleAgainstHill,
     OneTraverseVolumes,
+    OneStartInsideWall,
+    IndividualShotTraverseVolume,
+    IndividualShotBlockedByVolume,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -59,10 +68,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let world = world.context(format!("Read file {}", map_.meta().display()))?;
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
         .with_geo_meters_per_z(Meters(world.geo_meters_per_z));
+
+    #[cfg(feature = "debug")]
+    if let TestCase::IndividualShotTraverseVolume | TestCase::IndividualShotBlockedByVolume =
+        args.case
+    {
+        WorldConfig::set_inaccuracy_spread_enabled(true);
+        WorldConfig::set_inaccuracy_spread(0.0);
+    }
+
+    let (individuals, squads) = individuals_and_squads(&args, &w, &mod_);
     let snapshot = SnapshotBuilder::new(
         map,
-        vec![],
-        vec![],
+        individuals,
+        squads,
         vec![],
         BattlePhase::Fight,
         vec![],
@@ -129,7 +148,49 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     assert!(collisions == 1);
                     println!("✅ Test success");
                 }
-                TestCase::OneTraverseVolumes => {
+                TestCase::IndividualShotTraverseVolume => {
+                    // Soldier B (index 1) must be killed
+                    let dead = tracker.individuals.iter().any(|event| {
+                        matches!(
+                            event,
+                            (
+                                IndividualIndex(1),
+                                oc_individual::Update::SetStatus(oc_individual::Status::Dead)
+                            )
+                        )
+                    });
+
+                    assert!(dead);
+                    println!("✅ Test success");
+                }
+                TestCase::IndividualShotBlockedByVolume => {
+                    // Soldier A (index 0) must still be operational
+                    let dead = tracker.individuals.iter().any(|event| {
+                        matches!(
+                            event,
+                            (
+                                IndividualIndex(0),
+                                oc_individual::Update::SetStatus(oc_individual::Status::Dead)
+                            )
+                        )
+                    });
+                    // Ensure soldier B really shot (else test is meaningless)
+                    let blocked = tracker.physics.iter().any(|e| {
+                        matches!(
+                            e,
+                            oc_physics::Event::Collision(
+                                ObjectId::Projectile(_),
+                                ObjectId::Tile(_),
+                                _,
+                            )
+                        )
+                    });
+
+                    assert!(!dead);
+                    assert!(blocked);
+                    println!("✅ Test success");
+                }
+                TestCase::OneTraverseVolumes | TestCase::OneStartInsideWall => {
                     let collisions = tracker
                         .physics
                         .iter()
@@ -155,6 +216,90 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn individuals_and_squads(
+    args: &Args,
+    w: &WorldConfig,
+    mod_: &Mod,
+) -> (Vec<Individual>, Vec<Squad>) {
+    match args.case {
+        TestCase::IndividualShotTraverseVolume => (
+            vec![
+                TestIndividual::builder()
+                    .side(Side::A)
+                    .position(WorldVec3::new(123., 127., 0.))
+                    .weapons(
+                        TestWeapons::builder()
+                            .primary(TestWeapon::filled(mod_, "Weapon3").make())
+                            .build()
+                            .make(),
+                    )
+                    .build()
+                    .make(w),
+                // On the hill (tile height 2060: z = 39 * 0.1m * 5px)
+                TestIndividual::builder()
+                    .side(Side::B)
+                    .position(WorldVec3::new(195., 125., 19.5))
+                    .build()
+                    .make(w),
+            ],
+            vec![
+                TestSquad::builder()
+                    .side(Side::A)
+                    .position([123., 127.].into())
+                    .members(vec![IndividualIndex(0)])
+                    // Wall hides soldier B: suppress his position (engage needs visibility)
+                    .orders(vec![Order::Suppress([195., 125.].into())])
+                    .build()
+                    .make(),
+                TestSquad::builder()
+                    .side(Side::B)
+                    .position([195., 125.].into())
+                    .members(vec![IndividualIndex(1)])
+                    .build()
+                    .make(),
+            ],
+        ),
+        TestCase::IndividualShotBlockedByVolume => (
+            vec![
+                TestIndividual::builder()
+                    .side(Side::A)
+                    .position(WorldVec3::new(123., 127., 0.))
+                    .build()
+                    .make(w),
+                // On the hill (tile height 2060: z = 39 * 0.1m * 5px)
+                TestIndividual::builder()
+                    .side(Side::B)
+                    .position(WorldVec3::new(195., 125., 19.5))
+                    .weapons(
+                        TestWeapons::builder()
+                            .primary(TestWeapon::filled(mod_, "Weapon3").make())
+                            .build()
+                            .make(),
+                    )
+                    .build()
+                    .make(w),
+            ],
+            vec![
+                TestSquad::builder()
+                    .side(Side::A)
+                    .position([123., 127.].into())
+                    .members(vec![IndividualIndex(0)])
+                    .build()
+                    .make(),
+                TestSquad::builder()
+                    .side(Side::B)
+                    .position([195., 125.].into())
+                    .members(vec![IndividualIndex(1)])
+                    // Wall hides soldier A: suppress his position (engage needs visibility)
+                    .orders(vec![Order::Suppress([123., 127.].into())])
+                    .build()
+                    .make(),
+            ],
+        ),
+        _ => (vec![], vec![]),
+    }
+}
+
 fn install(app: &mut bevy::app::App) {
     let args = Args::parse();
 
@@ -163,7 +308,14 @@ fn install(app: &mut bevy::app::App) {
             Update,
             |mut commands: Commands, game: Res<Game>, g: Res<GameConfig>| {
                 let_some!(g = &g.0, return);
-                if game.started.elapsed() > Duration::from_secs(5).div_f32(g.w.speed()) {
+                let timeout = match Args::parse().case {
+                    TestCase::IndividualShotTraverseVolume => Duration::from_secs(15),
+                    TestCase::IndividualShotBlockedByVolume => Duration::from_secs(30),
+                    _ => Duration::from_secs(5),
+                };
+                // Ensure a minimal timeout to let time to bevy to make "network" exchange with server
+                let timeout = timeout.div_f32(g.w.speed()).max(Duration::from_secs(2));
+                if game.started.elapsed() > timeout {
                     commands.write_message(bevy::app::AppExit::from_code(0));
                 }
             },
@@ -344,6 +496,25 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 [120., 145., 1.0].into(),
                 vec![
                     (WorldVec3::new(120., 245., 1.0) - WorldVec3::new(120., 145., 1.0))
+                        .normalize_or_zero();
+                    10
+                ],
+                Side::A,
+                Duration::ZERO,
+                None,
+            );
+            commands.trigger(ToServerEvent(ToServer::ExplodeProjectile(spawn)));
+        }
+        TestCase::IndividualShotTraverseVolume | TestCase::IndividualShotBlockedByVolume => {}
+        TestCase::OneStartInsideWall => {
+            let spawn = SpawnProjectiles::new(
+                weapon1.index(),
+                ammunition.index(),
+                shot.index(),
+                1,
+                [122., 136., 8.5].into(),
+                vec![
+                    (WorldVec3::new(122., 236., 8.5) - WorldVec3::new(122., 136., 8.5))
                         .normalize_or_zero();
                     10
                 ],

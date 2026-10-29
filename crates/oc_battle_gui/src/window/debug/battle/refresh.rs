@@ -40,6 +40,7 @@ impl Refresh {
 pub fn on_refresh(
     _: On<super::Refresh>,
     w: Res<Wcfg>,
+    g: Res<crate::states::GameConfig>,
     mut window: ResMut<states::Window>,
     camera: Res<State>,
     individuals: Query<(
@@ -58,6 +59,7 @@ pub fn on_refresh(
     ingame: Res<ingame::state::State>,
 ) {
     let_some!(w = &w.0, return);
+    let_some!(g = &g.0, return);
 
     #[allow(irrefutable_let_patterns)] // TODO: no more irrefutable when more windows
     if let Some(crate::window::Window::BattleDebug(window)) = &mut window.0 {
@@ -76,6 +78,13 @@ pub fn on_refresh(
                     vec![
                         ("Status".to_string(), format!("{:?}", status.0)),
                         ("Suppress".to_string(), format!("{:?}", suppress.0)),
+                        (
+                            "Tile".to_string(),
+                            world
+                                .tile_at(w, position.0.into())
+                                .map(|t| g.mod_.nature(t.nature).name.clone())
+                                .unwrap_or("?".to_string()),
+                        ),
                     ],
                     ComponentDetails::Individual(id.0),
                 )
