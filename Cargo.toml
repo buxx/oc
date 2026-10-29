@@ -4,9 +4,13 @@ members = ["crates/*"]
 
 [profile.dev]
 opt-level = 1
+# Prevent enormous (1.7Go) bin which kill CPU by IO wait
+debug = "line-tables-only"
 
 [profile.dev.package."*"]
 opt-level = 3
+# Prevent enormous (1.7Go) bin which kill CPU by IO wait
+debug = false
 
 [profile.release]
 codegen-units = 1
