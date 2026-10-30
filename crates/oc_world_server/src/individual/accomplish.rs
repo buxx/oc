@@ -61,6 +61,8 @@ impl Processor<'_> {
             Order::Defend(_) | Order::Hide(_) => {}
             // FIXME: must finish when ammo low
             Order::Suppress(_) => {}
+            // Engage finishes when target is no longer operational. Losing sight of it only does
+            // not: it can be seen again, or still be seen by another individual of the squad.
             Order::Engage(individual) => {
                 if !self.world.individual(*individual).status.is_target() {
                     tracing::trace!(name = "individual-step-accomplished-engage-finished", i=?self.i, i2=?individual);
