@@ -81,11 +81,7 @@ impl<E: Client> Runner<E> {
 
         #[cfg(feature = "perfs")]
         {
-            *ctx.state
-                .perf
-                .physic_percents
-                .lock()
-                .expect("Assume available") = vec![0.; ctx.cpus];
+            ctx.state.perf.init_load("physics", ctx.cpus);
         }
 
         (0..ctx.cpus).for_each(|i| {
@@ -101,8 +97,7 @@ impl<E: Client> Runner<E> {
 
                     #[cfg(feature = "perfs")]
                     {
-                        let percent = wait.as_micros() as f32 / interval.as_micros() as f32;
-                        ctx.state.perf.set_physic_percent(i, 1. - percent);
+                        ctx.state.perf.record_load("physics", i, wait, interval);
                     }
 
                     tracing::trace!(
@@ -147,11 +142,7 @@ impl<E: Client> Runner<E> {
 
         #[cfg(feature = "perfs")]
         {
-            *ctx.state
-                .perf
-                .individual_percents
-                .lock()
-                .expect("Assume available") = vec![0.; ctx.cpus];
+            ctx.state.perf.init_load("individuals", ctx.cpus);
         }
 
         (0..individuals_count)
@@ -171,8 +162,9 @@ impl<E: Client> Runner<E> {
                         let wait = interval - elapsed.min(interval);
                         #[cfg(feature = "perfs")]
                         {
-                            let percent = wait.as_micros() as f32 / interval.as_micros() as f32;
-                            ctx.state.perf.set_individual_percent(_i, 1. - percent);
+                            ctx.state
+                                .perf
+                                .record_load("individuals", _i, wait, interval);
                         }
 
                         std::thread::sleep(wait);
@@ -224,11 +216,7 @@ impl<E: Client> Runner<E> {
 
         #[cfg(feature = "perfs")]
         {
-            *ctx.state
-                .perf
-                .individual_percents
-                .lock()
-                .expect("Assume available") = vec![0.; ctx.cpus];
+            ctx.state.perf.init_load("visibilities", 1);
         }
         let ctx = ctx.clone();
 
@@ -241,8 +229,9 @@ impl<E: Client> Runner<E> {
                 let wait = interval - elapsed.min(interval);
                 #[cfg(feature = "perfs")]
                 {
-                    // let percent = wait as f32 / interval as f32;
-                    // ctx.state.perf.set_visibilities_percent(_i, 1. - percent);
+                    ctx.state
+                        .perf
+                        .record_load("visibilities", 0, wait, interval);
                 }
 
                 tracing::trace!(name = "runner-visibilities-sleep", wait=?wait);
@@ -303,6 +292,9 @@ impl<E: Client> Runner<E> {
             self.direct.clone(),
         );
 
+        #[cfg(feature = "perfs")]
+        ctx.state.perf.init_load("world", 1);
+
         std::thread::spawn(move || {
             let mut last = Instant::now();
 
@@ -310,6 +302,8 @@ impl<E: Client> Runner<E> {
                 let elapsed = last.elapsed();
                 let interval = WORLD_INTERVAL.div_f32(ctx.state.w.speed());
                 let wait = interval - elapsed.min(interval);
+                #[cfg(feature = "perfs")]
+                ctx.state.perf.record_load("world", 0, wait, interval);
 
                 tracing::trace!(name = "runner-world-sleep", wait=?wait);
                 std::thread::sleep(wait);
@@ -355,11 +349,7 @@ impl<E: Client> Runner<E> {
 
         #[cfg(feature = "perfs")]
         {
-            *ctx.state
-                .perf
-                .squad_percents
-                .lock()
-                .expect("Assume available") = vec![0.; ctx.cpus];
+            ctx.state.perf.init_load("squads", ctx.cpus);
         }
 
         (0..squads_count)
@@ -379,8 +369,7 @@ impl<E: Client> Runner<E> {
                         let wait = interval - elapsed.min(interval);
                         #[cfg(feature = "perfs")]
                         {
-                            let percent = wait.as_micros() as f32 / interval.as_micros() as f32;
-                            ctx.state.perf.set_squad_percent(_i, 1. - percent);
+                            ctx.state.perf.record_load("squads", _i, wait, interval);
                         }
 
                         std::thread::sleep(wait);
@@ -420,32 +409,18 @@ impl<E: Client> Runner<E> {
 
                 let individuals = state.world.read().unwrap().individuals().len();
                 let projectiles = state.world.read().unwrap().projectiles().len();
-                let individual_percents = state
+                let loads = state
                     .perf
-                    .individual_percents
-                    .lock()
-                    .expect("Assume available")
-                    .iter()
-                    .map(|percent| format!("{percent:.3}"))
+                    .take_loads()
+                    .into_iter()
+                    .map(|(name, percent)| format!("{name}: {percent:.0}%"))
                     .collect::<Vec<String>>()
-                    .join(",");
-                let physic_percents = state
-                    .perf
-                    .physic_percents
-                    .lock()
-                    .expect("Assume available")
-                    .iter()
-                    .map(|percent| format!("{percent:.3}"))
-                    .collect::<Vec<String>>()
-                    .join(",");
-                let physics = projectiles;
+                    .join(" ");
 
                 println!(
-                    "individuals({individuals}): {} tick/s({}); physics({physics}): {} tick/s({})",
+                    "individuals({individuals}): {} tick/s; physics({projectiles}): {} tick/s; load: {loads}",
                     state.perf.individuals_ticks(),
-                    individual_percents,
                     state.perf.physics_ticks(),
-                    physic_percents,
                 );
 
                 state.perf.reset();
