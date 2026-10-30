@@ -82,6 +82,7 @@ impl WorldLoader {
         let navmesh = navmesh(&w, &walls);
 
         let flags = map.flags()?;
+        let interiors = map.interiors()?;
         let spawn_zones = map.spawn_zones()?;
         let a_spawns_: Vec<SpawnZone> = spawn_zones
             .iter()
@@ -114,6 +115,7 @@ impl WorldLoader {
             individuals,
             squads,
             projectiles,
+            interiors,
         ))
     }
 

@@ -17,6 +17,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     flag::Flags,
+    interior::Interior,
     meta::Meta,
     resume::WorldResume,
     spawn::SpawnZoneName,
@@ -69,6 +70,7 @@ pub struct World {
     pub individuals: Vec<Individual>,
     pub squads: Vec<Squad>,
     pub projectiles: FxHashMap<ProjectileId, Projectile>,
+    pub interiors: Vec<Interior>,
 }
 
 impl World {
@@ -246,6 +248,7 @@ mod tests {
             vec![],
             vec![],
             HashMap::default(),
+            vec![],
         );
 
         // When

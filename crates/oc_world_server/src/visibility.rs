@@ -3,7 +3,8 @@ use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::{BodyGesture, IndividualIndex, behavior::Behavior};
 use oc_lov::Modifier;
 use oc_root::{WcfgFrom, WorldConfig, opacity::CumulatedOpacity};
-use oc_utils::d2::Xy;
+use oc_utils::{d2::Xy, polygon::Polygon};
+use oc_root::side::Side;
 use oc_world::{World, visibility::Visibility};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
@@ -26,6 +27,20 @@ impl<'a> Processor<'a> {
         visibilities
     }
 
+    /// For each world interior, tells if one of given individuals is inside it
+    fn occupied_interiors(&self, individuals: &[IndividualIndex]) -> Vec<bool> {
+        self.world
+            .interiors
+            .iter()
+            .map(|interior| {
+                individuals.iter().any(|i| {
+                    let individual = self.world.individual(*i);
+                    individual.status.can_step() && interior.contains(individual.position.into())
+                })
+            })
+            .collect()
+    }
+
     /// Visibilities of given watchers on given targets. Computing by chunks of watchers, with
     /// world locks released between chunks, avoids to block writers during the whole computation.
     pub fn compute_for(
@@ -36,6 +51,8 @@ impl<'a> Processor<'a> {
         let w = &self.world.w;
         let mod_ = &self.world.mod_;
         let at = |xy, z| path_objects_at(w, mod_, self.world, xy, z);
+        let occupied_a = self.occupied_interiors(self.index.side_a_individuals());
+        let occupied_b = self.occupied_interiors(self.index.side_b_individuals());
 
         let compute_pair = |i1: &IndividualIndex, i2: &IndividualIndex| {
             tracing::trace!(name = "visibility-processor-compute", i1=?i1, i2=?i2);
@@ -50,6 +67,24 @@ impl<'a> Processor<'a> {
             if !individual2.is_lov_target() {
                 tracing::trace!(name="visibility-processor-compute-cant-be-lov", i1=?i1, i2=?i2);
                 return None;
+            }
+
+            // Individuals inside an interior are hidden from sides having nobody inside it
+            let occupied = match individual1.side {
+                Side::A => &occupied_a,
+                Side::B => &occupied_b,
+            };
+            let hidden_by_interior = self
+                .world
+                .interiors
+                .iter()
+                .zip(occupied)
+                .any(|(interior, occupied)| {
+                    !occupied && interior.contains(individual2.position.into())
+                });
+            if hidden_by_interior {
+                tracing::trace!(name="visibility-processor-compute-in-interior", i1=?i1, i2=?i2);
+                return Some((*i1, *i2, Visibility::default()));
             }
 
             let p1 = individual1
@@ -139,4 +174,143 @@ pub fn path_objects_at(
             vec![oc_lov::Step::from_nature(w, nature, relative_z)]
         })
         .unwrap_or(vec![])
+}
+
+#[cfg(test)]
+mod tests {
+    use ::tests::{individual::TestIndividual, world::TestWorld};
+    use oc_root::{
+        geo::{WorldVec2, WorldVec3},
+        side::Side,
+    };
+    use oc_world::interior::Interior;
+    use rstest::rstest;
+
+    use super::*;
+
+    const WATCHER: IndividualIndex = IndividualIndex(0);
+    const TARGET: IndividualIndex = IndividualIndex(1);
+
+    fn interior_around(center: WorldVec2) -> Interior {
+        let points = vec![
+            WorldVec2::new(center.x - 10., center.y - 10.),
+            WorldVec2::new(center.x + 10., center.y - 10.),
+            WorldVec2::new(center.x + 10., center.y + 10.),
+            WorldVec2::new(center.x - 10., center.y + 10.),
+        ];
+        Interior::new(0, points[0], points)
+    }
+
+    /// Side A watcher at (10, 10) and side B target at (50, 50), plus given extra individuals.
+    /// Returns visibility of the target by the watcher.
+    fn target_visible(
+        interiors: Vec<Interior>,
+        extra: Vec<(Side, WorldVec3)>,
+        watcher_position: WorldVec3,
+    ) -> bool {
+        let w = WorldConfig::new(100, 100);
+        let mut individuals = vec![
+            TestIndividual::builder()
+                .side(Side::A)
+                .position(watcher_position)
+                .build()
+                .make(&w),
+            TestIndividual::builder()
+                .side(Side::B)
+                .position(WorldVec3::new(50., 50., 0.))
+                .build()
+                .make(&w),
+        ];
+        for (side, position) in extra {
+            individuals.push(
+                TestIndividual::builder()
+                    .side(side)
+                    .position(position)
+                    .build()
+                    .make(&w),
+            );
+        }
+        let world = TestWorld::builder()
+            .individuals(individuals)
+            .interiors(interiors)
+            .build()
+            .make(&w);
+        let indexes = Indexes::new(&world, &w);
+
+        let visibilities =
+            Processor::new(&world, &indexes).compute_for(&[WATCHER], &[TARGET]);
+
+        let (_, _, visibility) = visibilities
+            .into_iter()
+            .find(|(i1, i2, _)| *i1 == WATCHER && *i2 == TARGET)
+            .expect("Pair must be computed");
+        visibility.visible
+    }
+
+    #[test]
+    fn test_target_visible_without_interior() {
+        assert!(target_visible(
+            vec![],
+            vec![],
+            WorldVec3::new(10., 10., 0.)
+        ));
+    }
+
+    #[test]
+    fn test_target_in_interior_without_watcher_side_inside_is_not_visible() {
+        let interior = interior_around(WorldVec2::new(50., 50.));
+
+        assert!(!target_visible(
+            vec![interior],
+            vec![],
+            WorldVec3::new(10., 10., 0.)
+        ));
+    }
+
+    #[test]
+    fn test_target_in_interior_with_watcher_inside_is_visible() {
+        let interior = interior_around(WorldVec2::new(50., 50.));
+
+        assert!(target_visible(
+            vec![interior],
+            vec![],
+            WorldVec3::new(45., 45., 0.)
+        ));
+    }
+
+    #[test]
+    fn test_target_in_interior_with_watcher_side_ally_inside_is_visible() {
+        let interior = interior_around(WorldVec2::new(50., 50.));
+
+        assert!(target_visible(
+            vec![interior],
+            vec![(Side::A, WorldVec3::new(55., 55., 0.))],
+            WorldVec3::new(10., 10., 0.)
+        ));
+    }
+
+    #[test]
+    fn test_target_in_interior_with_only_enemy_side_inside_is_not_visible() {
+        let interior = interior_around(WorldVec2::new(50., 50.));
+
+        // Target side B is itself inside, but another B individual changes nothing for side A
+        assert!(!target_visible(
+            vec![interior],
+            vec![(Side::B, WorldVec3::new(55., 55., 0.))],
+            WorldVec3::new(10., 10., 0.)
+        ));
+    }
+
+    #[rstest]
+    #[case(WorldVec2::new(10., 50.))]
+    #[case(WorldVec2::new(90., 90.))]
+    fn test_target_outside_interior_is_visible(#[case] center: WorldVec2) {
+        let interior = interior_around(center);
+
+        assert!(target_visible(
+            vec![interior],
+            vec![],
+            WorldVec3::new(10., 10., 0.)
+        ));
+    }
 }

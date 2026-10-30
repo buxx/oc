@@ -42,6 +42,8 @@ pub struct TestWorld {
     squads: Option<Vec<Squad>>,
     #[builder(default)]
     projectiles: FxHashMap<ProjectileId, Projectile>,
+    #[builder(default)]
+    interiors: Vec<oc_world::interior::Interior>,
 }
 
 impl TestWorld {
@@ -90,6 +92,7 @@ impl TestWorld {
             flags: Default::default(),
             supports: Default::default(),
             pending_supports: vec![],
+            interiors: self.interiors,
         }
     }
 }
