@@ -19,7 +19,8 @@ use oc_battle_gui::{
     entity::individual::IndividualIndex,
     ingame::{
         individual::{
-            Gesture, SetGestureEvent, SetMagazinesEvent, SetStatusEvent, SetWeaponsEvent, Status,
+            Gesture, SetBehaviorEvent, SetGestureEvent, SetMagazinesEvent, SetStatusEvent,
+            SetWeaponsEvent, Status,
         },
         input::projectile::InsertProjectileEvent,
     },
@@ -70,7 +71,11 @@ struct Args {
 impl Args {
     fn timeout(&self) -> Duration {
         match self.case {
-            TestCase::Direct | TestCase::Direct2 | TestCase::FarMachineGun | TestCase::Hedge => {
+            TestCase::Direct
+            | TestCase::Direct2
+            | TestCase::EngageOneByOne
+            | TestCase::FarMachineGun
+            | TestCase::Hedge => {
                 Duration::from_secs(10)
             }
             TestCase::Suppressed | TestCase::SuppressFire => Duration::from_secs(25),
@@ -85,6 +90,7 @@ impl Args {
 enum TestCase {
     Direct,
     Direct2,
+    EngageOneByOne,
     FarMachineGun,
     Hedge,
     Suppressed,
@@ -108,6 +114,7 @@ fn main() -> Result<(), anyhow::Error> {
     let mod_ = match args.case {
         TestCase::Direct
         | TestCase::Direct2
+        | TestCase::EngageOneByOne
         | TestCase::FarMachineGun
         | TestCase::Hedge
         | TestCase::Suppressed
@@ -134,6 +141,7 @@ fn main() -> Result<(), anyhow::Error> {
     let w = match args.case {
         TestCase::Direct
         | TestCase::Direct2
+        | TestCase::EngageOneByOne
         | TestCase::MoveToHiding
         | TestCase::MoveToHidingThenDiscover => w,
         TestCase::FarMachineGun
@@ -150,6 +158,7 @@ fn main() -> Result<(), anyhow::Error> {
     match args.case {
         TestCase::Direct
         | TestCase::Direct2
+        | TestCase::EngageOneByOne
         | TestCase::FarMachineGun
         | TestCase::Hedge
         | TestCase::SuppressFire
@@ -222,6 +231,29 @@ fn individuals(
                 .make(w),
         ],
         TestCase::Direct2 => vec![
+            TestIndividual::builder()
+                .side(side::Side::A)
+                .position(WorldVec3::new(250., 250., 0.))
+                .weapons(
+                    TestWeapons::builder()
+                        .primary(TestWeapon::filled(mod_, "Weapon3").make())
+                        .build()
+                        .make(),
+                )
+                .build()
+                .make(w),
+            TestIndividual::builder()
+                .side(side::Side::B)
+                .position(WorldVec3::new(250., 150., 0.))
+                .build()
+                .make(w),
+            TestIndividual::builder()
+                .side(side::Side::B)
+                .position(WorldVec3::new(260., 150., 0.))
+                .build()
+                .make(w),
+        ],
+        TestCase::EngageOneByOne => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
                 .position(WorldVec3::new(250., 250., 0.))
@@ -456,6 +488,23 @@ fn squads(
                 .build()
                 .make(),
         ],
+        TestCase::EngageOneByOne => vec![
+            TestSquad::builder()
+                .position(individuals.first().unwrap().position.into())
+                .members(vec![oc_individual::IndividualIndex(0)])
+                .orders(vec![Order::Engage(oc_individual::IndividualIndex(1))])
+                .build()
+                .make(),
+            TestSquad::builder()
+                .position(individuals.get(1).unwrap().position.into())
+                .members(vec![
+                    oc_individual::IndividualIndex(1),
+                    oc_individual::IndividualIndex(2),
+                ])
+                .orders(vec![])
+                .build()
+                .make(),
+        ],
         TestCase::FarMachineGun => vec![
             TestSquad::builder()
                 .position(individuals.first().unwrap().position.into())
@@ -566,6 +615,10 @@ struct State {
     last_shoots: Vec<(oc_individual::IndividualIndex, Instant)>,
     gestures: Vec<(oc_individual::IndividualIndex, oc_individual::Gesture)>,
     statuses: Vec<(oc_individual::IndividualIndex, oc_individual::Status)>,
+    behaviors: Vec<(
+        oc_individual::IndividualIndex,
+        oc_individual::behavior::Behavior,
+    )>,
     filled_counts: Vec<u16>,
     magazine_counts: Vec<usize>,
 }
@@ -580,6 +633,7 @@ fn install(app: &mut bevy::app::App) {
             .add_systems(Startup, setup)
             .add_observer(on_set_status)
             .add_observer(on_set_gesture)
+            .add_observer(on_set_behavior)
             .add_observer(on_set_magazines);
     }
 
@@ -589,6 +643,7 @@ fn install(app: &mut bevy::app::App) {
     match args.case {
         TestCase::Direct
         | TestCase::Direct2
+        | TestCase::EngageOneByOne
         | TestCase::FarMachineGun
         | TestCase::Suppressed
         | TestCase::MoveToHiding
@@ -619,6 +674,11 @@ fn on_set_magazines(event: On<SetMagazinesEvent>, mut state: ResMut<State>) {
 #[cfg(feature = "test")]
 fn on_set_status(event: On<SetStatusEvent>, mut state: ResMut<State>) {
     state.statuses.push((event.0, event.1.clone()));
+}
+
+#[cfg(feature = "test")]
+fn on_set_behavior(event: On<SetBehaviorEvent>, mut state: ResMut<State>) {
+    state.behaviors.push((event.0, event.1.clone()));
 }
 
 #[cfg(feature = "test")]
@@ -736,6 +796,15 @@ fn tracking(
                 && I2_SEEN_DEAD.load(Ordering::Relaxed)
                 && I0_SEEN_PRONE.load(Ordering::Relaxed)
         }
+        TestCase::EngageOneByOne => [1, 2].into_iter().all(|target| {
+            state.behaviors.iter().any(|(i, behavior)| {
+                *i == oc_individual::IndividualIndex(0)
+                    && *behavior
+                        == oc_individual::behavior::Behavior::Engage(oc_individual::IndividualIndex(
+                            target,
+                        ))
+            })
+        }),
         TestCase::Suppressed => i0_last_shoot
             .or(state.start)
             .map(|t| t.elapsed().as_secs_f32() > 8. / speed)

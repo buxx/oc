@@ -64,8 +64,8 @@ pub struct SetPositionEvent(oc_individual::IndividualIndex, WorldVec3);
 
 #[derive(Debug, Event)]
 pub struct SetBehaviorEvent(
-    oc_individual::IndividualIndex,
-    oc_individual::behavior::Behavior,
+    pub oc_individual::IndividualIndex,
+    pub oc_individual::behavior::Behavior,
 );
 
 #[derive(Debug, Event)]
