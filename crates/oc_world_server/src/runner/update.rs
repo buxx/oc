@@ -56,6 +56,53 @@ pub enum ExplosionOrigin {
     Shell(ShellIndex),
 }
 
+/// Apply updates in order. Consecutive individuals and squads updates only write world, so they
+/// are applied under one world write lock instead of one lock by update (for perf).
+pub fn update_all<E: Client>(ctx: &Context<E>, updates: Vec<Update>) {
+    let writes_world =
+        |u: &Update| matches!(u, Update::UpdateIndividual(..) | Update::UpdateSquad(..));
+    let mut updates = updates.into_iter().peekable();
+
+    while let Some(update_) = updates.next() {
+        if !writes_world(&update_) {
+            update(ctx, update_);
+            continue;
+        }
+
+        // Gather the run of consecutive updates writing world, starting by `first`
+        let mut run = vec![update_];
+        while let Some(next) = updates.next_if(writes_world) {
+            run.push(next);
+        }
+        write_world(ctx, run);
+    }
+}
+
+/// Apply individuals and squads updates under one world write lock, then broadcast the results
+fn write_world<E: Client>(ctx: &Context<E>, run: Vec<Update>) {
+    let outputs = {
+        let mut world = ctx.state.world_mut();
+        run.into_iter()
+            .flat_map(|update| match update {
+                Update::UpdateIndividual(i, update) => {
+                    #[cfg(feature = "tracker")]
+                    ctx.tracker.take().individuals.push((i, update.clone()));
+                    crate::individual::update::write(&mut world, update, i)
+                }
+                Update::UpdateSquad(i, update) => {
+                    super::State::<E>::write_squad(&mut world, i, update)
+                }
+                _ => unreachable!("Only individuals and squads updates are gathered"),
+            })
+            .collect::<Vec<_>>()
+    };
+
+    // World lock is released before broadcast
+    for (filter, messages) in outputs {
+        ctx.broadcast(filter, messages);
+    }
+}
+
 pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
     let state = &ctx.state;
     tracing::trace!(name="runner-update", update=?update);
@@ -187,7 +234,14 @@ impl<E: Client> super::State<E> {
         i: SquadIndex,
         update: oc_individual::squad::Update,
     ) -> Vec<(Listening, Vec<ToClient>)> {
-        let mut world = self.world_mut();
+        Self::write_squad(&mut self.world_mut(), i, update)
+    }
+
+    pub fn write_squad(
+        world: &mut oc_world::World,
+        i: SquadIndex,
+        update: oc_individual::squad::Update,
+    ) -> Vec<(Listening, Vec<ToClient>)> {
         let squad = world.squad_mut(i);
 
         let update = match &update {

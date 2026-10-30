@@ -222,7 +222,7 @@ impl Mod {
             .collect()
     }
 
-    pub(crate) fn find_sound(&self, name: &str) -> Result<SoundIndex, Error> {
+    pub fn find_sound(&self, name: &str) -> Result<SoundIndex, Error> {
         self.sounds
             .iter()
             .find(|s| s.name == name)

@@ -75,9 +75,6 @@ impl<'x, E: Client> Processor<'x, E> {
 
         // Move code (which must take world and indexes as ref because RwReadLockGuard lifetime)
         let collision_objects = |xy| {
-            #[cfg(feature = "perfs")]
-            self.ctx.state.perf.increment_physic();
-
             let tile = TileXy(xy);
             let i: WorldTileIndex = tile.into_(&self.ctx.state.w);
             let individuals = indexes.tile_individuals(i);
@@ -100,9 +97,6 @@ impl<'x, E: Client> Processor<'x, E> {
 
         // Move code (which must take world and indexes as ref because RwReadLockGuard lifetime)
         let proximity_objects = |xy| {
-            #[cfg(feature = "perfs")]
-            self.ctx.state.perf.increment_physic();
-
             let tile = TileXy(xy);
             let i: WorldTileIndex = tile.into_(&self.ctx.state.w);
             let individuals = indexes.proximity_individuals(i);
@@ -156,11 +150,12 @@ impl<'x, E: Client> Processor<'x, E> {
         I: IntoSubjectMut<T> + std::fmt::Debug + Copy,
         T: Clone + Physic + UpdatePhysic + Geo + UpdateGeo + Region,
     {
+        // One write lock for the whole batch for perf purpose
+        let mut world = self.ctx.state.world_mut();
         subjects
             .into_iter()
             .flat_map(|(i, updates)| updates.into_iter().map(move |update| (i, update)))
             .filter_map(|(i, update)| {
-                let mut world = self.ctx.state.world_mut();
                 let Some(subject) = i.subject_mut(&mut world) else {
                     return None; // TODO: its possible ? What to do ? Simply log ?
                 };
@@ -176,6 +171,9 @@ impl<'x, E: Client> Processor<'x, E> {
         I: Copy + IntoSubject<T> + IntoNetworkUpdate + IntoIndexEffect<Effect> + std::fmt::Debug,
         T: 'a + IntoNetworkInsert<I> + IntoNetworkForgot<I>,
     {
+        let mut index_effects = vec![];
+        let mut region_changes = vec![];
+
         for (i, (region, effect), update) in effects {
             // Broadcast the update
             let filter = Listening::Regions(vec![region]);
@@ -183,29 +181,38 @@ impl<'x, E: Client> Processor<'x, E> {
             self.ctx.broadcast(filter, messages);
 
             if let Some(effect) = effect {
-                // Update indexes
-                {
-                    let mut indexes = self.ctx.state.indexes_mut();
-                    indexes.react(i.to_index_effect(effect.clone()), &self.ctx.state.w);
-                }
-
-                // Broadcast to new listener if required
+                index_effects.push(i.to_index_effect(effect.clone()));
                 if let Effect::Region { before, after } = effect {
-                    let world = self.ctx.state.world();
-                    let Some(subject) = i.to_subject(&world) else {
-                        continue; // TODO: its possible ? What to do ? Simply log ?
-                    };
-
-                    tracing::trace!(name="subject-update-write-broadcast-insert", i=?i);
-                    let filter = Listening::EnterBorder(before, after);
-                    let messages = vec![subject.to_network_insert(i)];
-                    self.ctx.broadcast(filter, messages);
-
-                    tracing::trace!(name="subject-update-write-broadcast-forgot", i=?i);
-                    let filter = Listening::ExitBorder(before, after);
-                    let messages = vec![subject.to_network_forgot(i)];
-                    self.ctx.broadcast(filter, messages);
+                    region_changes.push((i, before, after));
                 }
+            }
+        }
+
+        // Update indexes with one write lock for the whole batch (perf)
+        if !index_effects.is_empty() {
+            let mut indexes = self.ctx.state.indexes_mut();
+            for effect in index_effects {
+                indexes.react(effect, &self.ctx.state.w);
+            }
+        }
+
+        // Broadcast to new listeners if required, with one read lock for the whole batch (perf)
+        if !region_changes.is_empty() {
+            let world = self.ctx.state.world();
+            for (i, before, after) in region_changes {
+                let Some(subject) = i.to_subject(&world) else {
+                    continue; // TODO: its possible ? What to do ? Simply log ?
+                };
+
+                tracing::trace!(name="subject-update-write-broadcast-insert", i=?i);
+                let filter = Listening::EnterBorder(before, after);
+                let messages = vec![subject.to_network_insert(i)];
+                self.ctx.broadcast(filter, messages);
+
+                tracing::trace!(name="subject-update-write-broadcast-forgot", i=?i);
+                let filter = Listening::ExitBorder(before, after);
+                let messages = vec![subject.to_network_forgot(i)];
+                self.ctx.broadcast(filter, messages);
             }
         }
     }

@@ -2,9 +2,9 @@ use derive_more::Constructor;
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::{BodyGesture, IndividualIndex, behavior::Behavior};
 use oc_lov::Modifier;
+use oc_root::side::Side;
 use oc_root::{WcfgFrom, WorldConfig, opacity::CumulatedOpacity};
 use oc_utils::{d2::Xy, polygon::Polygon};
-use oc_root::side::Side;
 use oc_world::{World, visibility::Visibility};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
@@ -74,14 +74,14 @@ impl<'a> Processor<'a> {
                 Side::A => &occupied_a,
                 Side::B => &occupied_b,
             };
-            let hidden_by_interior = self
-                .world
-                .interiors
-                .iter()
-                .zip(occupied)
-                .any(|(interior, occupied)| {
-                    !occupied && interior.contains(individual2.position.into())
-                });
+            let hidden_by_interior =
+                self.world
+                    .interiors
+                    .iter()
+                    .zip(occupied)
+                    .any(|(interior, occupied)| {
+                        !occupied && interior.contains(individual2.position.into())
+                    });
             if hidden_by_interior {
                 tracing::trace!(name="visibility-processor-compute-in-interior", i1=?i1, i2=?i2);
                 return Some((*i1, *i2, Visibility::default()));
@@ -237,8 +237,7 @@ mod tests {
             .make(&w);
         let indexes = Indexes::new(&world, &w);
 
-        let visibilities =
-            Processor::new(&world, &indexes).compute_for(&[WATCHER], &[TARGET]);
+        let visibilities = Processor::new(&world, &indexes).compute_for(&[WATCHER], &[TARGET]);
 
         let (_, _, visibility) = visibilities
             .into_iter()
@@ -249,11 +248,7 @@ mod tests {
 
     #[test]
     fn test_target_visible_without_interior() {
-        assert!(target_visible(
-            vec![],
-            vec![],
-            WorldVec3::new(10., 10., 0.)
-        ));
+        assert!(target_visible(vec![], vec![], WorldVec3::new(10., 10., 0.)));
     }
 
     #[test]

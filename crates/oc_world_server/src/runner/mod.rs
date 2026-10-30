@@ -26,7 +26,9 @@ use crate::{
 
 const WORLD_INTERVAL: Duration = Duration::from_secs(5);
 /// Watchers computed by visibilities thread between two releases of world locks
-const VISIBILITIES_CHUNK: usize = 16;
+const VISIBILITIES_CHUNK: usize = 2;
+/// Individuals/squads step
+const STEP_BATCH: usize = 16;
 
 pub mod explosion;
 pub mod input;
@@ -79,11 +81,6 @@ impl<E: Client> Runner<E> {
             self.direct.clone(),
         );
 
-        #[cfg(feature = "perfs")]
-        {
-            ctx.state.perf.init_load("physics", ctx.cpus);
-        }
-
         (0..ctx.cpus).for_each(|i| {
             let ctx = ctx.clone();
 
@@ -97,7 +94,7 @@ impl<E: Client> Runner<E> {
 
                     #[cfg(feature = "perfs")]
                     {
-                        ctx.state.perf.record_load("physics", i, wait, interval);
+                        ctx.state.perf.physics.record(wait, interval);
                     }
 
                     tracing::trace!(
@@ -140,11 +137,6 @@ impl<E: Client> Runner<E> {
             return;
         }
 
-        #[cfg(feature = "perfs")]
-        {
-            ctx.state.perf.init_load("individuals", ctx.cpus);
-        }
-
         (0..individuals_count)
             .collect::<Vec<usize>>()
             .par_chunks(size)
@@ -162,9 +154,7 @@ impl<E: Client> Runner<E> {
                         let wait = interval - elapsed.min(interval);
                         #[cfg(feature = "perfs")]
                         {
-                            ctx.state
-                                .perf
-                                .record_load("individuals", _i, wait, interval);
+                            ctx.state.perf.individuals.record(wait, interval);
                         }
 
                         std::thread::sleep(wait);
@@ -174,21 +164,20 @@ impl<E: Client> Runner<E> {
                             continue;
                         }
 
-                        for i in &indexes {
-                            let i = IndividualIndex(*i as u64);
-                            tracing::trace!(name = "runner-individual", i = ?i);
-
-                            for update in {
-                                // FIXME: optimize tensions on locks (wan, update make deadlock)
+                        for batch in indexes.chunks(STEP_BATCH) {
+                            let updates = {
                                 let world = &ctx.state.world();
                                 let indexes = &ctx.state.indexes();
-                                individual::Processor::new(world, indexes, i).step()
-                            } {
-                                update::update(&ctx, update);
-                            }
-
-                            #[cfg(feature = "perfs")]
-                            ctx.state.perf.increment_individual();
+                                batch
+                                    .iter()
+                                    .flat_map(|i| {
+                                        let i = IndividualIndex(*i as u64);
+                                        tracing::trace!(name = "runner-individual", i = ?i);
+                                        individual::Processor::new(world, indexes, i).step()
+                                    })
+                                    .collect::<Vec<_>>()
+                            };
+                            update::update_all(&ctx, updates);
                         }
                     }
                 });
@@ -213,11 +202,6 @@ impl<E: Client> Runner<E> {
         if size == 0 {
             return;
         }
-
-        #[cfg(feature = "perfs")]
-        {
-            ctx.state.perf.init_load("visibilities", 1);
-        }
         let ctx = ctx.clone();
 
         std::thread::spawn(move || {
@@ -229,9 +213,7 @@ impl<E: Client> Runner<E> {
                 let wait = interval - elapsed.min(interval);
                 #[cfg(feature = "perfs")]
                 {
-                    ctx.state
-                        .perf
-                        .record_load("visibilities", 0, wait, interval);
+                    ctx.state.perf.visibilities.record(wait, interval);
                 }
 
                 tracing::trace!(name = "runner-visibilities-sleep", wait=?wait);
@@ -272,9 +254,6 @@ impl<E: Client> Runner<E> {
                     visibilities
                 };
 
-                #[cfg(feature = "perfs")]
-                ctx.state.perf.increment_visibilities();
-
                 update::update(&ctx, update::Update::UpdateVisibilities(visibilities));
             }
         });
@@ -292,9 +271,6 @@ impl<E: Client> Runner<E> {
             self.direct.clone(),
         );
 
-        #[cfg(feature = "perfs")]
-        ctx.state.perf.init_load("world", 1);
-
         std::thread::spawn(move || {
             let mut last = Instant::now();
 
@@ -303,7 +279,7 @@ impl<E: Client> Runner<E> {
                 let interval = WORLD_INTERVAL.div_f32(ctx.state.w.speed());
                 let wait = interval - elapsed.min(interval);
                 #[cfg(feature = "perfs")]
-                ctx.state.perf.record_load("world", 0, wait, interval);
+                ctx.state.perf.world.record(wait, interval);
 
                 tracing::trace!(name = "runner-world-sleep", wait=?wait);
                 std::thread::sleep(wait);
@@ -347,11 +323,6 @@ impl<E: Client> Runner<E> {
             return;
         }
 
-        #[cfg(feature = "perfs")]
-        {
-            ctx.state.perf.init_load("squads", ctx.cpus);
-        }
-
         (0..squads_count)
             .collect::<Vec<usize>>()
             .par_chunks(size)
@@ -369,7 +340,7 @@ impl<E: Client> Runner<E> {
                         let wait = interval - elapsed.min(interval);
                         #[cfg(feature = "perfs")]
                         {
-                            ctx.state.perf.record_load("squads", _i, wait, interval);
+                            ctx.state.perf.squads.record(wait, interval);
                         }
 
                         std::thread::sleep(wait);
@@ -379,20 +350,20 @@ impl<E: Client> Runner<E> {
                             continue;
                         }
 
-                        for i in &indexes {
-                            let i = SquadIndex(*i as u64);
-                            tracing::trace!(name = "runner-squad", i = ?i);
-
-                            for update in {
+                        for batch in indexes.chunks(STEP_BATCH) {
+                            let updates = {
                                 let world = &ctx.state.world();
                                 let indexes = &ctx.state.indexes();
-                                squad::Processor::new(world, indexes, i).step()
-                            } {
-                                update::update(&ctx, update);
-                            }
-
-                            #[cfg(feature = "perfs")]
-                            ctx.state.perf.increment_squad();
+                                batch
+                                    .iter()
+                                    .flat_map(|i| {
+                                        let i = SquadIndex(*i as u64);
+                                        tracing::trace!(name = "runner-squad", i = ?i);
+                                        squad::Processor::new(world, indexes, i).step()
+                                    })
+                                    .collect::<Vec<_>>()
+                            };
+                            update::update_all(&ctx, updates);
                         }
                     }
                 });
@@ -407,23 +378,14 @@ impl<E: Client> Runner<E> {
             loop {
                 std::thread::sleep(std::time::Duration::from_secs(1));
 
-                let individuals = state.world.read().unwrap().individuals().len();
-                let projectiles = state.world.read().unwrap().projectiles().len();
                 let loads = state
                     .perf
-                    .take_loads()
-                    .into_iter()
+                    .take()
+                    .iter()
                     .map(|(name, percent)| format!("{name}: {percent:.0}%"))
                     .collect::<Vec<String>>()
-                    .join(" ");
-
-                println!(
-                    "individuals({individuals}): {} tick/s; physics({projectiles}): {} tick/s; load: {loads}",
-                    state.perf.individuals_ticks(),
-                    state.perf.physics_ticks(),
-                );
-
-                state.perf.reset();
+                    .join(", ");
+                println!("load: {loads}");
             }
         });
     }
