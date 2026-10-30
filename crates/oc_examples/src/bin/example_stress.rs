@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use bevy::prelude::*;
+use clap::Parser;
 use oc_battle_gui::{ingame::GameConfigReceived, network::output::ToServerEvent};
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::{Individual, IndividualIndex, order::Order, squad::Squad};
@@ -26,11 +27,7 @@ use tests::{
 
 const MOD: &str = "mods/std1";
 const MAP: &str = "examples/world1";
-const SQUADS_BY_SIDE: usize = 200;
 const INDIVIDUALS_BY_SQUAD: usize = 5;
-/// Squads grid of one side
-const GRID_COLUMNS: usize = 10;
-const GRID_ROWS: usize = SQUADS_BY_SIDE / GRID_COLUMNS;
 /// Distance between individuals of a same squad (pixels)
 const MEMBERS_GAP: f32 = 6.;
 const MARGIN: f32 = 30.;
@@ -39,7 +36,24 @@ const WEAPON: &str = "Mg34";
 /// Spare magazines by individual
 const SPARE_MAGAZINES: usize = 10;
 
+#[derive(Parser, Debug, Clone)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Squads count by side
+    #[arg(long, default_value_t = 200)]
+    squads: usize,
+}
+
+/// Squads grid (columns, rows) of one side, cells following the world aspect ratio
+fn grid(w: &WorldConfig, squads: usize) -> (usize, usize) {
+    let width = w.world_width_pixels() as f32 - 2. * MARGIN;
+    let height = w.world_height_pixels() as f32 - 2. * MARGIN;
+    let columns = ((squads as f32 * width / height).sqrt().ceil() as usize).clamp(1, squads.max(1));
+    (columns, squads.div_ceil(columns))
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
     logging::setup_logging()?;
 
     #[cfg(feature = "debug")]
@@ -55,7 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
         .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
 
-    let (individuals, squads) = battalions(&w, &mod_);
+    let (individuals, squads) = battalions(&w, &mod_, args.squads);
     let snapshot = SnapshotBuilder::new(
         map,
         individuals,
@@ -78,22 +92,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn squad_position(w: &WorldConfig, side: Side, j: usize) -> WorldVec2 {
+fn squad_position(w: &WorldConfig, side: Side, j: usize, squads: usize) -> WorldVec2 {
     let width = w.world_width_pixels() as f32 - 2. * MARGIN;
     let height = w.world_height_pixels() as f32 - 2. * MARGIN;
-    let (cell_w, cell_h) = (width / GRID_COLUMNS as f32, height / GRID_ROWS as f32);
+    let (columns, rows) = grid(w, squads);
+    let (cell_w, cell_h) = (width / columns as f32, height / rows as f32);
     let shift = match side {
         Side::A => 0.25,
         Side::B => 0.75,
     };
-    let (column, row) = (j % GRID_COLUMNS, j / GRID_COLUMNS);
+    let (column, row) = (j % columns, j / columns);
     WorldVec2::new(
         MARGIN + (column as f32 + shift) * cell_w,
         MARGIN + (row as f32 + shift) * cell_h,
     )
 }
 
-fn battalions(w: &WorldConfig, mod_: &Mod) -> (Vec<Individual>, Vec<Squad>) {
+fn battalions(w: &WorldConfig, mod_: &Mod, squads_by_side: usize) -> (Vec<Individual>, Vec<Squad>) {
     let (width, height) = (
         w.world_width_pixels() as f32,
         w.world_height_pixels() as f32,
@@ -113,8 +128,8 @@ fn battalions(w: &WorldConfig, mod_: &Mod) -> (Vec<Individual>, Vec<Squad>) {
     let mut squads = vec![];
 
     for side in [Side::A, Side::B] {
-        for j in 0..SQUADS_BY_SIDE {
-            let position = squad_position(w, side, j);
+        for j in 0..squads_by_side {
+            let position = squad_position(w, side, j, squads_by_side);
             let first = individuals.len();
             for k in 0..INDIVIDUALS_BY_SQUAD {
                 individuals.push(

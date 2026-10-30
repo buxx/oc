@@ -689,7 +689,9 @@ fn on_set_status_event(
     status: On<SetStatusEvent>,
     mut query: Query<&mut Status>,
     state: Res<EntityMapping<oc_individual::IndividualIndex>>,
+    mut orders: Query<&mut Orders>,
     mut world: ResMut<crate::world::World>,
+    mut commands: Commands,
 ) {
     let_some!(entity = state.get(&status.0), return);
     let_ok!(mut status_ = query.get_mut(*entity), return);
@@ -698,6 +700,15 @@ fn on_set_status_event(
 
     status_.0 = status.1;
     individual.status = status.1;
+
+    // Incapacited individual have no more orders
+    if !status.1.can_step() {
+        individual.orders.clear();
+        if let Ok(mut orders) = orders.get_mut(*entity) {
+            orders.0.clear();
+        }
+        commands.trigger(DespawnIndividualOrders(status.0));
+    }
 }
 
 fn on_set_weapons_event(

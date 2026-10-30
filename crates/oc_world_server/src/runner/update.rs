@@ -216,6 +216,10 @@ impl<E: Client> super::State<E> {
                 squad.actives = *actives;
                 update.clone()
             }
+            oc_individual::squad::Update::SetLeader(leader) => {
+                squad.leader = *leader;
+                update.clone()
+            }
             oc_individual::squad::Update::SetStatus(status) => {
                 squad.status = *status;
                 update.clone()

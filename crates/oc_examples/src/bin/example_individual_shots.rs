@@ -186,6 +186,7 @@ fn individuals(
                 side: Side::A,
                 illustration: IllustrationIndex(0),
                 position: [position[0], position[1]].into(),
+                leader: individual,
                 members: vec![individual],
                 actives: 2,
                 formation: SquadFormation::Line,

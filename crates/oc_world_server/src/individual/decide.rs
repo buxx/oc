@@ -107,7 +107,9 @@ impl Processor<'_> {
         target: IndividualIndex,
         direction: Direction,
     ) -> Intent {
-        match situation.visible(target).is_some() {
+        match situation.visible(target).is_some()
+            && self.world.individual(target).status.is_target()
+        {
             true => Intent::Engage(target),
             false => Intent::Idle(direction),
         }
@@ -159,6 +161,7 @@ impl Processor<'_> {
             && situation
                 .visible(*target)
                 .is_some_and(|v| v.distance <= w.individual_hide_engage_distance())
+            && self.world.individual(*target).status.is_target()
         {
             return Intent::Engage(*target);
         }
@@ -217,13 +220,13 @@ impl Processor<'_> {
         }
 
         // Target is visible, engage it
-        if situation.visible(target).is_some() {
+        if situation.visible(target).is_some() && self.world.individual(target).status.is_target() {
             return Intent::Engage(target);
         }
 
-        // Target is not visible: try to find another one, else hide
-        match situation.visibles.first() {
-            Some(other) => Intent::Engage(other.individual),
+        // Target is no more engageable: try to find another one
+        match self.squad_target(individual) {
+            Some(other) => Intent::Engage(other),
             None => {
                 // Use original target as direction
                 let target = self.world.individual(target);
@@ -232,6 +235,31 @@ impl Processor<'_> {
                 Intent::Hide(direction)
             }
         }
+    }
+
+    /// Nearest (from individual) target which is visible by at least one squad member and engageable.
+    fn squad_target(&self, individual: &Individual) -> Option<IndividualIndex> {
+        let squad = self.world.squad(self.index.individual_squad(self.i));
+
+        squad
+            .members
+            .iter()
+            .flat_map(|member| {
+                self.world
+                    .visibilities
+                    .for_(*member)
+                    .iter()
+                    .enumerate()
+                    .filter(|&(_, v)| v.visible)
+                    .map(|(i, _)| IndividualIndex(i as u64))
+            })
+            .filter(|target| self.world.individual(*target).status.is_target())
+            .map(|target| {
+                let target_ = self.world.individual(target);
+                (target, individual.position.distance(target_.position))
+            })
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(target, _)| target)
     }
 
     // FIXME BS NOW: impact of suppress ?

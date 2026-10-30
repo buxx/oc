@@ -14,6 +14,7 @@ use oc_utils::d2::Direction;
 use oc_utils::let_ok;
 use oc_utils::let_some;
 use oc_utils::return_if;
+use oc_utils::true_;
 
 use crate::cursor_to;
 use crate::entity::individual::IndividualIndex;
@@ -33,6 +34,7 @@ use crate::ingame::path::SpawnPathProfileKey;
 use crate::network::output::ToServerEvent;
 use crate::states::GameConfig;
 use crate::utils::drag::Phantom;
+use crate::utils::hover::Hovered;
 
 /// Marker which indicate order is pending (player prepare to give it)
 #[derive(Debug, Clone, Component)]
@@ -131,8 +133,8 @@ fn lov_profiles(
 ) -> Vec<SpawnLovProfile> {
     let mut profiles = vec![];
 
-    // Spawns points from selected squads
-    for squad in state.selected_squads() {
+    // Spawns points from selected squads (not when dragging a marker, which has its own)
+    for squad in state.selected_squads().iter().filter(|_| drag.is_empty()) {
         tracing::trace!(name = "ingame-input-left-click-lov-selected-squads-squad", squad=?squad);
         let_some!(squad = world.squad(*squad), continue);
         let_some!(leader = world.individual(squad.leader()), continue);
@@ -303,12 +305,7 @@ pub fn on_click(
     let point = cursor_to!(point, camera, &g.w, WorldVec2);
     let individual = individuals.get(click.event_target()).ok();
     let individual = individual.map(|i| i.0);
-    // Keep under cursor individual only if in opposite side
-    let individual = individual.filter(|&i| {
-        world
-            .individual(i)
-            .is_some_and(|individual_| individual_.side != identity.side)
-    });
+    let target = individual.filter(|&i| world.engageable(i, identity.side.opposite()));
 
     match click.button {
         PointerButton::Primary => {
@@ -316,16 +313,12 @@ pub fn on_click(
             let LeftClickMode::Order(order_type) = left_click.0 else {
                 return;
             };
-            // Transform engage order into suppress if cursor is not over an opposite individual
-            let order_type = match (individual, order_type) {
-                (None, OrderType::Engage) => {
-                    tracing::trace!(
-                        "Switch order 'engage' to 'suppress' as no opposite individual under cursor"
-                    );
-                    OrderType::Suppress
-                }
-                _ => order_type,
-            };
+            let mut order_type = order_type;
+            if target.is_none() && matches!(order_type, OrderType::Engage) {
+                tracing::trace!("Switch order 'engage' to 'suppress'");
+                // Transform engage order into suppress if cursor is not over an opposite individual
+                order_type = OrderType::Suppress;
+            }
             tracing::trace!(name = "ingame-input-left-click-order-action", order_type=?order_type);
 
             // Its a final order give
@@ -336,7 +329,7 @@ pub fn on_click(
                     &world,
                     point,
                     Some(order_type),
-                    individual,
+                    target,
                 );
                 cancel(&mut commands, &mut ingame);
             // User want stack order
@@ -377,6 +370,11 @@ fn give_orders(
     individual: Option<oc_individual::IndividualIndex>,
 ) {
     for squad in ingame.selected_squads() {
+        // Squad without leader able to lead can't receive orders
+        let_some!(squad_ = world.squad(*squad), continue);
+        let_some!(leader = world.individual(squad_.leader()), continue);
+        true_!(leader.can_leadership(), continue);
+
         let mut orders = ingame.pending_orders().to_vec();
         if let Some(order_type) = &order_type {
             let_some!(squad_ = world.squad(*squad), continue);
@@ -440,5 +438,90 @@ pub fn on_set_left_click(
             tracing::trace!(name="ingame-input-left-click-order-on-set-left-click-trigger", squad=?squad, order=?order);
             commands.trigger(SpawnSquadOrder::Direction(*squad, order.clone(), true));
         }
+    }
+}
+
+/// Sprite following cursor when about to give an engage/suppress order
+#[derive(Debug, Component)]
+pub struct OrderCursor;
+
+/// Draw under cursor the sprite of order which would be given: engage if there is an
+/// individual under it, else suppress.
+#[allow(clippy::too_many_arguments)]
+pub fn cursor_sprite(
+    mut commands: Commands,
+    g: Res<GameConfig>,
+    asset_server: Res<AssetServer>,
+    window: Single<&Window>,
+    camera: Single<(&Camera, &GlobalTransform)>,
+    mode: Res<LeftClick>,
+    dragging: Res<crate::utils::drag::Cursor>,
+    world: Res<crate::world::World>,
+    network: Res<crate::network::state::State>,
+    individuals: Query<(&IndividualIndex, &Hovered)>,
+    mut cursors: Query<(Entity, &mut Sprite, &mut Transform), With<OrderCursor>>,
+) {
+    use crate::sprites::{SpriteRect, order::SquadOrderSprite};
+    use oc_root::y::Y;
+
+    // When dragging an existing marker, its phantom is the only sprite to show
+    let LeftClickMode::Order(OrderType::Engage | OrderType::Suppress) = &mode.0 else {
+        for (entity, _, _) in &cursors {
+            commands.entity(entity).despawn();
+        }
+        return;
+    };
+    if dragging.0.is_some() {
+        for (entity, _, _) in &cursors {
+            commands.entity(entity).despawn();
+        }
+        return;
+    }
+    let_some!(g = &g.0, return);
+    let_some!(identity = &network.identity, return);
+    let_some!(cursor = window.cursor_position(), return);
+    let point = cursor_to!(cursor, camera, &g.w, WorldVec2);
+
+    let opposite_hovered = individuals
+        .iter()
+        .any(|(i, hovered)| **hovered && world.engageable(i.0, identity.side.opposite()));
+    let rect = match opposite_hovered {
+        true => SquadOrderSprite::Engage,
+        false => SquadOrderSprite::Suppress,
+    }
+    .rect();
+    let translation = Vec3::new(
+        point.x,
+        point.y.to_gui_y(&g.w),
+        crate::ingame::draw::Z_SQUAD_ORDER,
+    );
+
+    match cursors.single_mut() {
+        // When sprite already exist, update its rect (to adapt hover target or not)
+        Ok((_, mut sprite, mut transform)) => {
+            sprite.rect = Some(rect);
+            transform.translation = translation;
+        }
+        // Else, create it
+        Err(_) => {
+            commands.spawn((
+                OrderCursor,
+                Sprite {
+                    image: asset_server.load(crate::ingame::draw::UI_FILE),
+                    rect: Some(rect),
+                    ..default()
+                },
+                Transform::from_translation(translation),
+                // Must not capture pointer: clicks go to what is under it
+                Pickable::IGNORE,
+            ));
+        }
+    }
+}
+
+/// Cursor sprite must not remain when leaving order mode
+pub fn despawn_cursor_sprite(mut commands: Commands, cursors: Query<Entity, With<OrderCursor>>) {
+    for entity in &cursors {
+        commands.entity(entity).despawn();
     }
 }

@@ -54,12 +54,12 @@ impl<'a> Processor<'a> {
         let mut updates = vec![];
         let individual = self.world.individual(self.i);
 
-        self.suppress(&mut updates, individual);
-
         if !individual.status.can_step() {
             tracing::trace!(name="individual-step-cant-step", i=?self.i);
             return vec![];
         }
+
+        self.suppress(&mut updates, individual);
         let situation = &self.situation(individual);
 
         if let Some(updates) = self.accomplished(situation) {

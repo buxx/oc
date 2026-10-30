@@ -23,7 +23,7 @@ use crate::{
         region::{ForgottenRegion, ListeningRegion},
     },
     network::output::ToServerEvent,
-    sprites::{IntoIndividualSprite, IntoSprite, SpriteRect},
+    sprites::{IntoIndividualSprite, IntoSprite, SpriteRect, order::SquadOrderSprite},
     states::{AppState, GameConfig},
     utils::{
         drag::{self, DragPlugin, Dragged, Dragging, Phantom},
@@ -200,15 +200,53 @@ pub fn on_drop_squad_order_marker_phantom(
     event: On<DropSquadOrderMarkerPhantom>,
     mut commands: Commands,
     query: Query<&mut PositionSquadOrder>,
+    world: Res<crate::world::World>,
+    network: Res<crate::network::state::State>,
 ) {
     let_ok!(order = query.get(event.0), return);
     let (squad, index, position) = (order.0, order.1, event.1);
-    let message = SquadMessage::SetPositionOrderPosition(index, position);
+    // If
+    let message = match engage_orders(squad, index, position, &world, &network) {
+        Some(orders) => SquadMessage::SetOrders(orders),
+        None => SquadMessage::SetPositionOrderPosition(index, position),
+    };
     tracing::trace!(name = "ingame-behavior-on-drop-squad-order-marker-phantom", squad=?squad, index=?index, position=?position);
     commands.trigger(ToServerEvent(ToServer::Squad(squad, message)));
     commands.trigger(SetLeftClick(LeftClickMode::Select));
     commands.trigger(ComputeDisplayPaths(vec![]));
     commands.trigger(DespawnLov);
+}
+
+/// World pixels around a dragged marker where an individual is considered as under it
+const DROP_RADIUS: f32 = 10.;
+
+/// When dragged order is an engage or suppress. It is an engage order if dropped on an individual
+/// else a suppress.
+fn engage_orders(
+    squad: SquadIndex,
+    index: OrderIndex,
+    point: WorldVec2,
+    world: &crate::world::World,
+    network: &crate::network::state::State,
+) -> Option<Vec<Order>> {
+    let identity = network.identity.as_ref()?;
+    let squad_ = world.squad(squad)?;
+    let mut orders = squad_.orders.clone();
+    let i = orders.len().checked_sub(1 + index.0 as usize)?;
+    if !matches!(orders[i], Order::Engage(_) | Order::Suppress(_)) {
+        return None;
+    }
+
+    let target = world.individual_nearest(point, DROP_RADIUS, identity.side.opposite());
+    tracing::trace!(name = "ingame-behavior-engage-orders-drop", point=?point, target=?target);
+
+    // If order dropped on individual, engage, else, suppress
+    orders[i] = match target {
+        Some(target) => Order::Engage(target),
+        None => Order::Suppress(point),
+    };
+
+    Some(orders)
 }
 
 pub fn on_enter_drag_direction_squad_order_marker(
@@ -282,7 +320,83 @@ impl Plugin for BehaviorPlugin {
         .add_observer(on_drop_squad_order_marker_phantom)
         .add_observer(on_enter_drag_direction_squad_order_marker)
         .add_observer(on_set_position)
-        .add_observer(on_update_direction_squad_order_target);
+        .add_observer(on_update_direction_squad_order_target)
+        .add_systems(
+            Update,
+            (follow_engage_targets, update_dragged_engage_sprites)
+                .run_if(in_state(InGameState::Battle)),
+        );
+    }
+}
+
+/// Dragged engage/suppress marker shows the sprite of what it would become if dropped here
+fn update_dragged_engage_sprites(
+    world: Res<crate::world::World>,
+    network: Res<crate::network::state::State>,
+    g: Res<GameConfig>,
+    window: Single<&Window>,
+    camera: Single<(&Camera, &GlobalTransform)>,
+    markers: Query<&PositionSquadOrder>,
+    mut phantoms: Query<(&Phantom, &mut Sprite)>,
+) {
+    use oc_root::WcfgFrom;
+
+    let_some!(g = &g.0, return);
+    let_some!(identity = &network.identity, return);
+    let_some!(cursor = window.cursor_position(), return);
+    let point = crate::cursor_to!(cursor, camera, &g.w, WorldVec2);
+
+    for (phantom, mut sprite) in &mut phantoms {
+        let_ok!(
+            PositionSquadOrder(squad, index) = markers.get(phantom.0),
+            continue
+        );
+        let_some!(squad = world.squad(*squad), continue);
+        let_some!(order = squad.orders.get_r(index.0 as usize), continue);
+        if !matches!(order, Order::Engage(_) | Order::Suppress(_)) {
+            continue;
+        }
+
+        let target = world.individual_nearest(point, DROP_RADIUS, identity.side.opposite());
+        let rect = match target {
+            Some(_) => SquadOrderSprite::Engage,
+            None => SquadOrderSprite::Suppress,
+        }
+        .rect();
+        if sprite.rect != Some(rect) {
+            sprite.rect = Some(rect);
+        }
+    }
+}
+
+/// Engage order has no own position: its marker is placed on, and follows, its target
+fn follow_engage_targets(
+    g: Res<GameConfig>,
+    world: Res<crate::world::World>,
+    cursor: Res<drag::Cursor>,
+    mut markers: Query<(&PositionSquadOrder, &mut Transform)>,
+) {
+    let_some!(g = &g.0, return);
+    // Dragged marker must not be moved under the cursor
+    if cursor.0.is_some() {
+        return;
+    }
+
+    for (PositionSquadOrder(squad, index), mut transform) in &mut markers {
+        let_some!(squad = world.squad(*squad), continue);
+        let_some!(order = squad.orders.get_r(index.0 as usize), continue);
+        let Order::Engage(target) = order else {
+            continue;
+        };
+        let_some!(target = world.individual(*target), continue);
+        let translation = Vec3::new(
+            target.position.x,
+            target.position.y.to_gui_y(&g.w),
+            transform.translation.z,
+        );
+        if transform.translation != translation {
+            transform.translation = translation;
+        }
     }
 }
 
@@ -430,7 +544,17 @@ fn on_spawn_squad_order(
         SpawnSquadOrder::Position(_, index, _) => {
             let marker = PositionSquadOrder(squad, index);
 
-            let_some!(position = order.position(), return);
+            // Engage has no own position: it is displayed on its target
+            let position = match order {
+                Order::Engage(target) => {
+                    let_some!(target = world.individual(*target), return);
+                    target.position.into()
+                }
+                _ => {
+                    let_some!(position = order.position(), return);
+                    position
+                }
+            };
             let x = position.x;
             let y = position.y;
             let translation = Vec3::new(x, y.to_gui_y(&g.w), draw::Z_SQUAD_ORDER);
