@@ -27,10 +27,20 @@ impl Processor<'_> {
         let squad_i = self.index.individual_squad(self.i);
         let squad = self.world.squad(squad_i);
         let is_squad_leader = self.i == squad.leader();
+        let leader = self.world.individual(squad.leader());
+
+        // Skip function because executed on non leader
         if !is_squad_leader {
             tracing::trace!(name="individual-step-distribute-not-leader", i=?self.i);
             return vec![];
         }
+
+        // Skip function because leader can't leadership (eeg. dead and news leader has not been set)
+        if !leader.can_leadership() {
+            tracing::trace!(name="individual-step-distribute-leader-cant-leadership", i=?self.i);
+            return vec![];
+        }
+
         let order = squad.orders.first();
         let mut updates = vec![];
         let mut distribution: Vec<(IndividualIndex, Vec<Order>)> =
@@ -46,7 +56,6 @@ impl Processor<'_> {
             updates.push(update);
         }
 
-        let leader = self.world.individual(squad.leader());
         let gesture = &leader.gesture;
         let count = squad.actives as usize;
         let direction = gesture.direction();
@@ -125,6 +134,12 @@ impl Processor<'_> {
 
         for (member_i, orders) in distribution {
             let member = self.world.individual(member_i);
+
+            // Dead individuals must keep no order
+            if !member.status.is_target() {
+                continue;
+            }
+
             if member.orders != orders {
                 let orders = Update::SetOrders(orders);
                 let update = runner::update::Update::UpdateIndividual(member_i, orders);

@@ -11,6 +11,86 @@ debug = ["oc_network/debug", "oc_world_server/debug", "oc_world/debug", "oc_batt
 debug_locks = ["oc_utils/debug"]
 test = ["debug", "oc_world_server/tracker"]
 
+# No tests in these bins: skip building them with the test harness (350Mo each)
+[lib]
+test = false
+doctest = false
+
+[[bin]]
+name = "example_engaging"
+path = "src/bin/example_engaging.rs"
+test = false
+
+[[bin]]
+name = "example_height"
+path = "src/bin/example_height.rs"
+test = false
+
+[[bin]]
+name = "example_individual_behaviors"
+path = "src/bin/example_individual_behaviors.rs"
+test = false
+
+[[bin]]
+name = "example_individual_shots"
+path = "src/bin/example_individual_shots.rs"
+test = false
+
+[[bin]]
+name = "example_interiors"
+path = "src/bin/example_interiors.rs"
+test = false
+
+[[bin]]
+name = "example_minidblue"
+path = "src/bin/example_minidblue.rs"
+test = false
+
+[[bin]]
+name = "example_projectiles_obstacles"
+path = "src/bin/example_projectiles_obstacles.rs"
+test = false
+
+[[bin]]
+name = "example_regions"
+path = "src/bin/example_regions.rs"
+test = false
+
+[[bin]]
+name = "example_stress"
+path = "src/bin/example_stress.rs"
+test = false
+
+[[bin]]
+name = "example_stress_projectiles"
+path = "src/bin/example_stress_projectiles.rs"
+test = false
+
+[[bin]]
+name = "example_stress_projectiles_server"
+path = "src/bin/example_stress_projectiles_server.rs"
+test = false
+
+[[bin]]
+name = "example_visibilities"
+path = "src/bin/example_visibilities.rs"
+test = false
+
+[[bin]]
+name = "example_weapons"
+path = "src/bin/example_weapons.rs"
+test = false
+
+[[bin]]
+name = "example_world"
+path = "src/bin/example_world.rs"
+test = false
+
+[[bin]]
+name = "example_world1"
+path = "src/bin/example_world1.rs"
+test = false
+
 [dependencies]
 oc_root = { path = "../oc_root", features = ["clap"] }
 oc_world_server = { path = "../oc_world_server" }

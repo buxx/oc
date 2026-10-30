@@ -104,6 +104,18 @@ impl Plugin for InputPlugin {
             )
             .add_systems(
                 Update,
+                (left_click::order::cursor_sprite)
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(in_state(InGameState::Battle))
+                    .run_if(in_state(LeftClickModeType::Order))
+                    .run_if(in_state(PointerIn::Battle)),
+            )
+            .add_systems(
+                OnExit(LeftClickModeType::Order),
+                left_click::order::despawn_cursor_sprite,
+            )
+            .add_systems(
+                Update,
                 (left_click::lov::system)
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Battle))

@@ -46,6 +46,11 @@
    <property name="ID" value="Gravel"/>
   </properties>
  </tile>
+ <tile id="9">
+  <properties>
+   <property name="ID" value="ConcreteWall"/>
+  </properties>
+ </tile>
  <tile id="100">
   <properties>
    <property name="ID" value="Trunk"/>

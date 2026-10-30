@@ -132,6 +132,7 @@ fn squads(
                 .into_iter()
                 .map(|i| IndividualIndex(i as u64))
                 .collect::<Vec<IndividualIndex>>(),
+            leader: IndividualIndex(0),
             actives: count as u8,
             formation: SquadFormation::Line,
             orders: orders.clone(),

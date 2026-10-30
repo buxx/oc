@@ -26,6 +26,7 @@ impl TestSquad {
             side: self.side,
             illustration: IllustrationIndex(0),
             actives: self.members.len() as u8,
+            leader: self.members[0],
             members: self.members,
             formation: self.formation,
             orders: self.orders,

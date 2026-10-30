@@ -104,8 +104,21 @@ impl contextual::choice::Choice<Choice> for Choice {
 
 pub fn on_prepare_open_squad_contextual_menu(
     event: On<PrepareOpenSquadContextualMenu>,
+    state: Res<crate::ingame::state::State>,
+    world: Res<crate::world::World>,
     mut commands: Commands,
 ) {
+    // Squad orders require selected squads owning a leader able to lead
+    if !state.selected_squads().iter().any(|i| {
+        world
+            .squad(*i)
+            .and_then(|squad| world.individual(squad.leader()))
+            .is_some_and(|leader| leader.can_leadership())
+    }) {
+        tracing::debug!("No selected squad with a leader: don't open contextual menu");
+        return;
+    }
+
     tracing::debug!("Trigger open contextual menu");
     commands.trigger(Open(event.0))
 }

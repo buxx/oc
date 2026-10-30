@@ -21,7 +21,21 @@ impl<'a> Processor<'a> {
         tracing::trace!(name="squad-step", i=?self.i);
 
         let squad = self.world.squad(self.i);
-        let leader = self.world.individual(squad.leader());
+        let mut leader_index = squad.leader();
+
+        // If leader can't lead anymore: next member able to lead take the lead
+        let mut new_leader = None;
+        if !self.world.individual(leader_index).can_leadership()
+            && let Some(next) = squad
+                .members
+                .iter()
+                .find(|i| self.world.individual(**i).can_leadership())
+        {
+            leader_index = *next;
+            new_leader = Some(*next);
+        }
+
+        let leader = self.world.individual(leader_index);
         let members: Vec<&Individual> = squad
             .members
             .iter()
@@ -40,11 +54,26 @@ impl<'a> Processor<'a> {
         } else {
             SquadStatus::Casualities
         };
-        let updates = vec![
+        let mut updates = vec![
             runner::update::Update::UpdateSquad(self.i, Update::SetPosition(position)),
             runner::update::Update::UpdateSquad(self.i, Update::SetActives((total - dead) as u8)),
             runner::update::Update::UpdateSquad(self.i, Update::SetStatus(status)),
         ];
+
+        if let Some(new_leader) = new_leader {
+            updates.push(runner::update::Update::UpdateSquad(
+                self.i,
+                Update::SetLeader(new_leader),
+            ));
+        }
+
+        // Destroyed squad keeps no order
+        if status == SquadStatus::Destroyed && !squad.orders.is_empty() {
+            updates.push(runner::update::Update::UpdateSquad(
+                self.i,
+                Update::SetOrders(vec![]),
+            ));
+        }
 
         tracing::trace!(name = "squad-step-updates", i=?self.i, updates=?updates);
         updates

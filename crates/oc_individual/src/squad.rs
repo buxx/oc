@@ -50,6 +50,9 @@ pub struct Squad {
     /// Individual identifiers in this squad. Integrity must be checked before game run
     #[getset(set_with = "pub")]
     pub members: Vec<IndividualIndex>,
+    /// Current leader (must be a member and, when possible, can_leadership)
+    #[getset(set_with = "pub")]
+    pub leader: IndividualIndex,
     /// Number of alive members
     #[getset(set_with = "pub")]
     pub actives: u8,
@@ -70,7 +73,11 @@ pub struct Squad {
 impl Squad {
     pub fn fresh(side: Side, members: Vec<IndividualIndex>, position: WorldVec2) -> Self {
         let actives = members.len() as u8;
+        let leader = *members
+            .first()
+            .expect("We delegate insurance there is member at the start of program");
         Self {
+            leader,
             side,
             illustration: IllustrationIndex(0),
             members,
@@ -83,10 +90,7 @@ impl Squad {
     }
 
     pub fn leader(&self) -> IndividualIndex {
-        *self
-            .members
-            .first()
-            .expect("We delegate insurance there is member at the start of program")
+        self.leader
     }
 }
 
@@ -116,6 +120,7 @@ pub enum Update {
     SetOrderPosition(OrderIndex, WorldVec2),
     SetPosition(WorldVec2),
     SetActives(u8),
+    SetLeader(IndividualIndex),
     SetStatus(SquadStatus),
     Accomplished,
 }

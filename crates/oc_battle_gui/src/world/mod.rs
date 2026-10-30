@@ -213,6 +213,40 @@ impl World {
         self.insert_individual(w, i, individual.clone());
     }
 
+    /// An individual can be engaged if it is of the given `side`, visible and matching status
+    pub fn engageable(&self, i: IndividualIndex, side: oc_root::side::Side) -> bool {
+        self.individual(i)
+            .is_some_and(|individual| individual.side == side && individual.status.is_target())
+            && self.visible(i)
+    }
+
+    /// Closest engageable individual of `side` within `radius` of `point`
+    pub fn individual_nearest(
+        &self,
+        point: WorldVec2,
+        radius: f32,
+        side: oc_root::side::Side,
+    ) -> Option<IndividualIndex> {
+        let distance = |individual: &Individual| {
+            let (dx, dy) = (
+                individual.position.x - point.x,
+                individual.position.y - point.y,
+            );
+            dx * dx + dy * dy
+        };
+
+        self.individuals
+            .values()
+            .flat_map(|tiles| tiles.values().flatten())
+            .map(|(i, individual)| (*i, distance(individual)))
+            // In the allowed radius to be considered as near
+            .filter(|&(_, d)| d <= radius * radius)
+            .filter(|&(i, _)| self.engageable(i, side))
+            // Take the nearest
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(i, _)| i)
+    }
+
     pub fn at(&self, w: &WorldConfig, tile: TileXy) -> Vec<(ObjectId, &dyn Physic)> {
         let region: WorldRegionIndex = tile.into_(w);
         let tile: WorldTileIndex = tile.into_(w);

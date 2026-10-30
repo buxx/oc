@@ -224,6 +224,13 @@ impl Individual {
         self.region
     }
 
+    pub fn can_leadership(&self) -> bool {
+        match self.status {
+            Status::Operational => true,
+            Status::Dead => false,
+        }
+    }
+
     pub fn can_follow_orders(&self) -> bool {
         match self.status {
             Status::Operational => true,

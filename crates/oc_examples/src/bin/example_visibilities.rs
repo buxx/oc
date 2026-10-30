@@ -54,10 +54,9 @@ struct Args {
 impl Args {
     fn timeout(&self) -> Duration {
         match self.case {
-            TestCase::Direct
-            | TestCase::Through
-            | TestCase::NotVisible
-            | TestCase::Hidden => Duration::from_secs(10),
+            TestCase::Direct | TestCase::Through | TestCase::NotVisible | TestCase::Hidden => {
+                Duration::from_secs(10)
+            }
             TestCase::Discover => Duration::from_secs(20),
             TestCase::MoveThenEnemyVisible => Duration::from_secs(40),
         }

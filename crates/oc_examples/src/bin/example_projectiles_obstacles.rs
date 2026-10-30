@@ -235,10 +235,9 @@ fn individuals_and_squads(
                     )
                     .build()
                     .make(w),
-                // On the hill (tile height 2060: z = 39 * 0.1m * 5px)
                 TestIndividual::builder()
                     .side(Side::B)
-                    .position(WorldVec3::new(195., 125., 19.5))
+                    .position(WorldVec3::new(180., 125., 0.))
                     .build()
                     .make(w),
             ],
@@ -248,12 +247,12 @@ fn individuals_and_squads(
                     .position([123., 127.].into())
                     .members(vec![IndividualIndex(0)])
                     // Wall hides soldier B: suppress his position (engage needs visibility)
-                    .orders(vec![Order::Suppress([195., 125.].into())])
+                    .orders(vec![Order::Suppress([180., 125.].into())])
                     .build()
                     .make(),
                 TestSquad::builder()
                     .side(Side::B)
-                    .position([195., 125.].into())
+                    .position([180., 125.].into())
                     .members(vec![IndividualIndex(1)])
                     .build()
                     .make(),
@@ -266,10 +265,9 @@ fn individuals_and_squads(
                     .position(WorldVec3::new(123., 127., 0.))
                     .build()
                     .make(w),
-                // On the hill (tile height 2060: z = 39 * 0.1m * 5px)
                 TestIndividual::builder()
                     .side(Side::B)
-                    .position(WorldVec3::new(195., 125., 19.5))
+                    .position(WorldVec3::new(245., 125., 19.5))
                     .weapons(
                         TestWeapons::builder()
                             .primary(TestWeapon::filled(mod_, "Weapon3").make())
@@ -425,9 +423,9 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                     ammunition.index(),
                     shot.index(),
                     10,
-                    [70., 125., 8.5].into(),
+                    [5., 125., 8.5].into(),
                     vec![
-                        (WorldVec3::new(100., 125., 8.5) - WorldVec3::new(70., 125., 8.5))
+                        (WorldVec3::new(100., 125., 8.5) - WorldVec3::new(5., 125., 8.5))
                             .normalize_or_zero();
                         10
                     ],
@@ -440,9 +438,9 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                     ammunition.index(),
                     shot.index(),
                     10,
-                    [70., 130., 8.5].into(),
+                    [5., 130., 8.5].into(),
                     vec![
-                        (WorldVec3::new(100., 130., 8.5) - WorldVec3::new(70., 130., 8.5))
+                        (WorldVec3::new(100., 130., 8.5) - WorldVec3::new(5., 130., 8.5))
                             .normalize_or_zero();
                         10
                     ],
@@ -455,9 +453,9 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                     ammunition.index(),
                     shot3.index(),
                     10,
-                    [70., 135., 8.5].into(),
+                    [5., 135., 8.5].into(),
                     vec![
-                        (WorldVec3::new(100., 135., 8.5) - WorldVec3::new(70., 135., 8.5))
+                        (WorldVec3::new(100., 135., 8.5) - WorldVec3::new(5., 135., 8.5))
                             .normalize_or_zero();
                         10
                     ],
@@ -475,9 +473,9 @@ fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
                 ammunition.index(),
                 shot.index(),
                 1,
-                [70., 125., 8.5].into(),
+                [5., 125., 8.5].into(),
                 vec![
-                    (WorldVec3::new(100., 125., 8.5) - WorldVec3::new(70., 125., 8.5))
+                    (WorldVec3::new(100., 125., 8.5) - WorldVec3::new(5., 125., 8.5))
                         .normalize_or_zero();
                     10
                 ],

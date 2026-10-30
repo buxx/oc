@@ -6,7 +6,7 @@ use crate::runner;
 
 impl Processor<'_> {
     /// Determine if current order (or order step) is accomplished
-    pub fn accomplished(&self, situation: &Situation) -> Option<Vec<runner::update::Update>> {
+    pub fn accomplished(&self, _situation: &Situation) -> Option<Vec<runner::update::Update>> {
         let individual = self.world.individual(self.i);
         let Some(order) = individual.orders.first() else {
             tracing::trace!(name = "individual-step-accomplished-no-order", i=?self.i);
@@ -62,7 +62,7 @@ impl Processor<'_> {
             // FIXME: must finish when ammo low
             Order::Suppress(_) => {}
             Order::Engage(individual) => {
-                if situation.visible(*individual).is_none() {
+                if !self.world.individual(*individual).status.is_target() {
                     tracing::trace!(name = "individual-step-accomplished-engage-finished", i=?self.i, i2=?individual);
                     updates = Some(accomplished_updates(self.i, direction));
                 }
