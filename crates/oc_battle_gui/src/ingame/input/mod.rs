@@ -1,14 +1,11 @@
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
-use oc_root::{
-    WcfgFrom,
-    geo::{ScreenVec2, WorldVec2},
-};
+use oc_root::geo::WorldVec2;
 use oc_utils::{let_ok, let_some};
 
 use crate::{
     ingame::{InGameState, hud::Hud, input::left_click::LeftClickModeType},
-    states::{AppState, GameConfig, PointerIn},
+    states::{AppState, PointerIn},
 };
 
 pub mod client;
@@ -21,7 +18,10 @@ pub mod projectile;
 pub struct State {
     pub clicks: Vec<WorldVec2>,
     pub first_left_press: Option<WorldVec2>,
-    pub first_right_press: Option<WorldVec2>,
+    /// Window cursor position when right button was pressed
+    pub first_right_press: Option<Vec2>,
+    /// Right press moved enough to be considered as a map drag (and no more as a click)
+    pub right_dragging: bool,
 }
 
 pub struct InputPlugin;
@@ -166,21 +166,17 @@ impl Plugin for InputPlugin {
 }
 
 fn watch_clicks(
-    g: Res<GameConfig>,
     mut state: ResMut<State>,
     window: Single<&Window>,
     buttons: Res<ButtonInput<MouseButton>>,
 ) {
-    let_some!(g = &g.0, return);
-
     if buttons.just_pressed(MouseButton::Right) {
-        let_some!(cursor = window.cursor_position(), return);
-        let position = ScreenVec2::from(cursor);
-        let position = WorldVec2::from_(position, &g.w);
-        state.first_right_press = Some(position);
+        state.first_right_press = window.cursor_position();
+        state.right_dragging = false;
     }
     if buttons.just_released(MouseButton::Right) {
         state.first_right_press = None;
+        state.right_dragging = false;
     }
 }
 

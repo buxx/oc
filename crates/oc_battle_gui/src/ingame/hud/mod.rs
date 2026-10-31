@@ -32,6 +32,7 @@ impl Plugin for HudPlugin {
                     squads::update_squad_behaviors,
                     squads::update_squad_status_colors,
                     squad::update_rows,
+                    remaining::tick_remaining,
                     minimap::load_image,
                     minimap::update_squad_markers,
                     minimap::update_viewport,
@@ -39,6 +40,7 @@ impl Plugin for HudPlugin {
                     .run_if(in_state(AppState::InGame)),
             )
             .add_systems(OnEnter(BattlePhase::Fight), actions::update_fight_button)
+            .init_resource::<remaining::Remaining>()
             .add_observer(supports::on_set_support_availability)
             .add_observer(squad::spawn_rows)
             .add_observer(squads::outline_selected_cells)

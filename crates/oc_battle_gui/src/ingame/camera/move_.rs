@@ -13,6 +13,10 @@ use crate::{
     states::GameConfig,
 };
 
+/// Pixels the cursor must move with right button pressed to start moving the map.
+/// Used to permit contextual menu easly in case of little move.
+const RIGHT_DRAG_THRESHOLD: f32 = 2.;
+
 #[derive(Debug, Event, Deref)]
 pub struct CenterCameraOn(pub WorldVec2);
 
@@ -29,13 +33,19 @@ pub fn move_battle(
     buttons: Res<ButtonInput<MouseButton>>,
     keys: Res<ButtonInput<KeyCode>>,
     state: Res<super::State>,
+    mut input: ResMut<crate::ingame::input::State>,
 ) {
     let cursor = window.cursor_position();
     let ctrl = keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight);
     let left = buttons.pressed(MouseButton::Left);
     let right = buttons.pressed(MouseButton::Right);
 
-    if (right || (left && ctrl))
+    // Right press becomes a map drag only after a real move: tiny involuntary moves stay a click
+    if let (true, Some(first), Some(cursor)) = (right, input.first_right_press, cursor) {
+        input.right_dragging |= first.distance(cursor) > RIGHT_DRAG_THRESHOLD;
+    }
+
+    if ((right && input.right_dragging) || (left && ctrl))
         && let (Some(cursor1), Some(cursor2)) = (&state.cursor, &cursor)
     {
         let diff = cursor1 - cursor2;

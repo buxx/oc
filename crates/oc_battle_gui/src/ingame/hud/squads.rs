@@ -30,7 +30,7 @@ const CELL_OUTLINE_SELECTED: Color = Color::srgb(0.2, 0.4, 1.0);
 const STATUS_BG_OPERATIONAL: Color = Color::srgb(0.1, 0.5, 0.1);
 const STATUS_BG_CASUALITIES: Color = Color::srgb(0.7, 0.6, 0.05);
 const STATUS_BG_PARTIALLY_DESTROYED: Color = Color::srgb(0.7, 0.1, 0.1);
-const STATUS_BG_DESTROYED: Color = Color::srgb(0.5, 0., 0.);
+const STATUS_BG_DESTROYED: Color = Color::srgb(0.3, 0., 0.);
 
 const SQUAD_CELL_WIDTH: f32 = 122.;
 const SQUAD_CELL_HEIGHT: f32 = 52.;
@@ -244,11 +244,15 @@ pub fn update_squad_behaviors(
     for (squad, mut text) in &mut texts {
         let_some!(squad = squad.0, continue);
         let_some!(squad = world.squad(squad), continue);
-        text.0 = squad
-            .orders
-            .first()
-            .map(|o| o.hud_label().to_string())
-            .unwrap_or_default();
+        text.0 = if matches!(squad.status, SquadStatus::Destroyed) {
+            String::new()
+        } else {
+            squad
+                .orders
+                .first()
+                .map(|o| o.hud_label().to_string())
+                .unwrap_or_default()
+        };
     }
 }
 

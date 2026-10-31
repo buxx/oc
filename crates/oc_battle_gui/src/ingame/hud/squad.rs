@@ -34,6 +34,9 @@ pub struct IndividualNameText(pub Option<IndividualIndex>);
 pub struct IndividualStatusText(pub Option<IndividualIndex>);
 
 #[derive(Component, Default, Clone)]
+pub struct IndividualKiaText(pub Option<IndividualIndex>);
+
+#[derive(Component, Default, Clone)]
 pub struct IndividualRoundsText(pub Option<IndividualIndex>);
 
 pub fn squad() -> impl Scene {
@@ -61,7 +64,8 @@ fn row(
     let kind = IllustrationKind::IngameIndividual;
     let illustration = g.mod_.illustration(kind, individual.illustration);
     let rect = illustration.inner().rect();
-    let action = individual.action_hud_label().to_string();
+    let action = status_label(individual);
+    let kia_visibility = kia_visibility(individual.status);
     let rounds = format!("{} rnds.", primary_rounds(&g.mod_, individual));
     let status_color = status_color(individual.status);
 
@@ -81,6 +85,17 @@ fn row(
                 Node { width: px(INDIVIDUAL_ICON_WIDTH), height: px(INDIVIDUAL_ICON_HEIGHT), flex_shrink: 0. }
                 ImageNode { image: sprite, rect: {Some(rect)} }
                 Pickable::IGNORE
+                Children [
+                    (
+                        IndividualKiaText(i)
+                        Node { position_type: PositionType::Absolute, left: px(0), top: px(8) }
+                        Text("K.I.A")
+                        TextFont { font_size: px(11) }
+                        TextColor(Color::srgb(1.0, 0.1, 0.1))
+                        template_value(kia_visibility)  // FIXME BS NOW: bevy 0.20 can drop template_value ?
+                        Pickable::IGNORE
+                    ),
+                ]
             ),
             Node { flex_direction: FlexDirection::Column }
             Pickable::IGNORE
@@ -154,6 +169,7 @@ pub fn update_rows(
     mut texts: Query<(&IndividualStatusText, &mut Text), Without<IndividualRoundsText>>,
     mut rounds: Query<(&IndividualRoundsText, &mut Text), Without<IndividualStatusText>>,
     mut names: Query<(&IndividualNameText, &mut BackgroundColor)>,
+    mut kias: Query<(&IndividualKiaText, &mut Visibility)>,
     time: Res<Time>,
     mut timer: Local<Option<Timer>>,
 ) {
@@ -163,7 +179,13 @@ pub fn update_rows(
     for (individual, mut text) in &mut texts {
         let_some!(individual = individual.0, continue);
         let_some!(individual = world.individual(individual), continue);
-        text.0 = individual.action_hud_label().to_string();
+        text.0 = status_label(individual);
+    }
+
+    for (individual, mut visibility) in &mut kias {
+        let_some!(individual = individual.0, continue);
+        let_some!(individual = world.individual(individual), continue);
+        *visibility = kia_visibility(individual.status);
     }
 
     for (individual, mut bg) in &mut names {
@@ -176,6 +198,21 @@ pub fn update_rows(
         let_some!(individual = individual.0, continue);
         let_some!(individual = world.individual(individual), continue);
         text.0 = format!("{} rnds.", primary_rounds(&g.mod_, individual));
+    }
+}
+
+fn status_label(individual: &Individual) -> String {
+    match individual.status {
+        Status::Dead => String::new(),
+        Status::Operational => individual.action_hud_label().to_string(),
+    }
+}
+
+fn kia_visibility(status: Status) -> Visibility {
+    if matches!(status, Status::Dead) {
+        Visibility::Inherited
+    } else {
+        Visibility::Hidden
     }
 }
 

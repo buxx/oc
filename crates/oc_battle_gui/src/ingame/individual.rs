@@ -329,11 +329,15 @@ fn on_click(
     mut state: ResMut<super::state::State>,
     world: Res<World>,
     query: Query<&IndividualIndex>,
+    mut selected: Query<&mut Selected>,
 ) {
     let individual = event.original_event_target();
     let_ok!(individual = query.get(individual), return);
 
     if event.button == PointerButton::Secondary {
+        // Unselect other squads: only the right clicked individual's squad stays selected
+        selected.iter_mut().for_each(|mut s| s.0 = false);
+
         let_some!(individual_ = world.individual(individual.0), return);
         let_some!((squad, _) = world.individual_squad(individual.0), return);
         let squads = vec![squad];

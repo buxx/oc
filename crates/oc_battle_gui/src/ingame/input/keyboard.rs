@@ -8,10 +8,12 @@ use crate::ingame::camera::debug::tile::ToggleShowTiles;
 use crate::ingame::camera::map::SaveCurrentWindowCenterAsBattleCenter;
 use crate::ingame::input::left_click::{LeftClickMode, SetLeftClick};
 use crate::ingame::lov::SpawnLovConfig;
+use crate::ingame::squad::menu::contextual;
 use crate::ingame::{
     BattlePhase, QuitHeightMap, RestoreBattleCenter, SwitchToBattleMap, SwitchToWorldMap,
 };
 use crate::ingame::{SwitchToHeightMap, camera};
+use crate::menu::contextual::{ContextMenu, close::CloseContextMenu};
 use crate::window;
 use crate::window::ToggleWindow;
 #[cfg(feature = "debug")]
@@ -28,6 +30,7 @@ pub fn on_key_press(
     fight_menu: Res<window::battle::fight::FightWindow>,
     battle_menu: Res<window::menu::battle::BattleMenuWindow>,
     phase: Res<State<BattlePhase>>,
+    context_menus: Query<(), With<ContextMenu<contextual::Menu>>>,
     #[cfg(feature = "debug")] debug: Res<DebugBattleWindow>,
 ) {
     let ctrl = keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]);
@@ -80,6 +83,11 @@ pub fn on_key_press(
                 commands.trigger(ToggleWindow(window::Window::Fight(window)));
             }
             (ButtonState::Released, KeyCode::Escape) => {
+                // Escape only closes contextual menus when there are some
+                if !context_menus.is_empty() {
+                    commands.trigger(CloseContextMenu::<contextual::Menu>::default());
+                    continue;
+                }
                 let window = battle_menu
                     .0
                     .clone()
