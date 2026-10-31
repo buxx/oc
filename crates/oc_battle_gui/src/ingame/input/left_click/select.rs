@@ -9,7 +9,9 @@ use rustc_hash::FxHashSet;
 
 use crate::cursor_to;
 use crate::entity::individual::IndividualIndex;
+use crate::ingame::squad::menu::contextual;
 use crate::ingame::state::{Selection, State};
+use crate::menu::contextual::close::CloseContextMenu;
 use crate::states::GameConfig;
 use crate::utils::selected::Selected;
 use crate::world::World;
@@ -133,6 +135,7 @@ pub fn unselect(click: On<Pointer<Click>>, mut state: ResMut<State>, mut command
     if click.button == PointerButton::Primary {
         let updated = state.update_selected(vec![], vec![], vec![]);
         commands.trigger(updated);
+        commands.trigger(CloseContextMenu::<contextual::Menu>::default());
     }
 }
 
