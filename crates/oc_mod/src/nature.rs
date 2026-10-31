@@ -148,7 +148,6 @@ pub struct Movement {
     pub individual: IndividualMovement,
 }
 
-
 #[derive(
     Debug,
     Clone,

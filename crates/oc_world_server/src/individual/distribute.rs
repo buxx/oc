@@ -52,9 +52,7 @@ impl Processor<'_> {
         // Squad leader own the squad order
         let orders = Update::SetOrders(vec![order.clone()]);
         let update = runner::update::Update::UpdateIndividual(squad.leader(), orders);
-        if !squad.orders.is_empty()
-            && self.world.individual(squad.leader()).status.is_target()
-        {
+        if !squad.orders.is_empty() && self.world.individual(squad.leader()).status.is_target() {
             updates.push(update);
         }
 
