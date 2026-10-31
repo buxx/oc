@@ -392,7 +392,8 @@ impl Physic for Individual {
     fn want_stop(&self) -> Option<(WorldVec2, f32)> {
         self.intent
             .path()
-            .and_then(|(_, p)| p.first()).map(|p| (*p, WANT_STOP_TOLERANCE))
+            .and_then(|(_, p)| p.first())
+            .map(|p| (*p, WANT_STOP_TOLERANCE))
     }
 }
 

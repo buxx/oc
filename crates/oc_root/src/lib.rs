@@ -182,9 +182,10 @@ impl WorldConfig {
 
         #[cfg(feature = "debug")]
         if let Ok(speed) = std::env::var("OC_SPEED")
-            && let Ok(speed) = speed.parse::<f32>() {
-                SPEED_RAW.store((speed * 10.) as u8, Ordering::Relaxed);
-            }
+            && let Ok(speed) = speed.parse::<f32>()
+        {
+            SPEED_RAW.store((speed * 10.) as u8, Ordering::Relaxed);
+        }
 
         let individual_tick = Frequency::each(Duration::from_secs(1));
         let visibilities_tick = Frequency::each(Duration::from_secs(2));

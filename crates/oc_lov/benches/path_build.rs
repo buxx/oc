@@ -21,7 +21,7 @@ fn step(opacity: f32) -> Step {
 #[bench::long_diagonal([0., 0., 0.], [900., 900., 0.])]
 fn bench_build_transparent(start: [f32; 3], end: [f32; 3]) -> Path {
     let w = world();
-    let at = |_, _| vec![step(0.0)];
+    let at = |_, _| Some(step(0.0));
     black_box(PathBuilder::new(&w, at).build(
         black_box(start.into()),
         black_box(end.into()),
@@ -35,7 +35,7 @@ fn bench_build_transparent(start: [f32; 3], end: [f32; 3]) -> Path {
 #[bench::long_diagonal([0., 0., 0.], [900., 900., 0.])]
 fn bench_build_partly_opaque(start: [f32; 3], end: [f32; 3]) -> Path {
     let w = world();
-    let at = |_, _| vec![step(0.01)];
+    let at = |_, _| Some(step(0.01));
     black_box(PathBuilder::new(&w, at).build(
         black_box(start.into()),
         black_box(end.into()),

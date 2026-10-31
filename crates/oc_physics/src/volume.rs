@@ -207,24 +207,21 @@ fn obb_collide(
 
     let translation = center_b - center_a;
 
-    let mut axes: Vec<Vec3> = Vec::with_capacity(15);
-    axes.extend_from_slice(&axes_a);
-    axes.extend_from_slice(&axes_b);
+    let separated = |axis| is_separating_axis(axis, translation, &axes_a, half_a, &axes_b, half_b);
+
+    // Face normals first, then edge cross products (computed lazily, only if still needed).
+    if axes_a.iter().chain(&axes_b).any(|axis| separated(*axis)) {
+        return false;
+    }
 
     for a in &axes_a {
         for b in &axes_b {
             let cross = a.cross(*b);
             // Skip near-parallel edge pairs; their cross product is ~zero
             // and doesn't give a valid axis (already covered by face tests).
-            if cross.length_squared() > 1e-6 {
-                axes.push(cross.normalize());
+            if cross.length_squared() > 1e-6 && separated(cross.normalize()) {
+                return false;
             }
-        }
-    }
-
-    for axis in axes {
-        if is_separating_axis(axis, translation, &axes_a, half_a, &axes_b, half_b) {
-            return false;
         }
     }
 

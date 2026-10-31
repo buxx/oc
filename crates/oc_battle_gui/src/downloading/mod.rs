@@ -53,13 +53,7 @@ fn download(
     let world_dir = std::path::Path::new("assets").join(files.world_());
     let map = oc_world::reader::MapReader::new(&world_dir).unwrap(); // TODO
     for interior in map.interiors().unwrap() {
-        ensure_file(
-            files,
-            files::File::Interior(interior.id),
-            r_width,
-            r_height,
-        )
-        .unwrap(); // TODO
+        ensure_file(files, files::File::Interior(interior.id), r_width, r_height).unwrap(); // TODO
         // TODO: when quit ingame state, must despawn
         ingame::interior::spawn(&mut commands, &assets, files, &g.w, interior.clone());
     }

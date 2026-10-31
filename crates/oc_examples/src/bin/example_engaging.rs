@@ -75,9 +75,7 @@ impl Args {
             | TestCase::Direct2
             | TestCase::EngageOneByOne
             | TestCase::FarMachineGun
-            | TestCase::Hedge => {
-                Duration::from_secs(10)
-            }
+            | TestCase::Hedge => Duration::from_secs(10),
             TestCase::Suppressed | TestCase::SuppressFire => Duration::from_secs(25),
             TestCase::MoveToHiding | TestCase::MoveToHidingThenDiscover => Duration::from_secs(30),
         }
@@ -800,9 +798,9 @@ fn tracking(
             state.behaviors.iter().any(|(i, behavior)| {
                 *i == oc_individual::IndividualIndex(0)
                     && *behavior
-                        == oc_individual::behavior::Behavior::Engage(oc_individual::IndividualIndex(
-                            target,
-                        ))
+                        == oc_individual::behavior::Behavior::Engage(
+                            oc_individual::IndividualIndex(target),
+                        )
             })
         }),
         TestCase::Suppressed => i0_last_shoot

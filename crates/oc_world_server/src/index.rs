@@ -66,6 +66,16 @@ impl Indexes {
         let side_b_count = individuals.iter().filter(|i| i.side == Side::B).count();
         let mut side_b_individuals = Vec::with_capacity(side_b_count);
 
+        // First squad owning each member (looked up once, not by individual)
+        let mut squad_of_member: Vec<Option<SquadIndex>> = vec![None; individuals.len()];
+        for (squad_i, squad) in world.squads.iter().enumerate().rev() {
+            for member in &squad.members {
+                if let Some(slot) = squad_of_member.get_mut(member.0 as usize) {
+                    *slot = Some(SquadIndex(squad_i as u64));
+                }
+            }
+        }
+
         for (i, individual) in individuals.iter().enumerate() {
             let position = individual.position;
             let tile: WorldTileIndex = individual.tile;
@@ -99,16 +109,8 @@ impl Indexes {
 
             regions_individuals[region.0 as usize].push(i.into());
 
-            match world.squads.iter().enumerate().find(|(_, squad)| {
-                squad
-                    .members
-                    .iter()
-                    .find(|member_i| member_i.0 == i as u64)
-                    .is_some()
-            }) {
-                Some((squad_i, _)) => {
-                    individuals_squad.push(SquadIndex(squad_i as u64));
-                }
+            match squad_of_member.get(i).copied().flatten() {
+                Some(squad_i) => individuals_squad.push(squad_i),
                 None => panic!("There is not squad owning member {i:?}"),
             }
         }

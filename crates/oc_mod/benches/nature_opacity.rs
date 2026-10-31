@@ -12,8 +12,8 @@ fn mod_() -> Mod {
     Mod::load(&path, None).unwrap()
 }
 
-fn with_mod(relative_z: f32) -> (Mod, f32) {
-    (mod_(), relative_z)
+fn with_mod(relative_z: f32) -> (Mod, WorldConfig, f32) {
+    (mod_(), world(), relative_z)
 }
 
 // Called once by tile crossed by each line of view
@@ -21,9 +21,8 @@ fn with_mod(relative_z: f32) -> (Mod, f32) {
 #[bench::in_ground(setup = with_mod, args = (-1.,))]
 #[bench::in_object(setup = with_mod, args = (1.,))]
 #[bench::in_air(setup = with_mod, args = (1000.,))]
-fn bench_nature_opacity((mod_, relative_z): (Mod, f32)) -> (Mod, f32) {
+fn bench_nature_opacity((mod_, w, relative_z): (Mod, WorldConfig, f32)) -> (Mod, f32) {
     // Mod returned to be dropped outside of the measure
-    let w = world();
     let opacity = mod_
         .nature(NatureIndex(0))
         .opacity(black_box(&w), black_box(relative_z))

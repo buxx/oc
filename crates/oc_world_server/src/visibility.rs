@@ -118,9 +118,9 @@ impl<'a> Processor<'a> {
     }
 }
 
-pub fn visibility(
+pub fn visibility<I: IntoIterator<Item = oc_lov::Step>>(
     w: &WorldConfig,
-    at: impl Fn(Xy, f32) -> Vec<oc_lov::Step>,
+    at: impl Fn(Xy, f32) -> I,
     p1: oc_root::geo::WorldVec3,
     p2: oc_root::geo::WorldVec3,
     modifier: Modifier,
@@ -162,7 +162,7 @@ pub fn path_objects_at(
     world: &World,
     at: Xy,
     z: f32,
-) -> Vec<oc_lov::Step> {
+) -> Option<oc_lov::Step> {
     world
         .tile(WorldTileIndex::from_(TileXy(at), w))
         .map(|t| {
@@ -171,9 +171,8 @@ pub fn path_objects_at(
             let nature = mod_.nature(t.nature);
             let opacity = nature.opacity(w, relative_z);
             tracing::trace!(name="visibility-path-objects-at", at=?at, z=z, t=?t, tile_z=?tile_z, relative_z=?relative_z, nature=?nature, opacity=?opacity);
-            vec![oc_lov::Step::from_nature(w, nature, relative_z)]
+            oc_lov::Step::from_nature(w, nature, relative_z)
         })
-        .unwrap_or(vec![])
 }
 
 #[cfg(test)]

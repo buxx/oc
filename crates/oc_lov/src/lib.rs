@@ -13,17 +13,19 @@ use oc_root::{
 use oc_utils::d2::Xy;
 
 #[derive(Debug, Constructor)]
-pub struct PathBuilder<'a, F>
+pub struct PathBuilder<'a, F, I>
 where
-    F: Fn(Xy, f32) -> Vec<Step>,
+    F: Fn(Xy, f32) -> I,
+    I: IntoIterator<Item = Step>,
 {
     w: &'a WorldConfig,
     at: F,
 }
 
-impl<'a, F> PathBuilder<'a, F>
+impl<'a, F, I> PathBuilder<'a, F, I>
 where
-    F: Fn(Xy, f32) -> Vec<Step>,
+    F: Fn(Xy, f32) -> I,
+    I: IntoIterator<Item = Step>,
 {
     pub fn build(
         &self,

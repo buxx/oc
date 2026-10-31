@@ -1,7 +1,6 @@
 use std::f32::consts::FRAC_PI_2;
 
 use derive_more::Constructor;
-use geo::{Contains, Triangle, coord};
 use glam::{Quat, Vec2, Vec3};
 use oc_root::{
     WcfgFrom,
@@ -172,10 +171,11 @@ impl Shape {
         let center_offset = Vec2::new(width / 2., height / 2.);
         let reference_point = self.top_left + center_offset;
 
-        let after_top_left = apply_angle_on_point(&self.top_left, &reference_point, angle);
-        let after_top_right = apply_angle_on_point(&self.top_right, &reference_point, angle);
-        let after_bottom_right = apply_angle_on_point(&self.bottom_right, &reference_point, angle);
-        let after_bottom_left = apply_angle_on_point(&self.bottom_left, &reference_point, angle);
+        let (sin, cos) = f32::sin_cos(angle.0);
+        let after_top_left = rotate_point(&self.top_left, &reference_point, sin, cos);
+        let after_top_right = rotate_point(&self.top_right, &reference_point, sin, cos);
+        let after_bottom_right = rotate_point(&self.bottom_right, &reference_point, sin, cos);
+        let after_bottom_left = rotate_point(&self.bottom_left, &reference_point, sin, cos);
 
         Self {
             top_left: after_top_left,
@@ -209,26 +209,36 @@ impl Shape {
         }
     }
 
+    // WARNING: AI optimized code
     pub fn contains(&self, point: &Vec2) -> bool {
-        let triangle1 = Triangle::new(
-            coord! { x: self.top_left.x, y: self.top_left.y },
-            coord! { x: self.top_right.x, y: self.top_right.y },
-            coord! { x: self.bottom_left.x, y: self.bottom_left.y },
-        );
-        let triangle2 = Triangle::new(
-            coord! { x: self.bottom_right.x, y: self.bottom_right.y },
-            coord! { x: self.bottom_left.x, y: self.bottom_left.y },
-            coord! { x: self.top_right.x, y: self.top_right.y },
-        );
-
-        triangle1.contains(&coord! { x: point.x, y: point.y })
-            || triangle2.contains(&coord! { x: point.x, y: point.y })
+        // Convex quad: point is inside when it is on the same side of the four edges
+        let corners = [
+            self.top_left,
+            self.top_right,
+            self.bottom_right,
+            self.bottom_left,
+        ];
+        let (mut positive, mut negative) = (false, false);
+        for k in 0..4 {
+            let (a, b) = (corners[k], corners[(k + 1) % 4]);
+            let cross = (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x);
+            positive |= cross > 0.;
+            negative |= cross < 0.;
+            if cross == 0. || (positive && negative) {
+                return false;
+            }
+        }
+        true
     }
 }
 
 pub fn apply_angle_on_point(point_to_rotate: &Vec2, reference_point: &Vec2, angle: &Angle) -> Vec2 {
-    let sin = f32::sin(angle.0);
-    let cos = f32::cos(angle.0);
+    let (sin, cos) = f32::sin_cos(angle.0);
+    rotate_point(point_to_rotate, reference_point, sin, cos)
+}
+
+#[inline]
+fn rotate_point(point_to_rotate: &Vec2, reference_point: &Vec2, sin: f32, cos: f32) -> Vec2 {
     let pt = (
         point_to_rotate.x - reference_point.x,
         point_to_rotate.y - reference_point.y,
@@ -292,9 +302,31 @@ impl Direction {
         bevy::prelude::Quat::from_rotation_z(angle.0)
     }
 
+    // WARNING: AI optimized code !
+    /// Same rotation than `Quat::from_rotation_z(self.angle(v).0)`, without trigonometry.
+    /// (Quaternion sign can differ: it is the same rotation.)
     pub fn quat(&self, v: V) -> Quat {
-        let angle = self.angle(v);
-        Quat::from_rotation_z(angle.0)
+        let y = match v {
+            V::Server => self.y,
+            V::Gui => -self.y,
+        };
+        let length_squared = self.x * self.x + y * y;
+        if length_squared < 1e-12 {
+            return Quat::from_rotation_z(self.angle(v).0);
+        }
+
+        // Angle is atan2(y, x) - PI/2: so its cos is y and its sin is -x (once normalized)
+        let inv_length = length_squared.sqrt().recip();
+        let (cos, sin) = (y * inv_length, -self.x * inv_length);
+        // Half angle, using the formula which doesn't lose precision
+        let (half_sin, half_cos) = if cos >= 0. {
+            let half_cos = ((1. + cos) * 0.5).sqrt();
+            (sin / (2. * half_cos), half_cos)
+        } else {
+            let half_sin = ((1. - cos) * 0.5).sqrt().copysign(sin);
+            (half_sin, sin / (2. * half_sin))
+        };
+        Quat::from_xyzw(0., 0., half_sin, half_cos)
     }
 
     /// Rotate a vector (vx, vy) by this direction, treating
@@ -354,7 +386,8 @@ pub fn shape_cover_tiles(
     let (col_min, col_max) = range_indices(point[0], width, tile_width);
     let (row_min, row_max) = range_indices(point[1], height, tile_height);
 
-    let mut result = Vec::new();
+    let count = ((col_max - col_min + 1).max(0) * (row_max - row_min + 1).max(0)) as usize;
+    let mut result = Vec::with_capacity(count);
     for row in row_min..=row_max {
         for col in col_min..=col_max {
             result.push([col, row]);
@@ -387,6 +420,33 @@ impl AlmostEqual for WorldVec3 {
 mod tests {
     use super::*;
     use rstest::rstest;
+
+    #[rstest]
+    #[case(0., 1.)]
+    #[case(1., 0.)]
+    #[case(0., -1.)]
+    #[case(-1., 0.)]
+    #[case(0.6, 0.8)]
+    #[case(-0.6, 0.8)]
+    #[case(-0.6, -0.8)]
+    #[case(0.6, -0.8)]
+    #[case(3., 4.)]
+    #[case(0.001, 1.)]
+    #[case(0., 0.)]
+    fn test_direction_quat_is_same_rotation_than_angle(#[case] x: f32, #[case] y: f32) {
+        for v in [V::Server, V::Gui] {
+            let direction = Direction::new(x, y);
+            let expected = Quat::from_rotation_z(direction.angle(v).0);
+
+            let quat = direction.quat(v);
+
+            // q and -q are the same rotation
+            assert!(
+                quat.dot(expected).abs() > 1. - 1e-5,
+                "{quat:?} != {expected:?}"
+            );
+        }
+    }
 
     #[test]
     fn test_distance_line_x() {

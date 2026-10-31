@@ -29,25 +29,20 @@ pub fn navmesh(w: &WorldConfig, grid: &[bool]) -> Mesh {
     // merge nearly-collinear points, epsilon in pixels²
     triangulation.simplify(0.1);
 
-    // 2. Add each blocked tile as a rectangular obstacle.
+    // 2. Add blocked tiles as rectangular obstacles. Adjacent blocked tiles are merged in
+    //    rectangles first: far fewer obstacles to triangulate than one by tile.
     //    Points must be in clockwise order for obstacles.
-    for row in 0..rows {
-        for col in 0..cols {
-            let tile_xy = TileXy(Xy(col, row));
-            let tile_i = WorldTileIndex::from_(tile_xy, w);
-            /* is wall/blocked */
-            if grid[tile_i.0 as usize] {
-                let x = col as f32 * tile_size;
-                let y = row as f32 * tile_size;
+    for (col, row, cols_count, rows_count) in blocked_rectangles(w, grid, cols, rows) {
+        let x = col as f32 * tile_size;
+        let y = row as f32 * tile_size;
+        let (width, height) = (cols_count as f32 * tile_size, rows_count as f32 * tile_size);
 
-                triangulation.add_obstacle([
-                    [x, y].into(),
-                    [x, y + tile_size].into(),
-                    [x + tile_size, y + tile_size].into(),
-                    [x + tile_size, y].into(),
-                ]);
-            }
-        }
+        triangulation.add_obstacle([
+            [x, y].into(),
+            [x, y + height].into(),
+            [x + width, y + height].into(),
+            [x + width, y].into(),
+        ]);
     }
 
     // 3. Convert triangulation → Mesh, merge + bake for efficiency
@@ -60,4 +55,52 @@ pub fn navmesh(w: &WorldConfig, grid: &[bool]) -> Mesh {
 
 pub trait Walls {
     fn as_walls(&self, mod_: &Mod) -> Vec<bool>;
+}
+
+/// Cover blocked tiles of `grid` with rectangles `(col, row, cols_count, rows_count)`:
+/// horizontal runs of blocked tiles, merged with identical runs of following rows.
+fn blocked_rectangles(
+    w: &WorldConfig,
+    grid: &[bool],
+    cols: u64,
+    rows: u64,
+) -> Vec<(u64, u64, u64, u64)> {
+    let blocked = |col, row| grid[WorldTileIndex::from_(TileXy(Xy(col, row)), w).0 as usize];
+
+    let mut rectangles: Vec<(u64, u64, u64, u64)> = vec![];
+    // Rectangles (index in `rectangles`) still extensible downward, by their first col
+    let mut open: Vec<usize> = vec![];
+    for row in 0..rows {
+        let mut still_open = vec![];
+        let mut col = 0;
+        while col < cols {
+            if !blocked(col, row) {
+                col += 1;
+                continue;
+            }
+            let start = col;
+            while col < cols && blocked(col, row) {
+                col += 1;
+            }
+            let count = col - start;
+
+            let above = open.iter().copied().find(|k| {
+                let (c, r, n, h) = rectangles[*k];
+                c == start && n == count && r + h == row
+            });
+            match above {
+                Some(k) => {
+                    rectangles[k].3 += 1;
+                    still_open.push(k);
+                }
+                None => {
+                    rectangles.push((start, row, count, 1));
+                    still_open.push(rectangles.len() - 1);
+                }
+            }
+        }
+        open = still_open;
+    }
+
+    rectangles
 }

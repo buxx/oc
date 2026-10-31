@@ -176,7 +176,9 @@ where
         collision_ignore_origin: object.collision_ignore_origin(),
         apply_z: None,
         events: vec![],
-        tick_progress: 0.0,
+        progress_from: WorldVec3::new(0., 0., 0.),
+        progress_total: 0.0,
+        tile_cache: None,
     }
     .run()
 }
@@ -227,8 +229,19 @@ struct Stepper<'a, 's, I, O, C, P, Z: serde::Serialize> {
     // Accumulated state
     apply_z: Option<f32>,
     events: Vec<Event<Z>>,
-    /// Progress of the current translation
-    tick_progress: f32,
+    /// Start and total length (pixels) of the current translation, to compute progress on events
+    progress_from: WorldVec3,
+    progress_total: f32,
+    /// Others objects of the last tile tested (pixels of a tile share them)
+    tile_cache: Option<TileCache<'a, Z>>,
+}
+
+/// What `collision_at` and `proximity_at` returned for a tile, with lazily computed volumes
+struct TileCache<'a, Z> {
+    xy: Xy,
+    collisions: Vec<(Z, &'a dyn Physic)>,
+    proximities: Vec<(Z, &'a dyn Physic)>,
+    volumes: Vec<Option<PhysicVolumes>>,
 }
 
 impl<'a, I, O, C, P, Z> Stepper<'a, '_, I, O, C, P, Z>
@@ -291,6 +304,9 @@ where
         let world_width = self.w.world_width_pixels() as isize;
         let world_height = self.w.world_height_pixels() as isize;
 
+        self.progress_from = WorldVec3::new(x, y, z);
+        self.progress_total = pixels;
+
         let mut position = position;
         for (pixel_x, pixel_y, pixel_z) in Bresenham3d::new(start, end) {
             if pixel_x < 0 || pixel_y < 0 || pixel_x >= world_width || pixel_y >= world_height {
@@ -302,7 +318,6 @@ where
             let pixel: WorldVec3 = [pixel_x as f32, pixel_y as f32, pixel_z as f32].into();
             let xy = Xy::from_((pixel_x, pixel_y), self.w);
             position = pixel;
-            self.tick_progress = progress(WorldVec3::new(x, y, z), pixel, pixels);
 
             tracing::trace!(name="physics-step-translation-line-pixel", origin=origin, i=?i, pixel=?pixel, xy=?xy);
 
@@ -333,22 +348,35 @@ where
             .object
             .volumes(pixel, !self.ignore_underground, self.w, self.mod_);
 
-        let proximity_others = (self.proximity_at)(xy);
-        self.push_proximity_events(&proximity_others, ProximityKind::Fly, pixel);
+        let mut cache = match self.tile_cache.take() {
+            Some(cache) if cache.xy == xy => cache,
+            _ => {
+                let collisions = (self.collision_at)(xy);
+                TileCache {
+                    xy,
+                    volumes: collisions.iter().map(|_| None).collect(),
+                    collisions,
+                    proximities: (self.proximity_at)(xy),
+                }
+            }
+        };
 
-        for (o, other) in (self.collision_at)(xy) {
-            if self.collide_with(o, other, pixel, &volumes) {
-                self.events.push(Event::Collision(
-                    self.id,
-                    o,
-                    TickProgress(self.tick_progress),
-                ));
-                self.push_proximity_events(&proximity_others, ProximityKind::Impact, pixel);
-                return PixelOutcome::Stop;
+        self.push_proximity_events(&cache.proximities, ProximityKind::Fly, pixel);
+
+        let mut outcome = PixelOutcome::Pass;
+        for (k, (o, other)) in cache.collisions.iter().enumerate() {
+            if self.collide_with(*o, *other, pixel, &volumes, &mut cache.volumes[k]) {
+                let progress = progress(self.progress_from, pixel, self.progress_total);
+                self.events
+                    .push(Event::Collision(self.id, *o, TickProgress(progress)));
+                self.push_proximity_events(&cache.proximities, ProximityKind::Impact, pixel);
+                outcome = PixelOutcome::Stop;
+                break;
             }
         }
 
-        PixelOutcome::Pass
+        self.tile_cache = Some(cache);
+        outcome
     }
 
     fn reached_want_stop(&self, pixel: WorldVec3) -> bool {
@@ -364,6 +392,7 @@ where
         other: &dyn Physic,
         pixel: WorldVec3,
         volumes: &PhysicVolumes,
+        other_volumes: &mut Option<PhysicVolumes>,
     ) -> bool {
         let (origin, i) = (self.origin, &self.i);
         tracing::trace!(name="physics-step-translation-collision-other", origin=origin, i=?i, o=?o);
@@ -390,14 +419,16 @@ where
             return false;
         }
 
-        let volumes2 = other.volumes(
-            other.position(self.w),
-            !self.ignore_underground,
-            self.w,
-            self.mod_,
-        );
+        let volumes2 = other_volumes.get_or_insert_with(|| {
+            other.volumes(
+                other.position(self.w),
+                !self.ignore_underground,
+                self.w,
+                self.mod_,
+            )
+        });
 
-        self.intercepted_by(other, &volumes2, pixel) || self.volumes_collide(volumes, &volumes2, o)
+        self.intercepted_by(other, volumes2, pixel) || self.volumes_collide(volumes, volumes2, o)
     }
 
     /// Is `pixel` close enough to the object origin to ignore collisions
