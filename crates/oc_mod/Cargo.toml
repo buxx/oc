@@ -24,3 +24,10 @@ strum.workspace = true
 strum_macros.workspace = true
 derive_more = { workspace = true, features = ["constructor"] }
 fastrand.workspace = true
+
+[dev-dependencies]
+gungraun = "0.19"
+
+[[bench]]
+name = "nature_opacity"
+harness = false

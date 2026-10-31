@@ -26,3 +26,10 @@ serde.workspace = true
 serde_json.workspace = true
 tracing-subscriber.workspace = true
 glam.workspace = true
+
+[dev-dependencies]
+gungraun = "0.19"
+
+[[bench]]
+name = "volume_collide"
+harness = false

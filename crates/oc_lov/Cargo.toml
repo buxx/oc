@@ -24,3 +24,8 @@ line_drawing.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true
+gungraun = "0.19"
+
+[[bench]]
+name = "path_build"
+harness = false

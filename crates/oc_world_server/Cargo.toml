@@ -52,3 +52,8 @@ fastrand.workspace = true
 tests = { path = "../tests" }
 oc_world = { path = "../oc_world", features = ["tests"] }
 rstest.workspace = true
+gungraun = "0.19"
+
+[[bench]]
+name = "server"
+harness = false

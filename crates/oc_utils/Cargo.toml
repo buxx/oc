@@ -36,3 +36,11 @@ gungraun = "0.19"
 [[bench]]
 name = "shape_cover_tiles"
 harness = false
+
+[[bench]]
+name = "polygon_contains"
+harness = false
+
+[[bench]]
+name = "shape"
+harness = false

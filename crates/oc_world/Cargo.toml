@@ -45,3 +45,8 @@ geo = { workspace = true, optional = true }
 
 [dev-dependencies]
 rstest.workspace = true
+gungraun = "0.19"
+
+[[bench]]
+name = "navmesh"
+harness = false

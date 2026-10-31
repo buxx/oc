@@ -17,7 +17,11 @@ codegen-units = 1
 lto = "thin"
 
 [profile.bench]
-debug = true
+# Prevent enormous (1.7Go) bin which kill CPU by IO wait
+debug = "line-tables-only"
+
+[profile.bench.package."*"]
+debug = false
 
 [workspace.dependencies]
 bevy = "0.19"
