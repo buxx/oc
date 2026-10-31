@@ -1,3 +1,6 @@
+// derive_more::Constructor triggers a false positive
+#![allow(clippy::redundant_field_names)]
+
 #[cfg(feature = "debug")]
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU32, Ordering};
 use std::time::Duration;
@@ -178,11 +181,10 @@ impl WorldConfig {
         let speed = 1.0;
 
         #[cfg(feature = "debug")]
-        if let Ok(speed) = std::env::var("OC_SPEED") {
-            if let Ok(speed) = speed.parse::<f32>() {
+        if let Ok(speed) = std::env::var("OC_SPEED")
+            && let Ok(speed) = speed.parse::<f32>() {
                 SPEED_RAW.store((speed * 10.) as u8, Ordering::Relaxed);
             }
-        }
 
         let individual_tick = Frequency::each(Duration::from_secs(1));
         let visibilities_tick = Frequency::each(Duration::from_secs(2));

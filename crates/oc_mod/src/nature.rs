@@ -142,18 +142,12 @@ impl Default for IndividualMovement {
     serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
+#[derive(Default)]
 pub struct Movement {
     #[serde(default)]
     pub individual: IndividualMovement,
 }
 
-impl Default for Movement {
-    fn default() -> Self {
-        Self {
-            individual: IndividualMovement::default(),
-        }
-    }
-}
 
 #[derive(
     Debug,

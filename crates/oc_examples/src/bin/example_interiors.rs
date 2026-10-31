@@ -94,13 +94,13 @@ fn main() -> Result<(), anyhow::Error> {
 fn individuals(
     w: &WorldConfig,
     _mod_: &oc_mod::Mod,
-    tiles: &Vec<Tile>,
+    tiles: &[Tile],
     args: &Args,
 ) -> Vec<oc_individual::Individual> {
     match args.case {
         Case::Enter => {
             let position = WorldVec2::new(915., 50.);
-            let tile: WorldTileIndex = position.into_(&w);
+            let tile: WorldTileIndex = position.into_(w);
             let tile = &tiles[tile.0 as usize];
             let position = position.extend(tile.z_pixels(w));
             vec![
@@ -113,7 +113,7 @@ fn individuals(
         }
         Case::Out => {
             let position = WorldVec2::new(850., 70.);
-            let tile: WorldTileIndex = position.into_(&w);
+            let tile: WorldTileIndex = position.into_(w);
             let tile = &tiles[tile.0 as usize];
             let position = position.extend(tile.z_pixels(w));
             vec![
@@ -129,7 +129,7 @@ fn individuals(
 
 fn squads(
     _w: &WorldConfig,
-    _tiles: &Vec<Tile>,
+    _tiles: &[Tile],
     individuals: &[oc_individual::Individual],
     args: &Args,
 ) -> Vec<oc_individual::squad::Squad> {
@@ -197,13 +197,11 @@ fn tracking(
     .div_f32(speed)
     .max(Duration::from_secs(2));
 
-    if {
-        match args.case {
-            Case::Enter => query.iter().any(|(_, v)| matches!(v, Visibility::Visible)),
-            Case::Out => {
-                state.start.elapsed().as_secs_f32() > 2. / speed
-                    && query.iter().any(|(_, v)| matches!(v, Visibility::Hidden))
-            }
+    if match args.case {
+        Case::Enter => query.iter().any(|(_, v)| matches!(v, Visibility::Visible)),
+        Case::Out => {
+            state.start.elapsed().as_secs_f32() > 2. / speed
+                && query.iter().any(|(_, v)| matches!(v, Visibility::Hidden))
         }
     } {
         println!("✅ Success !");

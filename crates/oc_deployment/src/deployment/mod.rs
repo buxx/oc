@@ -196,6 +196,7 @@ impl Deployments {
         WorldVec2::new(x + half, y + half)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn fill_individual(
         &self,
         w: &WorldConfig,

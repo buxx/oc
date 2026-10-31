@@ -195,7 +195,7 @@ fn deploy_south_beach(
     places: HashMap<PlaceName, WorldVec2>,
     snapshot: &mut Snapshot,
 ) -> Result<(), Box<dyn std::error::Error + 'static>> {
-    let places_ = places.iter().map(|(_, p)| *p);
+    let places_ = places.values().copied();
     let placer = Placer::new(places_.collect()).with_assigned(match side {
         Side::A => vec![
             // B

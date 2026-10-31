@@ -186,6 +186,7 @@ pub fn visibility(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn on_insert_individual(
     individual: On<InsertIndividualEvent>,
     mut commands: Commands,
@@ -553,8 +554,8 @@ fn on_set_position_event(
     let_some!(individual = world.get_individual_mut(position.0), return);
     tracing::trace!(name = "update-individual-position", i=?position.0, position=?position.1);
 
-    position_.0 = position.1.clone();
-    individual.position = position.1.clone();
+    position_.0 = position.1;
+    individual.position = position.1;
 
     if let Some((squad_i, squad)) = world.individual_squad(position.0) {
         commands.trigger(crate::ingame::behavior::RefreshSquadsOrdersEvent(

@@ -19,6 +19,7 @@ use crate::window::Window;
 #[cfg(feature = "debug")]
 use crate::window::debug::battle::DebugBattleWindow;
 
+#[allow(clippy::too_many_arguments)]
 pub fn on_key_press(
     mut commands: Commands,
     mut keyboard: MessageReader<KeyboardInput>,

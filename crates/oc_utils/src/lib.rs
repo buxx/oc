@@ -1,3 +1,6 @@
+// derive_more::Constructor triggers a false positive
+#![allow(clippy::redundant_field_names)]
+
 #[cfg(feature = "bevy")]
 pub mod bevy;
 pub mod collections;

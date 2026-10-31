@@ -21,6 +21,7 @@ use crate::support::{PendingSupport, SupportType, Supports};
 use crate::tile::Tile;
 
 #[derive(Debug, Archive, Deserialize, Serialize, Constructor)]
+#[allow(clippy::too_many_arguments)]
 pub struct Snapshot {
     pub w: WorldConfig,
     pub tiles: Vec<Tile>,

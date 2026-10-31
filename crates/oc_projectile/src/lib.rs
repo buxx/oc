@@ -1,3 +1,6 @@
+// derive_more::Constructor triggers a false positive
+#![allow(clippy::redundant_field_names)]
+
 use std::fmt::Display;
 
 use oc_geo::{

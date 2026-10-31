@@ -61,6 +61,7 @@ pub fn load_image(
         .insert(ImageNode::new(assets.load(files.hud_minimap())));
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn update_squad_markers(
     mut commands: Commands,
     time: Res<Time>,

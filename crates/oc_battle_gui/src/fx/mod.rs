@@ -135,6 +135,7 @@ fn setup(mut commands: Commands) {
     commands.spawn((Transform::default(), SpatialListener::new(gap)));
 }
 
+#[allow(clippy::too_many_arguments)]
 fn on_fx(
     fx: On<FxEvent>,
     asset_server: Res<AssetServer>,
@@ -187,14 +188,14 @@ fn on_fx(
                     &mut commands,
                     &asset_server,
                     &mut layouts,
-                    &g,
-                    &files,
+                    g,
+                    files,
                     *position,
                     *rayon,
                 );
             }
             #[cfg(feature = "debug")]
-            Visual::ExplosionDebug(debug) => explosion::spawn_debug(&mut commands, &g, debug),
+            Visual::ExplosionDebug(debug) => explosion::spawn_debug(&mut commands, g, debug),
         },
     }
 }

@@ -1,3 +1,6 @@
+// derive_more::Constructor triggers a false positive
+#![allow(clippy::redundant_field_names)]
+
 use std::time::{Duration, Instant};
 
 use derive_more::Constructor;
@@ -165,7 +168,7 @@ impl World {
                 (SquadIndex(i as u64), squad)
             })
             .collect();
-        let phase = self.phase.clone();
+        let phase = self.phase;
         let support = self.supports.side(identity.side).0.clone();
         let side_a_spawns = self.side_a_spawns.clone();
         let side_b_spawns = self.side_b_spawns.clone();

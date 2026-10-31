@@ -1,3 +1,6 @@
+// derive_more::Constructor triggers a false positive
+#![allow(clippy::redundant_field_names)]
+
 use derive_more::Constructor;
 use oc_geo::{region::WorldRegionIndex, tile::WorldTileIndex};
 use oc_individual::{

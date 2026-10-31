@@ -32,6 +32,7 @@ fn index(ownership: &Ownership) -> usize {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn on_update_flags(
     event: On<UpdateFlags>,
     mut commands: Commands,

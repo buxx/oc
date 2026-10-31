@@ -52,7 +52,7 @@ impl Window {
 pub struct ToggleWindow(pub Window);
 
 #[derive(Event)]
-pub struct MountedWindow(pub Window);
+pub struct MountedWindow(#[allow(dead_code)] pub Window);
 
 #[derive(Event)]
 pub struct UnmountedWindow(pub Window);

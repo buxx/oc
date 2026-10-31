@@ -32,6 +32,7 @@ pub struct IgnoreOrigin(pub WorldVec3);
 #[derive(Debug, Deref, Component)]
 pub struct Direction(pub oc_utils::d2::Direction);
 
+#[allow(clippy::type_complexity)]
 pub fn physics_step<I, C>(
     mut commands: Commands,
     g: Res<GameConfig>,

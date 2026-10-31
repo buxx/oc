@@ -1,3 +1,6 @@
+// derive_more::Constructor triggers a false positive
+#![allow(clippy::redundant_field_names)]
+
 use derive_more::Constructor;
 use line_drawing::Bresenham3d;
 use oc_geo::tile::TileXy;

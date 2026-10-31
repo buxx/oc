@@ -673,7 +673,7 @@ fn on_set_magazines(event: On<SetMagazinesEvent>, mut state: ResMut<State>) {
 
 #[cfg(feature = "test")]
 fn on_set_status(event: On<SetStatusEvent>, mut state: ResMut<State>) {
-    state.statuses.push((event.0, event.1.clone()));
+    state.statuses.push((event.0, event.1));
 }
 
 #[cfg(feature = "test")]
@@ -734,13 +734,13 @@ fn tracking(
     let i2_visibility = query
         .iter()
         .filter_map(|(i, _, _, visibility)| {
-            (i.0 == oc_individual::IndividualIndex(2)).then_some(visibility.clone())
+            (i.0 == oc_individual::IndividualIndex(2)).then_some(*visibility)
         })
         .next();
     let i3_visibility = query
         .iter()
         .filter_map(|(i, _, _, visibility)| {
-            (i.0 == oc_individual::IndividualIndex(3)).then_some(visibility.clone())
+            (i.0 == oc_individual::IndividualIndex(3)).then_some(*visibility)
         })
         .next();
 
