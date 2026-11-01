@@ -10,7 +10,9 @@ use oc_individual::{
     squad::{Squad, SquadFormation},
 };
 use oc_mod::illustration::IllustrationIndex;
-use oc_root::{WcfgFrom, WorldConfig, battle::BattlePhase, physics::Meters, side::Side, y::V};
+use oc_root::{
+    WcfgFrom, WorldConfig, battle::BattlePhase, behavior::Stun, physics::Meters, side::Side, y::V,
+};
 use oc_utils::d2::{Direction, Xy};
 use oc_world::{meta::Meta, tile::Tile};
 #[cfg(feature = "test")]
@@ -40,7 +42,9 @@ pub fn run(
     let map_ = oc_world::reader::MapReader::new(&map);
     let map_ = map_.context(format!("Read map_ {}", map.display()))?;
     let w = WorldConfig::new(map_.width().unwrap() as u64, map_.height().unwrap() as u64)
-        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z))
+        // Shorter stun than default, to keep examples fast
+        .with_individual_tick_decrease_stunned(Stun(51));
     let tiles = map_.tiles(&w, &mod__).unwrap();
 
     let individuals = individuals(&w, &tiles, &setup, count);

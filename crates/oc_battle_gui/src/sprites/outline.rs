@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use crate::{entity::individual::IndividualIndex, ingame::individual::Status, world::World};
 
 const OPERATIONAL: Color = Color::srgba(0.1, 0.9, 0.1, 0.2);
+const STUNNED: Color = Color::srgba(1.0, 0.55, 0.0, 0.3);
 const DEAD: Color = Color::srgba(0.9, 0.1, 0.1, 0.2);
 const LEADER_ALPHA: f32 = 0.5;
 
@@ -23,6 +24,7 @@ pub fn sync_individual_outlines(
 
         let mut color = match status.0 {
             oc_individual::Status::Operational => OPERATIONAL,
+            oc_individual::Status::Stunned(_) => STUNNED,
             oc_individual::Status::Dead => DEAD,
         };
         let is_leader = world

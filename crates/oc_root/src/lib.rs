@@ -12,7 +12,7 @@ use getset::{CopyGetters, Getters, WithSetters};
 use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::{
-    behavior::Suppress,
+    behavior::{Stun, Suppress},
     opacity::CumulatedOpacity,
     physics::{Meters, MetersSeconds},
     utils::Frequency,
@@ -149,6 +149,12 @@ pub struct WorldConfig {
     /// Decrease each individual suppress value at tick by this value
     #[getset(get_copy = "pub", set_with = "pub")]
     individual_tick_decrease_suppress: Suppress,
+    /// Decrease each stunned individual stun value at tick by this value
+    #[getset(get_copy = "pub", set_with = "pub")]
+    individual_tick_decrease_stunned: Stun,
+    /// Stun value given to individuals caught by explosion stunned rayon
+    #[getset(get_copy = "pub", set_with = "pub")]
+    explosion_stunned_value: Stun,
     /// Individual with this or more suppress will hide (instead of make other things)
     #[getset(get_copy = "pub")]
     individual_suppress_limit_hide: Suppress,
@@ -234,6 +240,8 @@ impl WorldConfig {
         let proximity_projectile_impact_tick_increase_value = (Meters(30.), Suppress(100));
         let impact_sound_chance = 0.35;
         let individual_tick_decrease_suppress = Suppress(20);
+        let individual_tick_decrease_stunned = Stun(5);
+        let explosion_stunned_value = Stun(255);
         let individual_suppress_limit_hide = Suppress(200);
         let individual_hide_engage_distance = Meters(40.0);
         let hide_opacity_bonus_ends = Meters(10.);
@@ -289,6 +297,8 @@ impl WorldConfig {
             proximity_projectile_impact_tick_increase_value,
             impact_sound_chance,
             individual_tick_decrease_suppress,
+            individual_tick_decrease_stunned,
+            explosion_stunned_value,
             individual_suppress_limit_hide,
             individual_hide_engage_distance,
             hide_opacity_bonus_ends,

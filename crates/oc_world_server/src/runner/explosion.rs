@@ -2,7 +2,9 @@ use std::time::Instant;
 
 use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::{TileXy, WorldTileIndex};
-use oc_individual::{INDIVIDUAL_PRONE_VOLUME_WIDTH, IndividualIndex, Status};
+use oc_individual::{
+    INDIVIDUAL_PRONE_VOLUME_WIDTH, IndividualIndex, Status, Update as IndividualUpdate,
+};
 use oc_lov::{Modifier, PathBuilder};
 use oc_mod::Mod;
 use oc_physics::fx;
@@ -13,7 +15,7 @@ use oc_utils::let_some;
 use oc_world::World;
 use rustc_hash::FxHashSet;
 
-use super::update::ExplosionOrigin;
+use super::update::{ExplosionOrigin, Update};
 use crate::individual::death::die;
 use crate::routing::Listening;
 use crate::visibility::path_objects_at;
@@ -68,6 +70,17 @@ impl<E: Client> super::State<E> {
                 if distance(*i) <= kill_rayon {
                     killed.insert(*i);
                     updates.extend(die(&world, mod_, *i));
+                }
+            }
+
+            // Survivors in stunned rayon are stunned
+            let stunned_value = w.explosion_stunned_value();
+            for i in &individuals {
+                if !killed.contains(i) && distance(*i) <= stunned_rayon {
+                    updates.push(Update::UpdateIndividual(
+                        *i,
+                        IndividualUpdate::SetStatus(Status::Stunned(stunned_value)),
+                    ));
                 }
             }
 

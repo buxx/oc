@@ -7,4 +7,12 @@
     shrapnel_quantity: 75,
     penetration_force: 1.0,
   ),
+  (
+    name: "Stun only (no shrapnel)",
+    kill_rayon: Meters(1.0),
+    stunned_rayon: Meters(15.0),
+    shrapnel_rayon: Meters(0.0),
+    shrapnel_quantity: 0,
+    penetration_force: 0.0,
+  ),
 ]

@@ -1,5 +1,5 @@
 use derive_more::Constructor;
-use oc_individual::{Individual, IndividualIndex, Update};
+use oc_individual::{Individual, IndividualIndex, Status, Update};
 use oc_root::physics::Meters;
 use oc_world::World;
 
@@ -59,7 +59,14 @@ impl<'a> Processor<'a> {
             return vec![];
         }
 
+        self.stunned(&mut updates, individual);
         self.suppress(&mut updates, individual);
+
+        if !individual.can_act() {
+            tracing::trace!(name="individual-step-cant-act", i=?self.i);
+            return updates;
+        }
+
         let situation = &self.situation(individual);
 
         if let Some(updates) = self.accomplished(situation) {
@@ -109,6 +116,23 @@ impl<'a> Processor<'a> {
 
         tracing::trace!(name = "individual-step-updates", i=?self.i, updates=?updates);
         updates
+    }
+
+    fn stunned(&self, updates: &mut Vec<runner::update::Update>, individual: &Individual) {
+        let Status::Stunned(stun) = individual.status else {
+            return;
+        };
+        let stun = stun.decrease(self.world.w.individual_tick_decrease_stunned());
+        let status = if stun.is_zero() {
+            Status::Operational
+        } else {
+            Status::Stunned(stun)
+        };
+
+        updates.push(runner::update::Update::UpdateIndividual(
+            self.i,
+            Update::SetStatus(status),
+        ));
     }
 
     fn suppress(&self, updates: &mut Vec<runner::update::Update>, individual: &Individual) {
