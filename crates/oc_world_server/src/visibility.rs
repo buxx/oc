@@ -197,7 +197,7 @@ mod tests {
             WorldVec2::new(center.x + 10., center.y + 10.),
             WorldVec2::new(center.x - 10., center.y + 10.),
         ];
-        Interior::new(0, points[0], points)
+        Interior::new(0, points[0], points, 0.)
     }
 
     /// Side A watcher at (10, 10) and side B target at (50, 50), plus given extra individuals.

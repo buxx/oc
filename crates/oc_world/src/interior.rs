@@ -8,6 +8,13 @@ pub struct Interior {
     pub id: u32,
     pub start: WorldVec2,
     pub points: Vec<WorldVec2>,
+    pub penetration_protect: f32,
+}
+
+impl Interior {
+    pub fn penetrated(&self, position: WorldVec2, penetration_force: f32) -> bool {
+        self.contains(position) && self.penetration_protect < penetration_force
+    }
 }
 
 impl Polygon for Interior {

@@ -15,4 +15,12 @@
     shrapnel_quantity: 0,
     penetration_force: 0.0,
   ),
+  (
+    name: "Kill & Stun only (no shrapnel & 0.5 penetration)",
+    kill_rayon: Meters(15.0),
+    stunned_rayon: Meters(15.0),
+    shrapnel_rayon: Meters(0.0),
+    shrapnel_quantity: 0,
+    penetration_force: 0.5,
+  ),
 ]

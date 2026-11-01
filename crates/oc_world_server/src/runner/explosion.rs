@@ -12,7 +12,9 @@ use oc_root::explosion::Explosion;
 use oc_root::geo::{WorldVec2, WorldVec3};
 use oc_root::{Client, WcfgFrom, WcfgInto};
 use oc_utils::let_some;
+use oc_utils::polygon::Polygon;
 use oc_world::World;
+use oc_world::interior::Interior;
 use rustc_hash::FxHashSet;
 
 use super::update::{ExplosionOrigin, Update};
@@ -65,9 +67,16 @@ impl<E: Client> super::State<E> {
             let mut killed = FxHashSet::default();
             let mut updates = vec![];
 
-            // Individuals in kill rayon die
+            // Individuals in kill rayon die, unless protected by an interior not penetrated
             for i in &individuals {
-                if distance(*i) <= kill_rayon {
+                if distance(*i) <= kill_rayon
+                    && !protected_by_interior(
+                        &world.interiors,
+                        world.individual(*i).position.into(),
+                        position,
+                        explosion.penetration_force,
+                    )
+                {
                     killed.insert(*i);
                     updates.extend(die(&world, mod_, *i));
                 }
@@ -137,6 +146,19 @@ impl<E: Client> super::State<E> {
 
         vec![(Listening::Regions(vec![region]), messages)]
     }
+}
+
+/// Individual inside an interior is protected unless explosion penetrated this interior
+fn protected_by_interior(
+    interiors: &[Interior],
+    individual: WorldVec2,
+    explosion: WorldVec2,
+    penetration_force: f32,
+) -> bool {
+    interiors
+        .iter()
+        .find(|interior| interior.contains(individual))
+        .is_some_and(|interior| !interior.penetrated(explosion, penetration_force))
 }
 
 // WARNING: AI generated
@@ -209,4 +231,44 @@ fn distance_to_segment(p: WorldVec3, a: WorldVec3, b: WorldVec3) -> f32 {
     };
     let (cx, cy) = (a.x + t * abx, a.y + t * aby);
     ((p.x - cx).powi(2) + (p.y - cy).powi(2)).sqrt()
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use super::*;
+
+    fn square(x: f32, protect: f32) -> Interior {
+        let points = vec![
+            WorldVec2::new(x, 0.),
+            WorldVec2::new(x + 10., 0.),
+            WorldVec2::new(x + 10., 10.),
+            WorldVec2::new(x, 10.),
+        ];
+        Interior::new(0, points[0], points, protect)
+    }
+
+    #[rstest]
+    // individual outside any interior: never protected
+    #[case(WorldVec2::new(50., 5.), WorldVec2::new(5., 5.), 1., false)]
+    // explosion outside the interior: protected
+    #[case(WorldVec2::new(5., 5.), WorldVec2::new(50., 5.), 5., true)]
+    // explosion inside, protection (1) >= force: protected
+    #[case(WorldVec2::new(5., 5.), WorldVec2::new(6., 6.), 0.5, true)]
+    #[case(WorldVec2::new(5., 5.), WorldVec2::new(6., 6.), 1., true)]
+    // explosion inside, protection (1) < force: penetrated
+    #[case(WorldVec2::new(5., 5.), WorldVec2::new(6., 6.), 2., false)]
+    fn test_protected_by_interior(
+        #[case] individual: WorldVec2,
+        #[case] explosion: WorldVec2,
+        #[case] force: f32,
+        #[case] expected: bool,
+    ) {
+        let interiors = vec![square(0., 1.)];
+        assert_eq!(
+            protected_by_interior(&interiors, individual, explosion, force),
+            expected
+        );
+    }
 }
