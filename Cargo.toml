@@ -60,11 +60,11 @@ fastrand = "2"
 bon = "3.9"
 fs_extra = "1"
 tempfile = "3"
-tiled = "0.10.2"
+tiled = "0.16"
 geo = "0.33"
 ctrlc = "3"
 polyanya = { git = "https://github.com/buxx/polyanya.git", branch = "main" }  # Forked to solve glam version conflict
-parking_lot = { version = "0.12", features = ["deadlock_detection"] }
+parking_lot = { version = "0.13", features = ["deadlock_detection"] }
 backtrace = "0.3"
 derive_is_enum_variant = "0.1"
 rand = "0.10"
@@ -74,10 +74,10 @@ getset = "0.1"
 # derive
 proc-macro2 = "1"
 quote = "1"
-syn = { version = "2", features = ["full"] }
+syn = { version = "3", features = ["full"] }
 
 # tests
-rstest = "0.26"
+rstest = "0.28"
 
 # Lints copied from https://emschwartz.me/your-clippy-config-should-be-stricter/
 [workspace.lints.clippy]
