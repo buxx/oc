@@ -12,16 +12,32 @@ use clap::{Parser, ValueEnum};
 #[cfg(feature = "test")]
 use oc_battle_gui::fx::FxEvent;
 use oc_battle_gui::ingame::GameConfigReceived;
+#[cfg(feature = "test")]
+use oc_battle_gui::ingame::SetBattlePhase;
 use oc_battle_gui::network::output::ToServerEvent;
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use oc_individual::order::Order;
 use oc_mod::Mod;
 use oc_network::ToServer;
-use oc_root::{WorldConfig, battle::BattlePhase, geo::WorldVec2, physics::Meters};
 #[cfg(feature = "test")]
-use oc_utils::d2::AlmostEqual;
+use oc_physics::update::bevy::Position;
+use oc_root::{
+    WorldConfig,
+    battle::{BattlePhase, End, Result as BattleResult, SideResult},
+    geo::{WorldVec2, WorldVec3},
+    physics::Meters,
+    side::Side,
+};
+#[cfg(feature = "test")]
+use oc_utils::{d2::AlmostEqual, let_some, true_};
 use oc_world::{
     meta::Meta,
     support::{Support, SupportType, Supports},
+};
+use tests::{
+    individual::TestIndividual,
+    squad::TestSquad,
+    weapons::{TestWeapon, TestWeapons},
 };
 
 #[cfg(feature = "test")]
@@ -45,6 +61,8 @@ struct Args {
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum Case {
     Support,
+    EndTime,
+    EndMorale,
 }
 
 #[cfg(feature = "test")]
@@ -68,25 +86,86 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let meta = Meta::from_file(&PathBuf::from(MAP).join("meta.toml"))?;
     let map = oc_world::reader::MapReader::new(&PathBuf::from(MAP));
     let map = map.context(format!("Read map {MAP}"))?;
-    let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
+    let mut w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
         .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
+    if matches!(args.case, Case::EndTime) {
+        w = w.with_fight_duration(std::time::Duration::from_secs(2));
+    }
     let speed = w.speed();
     let center = WorldVec2::new(
         w.world_width_pixels() as f32 / 2.,
         w.world_height_pixels() as f32 / 2.,
     );
 
-    let (phase, supports) = match args.case {
+    let (phase, supports, individuals, squads) = match args.case {
+        Case::EndTime => (
+            BattlePhase::Deployment,
+            Supports::default(),
+            vec![
+                TestIndividual::builder()
+                    .side(Side::A)
+                    .position(WorldVec3::new(center.x, center.y, 0.))
+                    .build()
+                    .make(&w),
+            ],
+            vec![
+                TestSquad::builder()
+                    .position(center)
+                    .members(vec![oc_individual::IndividualIndex(0)])
+                    .orders(vec![Order::MoveFastTo(WorldVec2::new(
+                        center.x + 200.,
+                        center.y,
+                    ))])
+                    .build()
+                    .make(),
+            ],
+        ),
+        Case::EndMorale => (
+            BattlePhase::Deployment,
+            Supports::default(),
+            vec![
+                TestIndividual::builder()
+                    .side(Side::A)
+                    .position(WorldVec3::new(center.x, center.y + 100., 0.))
+                    .weapons(
+                        TestWeapons::builder()
+                            .primary(TestWeapon::filled(&mod_, "Weapon3").make())
+                            .build()
+                            .make(),
+                    )
+                    .build()
+                    .make(&w),
+                TestIndividual::builder()
+                    .side(Side::B)
+                    .position(WorldVec3::new(center.x, center.y, 0.))
+                    .build()
+                    .make(&w),
+            ],
+            vec![
+                TestSquad::builder()
+                    .position(WorldVec2::new(center.x, center.y + 100.))
+                    .members(vec![oc_individual::IndividualIndex(0)])
+                    .build()
+                    .make(),
+                TestSquad::builder()
+                    .position(center)
+                    .members(vec![oc_individual::IndividualIndex(1)])
+                    .build()
+                    .make(),
+            ],
+        ),
         Case::Support => (
             BattlePhase::Deployment,
             Supports::new(
                 Support(vec![(SupportType::NavalBombard, true)]),
                 Support::default(),
             ),
+            vec![],
+            vec![],
         ),
     };
 
-    let snapshot = SnapshotBuilder::new(map, vec![], vec![], vec![], phase, vec![], vec![])
+    let snapshot = SnapshotBuilder::new(map, individuals, squads, vec![], phase, vec![], vec![])
         .with_supports(supports)
         .build(w, &mod_)?;
 
@@ -116,6 +195,18 @@ fn setup(app: &mut App, center: WorldVec2, #[allow(unused)] speed: f32) {
             app.init_resource::<ConfigReceived>()
                 .add_observer(on_game_config_received)
                 .add_systems(Update, request_support_and_fight);
+        }
+        Case::EndMorale => {
+            app.add_observer(request_fight);
+            #[cfg(feature = "test")]
+            app.add_observer(on_battle_phase_morale);
+        }
+        Case::EndTime => {
+            app.add_observer(request_fight);
+            #[cfg(feature = "test")]
+            app.init_resource::<EndWatch>()
+                .add_observer(on_battle_phase)
+                .add_systems(Update, watch_individual_after_end);
         }
     }
 
@@ -148,6 +239,107 @@ fn request_support_and_fight(
         center.0,
     )));
     commands.trigger(ToServerEvent(ToServer::Fight));
+}
+
+fn request_fight(_: On<GameConfigReceived>, mut commands: Commands) {
+    commands.trigger(ToServerEvent(ToServer::Fight));
+}
+
+#[cfg(feature = "test")]
+#[derive(Resource, Default)]
+struct EndWatch {
+    // Position when battle start
+    start: Option<WorldVec3>,
+    // Position when BattlePhase::End is received
+    end: Option<(Duration, WorldVec3)>,
+}
+
+#[cfg(feature = "test")]
+fn individual_position(
+    individuals: &Query<(
+        &Position,
+        &oc_battle_gui::entity::individual::IndividualIndex,
+    )>,
+) -> Option<WorldVec3> {
+    individuals
+        .iter()
+        .find(|(_, i)| i.0 == oc_individual::IndividualIndex(0))
+        .map(|(p, _)| p.0)
+}
+
+#[cfg(feature = "test")]
+fn on_battle_phase(
+    phase: On<SetBattlePhase>,
+    time: Res<Time>,
+    individuals: Query<(
+        &Position,
+        &oc_battle_gui::entity::individual::IndividualIndex,
+    )>,
+    mut watch: ResMut<EndWatch>,
+    mut commands: Commands,
+) {
+    match (phase.phase(), phase.end()) {
+        (oc_battle_gui::ingame::BattlePhase::End, Some(End::Time(_))) => {
+            if let Some(position) = individual_position(&individuals) {
+                watch.end = Some((time.elapsed(), position));
+            };
+        }
+        _ => {
+            eprintln!("❌ Expected End::Time, got {:?}", phase.end());
+            commands.write_message(AppExit::from_code(0));
+            return;
+        }
+    }
+}
+
+#[cfg(feature = "test")]
+fn on_battle_phase_morale(phase: On<SetBattlePhase>, mut commands: Commands) {
+    true_!(
+        phase.phase() == oc_battle_gui::ingame::BattlePhase::End,
+        return
+    );
+
+    match phase.end() {
+        Some(End::Morale(
+            _,
+            BattleResult {
+                a: SideResult::TotalVictory,
+                b: SideResult::TotalDefeat,
+            },
+        )) => SUCCESS.store(true, Ordering::Relaxed),
+        other => eprintln!("❌ Unexpected end: {other:?}"),
+    }
+    commands.write_message(AppExit::from_code(0));
+}
+
+#[cfg(feature = "test")]
+fn watch_individual_after_end(
+    time: Res<Time>,
+    individuals: Query<(
+        &Position,
+        &oc_battle_gui::entity::individual::IndividualIndex,
+    )>,
+    mut watch: ResMut<EndWatch>,
+    mut commands: Commands,
+) {
+    let_some!(position = individual_position(&individuals), return);
+    let start = *watch.start.get_or_insert(position);
+    let_some!((end_time, end_position) = watch.end, return);
+
+    if !position.almost_equal(end_position, 0.001) {
+        eprintln!("❌ Individual moved after End ({end_position:?} -> {position:?})");
+        commands.write_message(AppExit::from_code(0));
+        return;
+    }
+
+    if time.elapsed() >= end_time + Duration::from_secs(2) {
+        if end_position.almost_equal(start, 0.001) {
+            eprintln!("❌ Individual never moved before End");
+        } else {
+            SUCCESS.store(true, Ordering::Relaxed);
+        }
+        commands.write_message(AppExit::from_code(0));
+    }
 }
 
 #[cfg(feature = "test")]

@@ -80,7 +80,31 @@ pub struct SwitchToHeightMap;
 pub struct RestoreBattleCenter;
 
 #[derive(Debug, Event)]
-pub struct SetBattlePhase(BattlePhase);
+pub struct SetBattlePhase(
+    BattlePhase,
+    // Only read by oc_examples
+    #[allow(dead_code)] Option<oc_root::battle::End>,
+);
+
+impl SetBattlePhase {
+    pub fn new(phase: oc_root::battle::BattlePhase) -> Self {
+        let end = match phase {
+            oc_root::battle::BattlePhase::End(end) => Some(end),
+            _ => None,
+        };
+        Self(phase.into(), end)
+    }
+
+    pub fn phase(&self) -> BattlePhase {
+        self.0
+    }
+
+    // Only used by oc_examples
+    #[allow(dead_code)]
+    pub fn end(&self) -> Option<oc_root::battle::End> {
+        self.1
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
 pub enum BattlePhase {
@@ -105,7 +129,7 @@ impl From<oc_root::battle::BattlePhase> for BattlePhase {
         match value {
             oc_root::battle::BattlePhase::Deployment => BattlePhase::Deployment,
             oc_root::battle::BattlePhase::Fight => BattlePhase::Fight,
-            oc_root::battle::BattlePhase::End => BattlePhase::End,
+            oc_root::battle::BattlePhase::End(_) => BattlePhase::End,
         }
     }
 }

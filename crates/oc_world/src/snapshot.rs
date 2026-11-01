@@ -15,10 +15,10 @@ use rkyv::{
     with::{AsUnixTime, Map},
 };
 
-use crate::DEFAULT_FIGHT_DURATION;
 use crate::spawn::SpawnZoneName;
 use crate::support::{PendingSupport, SupportType, Supports};
 use crate::tile::Tile;
+use oc_root::DEFAULT_FIGHT_DURATION;
 
 #[derive(Debug, Archive, Deserialize, Serialize, Constructor)]
 #[allow(clippy::too_many_arguments)]

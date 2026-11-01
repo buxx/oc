@@ -405,7 +405,7 @@ fn on_world_resume(
     let phase_ = match event.0.phase {
         oc_root::battle::BattlePhase::Deployment => BattlePhase::Deployment,
         oc_root::battle::BattlePhase::Fight => BattlePhase::Fight,
-        oc_root::battle::BattlePhase::End => BattlePhase::End,
+        oc_root::battle::BattlePhase::End(_) => BattlePhase::End,
     };
     *phase = NextState::Pending(phase_);
     crate::fx::play_phase_start(&mut commands, &g_res, phase_);

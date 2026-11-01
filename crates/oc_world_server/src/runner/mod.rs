@@ -462,5 +462,5 @@ impl<E: Client> Runner<E> {
 }
 
 fn ended<E: Client>(ctx: &Context<E>) -> bool {
-    matches!(ctx.state.world().phase, BattlePhase::End)
+    matches!(ctx.state.world().phase, BattlePhase::End(_))
 }

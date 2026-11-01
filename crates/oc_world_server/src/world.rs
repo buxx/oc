@@ -1,10 +1,14 @@
 use crate::runner::update::Update;
 use derive_more::Constructor;
-use oc_root::{battle::BattlePhase, side::Side};
+use oc_individual::Individual;
+use oc_root::{
+    battle::{BattlePhase, End},
+    side::Side,
+};
 use oc_utils::polygon::Polygon;
 use oc_world::{
     World,
-    flag::{Flags, Ownership},
+    flag::{Flag, Flags, Ownership},
     morale::Morale,
 };
 
@@ -21,21 +25,85 @@ impl Processor<'_> {
         ];
 
         updates.extend(self.compute_support());
-        updates.extend(self.time());
-        updates
-    }
 
-    fn time(&self) -> Vec<Update> {
-        let mut updates = vec![];
+        let (time, ended) = self.time();
+        updates.extend(time);
 
-        if let Some(elapsed) = self.world.elapsed() {
-            updates.push(Update::UpdateElapsed(elapsed, self.world.duration));
-            if elapsed >= self.world.duration {
-                updates.push(Update::SetBattlePhase(BattlePhase::End));
-            }
+        if !ended {
+            updates.extend(self.morale_end());
         }
 
         updates
+    }
+
+    fn compute_flags(&self) -> Flags {
+        let mut flags = self.world.flags.clone();
+
+        for (flag, ownership) in flags.iter_mut() {
+            if let Some(new) = self.flag_ownership(flag) {
+                *ownership = new;
+            }
+        }
+
+        flags
+    }
+
+    fn flag_ownership(&self, flag: &Flag) -> Option<Ownership> {
+        let mut side_a = false;
+        let mut side_b = false;
+
+        for individual in self.operational_individuals_in(flag) {
+            match individual.side {
+                Side::A => side_a = true,
+                Side::B => side_b = true,
+            }
+            if side_a && side_b {
+                break;
+            }
+        }
+
+        match (side_a, side_b) {
+            (true, true) => Some(Ownership::Both),
+            (true, false) => Some(Ownership::A),
+            (false, true) => Some(Ownership::B),
+            (false, false) => None,
+        }
+    }
+
+    fn operational_individuals_in(&self, flag: &Flag) -> impl Iterator<Item = &Individual> {
+        self.world
+            .individuals()
+            .iter()
+            .filter(|individual| Self::is_operational(individual))
+            .filter(|individual| flag.contains(individual.position.into()))
+    }
+
+    fn is_operational(individual: &Individual) -> bool {
+        matches!(individual.status, oc_individual::Status::Operational)
+    }
+
+    fn compute_morale(&self) -> Morale {
+        Morale {
+            a: self.side_morale(Side::A),
+            b: self.side_morale(Side::B),
+        }
+    }
+
+    fn side_morale(&self, side: Side) -> f32 {
+        let individuals = self
+            .world
+            .individuals()
+            .iter()
+            .filter(|individual| individual.side == side);
+        let total = individuals.clone().count();
+        let operational = individuals
+            .filter(|individual| Self::is_operational(individual))
+            .count();
+
+        match total {
+            0 => 0.,
+            _ => operational as f32 / total as f32 * 100.,
+        }
     }
 
     fn compute_support(&self) -> Vec<Update> {
@@ -67,64 +135,54 @@ impl Processor<'_> {
         updates
     }
 
-    fn compute_flags(&self) -> Flags {
-        let mut flags = self.world.flags.clone();
+    /// Time updates, and whether the battle ended by time.
+    fn time(&self) -> (Vec<Update>, bool) {
+        let Some(elapsed) = self.world.elapsed() else {
+            return (vec![], false);
+        };
+        let mut updates = vec![Update::UpdateElapsed(elapsed, self.world.duration)];
 
-        for (flag, ownership) in flags.iter_mut() {
-            let mut side_a = false;
-            let mut side_b = false;
-
-            for individual in self.world.individuals() {
-                if !matches!(individual.status, oc_individual::Status::Operational) {
-                    continue;
-                }
-                if !flag.contains(individual.position.into()) {
-                    continue;
-                }
-
-                match individual.side {
-                    Side::A => side_a = true,
-                    Side::B => side_b = true,
-                }
-                if side_a && side_b {
-                    break;
-                }
-            }
-
-            match (side_a, side_b) {
-                (true, true) => *ownership = Ownership::Both,
-                (true, false) => *ownership = Ownership::A,
-                (false, true) => *ownership = Ownership::B,
-                (false, false) => {}
-            }
+        if elapsed < self.world.duration {
+            return (updates, false);
         }
 
-        flags
+        let result = self.battle_result();
+        updates.push(Update::SetBattlePhase(BattlePhase::End(End::Time(result))));
+
+        (updates, true)
     }
 
-    fn compute_morale(&self) -> Morale {
-        let percent = |side: Side| {
-            let individuals = self
-                .world
-                .individuals()
-                .iter()
-                .filter(|individual| individual.side == side);
-            let total = individuals.clone().count();
-            let operational = individuals
-                .filter(|individual| {
-                    matches!(individual.status, oc_individual::Status::Operational)
-                })
-                .count();
+    fn battle_result(&self) -> oc_root::battle::Result {
+        let morale = self.compute_morale();
+        oc_root::battle::Result::from_morale(
+            morale.a,
+            morale.b,
+            self.world.w.morale_end_threshold(),
+        )
+    }
 
-            match total {
-                0 => 0.,
-                _ => operational as f32 / total as f32 * 100.,
-            }
-        };
+    fn morale_end(&self) -> Option<Update> {
+        if self.world.phase != BattlePhase::Fight {
+            return None;
+        }
 
-        Morale {
-            a: percent(Side::A),
-            b: percent(Side::B),
+        let broken = self.broken_side()?;
+        let result = self.battle_result();
+
+        Some(Update::SetBattlePhase(BattlePhase::End(End::Morale(
+            broken, result,
+        ))))
+    }
+
+    fn broken_side(&self) -> Option<Side> {
+        let morale = self.compute_morale();
+        let threshold = self.world.w.morale_end_threshold();
+        match (morale.a < threshold, morale.b < threshold) {
+            (false, false) => None,
+            (true, false) => Some(Side::A),
+            (false, true) => Some(Side::B),
+            (true, true) if morale.a <= morale.b => Some(Side::A),
+            (true, true) => Some(Side::B),
         }
     }
 }

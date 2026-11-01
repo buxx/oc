@@ -29,8 +29,6 @@ use crate::{
     visibility::Visibilities,
 };
 
-pub const DEFAULT_FIGHT_DURATION: Duration = Duration::from_secs(15 * 60);
-
 pub mod cache;
 pub mod control;
 pub mod decor;
@@ -206,6 +204,7 @@ mod tests {
         illustration::IndexedIllustrations,
         nature::{NatureIndex, Traversability},
     };
+    use oc_root::DEFAULT_FIGHT_DURATION;
 
     use super::*;
 

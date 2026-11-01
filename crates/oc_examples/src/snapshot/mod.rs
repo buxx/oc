@@ -73,6 +73,7 @@ where
         let squads = self.squads.squads(&w, &individuals);
         let projectiles = self.projectiles.projectiles(&w, &tiles);
         let phase = self.phase;
+        let duration = w.fight_duration();
         let side_a_spawns = self.side_a_spawns.clone();
         let side_b_spawns = self.side_b_spawns.clone();
 
@@ -83,7 +84,7 @@ where
             squads,
             projectiles,
             phase,
-            duration: oc_world::DEFAULT_FIGHT_DURATION,
+            duration,
             start: None,
             side_a_spawns,
             side_b_spawns,

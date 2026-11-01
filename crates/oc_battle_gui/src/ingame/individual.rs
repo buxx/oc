@@ -14,8 +14,8 @@ use oc_root::identity::Identity;
 use oc_root::y::V;
 use oc_utils::bevy::EntityMapping;
 use oc_utils::let_ok;
-use oc_utils::let_some;
 use oc_utils::polygon::Polygon;
+use oc_utils::{let_some, true_};
 use oc_world::spawn::SpawnZone;
 
 use crate::entity::individual::{Behavior, IndividualIndex, Intent, Orders, Side};
@@ -487,6 +487,7 @@ impl Plugin for IndividualPlugin {
             .add_observer(on_set_intent_event)
             .add_observer(on_set_gesture_event)
             .add_observer(on_set_forces_event)
+            .add_observer(on_battle_end)
             .add_observer(on_forgotten_region)
             .add_observer(on_forgot_individual)
             .add_observer(on_set_status_event)
@@ -501,7 +502,8 @@ impl Plugin for IndividualPlugin {
             .add_systems(
                 Update,
                 ingame::physics::physics_step::<oc_individual::IndividualIndex, IndividualIndex>
-                    .run_if(in_state(AppState::InGame)),
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(not(in_state(ingame::BattlePhase::End))),
             );
 
         #[cfg(feature = "debug")]
@@ -673,6 +675,34 @@ fn on_set_orders_event(
 
     tracing::trace!(name = "ingame-behavior-on-set-individual-orders-trigger-refresh-orders", i=?orders.0, events=?orders);
     commands.trigger(RefreshIndividualOrdersEvent(orders.0, orders.1.clone()))
+}
+
+/// Battle is ended: individuals stop (no more forces) and become idle
+fn on_battle_end(
+    phase: On<ingame::SetBattlePhase>,
+    individuals: Query<(&IndividualIndex, &Gesture)>,
+    mut commands: Commands,
+) {
+    true_!(phase.phase() == BattlePhase::End, return);
+
+    for (individual, gesture) in individuals {
+        let i = individual.0;
+        let direction = gesture.direction();
+
+        commands.trigger(SetForcesEvent(i, vec![]));
+        commands.trigger(SetBehaviorEvent(
+            i,
+            oc_individual::behavior::Behavior::Idle(direction),
+        ));
+        commands.trigger(SetIntentEvent(
+            i,
+            oc_individual::behavior::Intent::Idle(direction),
+        ));
+        commands.trigger(SetGestureEvent(
+            i,
+            oc_individual::Gesture::body(oc_individual::BodyGesture::StandUp(direction)),
+        ));
+    }
 }
 
 fn on_set_forces_event(

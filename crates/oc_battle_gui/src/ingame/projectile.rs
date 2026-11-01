@@ -8,7 +8,7 @@ use oc_root::WcfgFrom;
 use oc_root::geo::ScreenVec2;
 use oc_root::y::Y;
 use oc_utils::bevy::EntityMapping;
-use oc_utils::{let_ok, let_some};
+use oc_utils::{let_ok, let_some, true_};
 
 use crate::entity::projectile::ProjectileId;
 use crate::ingame;
@@ -35,10 +35,12 @@ impl Plugin for ProjectilePlugin {
             .add_observer(on_update_position)
             .add_observer(on_forgotten_region)
             .add_observer(on_forgot_projectile)
+            .add_observer(on_battle_end)
             .add_systems(
                 Update,
                 ingame::physics::physics_step::<oc_projectile::ProjectileId, ProjectileId>
-                    .run_if(in_state(AppState::InGame)),
+                    .run_if(in_state(AppState::InGame))
+                    .run_if(not(in_state(ingame::BattlePhase::End))),
             );
     }
 }
@@ -113,6 +115,19 @@ fn on_forgotten_region(
             tracing::trace!(name = "trigger-forgot-projectile", i=?i);
             commands.trigger(ForgotProjectile(i.0));
         }
+    }
+}
+
+/// Battle is ended: no more projectiles
+fn on_battle_end(
+    phase: On<ingame::SetBattlePhase>,
+    projectiles: Query<&ProjectileId>,
+    mut commands: Commands,
+) {
+    true_!(phase.phase() == ingame::BattlePhase::End, return);
+
+    for projectile in projectiles {
+        commands.trigger(ForgotProjectile(projectile.0));
     }
 }
 

@@ -100,7 +100,7 @@ pub fn on_to_client(
         }
         ToClient::SetBattlePhase(phase) => {
             tracing::trace!(name = "ingame-input-set-battle-phase");
-            commands.trigger(SetBattlePhase((*phase).into()));
+            commands.trigger(SetBattlePhase::new(*phase));
         }
         ToClient::Elapsed(elapsed, duration) => {
             commands.trigger(UpdateRemaining(duration.saturating_sub(*elapsed)))

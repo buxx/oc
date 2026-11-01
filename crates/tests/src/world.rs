@@ -29,7 +29,7 @@ pub struct TestWorld {
     meta: Meta,
     #[builder(default = BattlePhase::Fight)]
     phase: BattlePhase,
-    #[builder(default = oc_world::DEFAULT_FIGHT_DURATION)]
+    #[builder(default = oc_root::DEFAULT_FIGHT_DURATION)]
     duration: std::time::Duration,
     start: Option<std::time::Instant>,
     #[builder(default)]

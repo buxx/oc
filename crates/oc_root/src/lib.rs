@@ -45,6 +45,8 @@ static IMMORTALITY: AtomicBool = AtomicBool::new(false);
 #[cfg(feature = "debug")]
 static SPEED_RAW: AtomicU8 = AtomicU8::new(10); // Will be divided by ten
 
+pub const DEFAULT_FIGHT_DURATION: Duration = Duration::from_secs(15 * 60);
+
 #[derive(
     Debug, Clone, Archive, Deserialize, Serialize, PartialEq, WithSetters, Getters, CopyGetters,
 )]
@@ -171,6 +173,11 @@ pub struct WorldConfig {
     run_nominal_speed: MetersSeconds,
     #[getset(get_copy = "pub", set_with = "pub")]
     crawl_nominal_speed: MetersSeconds,
+    #[getset(get_copy = "pub", set_with = "pub")]
+    fight_duration: Duration,
+    /// Side morale (percent) under which the battle end
+    #[getset(get_copy = "pub", set_with = "pub")]
+    morale_end_threshold: f32,
 }
 
 impl WorldConfig {
@@ -236,6 +243,8 @@ impl WorldConfig {
         let walk_nominal_speed = MetersSeconds(1.2);
         let run_nominal_speed = MetersSeconds(2.7);
         let crawl_nominal_speed = MetersSeconds(0.50);
+        let fight_duration = DEFAULT_FIGHT_DURATION;
+        let morale_end_threshold = 20.;
 
         Self {
             world_width,
@@ -288,6 +297,8 @@ impl WorldConfig {
             walk_nominal_speed,
             run_nominal_speed,
             crawl_nominal_speed,
+            fight_duration,
+            morale_end_threshold,
         }
     }
 

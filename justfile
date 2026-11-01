@@ -121,9 +121,14 @@ test-e2e speed="":
         test-engaging-suppressed
         test-engaging-move-to-hiding
         test-engaging-move-to-hiding-then-discover
+        test-engaging-engage-one-by-one
+        test-engaging-suppress-fire
         test-height-climb
         test-interiors-enter
+        test-interiors-out
         test-world-support
+        test-world-end-time
+        test-world-end-morale
     )
     for t in "${tests[@]}"; do
         just "$t" || exit 1
@@ -246,14 +251,29 @@ test-engaging-move-to-hiding:
 test-engaging-move-to-hiding-then-discover:
     RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- move-to-hiding-then-discover --test
 
+test-engaging-engage-one-by-one:
+    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- engage-one-by-one --test
+
+test-engaging-suppress-fire:
+    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- suppress-fire --test
+
 test-height-climb:
     RUST_LOG=ERROR cargo run --bin example_height --features test -- climb --test
 
 test-interiors-enter:
     RUST_LOG=ERROR cargo run --bin example_interiors --features test,debug -- enter --test
 
+test-interiors-out:
+    RUST_LOG=ERROR cargo run --bin example_interiors --features test,debug -- out --test
+
 test-world-support:
     RUST_LOG=ERROR cargo run --bin example_world --features test -- support --test
+
+test-world-end-time:
+    RUST_LOG=ERROR cargo run --bin example_world --features test -- end-time --test
+
+test-world-end-morale:
+    RUST_LOG=ERROR cargo run --bin example_world --features test -- end-morale --test
 
 test-all:
     just test
