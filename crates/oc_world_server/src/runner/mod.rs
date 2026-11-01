@@ -12,10 +12,6 @@ use oc_network::{GameConfig, ToClient};
 #[cfg(feature = "debug")]
 use oc_root::side::Side;
 use oc_root::{Client, battle::BattlePhase};
-use rayon::{
-    iter::{IndexedParallelIterator, ParallelIterator},
-    slice::ParallelSlice,
-};
 
 #[cfg(feature = "tracker")]
 use crate::tracker::Tracker;
@@ -70,48 +66,26 @@ impl<E: Client> Runner<E> {
         tracing::debug!("Finished runner");
     }
 
-    fn start_physics(&self) {
-        tracing::debug!("Start physics");
-        let ctx = Context::new(
+    fn context(&self) -> Context<E> {
+        Context::new(
             self.state.clone(),
             self.output.clone(),
             #[cfg(feature = "tracker")]
             self.tracker.clone(),
             #[cfg(feature = "debug")]
             self.direct.clone(),
-        );
+        )
+    }
+
+    fn start_physics(&self) {
+        tracing::debug!("Start physics");
+        let ctx = self.context();
 
         (0..ctx.cpus).for_each(|i| {
-            let ctx = ctx.clone();
-
-            std::thread::spawn(move || {
-                let mut last = Instant::now();
-
-                loop {
-                    let elapsed = last.elapsed();
-                    let interval = ctx.state.w.physics_tick().interval();
-                    let wait = interval - elapsed.min(interval);
-
-                    #[cfg(feature = "perfs")]
-                    {
-                        ctx.state.perf.physics.record(wait, interval);
-                    }
-
-                    tracing::trace!(
-                        name = "runner-physics-sleep",
-                        i = i,
-                        wait = ?wait
-                    );
-                    std::thread::sleep(wait);
-                    last = Instant::now();
-
-                    if ended(&ctx) {
-                        continue;
-                    }
-
-                    for update_ in physics::Processor::new(&ctx).step(i) {
-                        update::update(&ctx, update_);
-                    }
+            spawn_ticker(ctx.clone(), Kind::Physics, true, move |ctx| {
+                tracing::trace!(name = "runner-physics", i = i);
+                for update_ in physics::Processor::new(ctx).step(i) {
+                    update::update(ctx, update_);
                 }
             });
         });
@@ -119,255 +93,103 @@ impl<E: Client> Runner<E> {
 
     fn start_individuals(&self) {
         tracing::debug!("Start individuals");
+        let ctx = self.context();
+        let count = self.state.world().individuals().len();
 
-        let ctx = Context::new(
-            self.state.clone(),
-            self.output.clone(),
-            #[cfg(feature = "tracker")]
-            self.tracker.clone(),
-            #[cfg(feature = "debug")]
-            self.direct.clone(),
-        );
-        let individuals_count = {
-            let world = self.state.world();
-            world.individuals().len()
-        };
-        let size = (individuals_count as f32 / ctx.cpus as f32).ceil() as usize;
-        if size == 0 {
-            return;
-        }
-
-        (0..individuals_count)
-            .collect::<Vec<usize>>()
-            .par_chunks(size)
-            .enumerate()
-            .for_each(|(_i, indexes)| {
-                let indexes = indexes.to_vec();
-                let ctx = ctx.clone();
-
-                std::thread::spawn(move || {
-                    let mut last = Instant::now();
-
-                    loop {
-                        let elapsed = last.elapsed();
-                        let interval = ctx.state.w.individual_tick().interval();
-                        let wait = interval - elapsed.min(interval);
-                        #[cfg(feature = "perfs")]
-                        {
-                            ctx.state.perf.individuals.record(wait, interval);
-                        }
-
-                        std::thread::sleep(wait);
-                        last = Instant::now();
-
-                        if ended(&ctx) {
-                            continue;
-                        }
-
-                        for batch in indexes.chunks(STEP_BATCH) {
-                            let updates = {
-                                let world = &ctx.state.world();
-                                let indexes = &ctx.state.indexes();
-                                batch
-                                    .iter()
-                                    .flat_map(|i| {
-                                        let i = IndividualIndex(*i as u64);
-                                        tracing::trace!(name = "runner-individual", i = ?i);
-                                        individual::Processor::new(world, indexes, i).step()
-                                    })
-                                    .collect::<Vec<_>>()
-                            };
-                            update::update_all(&ctx, updates);
-                        }
-                    }
-                });
-            });
+        spawn_chunked(ctx, Kind::Individuals, count, |ctx, batch| {
+            let world = &ctx.state.world();
+            let indexes = &ctx.state.indexes();
+            batch
+                .iter()
+                .flat_map(|i| {
+                    let i = IndividualIndex(*i as u64);
+                    tracing::trace!(name = "runner-individual", i = ?i);
+                    individual::Processor::new(world, indexes, i).step()
+                })
+                .collect::<Vec<_>>()
+        });
     }
+
+    fn start_squads(&self) {
+        tracing::debug!("Start squads");
+        let ctx = self.context();
+        let count = self.state.world().squads().len();
+
+        spawn_chunked(ctx, Kind::Squads, count, |ctx, batch| {
+            let world = &ctx.state.world();
+            let indexes = &ctx.state.indexes();
+            batch
+                .iter()
+                .flat_map(|i| {
+                    let i = SquadIndex(*i as u64);
+                    tracing::trace!(name = "runner-squad", i = ?i);
+                    squad::Processor::new(world, indexes, i).step()
+                })
+                .collect::<Vec<_>>()
+        });
+    }
+
     fn start_visibilities(&self) {
         tracing::debug!("Start visibilities");
-
-        let ctx = Context::new(
-            self.state.clone(),
-            self.output.clone(),
-            #[cfg(feature = "tracker")]
-            self.tracker.clone(),
-            #[cfg(feature = "debug")]
-            self.direct.clone(),
-        );
-        let individuals_count = {
-            let world = self.state.world();
-            world.individuals().len()
-        };
-        let size = (individuals_count as f32 / ctx.cpus as f32).ceil() as usize;
-        if size == 0 {
+        let ctx = self.context();
+        if self.state.world().individuals().is_empty() {
             return;
         }
-        let ctx = ctx.clone();
 
-        std::thread::spawn(move || {
-            let mut last = Instant::now();
+        spawn_ticker(ctx, Kind::Visibilities, false, |ctx| {
+            let visibilities = {
+                // Short lock to start: sides individuals
+                let sides = {
+                    let world = &ctx.state.world();
+                    let indexes = &ctx.state.indexes();
+                    tracing::trace!(name = "runner-visibilities");
 
-            loop {
-                let elapsed = last.elapsed();
-                let interval = ctx.state.w.visibilities_tick().interval();
-                let wait = interval - elapsed.min(interval);
-                #[cfg(feature = "perfs")]
-                {
-                    ctx.state.perf.visibilities.record(wait, interval);
-                }
-
-                tracing::trace!(name = "runner-visibilities-sleep", wait=?wait);
-                std::thread::sleep(wait);
-                last = Instant::now();
-
-                let visibilities = {
-                    // Short lock to start: sides individuals
-                    let sides = {
-                        let world = &ctx.state.world();
-                        let indexes = &ctx.state.indexes();
-                        tracing::trace!(name = "runner-visibilities");
-
-                        matches!(world.phase, BattlePhase::Fight).then(|| {
-                            (
-                                indexes.side_a_individuals().to_vec(),
-                                indexes.side_b_individuals().to_vec(),
-                            )
-                        })
-                    };
-                    let Some((side_a, side_b)) = sides else {
-                        continue;
-                    };
-
-                    // Then compute by chunks of watchers, releasing locks between chunks to let
-                    // writers (individuals, physics, ...) go through
-                    let mut visibilities = vec![];
-                    for (watchers, targets) in [(&side_a, &side_b), (&side_b, &side_a)] {
-                        for chunk in watchers.chunks(VISIBILITIES_CHUNK) {
-                            let world = &ctx.state.world();
-                            let indexes = &ctx.state.indexes();
-                            visibilities.extend(
-                                crate::visibility::Processor::new(world, indexes)
-                                    .compute_for(chunk, targets),
-                            );
-                        }
-                    }
-                    visibilities
+                    matches!(world.phase, BattlePhase::Fight).then(|| {
+                        (
+                            indexes.side_a_individuals().to_vec(),
+                            indexes.side_b_individuals().to_vec(),
+                        )
+                    })
+                };
+                let Some((side_a, side_b)) = sides else {
+                    return;
                 };
 
-                update::update(&ctx, update::Update::UpdateVisibilities(visibilities));
-            }
+                // Then compute by chunks of watchers, releasing locks between chunks to let
+                // writers (individuals, physics, ...) go through
+                let mut visibilities = vec![];
+                for (watchers, targets) in [(&side_a, &side_b), (&side_b, &side_a)] {
+                    for chunk in watchers.chunks(VISIBILITIES_CHUNK) {
+                        let world = &ctx.state.world();
+                        let indexes = &ctx.state.indexes();
+                        visibilities.extend(
+                            crate::visibility::Processor::new(world, indexes)
+                                .compute_for(chunk, targets),
+                        );
+                    }
+                }
+                visibilities
+            };
+
+            update::update(ctx, update::Update::UpdateVisibilities(visibilities));
         });
     }
 
     fn start_world(&self) {
         tracing::debug!("Start world");
 
-        let ctx = Context::new(
-            self.state.clone(),
-            self.output.clone(),
-            #[cfg(feature = "tracker")]
-            self.tracker.clone(),
-            #[cfg(feature = "debug")]
-            self.direct.clone(),
-        );
+        spawn_ticker(self.context(), Kind::World, true, |ctx| {
+            let updates = {
+                let world = &ctx.state.world();
+                tracing::trace!(name = "runner-world");
 
-        std::thread::spawn(move || {
-            let mut last = Instant::now();
+                crate::world::Processor::new(world).compute()
+            };
 
-            loop {
-                let elapsed = last.elapsed();
-                let interval = WORLD_INTERVAL.div_f32(ctx.state.w.speed());
-                let wait = interval - elapsed.min(interval);
-                #[cfg(feature = "perfs")]
-                ctx.state.perf.world.record(wait, interval);
-
-                tracing::trace!(name = "runner-world-sleep", wait=?wait);
-                std::thread::sleep(wait);
-                last = Instant::now();
-
-                if ended(&ctx) {
-                    continue;
-                }
-
-                let updates = {
-                    let world = &ctx.state.world();
-                    tracing::trace!(name = "runner-world");
-
-                    crate::world::Processor::new(world).compute()
-                };
-
-                for update in updates {
-                    update::update(&ctx, update);
-                }
+            for update in updates {
+                update::update(ctx, update);
             }
         });
-    }
-
-    fn start_squads(&self) {
-        tracing::debug!("Start squads");
-
-        let ctx = Context::new(
-            self.state.clone(),
-            self.output.clone(),
-            #[cfg(feature = "tracker")]
-            self.tracker.clone(),
-            #[cfg(feature = "debug")]
-            self.direct.clone(),
-        );
-        let squads_count = {
-            let world = self.state.world();
-            world.squads().len()
-        };
-        let size = (squads_count as f32 / ctx.cpus as f32).ceil() as usize;
-        if size == 0 {
-            return;
-        }
-
-        (0..squads_count)
-            .collect::<Vec<usize>>()
-            .par_chunks(size)
-            .enumerate()
-            .for_each(|(_i, indexes)| {
-                let indexes = indexes.to_vec();
-                let ctx = ctx.clone();
-
-                std::thread::spawn(move || {
-                    let mut last = Instant::now();
-
-                    loop {
-                        let elapsed = last.elapsed();
-                        let interval = ctx.state.w.squad_tick().interval();
-                        let wait = interval - elapsed.min(interval);
-                        #[cfg(feature = "perfs")]
-                        {
-                            ctx.state.perf.squads.record(wait, interval);
-                        }
-
-                        std::thread::sleep(wait);
-                        last = Instant::now();
-
-                        if ended(&ctx) {
-                            continue;
-                        }
-
-                        for batch in indexes.chunks(STEP_BATCH) {
-                            let updates = {
-                                let world = &ctx.state.world();
-                                let indexes = &ctx.state.indexes();
-                                batch
-                                    .iter()
-                                    .flat_map(|i| {
-                                        let i = SquadIndex(*i as u64);
-                                        tracing::trace!(name = "runner-squad", i = ?i);
-                                        squad::Processor::new(world, indexes, i).step()
-                                    })
-                                    .collect::<Vec<_>>()
-                            };
-                            update::update_all(&ctx, updates);
-                        }
-                    }
-                });
-            });
     }
 
     #[cfg(feature = "perfs")]
@@ -399,14 +221,7 @@ impl<E: Client> Runner<E> {
         let meta = self.state.world().meta().clone();
         let static_ = self.config.static_.clone();
 
-        let ctx = Context::new(
-            self.state.clone(),
-            self.output.clone(),
-            #[cfg(feature = "tracker")]
-            self.tracker.clone(),
-            #[cfg(feature = "debug")]
-            self.direct.clone(),
-        );
+        let ctx = self.context();
 
         std::thread::spawn(move || {
             while let Ok(message) = input.recv() {
@@ -433,14 +248,7 @@ impl<E: Client> Runner<E> {
 
     fn start_scheduler(&self) {
         tracing::debug!("Start scheduler");
-        let ctx = Context::new(
-            self.state.clone(),
-            self.output.clone(),
-            #[cfg(feature = "tracker")]
-            self.tracker.clone(),
-            #[cfg(feature = "debug")]
-            self.direct.clone(),
-        );
+        let ctx = self.context();
 
         std::thread::spawn(move || {
             loop {
@@ -463,4 +271,92 @@ impl<E: Client> Runner<E> {
 
 fn ended<E: Client>(ctx: &Context<E>) -> bool {
     matches!(ctx.state.world().phase, BattlePhase::End(_))
+}
+
+/// Periodic runner kinds: each one has its own tick interval and perf load
+#[derive(Clone, Copy)]
+enum Kind {
+    Physics,
+    Individuals,
+    Squads,
+    Visibilities,
+    World,
+}
+
+impl Kind {
+    fn interval<E: Client>(self, ctx: &Context<E>) -> Duration {
+        let w = &ctx.state.w;
+        match self {
+            Kind::Physics => w.physics_tick().interval(),
+            Kind::Individuals => w.individual_tick().interval(),
+            Kind::Squads => w.squad_tick().interval(),
+            Kind::Visibilities => w.visibilities_tick().interval(),
+            Kind::World => WORLD_INTERVAL.div_f32(w.speed()),
+        }
+    }
+
+    #[cfg(feature = "perfs")]
+    fn load(self, perf: &crate::perf::Perf) -> &crate::perf::Load {
+        match self {
+            Kind::Physics => &perf.physics,
+            Kind::Individuals => &perf.individuals,
+            Kind::Squads => &perf.squads,
+            Kind::Visibilities => &perf.visibilities,
+            Kind::World => &perf.world,
+        }
+    }
+}
+
+/// Spawn a thread calling `tick` once per `kind` interval. When `skip_ended` is set, ticks are
+/// skipped once the battle is ended.
+fn spawn_ticker<E: Client>(
+    ctx: Context<E>,
+    kind: Kind,
+    skip_ended: bool,
+    mut tick: impl FnMut(&Context<E>) + Send + 'static,
+) {
+    std::thread::spawn(move || {
+        let mut last = Instant::now();
+
+        loop {
+            let interval = kind.interval(&ctx);
+            let wait = interval - last.elapsed().min(interval);
+            #[cfg(feature = "perfs")]
+            kind.load(&ctx.state.perf).record(wait, interval);
+
+            std::thread::sleep(wait);
+            last = Instant::now();
+
+            if skip_ended && ended(&ctx) {
+                continue;
+            }
+
+            tick(&ctx);
+        }
+    });
+}
+
+/// Split `0..count` between one ticker thread by cpu. Each tick, `step` is called on batches of
+/// indexes (locks are released between batches) and its updates applied.
+fn spawn_chunked<E: Client>(
+    ctx: Context<E>,
+    kind: Kind,
+    count: usize,
+    step: impl Fn(&Context<E>, &[usize]) -> Vec<update::Update> + Clone + Send + 'static,
+) {
+    let size = (count as f32 / ctx.cpus as f32).ceil() as usize;
+    if size == 0 {
+        return;
+    }
+
+    for indexes in (0..count).collect::<Vec<usize>>().chunks(size) {
+        let indexes = indexes.to_vec();
+        let step = step.clone();
+
+        spawn_ticker(ctx.clone(), kind, true, move |ctx| {
+            for batch in indexes.chunks(STEP_BATCH) {
+                update::update_all(ctx, step(ctx, batch));
+            }
+        });
+    }
 }
