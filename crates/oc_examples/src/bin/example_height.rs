@@ -10,7 +10,7 @@ use std::sync::atomic::Ordering;
 #[cfg(feature = "test")]
 use std::time::Instant;
 
-use anyhow::Context;
+use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
 #[cfg(feature = "test")]

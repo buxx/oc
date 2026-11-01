@@ -1,16 +1,15 @@
 use crate::states::GuiFiles;
-use std::time::Duration;
-
-use bevy::prelude::*;
-use oc_individual::Status;
-use oc_root::geo::WorldVec2;
-use oc_utils::{every, let_some};
-
 use crate::{
     ingame::hud::{GAP, HUD_HEIGHT},
     network,
     states::GameConfig,
 };
+
+use bevy::prelude::*;
+use oc_individual::Status;
+use oc_root::geo::WorldVec2;
+use oc_utils::{every, let_some};
+use std::time::Duration;
 
 pub const MINIMAP_SIZE: f32 = HUD_HEIGHT - 2. * GAP;
 const MARKER_SIZE: f32 = 4.;

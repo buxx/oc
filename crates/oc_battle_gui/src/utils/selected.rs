@@ -36,7 +36,7 @@ pub fn draw<T: Selection + Send + Sync + 'static>(
 // `T` is unused in the body but keeps `unselect::<T>` a distinct Bevy system per `SelectedPlugin<T>`.
 #[allow(clippy::extra_unused_type_parameters)]
 fn unselect<T: Selection + Send + Sync + 'static>(
-    click: On<Pointer<Click>>,
+    click: On<PointerClick>,
     mut query: Query<&mut Selected>,
 ) {
     if click.button == PointerButton::Primary {

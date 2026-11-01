@@ -2,7 +2,7 @@
 
 use std::{path::PathBuf, time::Duration};
 
-use anyhow::Context;
+use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
 use oc_battle_gui::{

@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::Context;
+use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use oc_examples::{logging, snapshot::SnapshotBuilder};
 use oc_mod::Mod;

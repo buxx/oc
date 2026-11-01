@@ -1,8 +1,7 @@
-use std::time::Duration;
-
 use bevy::prelude::*;
 use oc_utils::let_some;
 
+use std::time::Duration;
 #[derive(Debug, Event)]
 pub struct UpdateRemaining(pub Duration);
 

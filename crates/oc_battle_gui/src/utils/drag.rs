@@ -101,7 +101,7 @@ pub trait Dragging {
 
 /// Observer to attach on spawned bundle owning `Selected` + `Dragged` components.
 pub fn on_drag_start<T>(
-    mut event: On<Pointer<DragStart>>,
+    mut event: On<PointerDragStart>,
     mut commands: Commands,
     mut selected: Query<(&Dragged<T>, &mut selected::Selected, Entity)>,
     mut cursor: ResMut<Cursor>,
@@ -133,7 +133,7 @@ pub fn on_drag_start<T>(
 }
 
 pub fn on_drag_stop<T>(
-    mut event: On<Pointer<DragDrop>>,
+    mut event: On<PointerDragDrop>,
     mut commands: Commands,
     g: Res<GameConfig>,
     phantoms: Query<(Entity, &Phantom)>,
@@ -146,7 +146,7 @@ pub fn on_drag_stop<T>(
     let_some!(g = &g.0, return);
     tracing::trace!(name = "utils-drag-on-drag-stop");
 
-    let point = event.pointer_location.position;
+    let point = event.pointer.position;
     let point = cursor_to!(point, camera, &g.w, WorldVec2);
     let_some!(cursor_ = cursor.0, return);
     let_ok!(mut dragged = dragged.get_mut(event.dropped), return);

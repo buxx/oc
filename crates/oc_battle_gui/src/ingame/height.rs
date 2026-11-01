@@ -2,8 +2,8 @@ use std::f32::consts::PI;
 use std::path::PathBuf;
 
 use bevy::color::palettes::css::WHITE;
+use bevy::input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll};
 use bevy::prelude::*;
-use bevy_editor_cam::prelude::*;
 use bevy_heightmap::{HeightMap, HeightMapPlugin, ValueFunctionHeightMap};
 use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_geo::tile::{TileXy, WorldTileIndex};
@@ -38,11 +38,15 @@ pub struct CursorWorldPos(pub Option<Vec3>);
 
 impl Plugin for HeightPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((HeightMapPlugin, MeshPickingPlugin, DefaultEditorCamPlugins))
+        app.add_plugins((HeightMapPlugin, MeshPickingPlugin))
             .add_observer(on_spawn)
             .add_systems(
                 Update,
-                (update_cursor_world_pos, update_cursor_circle_transform)
+                (
+                    control_camera3d,
+                    update_cursor_world_pos,
+                    update_cursor_circle_transform,
+                )
                     .run_if(in_state(AppState::InGame))
                     .run_if(in_state(InGameState::Height)),
             );
@@ -352,6 +356,51 @@ fn sample_terrain_z(w: &WorldConfig, world: &World, pos: &Vec3) -> f32 {
         .unwrap_or_default()
 }
 
+// WARNING: AI generated to remplace bevy_editor_cam
+/// Orthographic camera controls: right drag orbits around the point looked at on the z=0 plane,
+/// middle drag pans, wheel zooms.
+fn control_camera3d(
+    motion: Res<AccumulatedMouseMotion>,
+    scroll: Res<AccumulatedMouseScroll>,
+    buttons: Res<ButtonInput<MouseButton>>,
+    mut cameras: Query<(&mut Transform, &mut Projection), With<Camera3d>>,
+) {
+    const ORBIT_SPEED: f32 = 0.005;
+    const ZOOM_SPEED: f32 = 0.1;
+
+    for (mut transform, mut projection) in &mut cameras {
+        let Projection::Orthographic(ortho) = &mut *projection else {
+            continue;
+        };
+
+        if scroll.delta.y != 0. {
+            ortho.scale = (ortho.scale * (-scroll.delta.y * ZOOM_SPEED).exp()).clamp(0.05, 100.);
+        }
+
+        let delta = motion.delta;
+        if delta == Vec2::ZERO {
+            continue;
+        }
+
+        if buttons.pressed(MouseButton::Middle) {
+            let offset = *transform.right() * -delta.x + *transform.up() * delta.y;
+            transform.translation += offset * ortho.scale;
+        } else if buttons.pressed(MouseButton::Right) {
+            let forward = transform.forward();
+            let pivot = if forward.z.abs() > 1e-4 {
+                transform.translation + *forward * (-transform.translation.z / forward.z)
+            } else {
+                transform.translation
+            };
+            let yaw = Quat::from_axis_angle(Vec3::Z, -delta.x * ORBIT_SPEED);
+            let pitch = Quat::from_axis_angle(*transform.right(), -delta.y * ORBIT_SPEED);
+            let rotation = yaw * pitch;
+            transform.translation = pivot + rotation * (transform.translation - pivot);
+            transform.rotation = rotation * transform.rotation;
+        }
+    }
+}
+
 pub fn setup_camera3d(commands: &mut Commands, center: &Vec2) {
     let mut transform = Transform::from_xyz(0.0, 0.0, 1000.0).looking_at(Vec3::ZERO, Vec3::Y);
     transform.translation.x = center.x;
@@ -359,11 +408,6 @@ pub fn setup_camera3d(commands: &mut Commands, center: &Vec2) {
 
     commands.spawn((
         Camera3d::default(),
-        EditorCam {
-            orbit_constraint: OrbitConstraint::Free,
-            last_anchor_depth: -1000.0,
-            ..default()
-        },
         Projection::Orthographic(OrthographicProjection {
             scale: 1.0,
             near: -100.0, // negative near lets you see meshes slightly in front of camera Z

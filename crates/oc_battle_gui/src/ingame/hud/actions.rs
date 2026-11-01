@@ -23,13 +23,13 @@ pub fn actions(world: &crate::world::World, phase: &BattlePhase) -> impl Scene {
             flex_shrink: 0.,
         }
         Children [
-            (
-                BattlePhaseButton
-                battle_state_button(world, phase)
-                on(on_battle_phase_click)
-            ),
-            ({ super::morale::morale() }),
-            ({ super::remaining::remaining() }),
+            BattlePhaseButton
+            @battle_state_button(world, phase)
+            on(on_battle_phase_click)
+            --
+            @{ super::morale::morale() }
+            --
+            @{ super::remaining::remaining() }
         ]
     }
 }
@@ -47,30 +47,28 @@ fn battle_state_button(_world: &crate::world::World, phase: &BattlePhase) -> imp
         on(on_hover)
         on(on_out)
         Children [
-            (
-                ActionButtonText
-                Text(label)
-                TextFont { font_size: px(12) }
-                Pickable::IGNORE
-            )
+            ActionButtonText
+            Text(label)
+            TextFont { font_size: px(12) }
+            Pickable::IGNORE
         ]
     }
 }
 
-fn on_hover(e: On<Pointer<Over>>, mut q: Query<&mut BackgroundColor>) {
+fn on_hover(e: On<PointerOver>, mut q: Query<&mut BackgroundColor>) {
     if let Ok(mut bg) = q.get_mut(e.entity) {
         bg.0 = BUTTON_BG_HOVER;
     }
 }
 
-fn on_out(e: On<Pointer<Out>>, mut q: Query<&mut BackgroundColor>) {
+fn on_out(e: On<PointerOut>, mut q: Query<&mut BackgroundColor>) {
     if let Ok(mut bg) = q.get_mut(e.entity) {
         bg.0 = BUTTON_BG;
     }
 }
 
 fn on_battle_phase_click(
-    _: On<Pointer<Click>>,
+    _: On<PointerClick>,
     mut commands: Commands,
     phase: Res<State<BattlePhase>>,
     fight_menu: Res<window::battle::fight::FightWindow>,

@@ -1,16 +1,4 @@
-use std::time::Duration;
-
 use crate::utils::selected::Selected;
-use bevy::{
-    input::mouse::{MouseScrollUnit, MouseWheel},
-    prelude::*,
-};
-use oc_individual::squad::{Squad, SquadIndex, SquadStatus};
-use oc_mod::illustration::IllustrationKind;
-use oc_root::files::FilesAsGui;
-use oc_utils::bevy::EntityMapping;
-use oc_utils::{every, let_ok, let_some, true_};
-
 use crate::{
     ingame::{self, camera::GoToPoint, hud::SCROLL_LINE_PX},
     network,
@@ -21,6 +9,17 @@ use crate::{
     ingame::{hud::GAP, state::SelectionUpdated},
     world::World,
 };
+
+use bevy::{
+    input::mouse::{MouseScrollUnit, MouseWheel},
+    prelude::*,
+};
+use oc_individual::squad::{Squad, SquadIndex, SquadStatus};
+use oc_mod::illustration::IllustrationKind;
+use oc_root::files::FilesAsGui;
+use oc_utils::bevy::EntityMapping;
+use oc_utils::{every, let_ok, let_some, true_};
+use std::time::Duration;
 
 const CELL_BG: Color = Color::srgb(0.2, 0.25, 0.2);
 const CELL_BG_HOVER: Color = Color::srgb(0.35, 0.45, 0.35);
@@ -58,8 +57,9 @@ pub fn squads_column() -> impl Scene {
             row_gap: px(GAP),
         }
         Children [
-            ({ squads() }),
-            ({ super::supports::supports() }),
+            @{ squads() }
+            --
+            @{ super::supports::supports() }
         ]
     }
 }
@@ -116,32 +116,26 @@ fn squad_cell(
         on(on_click)
         Children [
             // Squad icon
-            (
                 Node { width: px(SQUAD_ICON_WIDTH), height: px(SQUAD_ICON_HEIGHT), flex_shrink: 0. }
                 ImageNode { image: sprite, rect: {Some(rect)} }
                 Pickable::IGNORE
-            ),
+            --
             // Squad name & behavior
-            (
-                Node { flex_direction: FlexDirection::Column }
+            Node { flex_direction: FlexDirection::Column }
+            Pickable::IGNORE
+            Children [
+                SquadNameText(i)
+                Text({format!("Squad {}", i.0)})
+                TextFont { font_size: px(14) }
                 Pickable::IGNORE
-                Children [
-                    (
-                        SquadNameText(i)
-                        Text({format!("Squad {}", i.0)})
-                        TextFont { font_size: px(14) }
-                        Pickable::IGNORE
-                        BackgroundColor(status_color(&squad.status))
-                    ),
-                    (
-                        SquadBehaviorText(i)
-                        Text("Behavior")
-                        TextFont { font_size: px(14) }
-                        Pickable::IGNORE
-                        TextColor(Color::srgb(0.3, 0.5, 1.0))
-                    ),
-                ]
-            ),
+                BackgroundColor(status_color(&squad.status))
+                --
+                SquadBehaviorText(i)
+                Text("Behavior")
+                TextFont { font_size: px(14) }
+                Pickable::IGNORE
+                TextColor(Color::srgb(0.3, 0.5, 1.0))
+            ]
         ]
     }
 }
@@ -189,20 +183,20 @@ pub fn outline_selected_cells(
     }
 }
 
-fn on_hover(e: On<Pointer<Over>>, mut q: Query<&mut BackgroundColor>) {
+fn on_hover(e: On<PointerOver>, mut q: Query<&mut BackgroundColor>) {
     if let Ok(mut bg) = q.get_mut(e.entity) {
         bg.0 = CELL_BG_HOVER;
     }
 }
 
-fn on_out(e: On<Pointer<Out>>, mut q: Query<&mut BackgroundColor>) {
+fn on_out(e: On<PointerOut>, mut q: Query<&mut BackgroundColor>) {
     if let Ok(mut bg) = q.get_mut(e.entity) {
         bg.0 = CELL_BG;
     }
 }
 
 fn on_click(
-    e: On<Pointer<Click>>,
+    e: On<PointerClick>,
     mut commands: Commands,
     cells: Query<&SquadCell>,
     world: Res<World>,

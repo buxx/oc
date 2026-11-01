@@ -1,17 +1,16 @@
-use std::time::Duration;
-
-use bevy::prelude::*;
-use oc_individual::{Individual, IndividualIndex, Status};
-use oc_mod::{Mod, illustration::IllustrationKind};
-use oc_root::files::FilesAsGui;
-use oc_utils::{every, let_ok, let_some};
-
 use crate::{
     ingame::{hud::GAP, state::SelectionUpdated},
     sprites::SpriteRect,
     states::GameConfig,
     world::World,
 };
+
+use bevy::prelude::*;
+use oc_individual::{Individual, IndividualIndex, Status};
+use oc_mod::{Mod, illustration::IllustrationKind};
+use oc_root::files::FilesAsGui;
+use oc_utils::{every, let_ok, let_some};
+use std::time::Duration;
 
 const ROW_BG: Color = Color::srgb(0.2, 0.25, 0.2);
 const STATUS_OPERATIONAL_BG: Color = Color::srgb(0.1, 0.5, 0.15);
@@ -81,55 +80,47 @@ fn row(
         BackgroundColor(ROW_BG)
         Children [
             // Icon
-            (
-                Node { width: px(INDIVIDUAL_ICON_WIDTH), height: px(INDIVIDUAL_ICON_HEIGHT), flex_shrink: 0. }
-                ImageNode { image: sprite, rect: {Some(rect)} }
+            Node { width: px(INDIVIDUAL_ICON_WIDTH), height: px(INDIVIDUAL_ICON_HEIGHT), flex_shrink: 0. }
+            ImageNode { image: sprite, rect: {Some(rect)} }
+            Pickable::IGNORE
+            Children [
+                IndividualKiaText(i)
+                Node { position_type: PositionType::Absolute, left: px(0), top: px(8) }
+                Text("K.I.A")
+                TextFont { font_size: px(11) }
+                TextColor(Color::srgb(1.0, 0.1, 0.1))
+                kia_visibility
                 Pickable::IGNORE
-                Children [
-                    (
-                        IndividualKiaText(i)
-                        Node { position_type: PositionType::Absolute, left: px(0), top: px(8) }
-                        Text("K.I.A")
-                        TextFont { font_size: px(11) }
-                        TextColor(Color::srgb(1.0, 0.1, 0.1))
-                        template_value(kia_visibility)  // FIXME BS NOW: bevy 0.20 can drop template_value ?
-                        Pickable::IGNORE
-                    ),
-                ]
-            ),
+            ]
+            --
+            // Name and status
             Node { flex_direction: FlexDirection::Column }
             Pickable::IGNORE
             Children [
                 // Name
-                (
-                    IndividualNameText(i)
-                    Text({format!("Individual {}", i.0)})
-                    TextFont { font_size: px(11) }
-                    BackgroundColor(status_color)
-                    Pickable::IGNORE
-                ),
-                // Status
-                (
-                    IndividualStatusText(i)
-                    Text(action)
-                    TextFont { font_size: px(11) }
-                    TextColor(Color::srgb(0.3, 0.5, 1.0))
-                    Pickable::IGNORE
-                ),
-            ],
-            //
-            (
-                Node { flex_direction: FlexDirection::Column }
+                IndividualNameText(i)
+                Text({format!("Individual {}", i.0)})
+                TextFont { font_size: px(11) }
+                BackgroundColor(status_color)
                 Pickable::IGNORE
-                Children [
-                    (
-                        IndividualRoundsText(i)
-                        Text(rounds)
-                        TextFont { font_size: px(10) }
-                        Pickable::IGNORE
-                    ),
-                ]
-            ),
+                --
+                // Status
+                IndividualStatusText(i)
+                Text(action)
+                TextFont { font_size: px(11) }
+                TextColor(Color::srgb(0.3, 0.5, 1.0))
+                Pickable::IGNORE
+            ]
+            --
+            // Ammunition count
+            Node { flex_direction: FlexDirection::Column }
+            Pickable::IGNORE
+            Children [
+                IndividualRoundsText(i)
+                Text(rounds)
+                TextFont { font_size: px(10) }
+                Pickable::IGNORE
+            ]
         ]
     }
 }

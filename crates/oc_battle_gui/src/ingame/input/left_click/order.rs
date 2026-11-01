@@ -287,7 +287,7 @@ fn cancel(commands: &mut Commands, ingame: &mut crate::ingame::state::State) {
 
 #[allow(clippy::too_many_arguments)]
 pub fn on_click(
-    mut click: On<Pointer<Click>>,
+    mut click: On<PointerClick>,
     g: Res<GameConfig>,
     mut commands: Commands,
     _buttons: Res<ButtonInput<MouseButton>>,
@@ -301,7 +301,7 @@ pub fn on_click(
 ) {
     let_some!(g = &g.0, return);
     let_some!(identity = &network.identity, return);
-    let point = click.pointer_location.position;
+    let point = click.pointer.position;
     let point = cursor_to!(point, camera, &g.w, WorldVec2);
     let individual = individuals.get(click.event_target()).ok();
     let individual = individual.map(|i| i.0);

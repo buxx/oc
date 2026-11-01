@@ -25,38 +25,35 @@ pub fn morale() -> impl Scene {
             flex_shrink: 0.,
         }
         Children [
-            (
+            Node {
+                width: percent(50),
+                height: percent(100),
+                justify_content: JustifyContent::FlexEnd,
+            }
+            BackgroundColor(BG)
+            Children [
+                MoraleFillA
                 Node {
-                    width: percent(50),
+                    width: percent(100),
                     height: percent(100),
-                    justify_content: JustifyContent::FlexEnd,
                 }
-                BackgroundColor(BG)
-                Children [
-                    MoraleFillA
-                    Node {
-                        width: percent(100),
-                        height: percent(100),
-                    }
-                    BackgroundColor(COLOR_A)
-                ]
-            ),
-            (
+                BackgroundColor(COLOR_A)
+            ]
+            --
+            Node {
+                width: percent(50),
+                height: percent(100),
+                justify_content: JustifyContent::FlexStart,
+            }
+            BackgroundColor(BG)
+            Children [
+                MoraleFillB
                 Node {
-                    width: percent(50),
+                    width: percent(100),
                     height: percent(100),
-                    justify_content: JustifyContent::FlexStart,
                 }
-                BackgroundColor(BG)
-                Children [
-                    MoraleFillB
-                    Node {
-                        width: percent(100),
-                        height: percent(100),
-                    }
-                    BackgroundColor(COLOR_B)
-                ]
-            ),
+                BackgroundColor(COLOR_B)
+            ]
         ]
     }
 }

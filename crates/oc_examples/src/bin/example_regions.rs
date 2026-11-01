@@ -8,7 +8,7 @@ use std::{
 
 use bevy::prelude::*;
 
-use anyhow::Context;
+use anyhow::Context as ContextExt;
 use clap::{Parser, ValueEnum};
 use oc_battle_gui::{
     ingame::{

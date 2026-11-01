@@ -324,7 +324,7 @@ pub fn on_insert_individual(
 }
 
 fn on_click(
-    mut event: On<Pointer<Click>>,
+    mut event: On<PointerClick>,
     mut commands: Commands,
     mut state: ResMut<super::state::State>,
     world: Res<World>,

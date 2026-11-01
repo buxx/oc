@@ -74,14 +74,13 @@ fn hud(world: &crate::world::World, phase: &BattlePhase) -> impl Scene {
         }
         BackgroundColor(HUD_BG)
         Children [
-            // Squads
-            ({ squads::squads_column() }),
-            // Squad
-            ({ squad::squad() }),
-            // Actions
-            ({ actions::actions(world, phase) }),
-            // Minimap
-            ({ minimap::minimap() }),
+            @{ squads::squads_column() }
+            --
+            @{ squad::squad() }
+            --
+            @{ actions::actions(world, phase) }
+            --
+            @{ minimap::minimap() }
         ]
     }
 }

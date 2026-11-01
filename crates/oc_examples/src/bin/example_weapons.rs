@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use bevy::prelude::*;
 
-use anyhow::Context;
+use anyhow::Context as ContextExt;
 use clap::{Parser, ValueEnum};
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;

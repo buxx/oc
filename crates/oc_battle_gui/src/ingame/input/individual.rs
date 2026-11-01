@@ -60,7 +60,7 @@ impl UpdatePhysicsEvent<ProjectileId> for UpdateProjectilePhysicsEvent {
 
 #[allow(clippy::too_many_arguments)]
 pub fn on_click(
-    mut click: On<Pointer<Click>>,
+    mut click: On<PointerClick>,
     g: Res<GameConfig>,
     mut commands: Commands,
     ingame: ResMut<crate::ingame::state::State>,
@@ -76,7 +76,7 @@ pub fn on_click(
         return;
     }
 
-    let point = click.pointer_location.position;
+    let point = click.pointer.position;
     let point = cursor_to!(point, camera, &g.w, WorldVec2);
 
     if !ingame.selected_squads().is_empty() && click.button == PointerButton::Secondary {

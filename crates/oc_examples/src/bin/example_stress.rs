@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used)]
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use clap::Parser;
 use oc_battle_gui::{ingame::GameConfigReceived, network::output::ToServerEvent};

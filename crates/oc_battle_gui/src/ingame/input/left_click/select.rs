@@ -131,7 +131,7 @@ pub fn area(
 }
 
 /// Un select all. Observer which select must stop propagation to avoid execute this observer.
-pub fn unselect(click: On<Pointer<Click>>, mut state: ResMut<State>, mut commands: Commands) {
+pub fn unselect(click: On<PointerClick>, mut state: ResMut<State>, mut commands: Commands) {
     if click.button == PointerButton::Primary {
         let updated = state.update_selected(vec![], vec![], vec![]);
         commands.trigger(updated);

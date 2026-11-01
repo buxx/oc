@@ -12,7 +12,7 @@ pub trait Choice<E: Event + Clone + std::fmt::Debug>: IntoEnumIterator + Compone
 }
 
 pub fn choose<T: ContextualMenu + Send + Sync + 'static>(
-    event: On<Pointer<Press>>,
+    event: On<PointerPress>,
     items: Query<&T::Choices>,
     mut commands: Commands,
 ) where
@@ -33,7 +33,6 @@ pub fn context_item<T: Choice<E>, E: Event + Clone + std::fmt::Debug>(
     (
         Name::new(format!("item-{}", item.name())),
         item,
-        Button,
         Node {
             // padding: UiRect::all(px(5)),
             ..default()
@@ -42,46 +41,8 @@ pub fn context_item<T: Choice<E>, E: Event + Clone + std::fmt::Debug>(
     )
 }
 
-// pub fn on_over<T: ContextualMenu + Send + Sync + 'static>(
-//     mut event: On<Pointer<Over>>,
-//     mut items: Query<&mut ImageNode, With<T::Choices>>,
-// ) {
-//     let Ok(image) = items.get_mut(event.original_event_target()) else {
-//         return;
-//     };
-//     event.propagate(false);
-//     println!("IN");
-// }
-
-// pub fn on_out<T: ContextualMenu + Send + Sync + 'static>(
-//     mut event: On<Pointer<Out>>,
-//     mut items: Query<&mut ImageNode, With<T::Choices>>,
-// ) {
-//     let Ok(image) = items.get_mut(event.original_event_target()) else {
-//         return;
-//     };
-//     event.propagate(false);
-//     println!("OUT");
-// }
-
-// pub fn on_over<T>(mut event: On<Pointer<Over>>)
-// where
-//     T: ContextualMenu + Send + Sync + 'static,
-// {
-//     println!("in");
-//     event.propagate(false);
-// }
-
-// pub fn on_out<T>(mut event: On<Pointer<Out>>)
-// where
-//     T: ContextualMenu + Send + Sync + 'static,
-// {
-//     println!("out");
-//     event.propagate(false);
-// }
-
 pub fn on_over<T: ContextualMenu + Send + Sync + 'static>(
-    event: On<Pointer<Over>>,
+    event: On<PointerOver>,
     items: Query<(&T::Choices, &Children)>,
     mut images: Query<&mut ImageNode>,
 ) {
@@ -98,7 +59,7 @@ pub fn on_over<T: ContextualMenu + Send + Sync + 'static>(
 }
 
 pub fn on_out<T: ContextualMenu + Send + Sync + 'static>(
-    event: On<Pointer<Out>>,
+    event: On<PointerOut>,
     items: Query<(&T::Choices, &Children)>,
     mut images: Query<&mut ImageNode>,
 ) {

@@ -6,7 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use anyhow::Context;
+use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
 use oc_battle_gui::{

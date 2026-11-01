@@ -23,13 +23,13 @@ fn setup<T: Hover + Send + Sync + 'static>(mut config: ResMut<GizmoConfigStore>)
 }
 
 /// Registered on bundle.observe which wanted to be hovered capable
-pub fn over(e: On<Pointer<Over>>, mut q: Query<&mut Hovered>) {
+pub fn over(e: On<PointerOver>, mut q: Query<&mut Hovered>) {
     let_ok!(mut h = q.get_mut(e.event_target()), return);
     h.0 = true;
 }
 
 /// Registered on bundle.observe which wanted to be hovered capable
-pub fn out(e: On<Pointer<Out>>, mut q: Query<&mut Hovered>) {
+pub fn out(e: On<PointerOut>, mut q: Query<&mut Hovered>) {
     let_ok!(mut h = q.get_mut(e.event_target()), return);
     h.0 = false;
 }

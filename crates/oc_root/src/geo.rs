@@ -154,13 +154,6 @@ impl WcfgFrom<BevyVec2> for WorldVec2 {
     }
 }
 
-#[cfg(feature = "bevy")]
-impl From<WorldVec2> for bevy::math::Vec2 {
-    fn from(value: WorldVec2) -> Self {
-        bevy::math::Vec2::new(value.x, value.y)
-    }
-}
-
 impl From<WorldVec2> for Vec2 {
     fn from(value: WorldVec2) -> Self {
         Vec2::new(value.x, value.y)
@@ -226,13 +219,6 @@ impl std::ops::SubAssign for WorldVec3 {
         self.x -= rhs.x;
         self.y -= rhs.y;
         self.z -= rhs.z;
-    }
-}
-
-#[cfg(feature = "bevy")]
-impl From<WorldVec3> for bevy::math::Vec3 {
-    fn from(value: WorldVec3) -> Self {
-        bevy::math::Vec3::new(value.x, value.y, value.z)
     }
 }
 

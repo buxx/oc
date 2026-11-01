@@ -160,6 +160,10 @@ impl Display for Tab {
 impl<'a, 'b, 'w, 's, 'c, 'z> egui_dock::TabViewer for InContext<'a, 'b, 'w, 's, 'c, 'z> {
     type Tab = Tab;
 
+    fn id(&mut self, tab: &mut Self::Tab) -> egui_dock::egui::Id {
+        egui_dock::egui::Id::new(tab.to_string())
+    }
+
     fn title(&mut self, tab: &mut Self::Tab) -> egui_dock::egui::WidgetText {
         tab.to_string().into()
     }

@@ -7,7 +7,7 @@ edition = "2024"
 workspace = true
 
 [features]
-debug = ["bevy/bevy_dev_tools", "oc_network/debug", "oc_physics/debug"]
+debug = ["bevy/bevy_dev_tools", "bevy/render_dev_tools", "oc_network/debug", "oc_physics/debug"]
 
 [dependencies]
 oc_root = { path = "../oc_root", features = ["bevy", "clap"] }
@@ -23,7 +23,6 @@ oc_individual = { path = "../oc_individual", features = ["bevy"] }
 oc_projectile = { path = "../oc_projectile" }
 enum_type_derive = { path = "../enum_type_derive" }
 bevy_heightmap = { path = "../bevy_heightmap" }
-bevy_editor_cam = "0.10.1"
 bevy.workspace = true
 bevy_spritesheet_animation.workspace = true
 tracing.workspace = true

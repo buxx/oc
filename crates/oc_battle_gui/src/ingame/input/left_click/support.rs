@@ -62,7 +62,7 @@ pub fn system(
 }
 
 pub fn on_click(
-    mut click: On<Pointer<Click>>,
+    mut click: On<PointerClick>,
     g: Res<GameConfig>,
     mut commands: Commands,
     camera: Single<(&Camera, &GlobalTransform)>,
@@ -76,7 +76,7 @@ pub fn on_click(
 
     match click.button {
         PointerButton::Primary => {
-            let point = click.pointer_location.position;
+            let point = click.pointer.position;
             let point = cursor_to!(point, camera, &g.w, WorldVec2);
             tracing::trace!(name="ingame-input-left-click-support-request", type_=?type_, point=?point);
             requested.set(*type_, point);

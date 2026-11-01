@@ -12,7 +12,7 @@ use std::{
 
 use bevy::prelude::*;
 
-use anyhow::Context;
+use anyhow::Context as ContextExt;
 use clap::{Parser, ValueEnum};
 #[cfg(feature = "test")]
 use oc_battle_gui::{

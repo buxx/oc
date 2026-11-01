@@ -1,7 +1,3 @@
-#[cfg(feature = "bevy")]
-use bevy::math::Vec2 as BevyVec2;
-#[cfg(feature = "bevy")]
-use bevy::math::Vec3 as BevyVec3;
 use glam::{Vec2, Vec3};
 
 use crate::WorldConfig;
@@ -51,28 +47,6 @@ impl Y<[f32; 3]> for [f32; 3] {
 
     fn to_gui_y(&self, w: &WorldConfig) -> [f32; 3] {
         [self[0], w.world_height_pixels as f32 - self[1], self[2]]
-    }
-}
-
-#[cfg(feature = "bevy")]
-impl Y<BevyVec2> for BevyVec2 {
-    fn to_world_y(&self, w: &WorldConfig) -> BevyVec2 {
-        BevyVec2::new(self.x, w.world_height_pixels as f32 - self.y)
-    }
-
-    fn to_gui_y(&self, w: &WorldConfig) -> BevyVec2 {
-        BevyVec2::new(self.x, w.world_height_pixels as f32 - self.y)
-    }
-}
-
-#[cfg(feature = "bevy")]
-impl Y<BevyVec3> for BevyVec3 {
-    fn to_world_y(&self, w: &WorldConfig) -> BevyVec3 {
-        BevyVec3::new(self.x, w.world_height_pixels as f32 - self.y, self.z)
-    }
-
-    fn to_gui_y(&self, w: &WorldConfig) -> BevyVec3 {
-        BevyVec3::new(self.x, w.world_height_pixels as f32 - self.y, self.z)
     }
 }
 

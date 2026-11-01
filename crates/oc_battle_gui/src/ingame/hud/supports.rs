@@ -1,12 +1,11 @@
-use bevy::prelude::*;
-use oc_utils::{let_ok, true_};
-use oc_world::support::SupportType;
-
 use crate::ingame::{
     hud::GAP,
     input::left_click::{LeftClickMode, SetLeftClick, support::RequestedSupports},
 };
 use crate::world::World;
+use bevy::prelude::*;
+use oc_utils::{let_ok, true_};
+use oc_world::support::SupportType;
 
 const BUTTON_BG: Color = Color::srgb(0.25, 0.25, 0.25);
 const BUTTON_BG_HOVER: Color = Color::srgb(0.4, 0.4, 0.4);
@@ -54,12 +53,10 @@ fn support_button(support: (SupportType, bool)) -> impl Scene {
         on(on_out)
         on(on_click)
         Children [
-            (
-                Text({label})
-                TextFont { font_size: px(12) }
-                TextColor({text})
-                Pickable::IGNORE
-            )
+            Text({label})
+            TextFont { font_size: px(12) }
+            TextColor({text})
+            Pickable::IGNORE
         ]
     }
 }
@@ -86,7 +83,7 @@ pub fn spawn_support_buttons(
     }
 }
 
-fn on_hover(e: On<Pointer<Over>>, mut q: Query<(&SupportButton, &mut BackgroundColor)>) {
+fn on_hover(e: On<PointerOver>, mut q: Query<(&SupportButton, &mut BackgroundColor)>) {
     if let Ok((button, mut bg)) = q.get_mut(e.entity)
         && button.available
     {
@@ -94,7 +91,7 @@ fn on_hover(e: On<Pointer<Over>>, mut q: Query<(&SupportButton, &mut BackgroundC
     }
 }
 
-fn on_out(e: On<Pointer<Out>>, mut q: Query<(&SupportButton, &mut BackgroundColor)>) {
+fn on_out(e: On<PointerOut>, mut q: Query<(&SupportButton, &mut BackgroundColor)>) {
     if let Ok((button, mut bg)) = q.get_mut(e.entity)
         && button.available
     {
@@ -102,7 +99,7 @@ fn on_out(e: On<Pointer<Out>>, mut q: Query<(&SupportButton, &mut BackgroundColo
     }
 }
 
-fn on_click(mut e: On<Pointer<Click>>, mut commands: Commands, buttons: Query<&SupportButton>) {
+fn on_click(mut e: On<PointerClick>, mut commands: Commands, buttons: Query<&SupportButton>) {
     let_ok!(button = buttons.get(e.entity), return);
     e.propagate(false);
     true_!(button.available, return);
