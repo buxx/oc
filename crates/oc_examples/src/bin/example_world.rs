@@ -284,11 +284,12 @@ fn on_battle_phase(
                 watch.end = Some((time.elapsed(), position));
             };
         }
-        _ => {
-            eprintln!("❌ Expected End::Time, got {:?}", phase.end());
+        (oc_battle_gui::ingame::BattlePhase::End, end) => {
+            eprintln!("❌ Expected End::Time, got {:?}", end);
             commands.write_message(AppExit::from_code(0));
-            return;
         }
+        // Not ended yet (ex: start of fight)
+        _ => {}
     }
 }
 

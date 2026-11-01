@@ -76,7 +76,7 @@ impl Args {
             | TestCase::EngageOneByOne
             | TestCase::FarMachineGun
             | TestCase::Hedge => Duration::from_secs(10),
-            TestCase::Suppressed | TestCase::SuppressFire => Duration::from_secs(25),
+            TestCase::Suppressed | TestCase::SuppressFire => Duration::from_secs(45),
             TestCase::MoveToHiding | TestCase::MoveToHidingThenDiscover => Duration::from_secs(30),
         }
     }

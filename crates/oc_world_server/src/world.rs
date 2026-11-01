@@ -166,6 +166,12 @@ impl Processor<'_> {
             return None;
         }
 
+        // A side without any individual (even dead) can't be broken: nothing to measure
+        let has_individuals = |side| self.world.individuals().iter().any(|i| i.side == side);
+        if !has_individuals(Side::A) || !has_individuals(Side::B) {
+            return None;
+        }
+
         let broken = self.broken_side()?;
         let result = self.battle_result();
 
