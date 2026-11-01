@@ -17,6 +17,8 @@ derive_more = { workspace = true, features = ["constructor", "deref", "from", "i
 serde = { workspace = true, features = ["serde_derive"] }
 serde_derive = { workspace = true }
 glam.workspace = true
+strum.workspace = true
+strum_macros.workspace = true
 bevy = { workspace = true, optional = true }
 uuid.workspace = true
 clap = { workspace = true, optional = true }

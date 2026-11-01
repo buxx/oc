@@ -72,6 +72,7 @@ pub struct ExplosionDebugDisplay {
     kill_rayon: f32,
     stunned_rayon: f32,
     shrapnel_rayon: f32,
+    destruction_rayon: f32,
     shrapnels: Vec<(Vec2, Vec2)>,
 }
 
@@ -87,6 +88,7 @@ pub fn spawn_debug(
         kill_rayon: debug.kill_rayon.pixels(&g.w),
         stunned_rayon: debug.stunned_rayon.pixels(&g.w),
         shrapnel_rayon: debug.shrapnel_rayon.pixels(&g.w),
+        destruction_rayon: debug.destruction_rayon.pixels(&g.w),
         shrapnels: debug
             .shrapnels
             .iter()
@@ -112,10 +114,13 @@ pub fn draw_debug(
             commands.entity(entity).despawn();
             continue;
         }
+
         let center = display.center;
         gizmos.circle_2d(center, display.kill_rayon, Color::srgb(1., 0., 0.));
         gizmos.circle_2d(center, display.stunned_rayon, Color::srgb(1., 0.6, 0.));
         gizmos.circle_2d(center, display.shrapnel_rayon, Color::srgb(1., 1., 0.));
+        gizmos.circle_2d(center, display.destruction_rayon, Color::srgb(0.7, 0.3, 1.));
+
         for (a, b) in &display.shrapnels {
             gizmos.line_2d(*a, *b, Color::srgb(1., 1., 1.));
         }

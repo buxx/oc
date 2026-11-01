@@ -111,4 +111,19 @@
    <property name="ID" value="ThickSheetMetal"/>
   </properties>
  </tile>
+ <tile id="300">
+  <properties>
+   <property name="ID" value="BrickWallDebris"/>
+  </properties>
+ </tile>
+ <tile id="301">
+  <properties>
+   <property name="ID" value="ConcreteWallDebris"/>
+  </properties>
+ </tile>
+ <tile id="302">
+  <properties>
+   <property name="ID" value="VegetalDebris"/>
+  </properties>
+ </tile>
 </tileset>

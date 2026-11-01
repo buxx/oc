@@ -1,23 +1,35 @@
 use std::time::Instant;
 
+use line_drawing::Bresenham3d;
 use oc_geo::region::WorldRegionIndex;
 use oc_geo::tile::{TileXy, WorldTileIndex};
-use oc_individual::{INDIVIDUAL_PRONE_VOLUME_WIDTH, IndividualIndex, Status};
-use oc_lov::{Modifier, PathBuilder};
+use oc_individual::{IndividualIndex, Status, Update as IndividualUpdate};
 use oc_mod::Mod;
+use oc_mod::nature::NatureIndex;
 use oc_physics::fx;
+use oc_root::alter::Alter;
 use oc_root::explosion::Explosion;
 use oc_root::geo::{WorldVec2, WorldVec3};
-use oc_root::{Client, WcfgFrom, WcfgInto};
+use oc_root::{Client, WcfgFrom, WcfgInto, WorldConfig};
 use oc_utils::let_some;
+use oc_utils::polygon::Polygon;
 use oc_world::World;
+use oc_world::interior::Interior;
+use oc_world::tile::AlteredTile;
 use rustc_hash::FxHashSet;
 
-use super::update::ExplosionOrigin;
+use super::update::{ExplosionOrigin, Update};
 use crate::individual::death::die;
 use crate::routing::Listening;
-use crate::visibility::path_objects_at;
 use oc_network::ToClient;
+
+/// Alters used when an interior no define `destruction_alter_natures`
+const DEFAULT_INTERIOR_DESTRUCTION_ALTERS: [Alter; 4] = [
+    Alter::BrickDebris,
+    Alter::MixedDebris,
+    Alter::StoneDebris,
+    Alter::WoodDebris,
+];
 
 impl<E: Client> super::State<E> {
     pub fn spawn_explosion(
@@ -63,12 +75,36 @@ impl<E: Client> super::State<E> {
             let mut killed = FxHashSet::default();
             let mut updates = vec![];
 
-            // Individuals in kill rayon die
+            // Individuals in kill rayon die, unless protected by an interior
             for i in &individuals {
-                if distance(*i) <= kill_rayon {
+                if distance(*i) <= kill_rayon
+                    && !protected_by_interior(
+                        &world,
+                        mod_,
+                        &explosion,
+                        world.individual(*i).position.into(),
+                        position,
+                    )
+                {
                     killed.insert(*i);
                     updates.extend(die(&world, mod_, *i));
                 }
+            }
+
+            // Survivors in stunned rayon are stunned
+            let stunned_value = w.explosion_stunned_value();
+            for i in &individuals {
+                if !killed.contains(i) && distance(*i) <= stunned_rayon {
+                    updates.push(Update::UpdateIndividual(
+                        *i,
+                        IndividualUpdate::SetStatus(Status::Stunned(stunned_value)),
+                    ));
+                }
+            }
+
+            let destructed = destructed_tiles(&world, mod_, &explosion, position);
+            if !destructed.is_empty() {
+                updates.push(Update::AlterTiles(destructed));
             }
 
             // Shrapnels
@@ -90,6 +126,7 @@ impl<E: Client> super::State<E> {
                 kill_rayon: explosion.kill_rayon,
                 stunned_rayon: explosion.stunned_rayon,
                 shrapnel_rayon: explosion.shrapnel_rayon,
+                destruction_rayon: explosion.destruction_rayon,
                 shrapnels: _shrapnel_lines,
             }));
             #[cfg(not(feature = "debug"))]
@@ -126,8 +163,182 @@ impl<E: Client> super::State<E> {
     }
 }
 
+fn destructed_tiles(
+    world: &World,
+    mod_: &Mod,
+    explosion: &Explosion,
+    position: WorldVec2,
+) -> Vec<AlteredTile> {
+    tiles_in_destruction_rayon(world, explosion, position)
+        .into_iter()
+        .filter_map(|i| destructed_tile(world, mod_, explosion, i))
+        .collect()
+}
+
+/// Tiles whose center is in the explosion destruction rayon
+fn tiles_in_destruction_rayon(
+    world: &World,
+    explosion: &Explosion,
+    position: WorldVec2,
+) -> Vec<WorldTileIndex> {
+    let w = &world.w;
+    let rayon = explosion.destruction_rayon.pixels(w);
+    let pixels_per_tile = w.geo_pixels_per_tile() as f32;
+    let center = WorldTileIndex::from_(TileXy::from_(position, w), w);
+    let tiles_rayon = (rayon / pixels_per_tile).ceil() as u64;
+
+    crate::utils::d2::shape_from_tile(center, tiles_rayon, w)
+        .into_iter()
+        .filter(|i| {
+            let tile_center = tile_center(w, *i);
+            let (dx, dy) = (tile_center.x - position.x, tile_center.y - position.y);
+            (dx * dx + dy * dy).sqrt() <= rayon
+        })
+        .collect()
+}
+
+/// Alteration of tile if the explosion destroys it
+fn destructed_tile(
+    world: &World,
+    mod_: &Mod,
+    explosion: &Explosion,
+    i: WorldTileIndex,
+) -> Option<AlteredTile> {
+    let nature = mod_.nature(tile_nature(world, i)?);
+    let center = tile_center(&world.w, i);
+
+    match world
+        .interiors
+        .iter()
+        .find(|interior| interior.contains(center))
+    {
+        // Tile in an interior is destructed according to the interior, whatever its own
+        // nature (a floor has no `destruction_alter`)
+        Some(interior) => (interior.destruction_resistance < explosion.destruction_force)
+            .then(|| interior_destruction_alter(mod_, interior, i))
+            .flatten()
+            .map(|alter| AlteredTile::new(i, alter)),
+        None => {
+            let alter = nature.destruction_alter?;
+            (nature.destruction_resistance < explosion.destruction_force)
+                .then_some(AlteredTile::new(i, alter))
+        }
+    }
+}
+
+/// Individual inside an interior is protected when:
+/// - explosion is inside this interior and the interior penetration protection is enough
+/// - explosion is outside this interior and a tile on the line between them resists to the
+///   explosion destruction force
+///
+/// An interior is considered as penetrated when explosion is on an altered tile.
+fn protected_by_interior(
+    world: &World,
+    mod_: &Mod,
+    explosion: &Explosion,
+    individual: WorldVec2,
+    position: WorldVec2,
+) -> bool {
+    let Some(interior) = world.interiors.iter().find(|i| i.contains(individual)) else {
+        return false;
+    };
+
+    // Penetrated if explosion position is on already destructed tile of this interior. A tile
+    // outside the interior (like a wall one) can be destructed without penetrating the interior.
+    let explosion_tile = WorldTileIndex::from_(TileXy::from_(position, &world.w), &world.w);
+    if world.altered_tiles[explosion_tile.0 as usize].is_some()
+        && interior.contains(tile_center(&world.w, explosion_tile))
+    {
+        return false;
+    }
+
+    // Individual is protected if interior resist to explosion penetration
+    if interior.contains(position) {
+        return !interior.penetrated(position, explosion.penetration_force);
+    }
+
+    // Test if line between explosion and individual stopped by tile with enough destruction_resistance
+    line_tiles(&world.w, position, individual)
+        .into_iter()
+        .any(|i| {
+            tile_destruction_resistance(world, mod_, i)
+                .is_some_and(|resistance| resistance >= explosion.destruction_force)
+        })
+}
+
+/// Nature given to tile destructed in interior: one of the interior ones, else the first nature of
+/// one of the default alters (picked by tile index)
+fn interior_destruction_alter(
+    mod_: &Mod,
+    interior: &Interior,
+    i: WorldTileIndex,
+) -> Option<NatureIndex> {
+    match &interior.destruction_alter_natures {
+        Some(names) => i.pick(names, 2).and_then(|name| mod_.nature_index(name)),
+        None => {
+            let natures: Vec<NatureIndex> = DEFAULT_INTERIOR_DESTRUCTION_ALTERS
+                .iter()
+                .map(|alter| mod_.alter_nature(*alter))
+                .collect();
+            i.pick(&natures, 2).copied()
+        }
+    }
+}
+
+/// Center of tile
+fn tile_center(w: &WorldConfig, i: WorldTileIndex) -> WorldVec2 {
+    let pixels_per_tile = w.geo_pixels_per_tile() as f32;
+    let position = WorldVec2::from_(TileXy::from_(i, w), w);
+    WorldVec2::new(
+        position.x + pixels_per_tile / 2.,
+        position.y + pixels_per_tile / 2.,
+    )
+}
+
+/// Nature of tile, considering its alteration
+fn tile_nature(world: &World, i: WorldTileIndex) -> Option<oc_mod::nature::NatureIndex> {
+    let tile = world.tile(i)?;
+    Some(match &world.altered_tiles[i.0 as usize] {
+        Some(altered) => altered.nature,
+        None => tile.nature,
+    })
+}
+
+/// Destruction resistance of tile: the strongest of its nature one (a wall) and the one of the
+/// interior containing it
+fn tile_destruction_resistance(world: &World, mod_: &Mod, i: WorldTileIndex) -> Option<f32> {
+    let center = tile_center(&world.w, i);
+    let nature = mod_.nature(tile_nature(world, i)?).destruction_resistance;
+
+    Some(
+        match world
+            .interiors
+            .iter()
+            .find(|interior| interior.contains(center))
+        {
+            Some(interior) => nature.max(interior.destruction_resistance),
+            None => nature,
+        },
+    )
+}
+
+fn line_tiles(w: &WorldConfig, a: WorldVec2, b: WorldVec2) -> Vec<WorldTileIndex> {
+    let start = (a.x.round() as isize, a.y.round() as isize, 0);
+    let end = (b.x.round() as isize, b.y.round() as isize, 0);
+
+    let mut tiles: Vec<WorldTileIndex> = vec![];
+    for (x, y, _) in Bresenham3d::new(start, end) {
+        let tile = WorldTileIndex::from_(TileXy::from_(WorldVec2::new(x as f32, y as f32), w), w);
+        if tiles.last() != Some(&tile) {
+            tiles.push(tile);
+        }
+    }
+
+    tiles
+}
+
 // WARNING: AI generated
-/// Individuals killed by explosion's shrapnels
+/// Individuals killed by explosion's shrapnels. Individuals inside an interior are not concerned.
 fn shrapnels(
     world: &World,
     mod_: &Mod,
@@ -137,9 +348,6 @@ fn shrapnels(
 ) -> (FxHashSet<IndividualIndex>, Vec<(WorldVec2, WorldVec2)>) {
     let w = &world.w;
     let shrapnel_rayon = explosion.shrapnel_rayon.pixels(w);
-    let hit_radius = INDIVIDUAL_PRONE_VOLUME_WIDTH.pixels(w) / 2.; // Arbitrary choice to simplify
-    let at = |xy, z| path_objects_at(w, mod_, world, xy, z);
-    let builder = PathBuilder::new(w, at);
     let distance = |i: IndividualIndex| {
         let p = world.individual(i).position;
         ((p.x - start.x).powi(2) + (p.y - start.y).powi(2)).sqrt()
@@ -147,7 +355,11 @@ fn shrapnels(
     let candidates: Vec<IndividualIndex> = candidates
         .iter()
         .copied()
-        .filter(|i| distance(*i) <= shrapnel_rayon + hit_radius)
+        .filter(|i| distance(*i) <= shrapnel_rayon)
+        .filter(|i| {
+            let p = world.individual(*i).position.into();
+            !world.interiors.iter().any(|interior| interior.contains(p))
+        })
         .collect();
     let mut killed = FxHashSet::default();
     let mut lines = Vec::with_capacity(explosion.shrapnel_quantity as usize);
@@ -166,16 +378,20 @@ fn shrapnels(
             WorldVec2::new(end.x, end.y),
         ));
 
+        // Individual is killed only if on the line of shrapnel and no tile stop it before
+        let tiles = line_tiles(
+            w,
+            WorldVec2::new(start.x, start.y),
+            WorldVec2::new(end.x, end.y),
+        );
         for i in &candidates {
             let p = world.individual(*i).position;
-            if distance_to_segment(p, start, end) > hit_radius {
+            let tile = WorldTileIndex::from_(TileXy::from_(WorldVec2::new(p.x, p.y), w), w);
+            let Some(reached) = tiles.iter().position(|t| *t == tile) else {
                 continue;
-            }
+            };
 
-            // Shrapnel reach individual if nothing stop it on the way
-            let path = builder.build(start, p, 0, Modifier::None(true));
-            let opacity = path.sections.last().map(|s| s.opacity.0).unwrap_or(0.);
-            if opacity < 1.0 {
+            if !shrapnel_stopped(world, mod_, start, &tiles[..reached]) {
                 killed.insert(*i);
             }
         }
@@ -184,16 +400,75 @@ fn shrapnels(
     (killed, lines)
 }
 
-// WARNING: AI generated
-/// Distance (2d) between point and segment
-fn distance_to_segment(p: WorldVec3, a: WorldVec3, b: WorldVec3) -> f32 {
-    let (abx, aby) = (b.x - a.x, b.y - a.y);
-    let length2 = abx * abx + aby * aby;
-    let t = if length2 == 0. {
-        0.
-    } else {
-        (((p.x - a.x) * abx + (p.y - a.y) * aby) / length2).clamp(0., 1.)
-    };
-    let (cx, cy) = (a.x + t * abx, a.y + t * aby);
-    ((p.x - cx).powi(2) + (p.y - cy).powi(2)).sqrt()
+/// Is shrapnel (flying at `start` z) stopped by one of `tiles` (those of its line before the
+/// individual), like projectiles: tile ground, tile volume not traversable by projectile, or
+/// random tile interception. Tile of start is ignored.
+fn shrapnel_stopped(world: &World, mod_: &Mod, start: WorldVec3, tiles: &[WorldTileIndex]) -> bool {
+    let w = &world.w;
+    let start_xy = WorldVec2::new(start.x, start.y);
+    if world
+        .interiors
+        .iter()
+        .any(|interior| interior.contains(start_xy))
+    {
+        return true;
+    }
+
+    tiles.iter().skip(1).any(|i| {
+        let Some(tile) = world.tile(*i) else {
+            return false;
+        };
+        let Some(nature) = tile_nature(world, *i).map(|n| mod_.nature(n)) else {
+            return false;
+        };
+
+        let ground = tile.z_pixels(w);
+        if start.z < ground {
+            return true;
+        }
+
+        let top = ground + nature.z.0 * w.geo_pixels_per_meters();
+        if start.z > top {
+            return false;
+        }
+
+        !nature.traversability.projectile
+            || fastrand::f32() < nature.intercept.projectile.probability()
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_line_tiles() {
+        let w = WorldConfig::new(100, 100);
+        let ppt = w.geo_pixels_per_tile() as f32;
+        let tile_at =
+            |x: f32, y: f32| WorldTileIndex::from_(TileXy::from_(WorldVec2::new(x, y), &w), &w);
+
+        // Horizontal line crosses 4 consecutive tiles, without duplicates
+        let tiles = line_tiles(
+            &w,
+            WorldVec2::new(ppt * 0.5, ppt * 0.5),
+            WorldVec2::new(ppt * 3.5, ppt * 0.5),
+        );
+        assert_eq!(
+            tiles,
+            (0..4)
+                .map(|x| tile_at(ppt * (x as f32 + 0.5), ppt * 0.5))
+                .collect::<Vec<_>>()
+        );
+
+        // Same position: only one tile
+        let p = WorldVec2::new(ppt * 2.5, ppt * 2.5);
+        assert_eq!(line_tiles(&w, p, p), vec![tile_at(p.x, p.y)]);
+
+        // Line starts and ends on given tiles
+        let (a, b) = (WorldVec2::new(1., 1.), WorldVec2::new(ppt * 5., ppt * 3.));
+        let tiles = line_tiles(&w, a, b);
+        assert_eq!(tiles.first(), Some(&tile_at(a.x, a.y)));
+        assert_eq!(tiles.last(), Some(&tile_at(b.x, b.y)));
+    }
 }

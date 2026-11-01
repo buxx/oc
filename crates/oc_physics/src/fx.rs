@@ -52,5 +52,6 @@ pub struct ExplosionDebug {
     pub kill_rayon: Meters,
     pub stunned_rayon: Meters,
     pub shrapnel_rayon: Meters,
+    pub destruction_rayon: Meters,
     pub shrapnels: Vec<(WorldVec2, WorldVec2)>,
 }

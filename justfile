@@ -104,6 +104,7 @@ test-e2e speed="":
         test-individual-behaviors-move-fast-straight-ahead-obstacle1
         test-individual-behaviors-move-fast-straight-ahead2
         test-individual-behaviors-move-fast-straight-ahead-obstacle2
+        test-individual-behaviors-stunned
         test-regions-projectile-move-out
         test-regions-projectile-move-in
         test-regions-individual-move-out
@@ -199,6 +200,9 @@ test-individual-behaviors-move-fast-straight-ahead2:
 
 test-individual-behaviors-move-fast-straight-ahead-obstacle2:
     RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-fast-straight-ahead-obstacle --test --count 2
+
+test-individual-behaviors-stunned:
+    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- stunned --test --count 1
 
 test-regions-projectile-move-out:
     RUST_LOG=ERROR cargo run --bin example_regions --features test -- projectile-move-out --test

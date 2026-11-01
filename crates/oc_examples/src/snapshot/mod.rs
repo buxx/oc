@@ -8,7 +8,7 @@ use oc_world::{
     snapshot::{SaveError, Snapshot},
     spawn::SpawnZoneName,
     support::Supports,
-    tile::Tile,
+    tile::{AlteredTile, Tile},
 };
 
 pub mod individual;
@@ -24,6 +24,7 @@ where
     P: projectile::ProjectilesGenerator,
 {
     tiles: T,
+    altered_tiles: Option<Vec<Option<AlteredTile>>>,
     individuals: I,
     squads: S,
     projectiles: P,
@@ -58,11 +59,17 @@ where
             side_a_spawns,
             side_b_spawns,
             supports: Supports::default(),
+            altered_tiles: None,
         }
     }
 
     pub fn with_supports(mut self, supports: Supports) -> Self {
         self.supports = supports;
+        self
+    }
+
+    pub fn with_altered_tiles(mut self, altered_tiles: Vec<Option<AlteredTile>>) -> Self {
+        self.altered_tiles = Some(altered_tiles);
         self
     }
 
@@ -76,10 +83,15 @@ where
         let duration = w.fight_duration();
         let side_a_spawns = self.side_a_spawns.clone();
         let side_b_spawns = self.side_b_spawns.clone();
+        let altered_tiles = self
+            .altered_tiles
+            .clone()
+            .unwrap_or_else(|| vec![None; tiles.len()]);
 
         let snapshot = Snapshot {
             w,
             tiles,
+            altered_tiles,
             individuals,
             squads,
             projectiles,

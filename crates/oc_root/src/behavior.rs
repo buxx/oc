@@ -31,3 +31,35 @@ impl Suppress {
         self
     }
 }
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    PartialEq,
+    serde::Deserialize,
+    serde::Serialize,
+    Eq,
+    PartialOrd,
+    Ord,
+)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Stun(pub u8);
+
+impl Stun {
+    pub fn zero() -> Self {
+        Self(0)
+    }
+
+    pub fn is_zero(&self) -> bool {
+        self.0 == 0
+    }
+
+    pub fn decrease(mut self, value: Stun) -> Stun {
+        self.0 = self.0.saturating_sub(value.0);
+        self
+    }
+}

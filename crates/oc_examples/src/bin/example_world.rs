@@ -11,9 +11,9 @@ use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
 #[cfg(feature = "test")]
 use oc_battle_gui::fx::FxEvent;
-use oc_battle_gui::ingame::GameConfigReceived;
 #[cfg(feature = "test")]
 use oc_battle_gui::ingame::SetBattlePhase;
+use oc_battle_gui::ingame::{GameConfigReceived, camera::move_::CenterCameraOn};
 use oc_battle_gui::network::output::ToServerEvent;
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
@@ -42,6 +42,8 @@ use tests::{
 
 #[cfg(feature = "test")]
 static SUCCESS: AtomicBool = AtomicBool::new(false);
+/// Center of a BrickWall tile (tile 3,15 of meadow1)
+const WALL_POSITION: WorldVec2 = WorldVec2::new(17.5, 77.5);
 
 const MAP: &str = "examples/meadow1";
 
@@ -63,6 +65,7 @@ enum Case {
     Support,
     EndTime,
     EndMorale,
+    ExplosionAlterWall,
 }
 
 #[cfg(feature = "test")]
@@ -154,6 +157,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .make(),
             ],
         ),
+        Case::ExplosionAlterWall => (BattlePhase::Deployment, Supports::default(), vec![], vec![]),
         Case::Support => (
             BattlePhase::Deployment,
             Supports::new(
@@ -196,6 +200,11 @@ fn setup(app: &mut App, center: WorldVec2, #[allow(unused)] speed: f32) {
                 .add_observer(on_game_config_received)
                 .add_systems(Update, request_support_and_fight);
         }
+        Case::ExplosionAlterWall => {
+            app.add_observer(explosion_alter_wall);
+            #[cfg(feature = "test")]
+            app.add_systems(Update, alter_wall_test);
+        }
         Case::EndMorale => {
             app.add_observer(request_fight);
             #[cfg(feature = "test")]
@@ -217,6 +226,66 @@ fn setup(app: &mut App, center: WorldVec2, #[allow(unused)] speed: f32) {
             .add_observer(on_fx)
             .add_systems(Update, timeout_exit);
     }
+}
+
+/// Fire an explosion near the BrickWall square
+fn explosion_alter_wall(_: On<GameConfigReceived>, mut commands: Commands) {
+    let mod_ = Mod::load(&PathBuf::from("mods").join(Args::parse().mod_), None).unwrap();
+    let shell = mod_
+        .shell_from_name("Destruction Only (10 meters)")
+        .unwrap()
+        .index();
+
+    commands.trigger(CenterCameraOn(WALL_POSITION));
+    let explosion = ToServer::DebugExplosion(shell, WALL_POSITION);
+    commands.trigger(ToServerEvent(explosion));
+}
+
+/// Wall tile must be altered into BrickWallDebris and its MixedDebris sprite displayed
+#[cfg(feature = "test")]
+fn alter_wall_test(
+    g: Res<oc_battle_gui::states::GameConfig>,
+    world: Res<oc_battle_gui::world::World>,
+    sprites: Query<(&Sprite, &Transform), With<oc_battle_gui::ingame::tile::AlteredTileSprite>>,
+    mut commands: Commands,
+) {
+    use oc_geo::tile::WorldTileIndex;
+    use oc_root::{WcfgInto, WorldConfig};
+
+    let_some!(g = &g.0, return);
+    let w: &WorldConfig = &g.w;
+    let tile: WorldTileIndex = WALL_POSITION.into_(w);
+    let_some!(
+        brick_debris = g.mod_.nature_index("BrickWallDebris"),
+        return
+    );
+    let altered = world
+        .altered_tiles
+        .values()
+        .filter_map(|tiles| tiles.get(&tile))
+        .any(|t| t.nature == brick_debris);
+    true_!(altered, return);
+
+    // Only some sprites are displayed (minimum distance between them)
+    let mixed_debris = 1; // See sprites/altered.png
+    let positions: Vec<Vec2> = sprites
+        .iter()
+        .filter(|(sprite, _)| sprite.texture_atlas.as_ref().map(|a| a.index) == Some(mixed_debris))
+        .map(|(_, transform)| transform.translation.truncate())
+        .collect();
+    true_!(!positions.is_empty(), return);
+    let spaced = positions
+        .iter()
+        .enumerate()
+        .all(|(i, a)| positions[i + 1..].iter().all(|b| a.distance(*b) >= 20.));
+    if !spaced {
+        eprintln!("❌ Debris sprites closer than 20px");
+        commands.write_message(AppExit::from_code(0));
+        return;
+    }
+
+    SUCCESS.store(true, Ordering::Relaxed);
+    commands.write_message(AppExit::from_code(0));
 }
 
 #[derive(Resource, Default)]

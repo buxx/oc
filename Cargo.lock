@@ -6283,6 +6283,8 @@ dependencies = [
  "rkyv",
  "serde",
  "serde_derive",
+ "strum 0.28.0",
+ "strum_macros 0.28.0",
  "uuid",
 ]
 
@@ -6381,6 +6383,7 @@ dependencies = [
  "glam 0.33.12",
  "gungraun",
  "image 0.25.10",
+ "line_drawing",
  "message-io",
  "num_cpus",
  "oc_deployment",

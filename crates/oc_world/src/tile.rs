@@ -28,6 +28,12 @@ pub struct Tile {
 }
 
 impl Tile {
+    // Apply changes on this tile according to given AlteredTile
+    pub fn alter(&mut self, altered: &AlteredTile, mod_: &Mod) {
+        self.nature = altered.nature;
+        self.allow = mod_.nature(altered.nature).traversability.clone();
+    }
+
     pub fn z_pixels(&self, w: &WorldConfig) -> f32 {
         self.z as f32 * w.geo_meters_per_z().0 * w.geo_pixels_per_meters()
     }
@@ -158,6 +164,13 @@ impl Walls for Vec<Tile> {
             })
             .collect::<Vec<bool>>()
     }
+}
+
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq, Constructor)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct AlteredTile {
+    pub i: WorldTileIndex, // Should not be necessary, but oc_physics::step must take a reference ...
+    pub nature: NatureIndex,
 }
 
 #[cfg(test)]

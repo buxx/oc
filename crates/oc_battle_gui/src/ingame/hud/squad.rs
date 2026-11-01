@@ -14,6 +14,7 @@ use std::time::Duration;
 
 const ROW_BG: Color = Color::srgb(0.2, 0.25, 0.2);
 const STATUS_OPERATIONAL_BG: Color = Color::srgb(0.1, 0.5, 0.15);
+const STATUS_STUNNED_BG: Color = Color::srgba(1.0, 0.55, 0.0, 0.3);
 const STATUS_DEAD_BG: Color = Color::srgb(0.5, 0., 0.);
 const ROW_HEIGHT: f32 = 32.;
 const COLUMNS_WIDTH: f32 = 200.;
@@ -196,6 +197,7 @@ fn status_label(individual: &Individual) -> String {
     match individual.status {
         Status::Dead => String::new(),
         Status::Operational => individual.action_hud_label().to_string(),
+        Status::Stunned(_) => individual.status.hud_label().to_string(),
     }
 }
 
@@ -210,6 +212,7 @@ fn kia_visibility(status: Status) -> Visibility {
 fn status_color(status: Status) -> Color {
     match status {
         Status::Operational => STATUS_OPERATIONAL_BG,
+        Status::Stunned(_) => STATUS_STUNNED_BG,
         Status::Dead => STATUS_DEAD_BG,
     }
 }
