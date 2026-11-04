@@ -408,15 +408,6 @@ fn shrapnels(
 /// Test if shrapnel stopped by one of `tiles` on the path (like projectiles). Tile of start is ignored.
 fn shrapnel_stopped(world: &World, mod_: &Mod, start: WorldVec3, tiles: &[WorldTileIndex]) -> bool {
     let w = &world.w;
-    let start_xy = WorldVec2::new(start.x, start.y);
-
-    // if world
-    //     .interiors
-    //     .iter()
-    //     .any(|interior| interior.contains(start_xy))
-    // {
-    //     return true;
-    // }
 
     tiles.iter().skip(1).any(|i| {
         let Some(tile) = world.tile(*i) else {

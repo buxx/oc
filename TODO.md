@@ -1,2 +1,0 @@
-- [ ] Test visibility accros destroyed wall
-- [ ] Test visibility of opponent individual accross destroyed roof tile

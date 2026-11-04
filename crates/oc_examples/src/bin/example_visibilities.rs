@@ -22,6 +22,8 @@ use oc_battle_gui::{
 };
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
+#[allow(unused_imports)]
+use oc_mod::shell::ShellIndex;
 #[cfg(feature = "test")]
 use oc_root::Wcfg;
 use oc_root::{
@@ -30,6 +32,7 @@ use oc_root::{
     geo::{WorldVec2, WorldVec3},
     physics::Meters,
     side,
+    utils::Frequency,
 };
 #[cfg(feature = "test")]
 use oc_utils::let_some;
@@ -57,7 +60,7 @@ impl Args {
             TestCase::Direct | TestCase::Through | TestCase::NotVisible | TestCase::Hidden => {
                 Duration::from_secs(10)
             }
-            TestCase::Discover => Duration::from_secs(20),
+            TestCase::Discover | TestCase::AlteredWall => Duration::from_secs(20),
             TestCase::MoveThenEnemyVisible => Duration::from_secs(40),
         }
     }
@@ -76,7 +79,14 @@ enum TestCase {
     // FIXME BS NOW 2: when fire on
     // FIXME BS NOW 3: tile nature should sometime (brick wall 90%, trunk 70%, etc) "block" projectile
     Hidden,
+    /// Individual hidden behind walls becomes visible once an explosion destroyed them
+    AlteredWall,
 }
+
+#[allow(unused)]
+const DESTRUCTION_SHELL: ShellIndex = ShellIndex(3); // "Destruction Only (10 meters)"
+#[allow(unused)]
+const ALTERED_WALL_EXPLOSION_POSITION: [f32; 2] = [60., 78.];
 
 fn main() -> Result<(), anyhow::Error> {
     logging::setup_logging()?;
@@ -96,7 +106,8 @@ fn main() -> Result<(), anyhow::Error> {
     let map_ = oc_world::reader::MapReader::new(&map);
     let map_ = map_.context(format!("Read map_ {}", map.display()))?;
     let w = WorldConfig::new(map_.width().unwrap() as u64, map_.height().unwrap() as u64)
-        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z))
+        .with_visibilities_tick(Frequency::each(std::time::Duration::from_millis(100)));
     let tiles = map_.tiles(&w, &mod__).unwrap();
 
     let individuals = individuals(&w, &tiles, &args);
@@ -205,6 +216,18 @@ fn individuals(w: &WorldConfig, _tiles: &Vec<Tile>, args: &Args) -> Vec<oc_indiv
                 .build()
                 .make(w),
         ],
+        TestCase::AlteredWall => vec![
+            TestIndividual::builder()
+                .side(side::Side::A)
+                .position(WorldVec3::new(259., 75., 0.))
+                .build()
+                .make(w),
+            TestIndividual::builder()
+                .side(side::Side::B)
+                .position(WorldVec3::new(33., 78., 0.))
+                .build()
+                .make(w),
+        ],
     }
 }
 
@@ -215,7 +238,11 @@ fn squads(
     args: &Args,
 ) -> Vec<oc_individual::squad::Squad> {
     match args.case {
-        TestCase::Direct | TestCase::Through | TestCase::NotVisible | TestCase::Hidden => vec![
+        TestCase::Direct
+        | TestCase::Through
+        | TestCase::NotVisible
+        | TestCase::Hidden
+        | TestCase::AlteredWall => vec![
             TestSquad::builder()
                 .position(individuals.first().unwrap().position.into())
                 .members(vec![oc_individual::IndividualIndex(0)])
@@ -261,6 +288,8 @@ fn squads(
 }
 
 static SUCCESS: AtomicBool = AtomicBool::new(false);
+#[allow(unused)]
+static EXPLOSION_FIRED: AtomicBool = AtomicBool::new(false);
 
 #[cfg(feature = "test")]
 #[derive(Debug, Resource, Default)]
@@ -292,7 +321,42 @@ fn install(app: &mut bevy::app::App) {
             app.add_systems(Update, tracking)
                 .add_observer(on_set_gesture);
         }
+        TestCase::AlteredWall => {
+            #[cfg(feature = "test")]
+            app.add_systems(Update, tracking)
+                .add_observer(on_set_gesture);
+            #[cfg(feature = "debug")]
+            app.add_systems(Update, fire_explosion);
+        }
     }
+}
+
+/// Destroy the walls
+#[cfg(feature = "debug")]
+fn fire_explosion(
+    mut commands: Commands,
+    mut fired: Local<Option<std::time::Instant>>,
+    individuals: Query<&oc_battle_gui::entity::individual::IndividualIndex>,
+) {
+    use oc_battle_gui::network::output::ToServerEvent;
+    use oc_network::ToServer;
+
+    if individuals.iter().count() < 2 {
+        return;
+    }
+
+    // Let some time to observe the initial (hidden) state
+    let first = *fired.get_or_insert_with(std::time::Instant::now);
+    if first.elapsed() < std::time::Duration::from_secs(2)
+        || EXPLOSION_FIRED.swap(true, Ordering::Relaxed)
+    {
+        return;
+    }
+
+    commands.trigger(ToServerEvent(ToServer::DebugExplosion(
+        DESTRUCTION_SHELL,
+        WorldVec2::from(ALTERED_WALL_EXPLOSION_POSITION),
+    )));
 }
 
 #[cfg(feature = "test")]
@@ -327,6 +391,7 @@ fn tracking(
     let args = Args::parse();
 
     static I2_INVISIBLE_SINCE: Mutex<Option<Instant>> = Mutex::new(None);
+    static I2_HIDDEN_BEFORE_EXPLOSION: AtomicBool = AtomicBool::new(false);
 
     let i1_visible = query
         .iter()
@@ -345,6 +410,10 @@ fn tracking(
 
     if !i2_visible && I2_INVISIBLE_SINCE.lock().unwrap().is_none() {
         *I2_INVISIBLE_SINCE.lock().unwrap() = Some(Instant::now());
+    }
+
+    if !i2_visible && !EXPLOSION_FIRED.load(Ordering::Relaxed) {
+        I2_HIDDEN_BEFORE_EXPLOSION.store(true, Ordering::Relaxed);
     }
 
     if match args.case {
@@ -370,6 +439,12 @@ fn tracking(
             *i == oc_individual::IndividualIndex(0)
                 && matches!(gesture.body, oc_individual::BodyGesture::Prone(_))
         }),
+        TestCase::AlteredWall => {
+            i1_visible
+                && i2_visible
+                && I2_HIDDEN_BEFORE_EXPLOSION.load(Ordering::Relaxed)
+                && EXPLOSION_FIRED.load(Ordering::Relaxed)
+        }
         TestCase::Hidden => {
             i1_visible
                 && !i2_visible
