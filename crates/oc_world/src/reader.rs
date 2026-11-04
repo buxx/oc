@@ -12,7 +12,10 @@ use crate::{
 use glam::Vec2;
 use oc_geo::tile::WorldTileIndex;
 use oc_mod::Mod;
-use oc_root::{WorldConfig, geo::WorldVec2};
+use oc_root::{
+    DEFAULT_INTERIOR_DESTRUCTION_RESISTANCE, DEFAULT_INTERIOR_PENETRATION_PROTECT, WorldConfig,
+    geo::WorldVec2,
+};
 use tiled::{
     FiniteTileLayer, Image, ImageLayer, Layer, LayerType, Loader, Map as TiledMap, ObjectLayer,
     TileLayer, Tileset,
@@ -31,6 +34,9 @@ type DecorTilesets = (Vec<Arc<Tileset>>, HashMap<usize, usize>);
 
 const BACKGROUND_IMAGE_LAYER_NAME: &str = "background_image";
 const INTERIORS_IMAGE_LAYER_NAME: &str = "interiors_image";
+const PENETRATION_PROTECT_KEY: &str = "PENETRATION_PROTECT";
+const DESTRUCTION_ALTER_NATURES_KEY: &str = "DESTRUCTION_ALTER_NATURES";
+const DESTRUCTION_RESISTANCE_KEY: &str = "DESTRUCTION_RESISTANCE";
 const INTERIORS_ZONES_LAYER_NAME: &str = "interiors_zones";
 const SPAWN_ZONES_LAYER_NAME: &str = "spawn_zones";
 const PLACES_LAYER_NAME: &str = "places";
@@ -202,7 +208,40 @@ impl MapReader {
                     let min_y = points.iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
                     let start = WorldVec2::new(min_x, min_y);
 
-                    Interior::new(object.id(), start, points)
+                    let penetration_protect = match object.properties.get(PENETRATION_PROTECT_KEY) {
+                        Some(tiled::PropertyValue::FloatValue(v)) => *v,
+                        Some(tiled::PropertyValue::IntValue(v)) => *v as f32,
+                        _ => DEFAULT_INTERIOR_PENETRATION_PROTECT,
+                    };
+
+                    let destruction_resistance =
+                        match object.properties.get(DESTRUCTION_RESISTANCE_KEY) {
+                            Some(tiled::PropertyValue::FloatValue(v)) => *v,
+                            Some(tiled::PropertyValue::IntValue(v)) => *v as f32,
+                            _ => DEFAULT_INTERIOR_DESTRUCTION_RESISTANCE,
+                        };
+
+                    // Comma separated names
+                    let destruction_alter_natures =
+                        match object.properties.get(DESTRUCTION_ALTER_NATURES_KEY) {
+                            Some(tiled::PropertyValue::StringValue(v)) => Some(
+                                v.split(',')
+                                    .map(str::trim)
+                                    .filter(|name| !name.is_empty())
+                                    .map(String::from)
+                                    .collect(),
+                            ),
+                            _ => None,
+                        };
+
+                    Interior::new(
+                        object.id(),
+                        start,
+                        points,
+                        penetration_protect,
+                        destruction_resistance,
+                        destruction_alter_natures,
+                    )
                 }
                 _ => {
                     return Result::Err(MapReaderError::InvalidLayer(format!(

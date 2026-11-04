@@ -2,7 +2,7 @@ use oc_root::{
     WcfgFrom, WorldConfig,
     geo::{WorldVec2, WorldVec3},
 };
-use oc_utils::d2::Xy;
+use oc_utils::{d2::Xy, true_};
 use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::region::RegionXy;
@@ -130,6 +130,27 @@ impl WcfgFrom<TileXy> for [f32; 3] {
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct WorldTileIndex(pub u64);
+
+impl WorldTileIndex {
+    // WARNING: AI generated
+    /// Deterministic pseudo-random number (splitmix64) from tile index and salt: always the same
+    /// for a given tile
+    pub fn seeded(&self, salt: u64) -> u64 {
+        let mut z = self
+            .0
+            .wrapping_add(salt.wrapping_mul(0xD1B5_4A32_D192_ED03))
+            .wrapping_add(0x9E37_79B9_7F4A_7C15);
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        z ^ (z >> 31)
+    }
+
+    /// Pick one of `items` seeded by tile index and salt
+    pub fn pick<'a, T>(&self, items: &'a [T], salt: u64) -> Option<&'a T> {
+        true_!(!items.is_empty(), return None);
+        items.get((self.seeded(salt) % items.len() as u64) as usize)
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct WorldHeightIndex(pub u64);

@@ -21,7 +21,12 @@ use oc_root::{
     static_::StaticSource,
 };
 use oc_world::{
-    flag::Flags, meta::Meta, morale::Morale, resume::WorldResume, support::SupportType, tile::Tile,
+    flag::Flags,
+    meta::Meta,
+    morale::Morale,
+    resume::WorldResume,
+    support::SupportType,
+    tile::{AlteredTile, Tile},
     visibility::Visibility,
 };
 use rkyv::{Archive, Deserialize, Serialize};
@@ -35,6 +40,7 @@ pub enum ToClient {
     Squad(Squad),
     Projectile(Projectile),
     Tiles(WorldRegionIndex, Vec<(WorldTileIndex, Tile)>),
+    AlteredTiles(WorldRegionIndex, Vec<AlteredTile>),
     Fx(Fx),
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
     SetBattlePhase(BattlePhase),

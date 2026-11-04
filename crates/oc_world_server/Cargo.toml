@@ -41,6 +41,7 @@ uuid.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 glam.workspace = true
+line_drawing.workspace = true
 bon.workspace = true
 anyhow.workspace = true
 ctrlc.workspace = true

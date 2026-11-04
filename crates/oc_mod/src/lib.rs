@@ -9,7 +9,7 @@ use std::{
 use anyhow::Context;
 use derive_more::Constructor;
 use flate2::{Compression, write::GzEncoder};
-use oc_root::{files, physics::Meters};
+use oc_root::{alter::Alter, files, physics::Meters};
 use rkyv::{Archive, Deserialize, Serialize};
 use tar::Builder;
 use thiserror::Error;
@@ -56,6 +56,9 @@ pub struct Mod {
     version: u32,
     #[serde(skip, default)]
     pub natures: Vec<nature::IndexedNature>,
+    /// Matching NatureIndex of `Alter`
+    #[serde(skip, default)]
+    pub alter_natures: [nature::NatureIndex; Alter::COUNT],
     #[serde(skip, default)]
     pub sounds: Vec<sound::IndexedSound>,
     #[serde(default, rename = "sound_groups")]
@@ -84,6 +87,7 @@ impl Mod {
         let mut mod_ = load_mod(path)?;
 
         mod_.natures = nature::load(path)?;
+        mod_.alter_natures = nature::alter_natures(&mod_.natures)?;
         mod_.sounds = sound::load(path)?;
         mod_.sound_groups = mod_.resolve_sound_groups()?;
         mod_.ammunitions = ammunition::load(path)?;
@@ -314,6 +318,10 @@ impl Mod {
 
     pub fn nature(&self, index: NatureIndex) -> &Nature {
         &self.natures[index.0 as usize]
+    }
+
+    pub fn alter_nature(&self, alter: Alter) -> NatureIndex {
+        self.alter_natures[alter.index()]
     }
 
     pub fn nature_index(&self, name: &str) -> Option<NatureIndex> {

@@ -14,8 +14,7 @@ impl<'x, E: Client> Processor<'x, E> {
         let individual = world.individual(i);
         tracing::trace!(name="physics-collision-gunshot", projectile=?projectile, individual=?i);
 
-        // TODO: Compute something according to projectile nature and body status
-        if matches!(individual.status, oc_individual::Status::Operational) {
+        if !individual.status.is_dead() {
             #[cfg(feature = "tracker")]
             {
                 self.ctx.tracker.take().individuals.push((

@@ -1,5 +1,5 @@
 (
-  naval_bombard_shell: "Common Mark 15 Mods 1 through 14",
+  naval_bombard_shell: "5/38 shell",
   naval_bombard_series: 3,
   naval_bombard_shells_by_serie: 5,
   naval_bombard_radius: Meters(30.0),

@@ -49,7 +49,14 @@ impl WorldLoader {
 
         let w = self.w.clone();
         let mod_ = self.mod_.clone();
-        let tiles = snapshot.tiles;
+        let altered_tiles = snapshot.altered_tiles;
+        let mut tiles = snapshot.tiles;
+        // Altered tiles update matching tiles
+        for altered in altered_tiles.iter().flatten() {
+            if let Some(tile) = tiles.get_mut(altered.i.0 as usize) {
+                tile.alter(altered, &mod_);
+            }
+        }
         let individuals = snapshot.individuals;
         let visibilities = Visibilities::empty(individuals.len());
         let squads = snapshot.squads;
@@ -110,6 +117,7 @@ impl WorldLoader {
             supports,
             pending_supports,
             tiles,
+            altered_tiles,
             navmesh,
             visibilities,
             individuals,

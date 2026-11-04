@@ -26,7 +26,7 @@ use oc_physics::collision::Material;
 use oc_physics::volume::Volume;
 use oc_root::WcfgFrom;
 use oc_root::WorldConfig;
-use oc_root::behavior::Suppress;
+use oc_root::behavior::{Stun, Suppress};
 use oc_root::geo::WorldVec2;
 use oc_root::geo::WorldVec3;
 use oc_root::material::MaterialKind;
@@ -227,30 +227,38 @@ impl Individual {
         self.region
     }
 
-    pub fn can_leadership(&self) -> bool {
+    pub fn can_act(&self) -> bool {
         match self.status {
             Status::Operational => true,
+            Status::Stunned(_) => false,
+            Status::Dead => false,
+        }
+    }
+
+    pub fn can_leadership(&self) -> bool {
+        match self.status {
+            Status::Operational | Status::Stunned(_) => true,
             Status::Dead => false,
         }
     }
 
     pub fn can_follow_orders(&self) -> bool {
         match self.status {
-            Status::Operational => true,
+            Status::Operational | Status::Stunned(_) => true,
             Status::Dead => false,
         }
     }
 
     pub fn can_receive_proximity(&self) -> bool {
         match self.status {
-            Status::Operational => true,
+            Status::Operational | Status::Stunned(_) => true,
             Status::Dead => false,
         }
     }
 
     pub fn can_lov(&self) -> bool {
         match self.status {
-            Status::Operational => true,
+            Status::Operational | Status::Stunned(_) => true,
             Status::Dead => false,
         }
     }
@@ -258,7 +266,7 @@ impl Individual {
     /// True if compute lov on it (when dead or incapacitated, false)
     pub fn is_lov_target(&self) -> bool {
         match self.status {
-            Status::Operational => true,
+            Status::Operational | Status::Stunned(_) => true,
             Status::Dead => false,
         }
     }
@@ -266,14 +274,14 @@ impl Individual {
     /// True if consider it as solid (when dead or incapacitated, false)
     pub fn is_solid(&self) -> bool {
         match self.status {
-            Status::Operational => true,
+            Status::Operational | Status::Stunned(_) => true,
             Status::Dead => false,
         }
     }
 
     pub fn is_always_visible(&self) -> bool {
         match self.status {
-            Status::Operational => false,
+            Status::Operational | Status::Stunned(_) => false,
             Status::Dead => true, // Dead are always displayed at screen
         }
     }
@@ -446,20 +454,21 @@ impl<'a> WithIds<IndividualIndex, &'a Individual> for &'a [Individual] {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Status {
     Operational,
+    Stunned(Stun),
     Dead,
 }
 
 impl Status {
     pub fn can_step(&self) -> bool {
         match self {
-            Status::Operational => true,
+            Status::Operational | Status::Stunned(_) => true,
             Status::Dead => false,
         }
     }
 
     pub fn is_target(&self) -> bool {
         match self {
-            Status::Operational => true,
+            Status::Operational | Status::Stunned(_) => true,
             Status::Dead => false,
         }
     }
@@ -467,6 +476,7 @@ impl Status {
     pub fn hud_label(&self) -> &str {
         match self {
             Status::Operational => "Operational",
+            Status::Stunned(_) => "Stunned",
             Status::Dead => "Dead",
         }
     }

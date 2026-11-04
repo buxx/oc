@@ -13,7 +13,7 @@ use oc_battle_gui::states::GameConfig;
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_geo::tile::WorldTileIndex;
 use oc_individual::order::Order;
-use oc_mod::Mod;
+use oc_mod::{Mod, shell::ShellIndex};
 use oc_root::{
     WcfgInto, WorldConfig, battle::BattlePhase, geo::WorldVec2, physics::Meters, side::Side,
     utils::Frequency,
@@ -33,13 +33,112 @@ struct Args {
 
     #[arg(long, action)]
     test: bool,
+
+    /// Mod directory to use. Shell indexes of cases are not checked against it
+    #[arg(long = "mod", default_value = "mods/tests1")]
+    mod_: PathBuf,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum Case {
+    /// Individual (our side) enter an interior show this interior
     Enter,
+    /// Individual (our side) exit an interior hide this interior
     Out,
+    /// Individual inside an interior survives an explosion outside it: wall resistance is enough
+    OutsideExplosionProtected,
+    /// Individual inside an interior dies of an explosion outside it: wall resistance is not enough
+    OutsideExplosionNotProtected,
+    /// Individual inside a protected interior survives a non penetrating explosion inside it
+    OnTheTopExplosionProtected,
+    /// Individual inside an interior dies of a non penetrating explosion inside it, because a first
+    /// explosion destructed the interior tiles
+    OnTheTopExplosionNotProtectedBecauseBroken,
+    /// Individual inside an interior without protection dies of an explosion inside it
+    OnTheTopExplosionNotProtected,
+    /// Squad of three individuals inside a bunker survives a salvo of explosions near it
+    NearExplosionProtectedInBunker,
 }
+
+impl Case {
+    fn is_explosion(&self) -> bool {
+        matches!(
+            self,
+            Case::OutsideExplosionProtected
+                | Case::OnTheTopExplosionProtected
+                | Case::OnTheTopExplosionNotProtected
+                | Case::OnTheTopExplosionNotProtectedBecauseBroken
+                | Case::OutsideExplosionNotProtected
+                | Case::NearExplosionProtectedInBunker
+        )
+    }
+
+    fn individual_positions(&self) -> Vec<[f32; 2]> {
+        match self {
+            Case::OnTheTopExplosionNotProtected
+            | Case::OnTheTopExplosionNotProtectedBecauseBroken
+            | Case::OutsideExplosionNotProtected => vec![[111., 192.]],
+            Case::NearExplosionProtectedInBunker => {
+                vec![[167.5, 357.5], [158., 351.], [178., 364.]]
+            }
+            _ => vec![[185., 344.]],
+        }
+    }
+
+    /// Explosions to fire: delay since the first one, shell and position
+    fn explosions(&self) -> Vec<(Duration, ShellIndex, [f32; 2])> {
+        let second = Duration::from_secs(3);
+        match self {
+            Case::OutsideExplosionProtected => {
+                vec![(Duration::ZERO, EXPLOSION_PROTECTED_SHELL, [255., 356.])]
+            }
+            Case::OnTheTopExplosionProtected => {
+                vec![(Duration::ZERO, EXPLOSION_PROTECTED_SHELL, [180., 341.])]
+            }
+            Case::OnTheTopExplosionNotProtected => {
+                vec![(Duration::ZERO, EXPLOSION_PROTECTED_SHELL, [111., 192.])]
+            }
+            Case::OnTheTopExplosionNotProtectedBecauseBroken => vec![
+                (Duration::ZERO, DESTRUCTION_SHELL, [111., 192.]),
+                // On a wall tile of the interior, destructed by the first explosion
+                (second, NO_PENETRATION_SHELL, [117.5, 152.5]),
+            ],
+            Case::OutsideExplosionNotProtected => {
+                vec![(Duration::ZERO, EXPLOSION_NOT_PROTECTED_SHELL, [118., 211.])]
+            }
+            Case::NearExplosionProtectedInBunker => (0..10)
+                .map(|i| (Duration::from_millis(250 * i), NAVAL_SHELL, [167., 365.]))
+                .collect(),
+            Case::Enter | Case::Out => unreachable!(),
+        }
+    }
+
+    /// Time after which the individual is expected to be (or not) dead
+    fn test_duration(&self) -> Duration {
+        let last = self.explosions().last().map(|e| e.0).unwrap_or_default();
+        last + Duration::from_secs(5)
+    }
+
+    fn expect_dead(&self) -> bool {
+        matches!(
+            self,
+            Case::OnTheTopExplosionNotProtected
+                | Case::OnTheTopExplosionNotProtectedBecauseBroken
+                | Case::OutsideExplosionNotProtected
+        )
+    }
+}
+
+/// "5/38 shell"
+const NAVAL_SHELL: ShellIndex = ShellIndex(0);
+/// "Kill & Stun only (no shrapnel & 0.1 destruction force)": walls resist
+const EXPLOSION_PROTECTED_SHELL: ShellIndex = ShellIndex(2);
+/// "Kill & Stun only (no shrapnel & 1.0 destruction force)": walls do not resist
+const EXPLOSION_NOT_PROTECTED_SHELL: ShellIndex = ShellIndex(4);
+/// "Kill & Stun only (no shrapnel & 0.0 penetration)": interior is not penetrated, unless broken
+const NO_PENETRATION_SHELL: ShellIndex = ShellIndex(5);
+/// "Destruction Only (10 meters)"
+const DESTRUCTION_SHELL: ShellIndex = ShellIndex(3);
 
 fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
@@ -52,7 +151,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     logging::setup_logging()?;
 
-    let mod__ = PathBuf::from("mods/tests1");
+    let mod__ = args.mod_.clone();
     let mod_ = Mod::load(&mod__, None)?;
     let map_ = PathBuf::from("examples/minidblue");
     let map = oc_world::reader::MapReader::new(&map_);
@@ -124,6 +223,27 @@ fn individuals(
                     .make(w),
             ]
         }
+        Case::OutsideExplosionProtected
+        | Case::OnTheTopExplosionProtected
+        | Case::OnTheTopExplosionNotProtected
+        | Case::OnTheTopExplosionNotProtectedBecauseBroken
+        | Case::OutsideExplosionNotProtected
+        | Case::NearExplosionProtectedInBunker => args
+            .case
+            .individual_positions()
+            .into_iter()
+            .map(|position| {
+                let position = WorldVec2::from(position);
+                let tile: WorldTileIndex = position.into_(w);
+                let tile = &tiles[tile.0 as usize];
+                let position = position.extend(tile.z_pixels(w));
+                TestIndividual::builder()
+                    .side(Side::A)
+                    .position(position)
+                    .build()
+                    .make(w)
+            })
+            .collect(),
     }
 }
 
@@ -150,6 +270,22 @@ fn squads(
                 .build()
                 .make(),
         ],
+        Case::OutsideExplosionProtected
+        | Case::OnTheTopExplosionProtected
+        | Case::OnTheTopExplosionNotProtected
+        | Case::OnTheTopExplosionNotProtectedBecauseBroken
+        | Case::OutsideExplosionNotProtected
+        | Case::NearExplosionProtectedInBunker => vec![
+            TestSquad::builder()
+                .position(individuals.first().unwrap().position.into())
+                .members(
+                    (0..individuals.len() as u64)
+                        .map(oc_individual::IndividualIndex)
+                        .collect(),
+                )
+                .build()
+                .make(),
+        ],
     }
 }
 
@@ -157,7 +293,14 @@ fn install(app: &mut bevy::app::App) {
     let args = Args::parse();
 
     match args.case {
-        Case::Enter | Case::Out => {
+        Case::Enter
+        | Case::Out
+        | Case::OutsideExplosionProtected
+        | Case::OnTheTopExplosionProtected
+        | Case::OnTheTopExplosionNotProtected
+        | Case::OnTheTopExplosionNotProtectedBecauseBroken
+        | Case::OutsideExplosionNotProtected
+        | Case::NearExplosionProtectedInBunker => {
             // Center screen on the house
             app.add_observer(|_: On<GameConfigReceived>, mut commands: Commands| {
                 commands.trigger(CenterCameraOn(WorldVec2::new(885., 50.)));
@@ -165,12 +308,103 @@ fn install(app: &mut bevy::app::App) {
         }
     }
 
+    if args.case.is_explosion() {
+        app.add_observer(|_: On<GameConfigReceived>, mut commands: Commands| {
+            commands.trigger(CenterCameraOn(WorldVec2::new(220., 350.)));
+        });
+
+        #[cfg(feature = "debug")]
+        app.add_systems(Update, fire_explosion);
+
+        #[cfg(feature = "test")]
+        if args.test {
+            app.init_resource::<ExplosionProtectedTest>()
+                .add_systems(Update, explosion_protected_test);
+        }
+
+        return;
+    }
+
     #[cfg(feature = "test")]
     if args.test {
         let state = State {
             start: Instant::now(),
         };
-        app.insert_resource(state).add_systems(Update, tracking);
+        app.insert_resource(state)
+            .add_systems(Update, test_interior_visibility);
+    }
+}
+
+#[cfg(feature = "debug")]
+fn fire_explosion(
+    mut commands: Commands,
+    mut start: Local<Option<std::time::Instant>>,
+    mut fired: Local<usize>,
+    individuals: Query<&oc_battle_gui::entity::individual::IndividualIndex>,
+) {
+    use oc_battle_gui::network::output::ToServerEvent;
+    use oc_network::ToServer;
+
+    // Do not fire if individual is not yet displayed
+    if !individuals
+        .iter()
+        .any(|i| i.0 == oc_individual::IndividualIndex(0))
+    {
+        return;
+    }
+
+    let start = *start.get_or_insert_with(std::time::Instant::now);
+    let explosions = Args::parse().case.explosions();
+    while let Some((delay, shell, position)) = explosions.get(*fired) {
+        if start.elapsed() < *delay {
+            break;
+        }
+        commands.trigger(ToServerEvent(ToServer::DebugExplosion(
+            *shell,
+            WorldVec2::from(*position),
+        )));
+        *fired += 1;
+    }
+}
+
+#[cfg(feature = "test")]
+#[derive(Debug, Resource, Default)]
+struct ExplosionProtectedTest {
+    fired: Option<Instant>,
+}
+
+/// Individual must be dead (or not, according to the case) after explosion.
+#[cfg(feature = "test")]
+fn explosion_protected_test(
+    mut commands: Commands,
+    mut test: ResMut<ExplosionProtectedTest>,
+    g: Res<GameConfig>,
+    individuals: Query<(
+        &oc_battle_gui::entity::individual::IndividualIndex,
+        &oc_battle_gui::ingame::individual::Status,
+    )>,
+) {
+    let_some!(_ = &g.0, return);
+    let expected = Args::parse().case.individual_positions().len();
+    if individuals.iter().count() < expected {
+        return;
+    }
+    let fired = *test.fired.get_or_insert_with(Instant::now);
+
+    let dead = individuals
+        .iter()
+        .any(|(_, status)| matches!(status.0, oc_individual::Status::Dead));
+    let elapsed = fired.elapsed() > Args::parse().case.test_duration();
+    if !(dead || elapsed) {
+        return;
+    }
+
+    if dead == Args::parse().case.expect_dead() {
+        println!("✅ Success !");
+        commands.write_message(bevy::app::AppExit::from_code(0));
+    } else {
+        eprintln!("❌ Test failed ! Individual dead: {dead}");
+        commands.write_message(bevy::app::AppExit::from_code(1));
     }
 }
 
@@ -181,7 +415,7 @@ struct State {
 }
 
 #[cfg(feature = "test")]
-fn tracking(
+fn test_interior_visibility(
     mut commands: Commands,
     g: Res<GameConfig>,
     query: Query<(&Interior, &Visibility)>,
@@ -193,6 +427,7 @@ fn tracking(
 
     let timeout = match args.case {
         Case::Enter | Case::Out => Duration::from_secs(10),
+        _ => return,
     }
     .div_f32(speed)
     .max(Duration::from_secs(2));
@@ -203,6 +438,7 @@ fn tracking(
             state.start.elapsed().as_secs_f32() > 2. / speed
                 && query.iter().any(|(_, v)| matches!(v, Visibility::Hidden))
         }
+        _ => false,
     } {
         println!("✅ Success !");
         commands.write_message(bevy::app::AppExit::from_code(0));

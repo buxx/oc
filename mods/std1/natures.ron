@@ -1,9 +1,12 @@
+#![enable(implicit_some)]
 [
     (
         name: "ShortGrass",
         opacity: 0.0,
         z: Meters(0.0),
         deny: [],
+        destruction_resistance: 0.1,
+        destruction_alter: "Mud",
     ),
     (
         name: "MiddleGrass",
@@ -12,6 +15,8 @@
         deny: [],
         crawling_opacity_bonus: 0.03,
         hiding_opacity_bonus: 0.08,
+        destruction_resistance: 0.1,
+        destruction_alter: "Mud",
     ),
     (
         name: "HighGrass",
@@ -20,6 +25,8 @@
         deny: [],
         crawling_opacity_bonus: 0.10,
         hiding_opacity_bonus: 0.20,
+        destruction_resistance: 0.1,
+        destruction_alter: "Mud",
     ),
     (
         name: "Dirt",
@@ -34,6 +41,7 @@
         deny: [],
         crawling_opacity_bonus: 0.02,
         hiding_opacity_bonus: 0.05,
+        // alters: ["MixedDebris"],  // FIXME BS NOW: correct image
     ),
     (
         name: "Sand",
@@ -64,6 +72,21 @@
         z: Meters(2.5),
         deny: [],
         intercept: (projectile: Probability(0.6,)),
+        destruction_resistance: 0.7,
+        destruction_alter: "BrickWallDebris",
+        movement: (individual: (force: Walk, factor: 0.5)),
+    ),
+    (
+        name: "BrickWallDebris",
+        impact: Wall,
+        opacity: 0.2,
+        z: Meters(0.5),
+        deny: [],
+        intercept: (projectile: Probability(0.2,)),
+        crawling_opacity_bonus: 0.18,
+        hiding_opacity_bonus: 0.22,
+        alters: ["MixedDebris", "BrickDebris", "StoneDebris", "WoodDebris"],
+        movement: (individual: (force: Walk, factor: 0.7)),
     ),
     (
         name: "ConcreteWall",
@@ -72,6 +95,21 @@
         z: Meters(2.5),
         deny: [],
         intercept: (projectile: Probability(0.9,)),
+        destruction_resistance: 0.9,
+        destruction_alter: "ConcreteWallDebris",
+        movement: (individual: (force: Walk, factor: 0.5)),
+    ),
+    (
+        name: "ConcreteWallDebris",
+        impact: Wall,
+        opacity: 1.0,
+        z: Meters(0.5),
+        deny: [],
+        intercept: (projectile: Probability(0.25,)),
+        crawling_opacity_bonus: 0.18,
+        hiding_opacity_bonus: 0.22,
+        alters: ["StoneDebris"],
+        movement: (individual: (force: Walk, factor: 0.7)),
     ),
     (
         name: "Trunk",
@@ -87,12 +125,14 @@
         deny: [],
         crawling_opacity_bonus: 0.10,
         hiding_opacity_bonus: 0.15,
+        movement: (individual: (force: Walk, factor: 0.5)),
     ),
     (
         name: "DeepWater",
         opacity: 0.0,
         z: Meters(0.0),
         deny: [],
+        movement: (individual: (force: Sneak, factor: 0.3)),
     ),
     (
         name: "Underbrush",
@@ -115,6 +155,7 @@
         opacity: 0.015,
         z: Meters(0.4),
         deny: [],
+        movement: (individual: (force: Walk, factor: 0.7)),
     ),
     (
         name: "Hedge",
@@ -123,12 +164,26 @@
         deny: [],
         crawling_opacity_bonus: 0.30,
         hiding_opacity_bonus: 0.45,
+        destruction_resistance: 0.3,
+        movement: (individual: (force: Walk, factor: 0.8)),
+        destruction_alter: "VegetalDebris",
+    ),
+    (
+        name: "VegetalDebris",
+        opacity: 0.05,
+        z: Meters(0.3),
+        deny: [],
+        crawling_opacity_bonus: 0.10,
+        hiding_opacity_bonus: 0.20,
+        movement: (individual: (force: Walk, factor: 0.8)),
+        alters: ["VegetalDebris"],
     ),
     (
         name: "MiddleRock",
         opacity: 0.15,
         z: Meters(0.8),
         deny: [],
+        movement: (individual: (force: Walk, factor: 0.5)),
     ),
     (
         name: "BigRock",

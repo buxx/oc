@@ -27,6 +27,7 @@
 - Ren1.ogg : https://opengameart.org/content/q009s-weapon-sounds
 - Ren2.ogg : https://opengameart.org/content/q009s-weapon-sounds
 - Ren3.ogg : https://opengameart.org/content/q009s-weapon-sounds
+- debris : CC0 https://www.patreon.com/WhiteFoxWorks
 
 Map sources : 
   - Grass : p0ss https://opengameart.org/node/9717

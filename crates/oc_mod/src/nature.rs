@@ -1,8 +1,11 @@
 use std::{ops::Deref, path::Path};
 
 use anyhow::Context;
-use oc_root::{WorldConfig, material::MaterialKind, opacity::Opacity, physics::Meters};
+use oc_root::{
+    WorldConfig, alter::Alter, material::MaterialKind, opacity::Opacity, physics::Meters,
+};
 use rkyv::Archive;
+use strum::IntoEnumIterator;
 use thiserror::Error;
 
 pub const NATURES_RON: &str = "natures.ron";
@@ -19,6 +22,7 @@ pub const NATURES_RON: &str = "natures.ron";
     serde::Serialize,
     Eq,
     Hash,
+    Default,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct NatureIndex(pub u16);
@@ -245,6 +249,14 @@ pub struct NatureRaw {
     pub intercept: Intercept,
     #[serde(default)]
     pub impact: ImpactKind,
+    #[serde(default)]
+    /// Name of the nature this one becomes when destroyed
+    pub destruction_alter: Option<String>,
+    #[serde(default = "default_destruction_resistance")]
+    pub destruction_resistance: f32,
+    #[serde(default)]
+    /// Names of the alterations (like debris)
+    pub alters: Vec<String>,
 }
 
 impl From<NatureRaw> for Nature {
@@ -259,6 +271,9 @@ impl From<NatureRaw> for Nature {
             movement: value.movement,
             intercept: value.intercept,
             impact: value.impact,
+            destruction_alter: None,
+            destruction_resistance: value.destruction_resistance,
+            alters: vec![],
         }
     }
 }
@@ -284,6 +299,13 @@ pub struct Nature {
     pub movement: Movement,
     pub intercept: Intercept,
     pub impact: ImpactKind,
+    /// When tile destroyed, insert alter tile of this nature
+    pub destruction_alter: Option<NatureIndex>,
+    /// When explosion, alter tiles in destruction_rayon and destruction_resistance
+    /// inferior to explosion destruction_force
+    pub destruction_resistance: f32,
+    /// When AlternateTile exist, pick from its Nature `alters` values to GUI display,
+    pub alters: Vec<Alter>,
 }
 
 #[derive(
@@ -354,19 +376,71 @@ impl Nature {
     }
 }
 
+/// Build natures from raw ones, resolving `destruction_alter` names to indexes
+fn resolve(raws: &[NatureRaw]) -> Result<Vec<Nature>, Error> {
+    raws.iter()
+        .map(|raw| {
+            let destruction_alter = raw
+                .destruction_alter
+                .as_deref()
+                .map(|name| {
+                    let index = raws.iter().position(|n| n.name == name);
+                    index.map(|i| NatureIndex(i as u16)).ok_or_else(|| {
+                        Error::InvalidFormat(format!(
+                            "Nature '{}' destruction_alter refers to unknown nature '{name}'",
+                            raw.name
+                        ))
+                    })
+                })
+                .transpose()?;
+            let alter = raw
+                .alters
+                .iter()
+                .map(|name| {
+                    name.parse::<Alter>().map_err(|e| {
+                        Error::InvalidFormat(format!("Nature '{}' alter: {e}", raw.name))
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(Nature {
+                destruction_alter,
+                alters: alter,
+                ..Nature::from(raw.clone())
+            })
+        })
+        .collect()
+}
+
+/// Build array of IndexedNature where index match with Alter index.
+pub fn alter_natures(natures: &[IndexedNature]) -> Result<[NatureIndex; Alter::COUNT], Error> {
+    let mut result = [None; Alter::COUNT];
+
+    for nature in natures {
+        for alter in &nature.alters {
+            result[alter.index()].get_or_insert(nature.index());
+        }
+    }
+
+    let mut missing = Alter::iter().filter(|alter| result[alter.index()].is_none());
+    if let Some(alter) = missing.next() {
+        return Err(Error::MissingAlterNature(alter));
+    }
+
+    Ok(result.map(|index| index.unwrap_or_default()))
+}
+
 // TODO: use something generic here (bullet/weapon/etc)
 pub fn load(path: &Path) -> Result<Vec<IndexedNature>, Error> {
     let path = path.join(NATURES_RON);
     let natures = std::fs::read_to_string(&path);
     let natures = natures.context(format!("Read {}", path.display()))?;
     let natures: Vec<NatureRaw> = ron::from_str(&natures)?;
-    let natures: Vec<Nature> = natures.into_iter().map(Nature::from).collect();
 
     if natures.is_empty() {
         return Err(Error::Empty);
     }
 
-    let natures = natures
+    let natures = resolve(&natures)?
         .into_iter()
         .enumerate()
         .map(|(i, p)| IndexedNature(NatureIndex(i as u16), p))
@@ -385,6 +459,8 @@ pub enum Error {
     Format(#[from] ron::de::SpannedError),
     #[error("No natures defined (require at least one)")]
     Empty,
+    #[error("No nature defines alter '{0:?}'")]
+    MissingAlterNature(Alter),
 }
 
 fn default_crawling_opacity_bonus() -> f32 {
@@ -401,6 +477,10 @@ fn default_movement_force() -> MovementForce {
 
 fn default_movement_factor() -> f32 {
     1.0
+}
+
+fn default_destruction_resistance() -> f32 {
+    0.0
 }
 
 fn default_interception() -> Interception {

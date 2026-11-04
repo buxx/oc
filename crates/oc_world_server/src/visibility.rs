@@ -69,13 +69,16 @@ impl<'a> Processor<'a> {
                 return None;
             }
 
-            // Individuals inside an interior are hidden from sides having nobody inside it
+            // Individuals inside an interior are hidden from opposite having nobody inside it,
+            // except when they stand on an altered tile.
+            let on_altered_tile = self.world.altered_tiles[individual2.tile.0 as usize].is_some();
             let occupied = match individual1.side {
                 Side::A => &occupied_a,
                 Side::B => &occupied_b,
             };
-            let hidden_by_interior =
-                self.world
+            let hidden_by_interior = !on_altered_tile
+                && self
+                    .world
                     .interiors
                     .iter()
                     .zip(occupied)
@@ -197,7 +200,7 @@ mod tests {
             WorldVec2::new(center.x + 10., center.y + 10.),
             WorldVec2::new(center.x - 10., center.y + 10.),
         ];
-        Interior::new(0, points[0], points)
+        Interior::new(0, points[0], points, 0., 0., None)
     }
 
     /// Side A watcher at (10, 10) and side B target at (50, 50), plus given extra individuals.
@@ -206,6 +209,15 @@ mod tests {
         interiors: Vec<Interior>,
         extra: Vec<(Side, WorldVec3)>,
         watcher_position: WorldVec3,
+    ) -> bool {
+        target_visible_(interiors, extra, watcher_position, false)
+    }
+
+    fn target_visible_(
+        interiors: Vec<Interior>,
+        extra: Vec<(Side, WorldVec3)>,
+        watcher_position: WorldVec3,
+        target_on_altered_tile: bool,
     ) -> bool {
         let w = WorldConfig::new(100, 100);
         let mut individuals = vec![
@@ -229,11 +241,17 @@ mod tests {
                     .make(&w),
             );
         }
-        let world = TestWorld::builder()
+        let mut world = TestWorld::builder()
             .individuals(individuals)
             .interiors(interiors)
             .build()
             .make(&w);
+        if target_on_altered_tile {
+            let tile = world.individual(TARGET).tile;
+            let nature = world.tile(tile).expect("Tile must exist").nature;
+            world.altered_tiles[tile.0 as usize] =
+                Some(oc_world::tile::AlteredTile::new(tile, nature));
+        }
         let indexes = Indexes::new(&world, &w);
 
         let visibilities = Processor::new(&world, &indexes).compute_for(&[WATCHER], &[TARGET]);
@@ -258,6 +276,18 @@ mod tests {
             vec![interior],
             vec![],
             WorldVec3::new(10., 10., 0.)
+        ));
+    }
+
+    #[test]
+    fn test_target_in_interior_on_altered_tile_is_visible() {
+        let interior = interior_around(WorldVec2::new(50., 50.));
+
+        assert!(target_visible_(
+            vec![interior],
+            vec![],
+            WorldVec3::new(10., 10., 0.),
+            true
         ));
     }
 

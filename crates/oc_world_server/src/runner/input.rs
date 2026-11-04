@@ -134,6 +134,13 @@ impl<'a, E: Client> Dealer<'a, E> {
         let tiles = ToClient::Tiles(region, tiles);
         let message = (self.endpoint.clone(), tiles);
         self.output.send(message).ok_or_log();
+
+        let altered_tiles = world.region_altered_tiles(region);
+        if !altered_tiles.is_empty() {
+            let altered_tiles = ToClient::AlteredTiles(region, altered_tiles);
+            let message = (self.endpoint.clone(), altered_tiles);
+            self.output.send(message).ok_or_log();
+        }
     }
 
     fn spawn_projectiles(&self, spawns: SpawnProjectiles) -> Vec<Update> {

@@ -16,17 +16,19 @@ use oc_projectile::NextProjectileId;
 use oc_projectile::ProjectileId;
 use oc_projectile::spawn::SpawnProjectile;
 use oc_projectile::spawn::SpawnProjectiles;
-use oc_root::Client;
 use oc_root::battle::BattlePhase;
 use oc_root::explosion::Explosion;
 use oc_root::geo::WorldVec2;
 use oc_root::geo::WorldVec3;
 use oc_root::side::Side;
+use oc_root::{Client, WcfgInto};
 use oc_world::flag::Flags;
 use oc_world::morale::Morale;
 use oc_world::support::{PendingSupport, SupportType};
+use oc_world::tile::AlteredTile;
 use oc_world::visibility::Visibilities;
 use oc_world::visibility::Visibility;
+use rustc_hash::FxHashMap;
 
 #[derive(Debug, PartialEq)]
 #[allow(clippy::enum_variant_names)]
@@ -49,6 +51,7 @@ pub enum Update {
     RealizeSupport(Side, SupportType),
     RemovePendingSupport(PendingSupport),
     SpawnExplosion(Explosion, WorldVec2, ExplosionOrigin),
+    AlterTiles(Vec<AlteredTile>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -158,6 +161,26 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         }
         Update::SpawnExplosion(explosion, position, origin) => {
             state.spawn_explosion(explosion, position, origin)
+        }
+        Update::AlterTiles(altered) => {
+            let mut by_region: FxHashMap<WorldRegionIndex, Vec<AlteredTile>> = FxHashMap::default();
+
+            {
+                let mut world = state.world_mut();
+                for altered in &altered {
+                    let region: WorldRegionIndex = altered.i.into_(&world.w);
+                    by_region.entry(region).or_default().push(altered.clone());
+                }
+                world.alter_tiles(altered);
+            }
+
+            by_region
+                .into_iter()
+                .map(|(region, altered)| {
+                    let message = ToClient::AlteredTiles(region, altered);
+                    (Listening::Regions(vec![region]), vec![message])
+                })
+                .collect()
         }
     } {
         tracing::trace!(name="runner-update-broadcast", filter=?filter, messages=?messages);

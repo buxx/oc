@@ -82,12 +82,28 @@ impl Processor<'_> {
             _ => return behavior,
         };
 
-        match self.tile_movement(individual).force {
+        let force = self.tile_movement(individual).force;
+        // Forced behavior only replaces behaviors "superior" (faster) or equal to it
+        if !Self::tile_force_applies(force, &behavior) {
+            return behavior;
+        }
+
+        match force {
             MovementForce::None => behavior,
+            MovementForce::Sneak => Behavior::Crawl(direction),
             MovementForce::Walk => Behavior::Walk(direction),
             MovementForce::Run => Behavior::Run(direction),
-            MovementForce::Sneak => Behavior::Crawl(direction),
         }
+    }
+
+    /// Tile movement force concerns the behavior only if it is "superior" (faster) or equal to it.
+    fn tile_force_applies(force: MovementForce, behavior: &Behavior) -> bool {
+        matches!(
+            (force, behavior),
+            (MovementForce::Sneak, _)
+                | (MovementForce::Walk, Behavior::Walk(_) | Behavior::Run(_))
+                | (MovementForce::Run, Behavior::Run(_))
+        )
     }
 
     fn tile_movement(&self, individual: &Individual) -> IndividualMovement {
@@ -126,7 +142,14 @@ impl Processor<'_> {
             Behavior::Walk(direction) | Behavior::Run(direction) | Behavior::Crawl(direction) => {
                 let nominal_speed = behavior.nominal_speed(&self.world.w);
                 // TODO: here use fatigue, injures, etc
-                let move_disability_factor = self.tile_movement(individual).factor;
+                // Tile factor applies in the same condition than the tile behavior modification
+                let tile_movement = self.tile_movement(individual);
+                let move_disability_factor =
+                    if Self::tile_force_applies(tile_movement.force, behavior) {
+                        tile_movement.factor
+                    } else {
+                        1.0
+                    };
                 let direction = WorldVec3::new(direction.x, direction.y, 0.);
                 vec![Force::Translation(
                     direction,

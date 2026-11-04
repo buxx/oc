@@ -14,17 +14,21 @@ use oc_individual::{
 };
 use oc_mod::Mod;
 use oc_projectile::{Projectile, ProjectileId};
-use oc_root::{WcfgInto, WorldConfig, battle::BattlePhase, identity::Identity};
-use oc_utils::d2::Xy;
+use oc_root::{
+    WcfgInto, WorldConfig, battle::BattlePhase, identity::Identity, material::MaterialKind,
+};
+use oc_utils::{d2::Xy, let_some};
 use rustc_hash::FxHashMap;
 
 use crate::{
     flag::Flags,
     interior::Interior,
     meta::Meta,
+    navmesh::Walls,
     resume::WorldResume,
     spawn::SpawnZoneName,
     support::{PendingSupport, Supports},
+    tile::AlteredTile,
     tile::Tile,
     visibility::Visibilities,
 };
@@ -66,6 +70,7 @@ pub struct World {
     pub supports: Supports,
     pub pending_supports: Vec<PendingSupport>,
     pub tiles: Vec<Tile>,
+    pub altered_tiles: Vec<Option<AlteredTile>>,
     pub navmesh: polyanya::Mesh,
     pub visibilities: Visibilities,
     pub individuals: Vec<Individual>,
@@ -102,6 +107,32 @@ impl World {
         }
 
         tiles
+    }
+
+    pub fn alter_tiles(&mut self, altered: Vec<AlteredTile>) {
+        let mod_ = &self.mod_;
+        let mut walls_changed = false;
+
+        for altered in altered {
+            let i = altered.i.0 as usize;
+            let_some!(tile = self.tiles.get_mut(i), continue);
+            let was_wall = tile.allow.deny(MaterialKind::Individual);
+            tile.alter(&altered, mod_);
+            walls_changed |= was_wall != tile.allow.deny(MaterialKind::Individual);
+            self.altered_tiles[i] = Some(altered);
+        }
+
+        if walls_changed {
+            let walls = self.tiles.as_walls(mod_);
+            self.navmesh = navmesh::navmesh(&self.w, &walls);
+        }
+    }
+
+    pub fn region_altered_tiles(&self, region: WorldRegionIndex) -> Vec<AlteredTile> {
+        self.region_tiles(region)
+            .into_iter()
+            .filter_map(|(i, _)| self.altered_tiles[i.0 as usize].clone())
+            .collect()
     }
 
     pub fn individuals(&self) -> &[Individual] {
@@ -217,6 +248,7 @@ mod tests {
             "MyMod".to_string(),
             1,
             vec![],
+            Default::default(),
             vec![],
             Default::default(),
             Default::default(),
@@ -232,6 +264,7 @@ mod tests {
         let tiles: Vec<Tile> = (0..w.tiles_count())
             .map(|i| Tile::new(WorldTileIndex(i), NatureIndex(0), 0, Traversability::all()))
             .collect();
+        let altered_tiles = vec![None; tiles.len()];
         let world = World::new(
             w.clone(),
             mod_,
@@ -245,6 +278,7 @@ mod tests {
             Supports::default(),
             vec![],
             tiles,
+            altered_tiles,
             polyanya::Mesh::default(),
             Visibilities::empty(0),
             vec![],
@@ -267,5 +301,72 @@ mod tests {
             }
         }
         assert_eq!(tiles, expected);
+    }
+
+    /// Warning: AI generated
+    #[test]
+    fn test_alter_tiles_changes_walls() {
+        // Given
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../mods/tests1");
+        let mod_ = Mod::load(&root, None).unwrap();
+        let grass = mod_.nature_index("ShortGrass").unwrap();
+        let rock = mod_.nature_index("BigRock").unwrap();
+        let w = WorldConfig::new(10, 10).with_geo_pixels_per_tile(5);
+        let meta = Meta::new("MyWorld".to_string(), 0, w.geo_meters_per_z().0);
+        let allow = mod_.nature(grass).traversability.clone();
+        let tiles: Vec<Tile> = (0..w.tiles_count())
+            .map(|i| Tile::new(WorldTileIndex(i), grass, 0, allow.clone()))
+            .collect();
+        let altered_tiles = vec![None; tiles.len()];
+        let navmesh = navmesh::navmesh(&w, &tiles.as_walls(&mod_));
+        let mut world = World::new(
+            w.clone(),
+            mod_,
+            meta,
+            BattlePhase::Fight,
+            DEFAULT_FIGHT_DURATION,
+            Some(Instant::now()),
+            vec![],
+            vec![],
+            Flags::default(),
+            Supports::default(),
+            vec![],
+            tiles,
+            altered_tiles,
+            navmesh,
+            Visibilities::empty(0),
+            vec![],
+            vec![],
+            HashMap::default(),
+            vec![],
+        );
+        let wall = WorldTileIndex(0);
+        let other = WorldTileIndex(w.tiles_count() - 1);
+        let center = |i: WorldTileIndex| {
+            let xy: TileXy = i.into_(&w);
+            let p = xy.point(&w);
+            let half = w.geo_pixels_per_tile() as f32 / 2.;
+            (p[0] + half, p[1] + half)
+        };
+        assert!(world.navmesh.point_in_mesh(center(wall)));
+        assert!(world.navmesh.point_in_mesh(center(other)));
+
+        // When
+        world.alter_tiles(vec![AlteredTile::new(wall, rock)]);
+
+        // Then
+        assert_eq!(world.tiles[wall.0 as usize].nature, rock);
+        assert!(
+            world.tiles[wall.0 as usize]
+                .allow
+                .deny(MaterialKind::Individual)
+        );
+        assert_eq!(
+            world.altered_tiles[wall.0 as usize],
+            Some(AlteredTile::new(wall, rock))
+        );
+        assert!(!world.navmesh.point_in_mesh(center(wall)));
+        assert!(world.navmesh.point_in_mesh(center(other)));
+        assert_eq!(world.altered_tiles[other.0 as usize], None);
     }
 }
