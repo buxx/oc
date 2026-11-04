@@ -6,64 +6,134 @@ use crate::utils::d2::random_position_around;
 use oc_network::ToClient;
 use oc_root::Client;
 use oc_root::geo::WorldVec2;
-use oc_root::side::Side;
-use oc_utils::let_some;
-use oc_world::support::SupportType;
+use oc_world::support::{PendingSupport, SupportType};
 
 impl<E: Client> super::State<E> {
-    pub fn realize_support(
+    pub fn add_pending_support(&self, pending: PendingSupport) -> Vec<(Listening, Vec<ToClient>)> {
+        let (side, type_) = (pending.side, pending.type_);
+        let mut world = self.world_mut();
+        let existing = world
+            .pending_supports
+            .iter_mut()
+            .find(|p| p.side == side && p.type_ == type_);
+        match existing {
+            // Moved: preparation restarts (only if the fight already started it)
+            Some(existing) => {
+                existing.position = pending.position;
+                existing.delay = pending.delay;
+                existing.start = existing.start.map(|_| Instant::now() + pending.delay);
+            }
+            None => world.pending_supports.push(pending),
+        }
+
+        // Count takine into account the pending support just added
+        let available = world.available_support(side, type_);
+
+        vec![(
+            Listening::Side(side),
+            vec![ToClient::SetSupportCount(type_, available)],
+        )]
+    }
+
+    pub fn start_pending_support(
         &self,
-        side: Side,
-        type_: SupportType,
+        pending: PendingSupport,
     ) -> Vec<(Listening, Vec<ToClient>)> {
-        let world = self.world_mut();
-        let mod_ = world.mod_();
-        let pending = world
+        let mut world = self.world_mut();
+
+        if let Some(pending) = world
+            .pending_supports
+            .iter_mut()
+            .find(|p| !p.is_started() && p.same_request(&pending))
+        {
+            pending.start();
+        }
+
+        vec![]
+    }
+
+    pub fn realize_support(&self, pending: PendingSupport) -> Vec<(Listening, Vec<ToClient>)> {
+        if !self.consume_support(&pending) {
+            // No matched pending support, abort
+            return vec![];
+        }
+
+        tracing::debug!(name="runner-update-realize-support", side=?pending.side, type_=?pending.type_);
+
+        match pending.type_ {
+            SupportType::NavalBombard => self.realize_naval_bombard(pending.position),
+        }
+
+        vec![]
+    }
+
+    /// Reduce the counter of the pending support type. Returns false if there is no.
+    fn consume_support(&self, pending: &PendingSupport) -> bool {
+        let (side, type_) = (pending.side, pending.type_);
+        let mut world = self.world_mut();
+
+        if !world
             .pending_supports
             .iter()
-            .find(|p| p.side == side && p.type_ == type_);
-        let_some!(pending = pending, return vec![]);
+            .any(|p| p.same_request(pending))
+        {
+            return false;
+        }
 
-        tracing::debug!(name="runner-update-realize-support", side=?side, type_=?type_);
+        world.supports.side_mut(side).consume(type_);
+        // Keep in memory last realized instant (to respect delay between supports of same type)
+        world.support_realized.insert((side, type_), Instant::now());
 
-        match type_ {
-            SupportType::NavalBombard => {
-                let support = &world.mod_.support;
-                let shell = mod_.shell(mod_.support.naval_bombard_shell);
-                let series: Vec<Vec<WorldVec2>> = (0..support.naval_bombard_series)
-                    .map(|_| {
-                        (0..support.naval_bombard_shells_by_serie)
-                            .map(|_| {
-                                random_position_around(
-                                    &world.w,
-                                    pending.position,
-                                    support.naval_bombard_radius,
-                                )
-                            })
-                            .collect()
-                    })
-                    .collect();
+        true
+    }
 
-                let speed = world.w.speed();
-                let mut decal = Duration::ZERO;
-                for serie in series {
-                    for position in serie {
-                        let instant = Instant::now() + decal;
-                        let explosion = shell.inner().clone().into();
-                        decal += support.naval_bombard_shell_interval().div_f32(speed);
-                        tracing::debug!(name="runner-update-realize-support-nava-bombard-spawn-explosion", explosion=?explosion, position=?position, decal=?decal);
-                        self.schedule(
-                            instant,
-                            Update::SpawnExplosion(
-                                explosion,
-                                position,
-                                ExplosionOrigin::Shell(shell.index()),
-                            ),
-                        );
-                    }
-                    decal += support.naval_bombard_serie_interval().div_f32(speed);
-                }
+    fn realize_naval_bombard(&self, target: WorldVec2) {
+        let world = self.world();
+        let mod_ = world.mod_();
+        let support = &mod_.support;
+        let shell = mod_.shell(support.naval_bombard_shell);
+        let speed = world.w.speed();
+
+        let series: Vec<Vec<WorldVec2>> = (0..support.naval_bombard_series)
+            .map(|_| {
+                (0..support.naval_bombard_shells_by_serie)
+                    .map(|_| random_position_around(&world.w, target, support.naval_bombard_radius))
+                    .collect()
+            })
+            .collect();
+
+        let mut decal = Duration::ZERO;
+        for serie in series {
+            for position in serie {
+                let instant = Instant::now() + decal;
+                let explosion = shell.inner().clone().into();
+                decal += support.naval_bombard_shell_interval().div_f32(speed);
+                tracing::debug!(name="runner-update-realize-support-nava-bombard-spawn-explosion", explosion=?explosion, position=?position, decal=?decal);
+                self.schedule(
+                    instant,
+                    Update::SpawnExplosion(
+                        explosion,
+                        position,
+                        ExplosionOrigin::Shell(shell.index()),
+                    ),
+                );
             }
+            decal += support.naval_bombard_serie_interval().div_f32(speed);
+        }
+    }
+
+    pub fn remove_pending_support(
+        &self,
+        pending: PendingSupport,
+    ) -> Vec<(Listening, Vec<ToClient>)> {
+        let mut world = self.world_mut();
+
+        if let Some(i) = world
+            .pending_supports
+            .iter()
+            .position(|p| p.same_request(&pending))
+        {
+            world.pending_supports.remove(i);
         }
 
         vec![]

@@ -6,4 +6,5 @@
   naval_bombard_prepare_seconds: 1,
   naval_bombard_serie_interval_ms: 0,
   naval_bombard_shell_interval_ms: 0,
+  naval_bombard_between_wait_s: 0,
 )

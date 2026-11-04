@@ -24,7 +24,7 @@ use oc_root::side::Side;
 use oc_root::{Client, WcfgInto};
 use oc_world::flag::Flags;
 use oc_world::morale::Morale;
-use oc_world::support::{PendingSupport, SupportType};
+use oc_world::support::PendingSupport;
 use oc_world::tile::AlteredTile;
 use oc_world::visibility::Visibilities;
 use oc_world::visibility::Visibility;
@@ -45,10 +45,9 @@ pub enum Update {
     UpdateMorale(Morale),
     UpdateElapsed(Duration, Duration), // elapsed, total duration
     PlaySoundWithGeo(SoundIndex, WorldVec3, WorldRegionIndex, fx::SoundBus),
-    SetSupportAvailability(Side, SupportType, bool),
     AddPendingSupport(PendingSupport),
-    StartPendingSupport(Side, SupportType),
-    RealizeSupport(Side, SupportType),
+    StartPendingSupport(PendingSupport),
+    RealizeSupport(PendingSupport),
     RemovePendingSupport(PendingSupport),
     SpawnExplosion(Explosion, WorldVec2, ExplosionOrigin),
     AlterTiles(Vec<AlteredTile>),
@@ -132,33 +131,10 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         Update::PlaySoundWithGeo(sound, position, region, bus) => {
             state.play_sound(sound, position, region, bus)
         }
-        Update::SetSupportAvailability(side, type_, availability) => {
-            state.set_support_availability(side, type_, availability)
-        }
-        Update::AddPendingSupport(pending) => {
-            let mut world = state.world_mut();
-            world
-                .pending_supports
-                .retain(|p| !(p.side == pending.side && p.type_ == pending.type_));
-            world.pending_supports.push(pending);
-            vec![]
-        }
-        Update::StartPendingSupport(side, type_) => {
-            let mut world = state.world_mut();
-            if let Some(pending) = world
-                .pending_supports
-                .iter_mut()
-                .find(|p| p.side == side && p.type_ == type_)
-            {
-                pending.start();
-            }
-            vec![]
-        }
-        Update::RealizeSupport(side, type_) => state.realize_support(side, type_),
-        Update::RemovePendingSupport(pending) => {
-            state.world_mut().pending_supports.retain(|p| p != &pending);
-            vec![]
-        }
+        Update::AddPendingSupport(pending) => state.add_pending_support(pending),
+        Update::StartPendingSupport(pending) => state.start_pending_support(pending),
+        Update::RealizeSupport(pending) => state.realize_support(pending),
+        Update::RemovePendingSupport(pending) => state.remove_pending_support(pending),
         Update::SpawnExplosion(explosion, position, origin) => {
             state.spawn_explosion(explosion, position, origin)
         }
@@ -406,23 +382,6 @@ impl<E: Client> super::State<E> {
 
     fn update_morale(&self, morale: Morale) -> Vec<(Listening, Vec<ToClient>)> {
         vec![(Listening::Any, vec![ToClient::Morale(morale)])]
-    }
-
-    fn set_support_availability(
-        &self,
-        side: Side,
-        type_: SupportType,
-        available: bool,
-    ) -> Vec<(Listening, Vec<ToClient>)> {
-        self.world_mut()
-            .supports
-            .side_mut(side)
-            .set_availability(type_, available);
-
-        vec![(
-            Listening::Side(side),
-            vec![ToClient::SetSupportAvailability(type_, available)],
-        )]
     }
 
     fn update_elapsed(

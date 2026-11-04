@@ -207,6 +207,7 @@ fn snapshot_(
         vec![],
         Supports::default(),
         vec![],
+        vec![],
     );
 
     tracing::info!("Update snapshot tiles");

@@ -102,6 +102,7 @@ where
             side_b_spawns,
             supports: self.supports.clone(),
             pending_supports: vec![],
+            support_realized: vec![],
         };
         snapshot.save(&snapshot_path)?;
 

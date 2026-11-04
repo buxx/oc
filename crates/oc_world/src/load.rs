@@ -82,6 +82,15 @@ impl WorldLoader {
             .into_iter()
             .map(Into::into)
             .collect();
+        let support_realized = snapshot
+            .support_realized
+            .into_iter()
+            .map(|r| {
+                let at = r.at.elapsed().unwrap_or_default();
+                let at = Instant::now().checked_sub(at).unwrap_or_else(Instant::now);
+                ((r.side, r.type_), at)
+            })
+            .collect();
         tracing::debug!("Build navmesh grid");
         let walls = tiles.as_walls(&mod_);
 
@@ -116,6 +125,7 @@ impl WorldLoader {
             flags,
             supports,
             pending_supports,
+            support_realized,
             tiles,
             altered_tiles,
             navmesh,

@@ -176,6 +176,7 @@ impl Mod {
             naval_bombard_prepare_seconds: raw.naval_bombard_prepare_seconds,
             naval_bombard_serie_interval_ms: raw.naval_bombard_serie_interval_ms,
             naval_bombard_shell_interval_ms: raw.naval_bombard_shell_interval_ms,
+            naval_bombard_between_wait_s: raw.naval_bombard_between_wait_s,
         })
     }
 

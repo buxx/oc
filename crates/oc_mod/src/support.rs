@@ -30,6 +30,7 @@ pub struct SupportRaw {
     pub naval_bombard_prepare_seconds: u64,
     pub naval_bombard_serie_interval_ms: u64,
     pub naval_bombard_shell_interval_ms: u64,
+    pub naval_bombard_between_wait_s: u64,
 }
 
 #[derive(
@@ -52,6 +53,7 @@ pub struct Support {
     pub naval_bombard_prepare_seconds: u64,
     pub naval_bombard_serie_interval_ms: u64,
     pub naval_bombard_shell_interval_ms: u64,
+    pub naval_bombard_between_wait_s: u64,
 }
 
 impl Support {
@@ -61,6 +63,10 @@ impl Support {
 
     pub fn naval_bombard_serie_interval(&self) -> Duration {
         Duration::from_millis(self.naval_bombard_serie_interval_ms)
+    }
+
+    pub fn naval_bombard_between_wait(&self) -> Duration {
+        Duration::from_secs(self.naval_bombard_between_wait_s)
     }
 
     pub fn naval_bombard_shell_interval(&self) -> Duration {

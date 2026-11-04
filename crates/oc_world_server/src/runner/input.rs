@@ -12,7 +12,6 @@ use oc_root::battle::BattlePhase;
 use oc_root::identity::Identity;
 use oc_root::{Client, WcfgFrom, geo::WorldVec2};
 use oc_utils::error::OkOrLogError;
-use oc_utils::{let_some, true_};
 use oc_world::{
     support::{PendingSupport, SupportType},
     tile::IntoTiles,
@@ -52,7 +51,10 @@ impl<'a, E: Client> Dealer<'a, E> {
             #[cfg(feature = "debug")]
             ToServer::DebugRequestSupport(side, type_, position) => {
                 vec![Update::AddPendingSupport(PendingSupport::fresh(
-                    side, type_, position,
+                    side,
+                    type_,
+                    position,
+                    std::time::Duration::ZERO,
                 ))]
             }
         }
@@ -177,13 +179,35 @@ impl<'a, E: Client> Dealer<'a, E> {
         };
 
         let world = self.state.world();
-        let supports = world.supports.side(identity.side);
-        let support = supports.iter().find(|(t, _)| t == &type_);
-        let_some!((_, available) = support, return vec![]);
-        true_!(available, return vec![]);
-
         tracing::debug!(name="runner-input-request-support", type_=?type_, side=?identity.side, position=?position);
-        let pending = PendingSupport::fresh(identity.side, type_, position);
+
+        // Wait is between following supports of same type (counted from the last realized one):
+        // the request is accepted but its preparation is delayed by the rest of the wait
+        let wait = match type_ {
+            SupportType::NavalBombard => world.mod_.support.naval_bombard_between_wait(),
+        }
+        .div_f32(world.w.speed());
+
+        // Minimum delay to wait to be able to start new support (this simulate the preparation time of
+        // support to be able to fire again)
+        let delay = world
+            .support_realized
+            .get(&(identity.side, type_))
+            .map(|last| wait.saturating_sub(last.elapsed()))
+            .unwrap_or_default();
+
+        // Prepare a fresh object
+        let pending = PendingSupport::fresh(identity.side, type_, position, delay);
+
+        // Test if same support already pending
+        let already = world
+            .pending_supports
+            .iter()
+            .any(|p| p.side == identity.side && p.type_ == type_);
+        // If its a new support request and there is no more available, interupt the request
+        if !already && world.available_support(identity.side, type_) == 0 {
+            return vec![];
+        }
 
         vec![Update::AddPendingSupport(pending)]
     }

@@ -103,6 +103,7 @@ impl TestWorld {
             flags: Default::default(),
             supports: Default::default(),
             pending_supports: vec![],
+            support_realized: Default::default(),
             interiors: self.interiors,
         }
     }

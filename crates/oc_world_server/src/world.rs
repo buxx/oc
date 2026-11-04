@@ -116,10 +116,7 @@ impl Processor<'_> {
         for pending in &self.world.pending_supports {
             if !pending.is_started() {
                 tracing::trace!(name="world-start-support", pending=?pending);
-                updates.extend([
-                    Update::SetSupportAvailability(pending.side(), pending.type_(), false),
-                    Update::StartPendingSupport(pending.side(), pending.type_()),
-                ]);
+                updates.push(Update::StartPendingSupport(pending.clone()));
             }
 
             if !pending.is_ready(&self.world.mod_.support, self.world.w.speed()) {
@@ -128,7 +125,7 @@ impl Processor<'_> {
             }
 
             tracing::debug!(name="world-support-ready", pending=?pending);
-            updates.push(Update::RealizeSupport(pending.side(), pending.type_()));
+            updates.push(Update::RealizeSupport(pending.clone()));
             updates.push(Update::RemovePendingSupport(pending.clone()));
         }
 

@@ -16,12 +16,22 @@ const TEXT_DISABLED: Color = Color::srgb(0.45, 0.45, 0.45);
 pub struct SupportList;
 
 #[derive(Debug, Event)]
-pub struct SetSupportAvailabilityEvent(pub SupportType, pub bool);
+pub struct SetSupportCountEvent(pub SupportType, pub u8);
 
 #[derive(Component)]
 pub struct SupportButton {
     pub type_: SupportType,
-    pub available: bool,
+    pub count: u8,
+}
+
+impl SupportButton {
+    pub fn available(&self) -> bool {
+        self.count > 0
+    }
+}
+
+fn support_label(type_: SupportType, count: u8) -> String {
+    format!("{} ({count})", type_.name())
 }
 
 pub fn supports() -> impl Scene {
@@ -37,10 +47,10 @@ pub fn supports() -> impl Scene {
     }
 }
 
-fn support_button(support: (SupportType, bool)) -> impl Scene {
-    let (type_, available) = support;
-    let label = type_.name().to_string();
-    let (bg, text) = button_colors(available);
+fn support_button(support: (SupportType, u8)) -> impl Scene {
+    let (type_, count) = support;
+    let label = support_label(type_, count);
+    let (bg, text) = button_colors(count > 0);
 
     bsn! {
         Node {
@@ -70,13 +80,13 @@ pub fn spawn_support_buttons(
     let list = list.into_inner();
     true_!(buttons.is_empty() && !world.supports.is_empty(), return);
 
-    for (type_, available) in &world.supports {
+    for (type_, count) in &world.supports {
         commands
-            .spawn_scene(support_button((*type_, *available)))
+            .spawn_scene(support_button((*type_, *count)))
             .insert((
                 SupportButton {
                     type_: *type_,
-                    available: *available,
+                    count: *count,
                 },
                 ChildOf(list),
             ));
@@ -85,7 +95,7 @@ pub fn spawn_support_buttons(
 
 fn on_hover(e: On<PointerOver>, mut q: Query<(&SupportButton, &mut BackgroundColor)>) {
     if let Ok((button, mut bg)) = q.get_mut(e.entity)
-        && button.available
+        && button.available()
     {
         bg.0 = BUTTON_BG_HOVER;
     }
@@ -93,7 +103,7 @@ fn on_hover(e: On<PointerOver>, mut q: Query<(&SupportButton, &mut BackgroundCol
 
 fn on_out(e: On<PointerOut>, mut q: Query<(&SupportButton, &mut BackgroundColor)>) {
     if let Ok((button, mut bg)) = q.get_mut(e.entity)
-        && button.available
+        && button.available()
     {
         bg.0 = BUTTON_BG;
     }
@@ -102,39 +112,40 @@ fn on_out(e: On<PointerOut>, mut q: Query<(&SupportButton, &mut BackgroundColor)
 fn on_click(mut e: On<PointerClick>, mut commands: Commands, buttons: Query<&SupportButton>) {
     let_ok!(button = buttons.get(e.entity), return);
     e.propagate(false);
-    true_!(button.available, return);
+    true_!(button.available(), return);
     commands.trigger(SetLeftClick(LeftClickMode::Support(button.type_)));
 }
 
-pub fn on_set_support_availability(
-    event: On<SetSupportAvailabilityEvent>,
+pub fn on_set_support_count(
+    event: On<SetSupportCountEvent>,
     mut world: ResMut<World>,
     mut buttons: Query<(&mut SupportButton, &mut BackgroundColor, &Children)>,
-    mut texts: Query<&mut TextColor>,
+    mut texts: Query<(&mut Text, &mut TextColor)>,
     mut requested: ResMut<RequestedSupports>,
 ) {
-    let SetSupportAvailabilityEvent(type_, value) = *event;
+    let SetSupportCountEvent(type_, count) = *event;
 
-    if !value {
+    if count == 0 {
         requested.remove(type_);
     }
 
-    for (t, available) in world.supports.iter_mut() {
+    for (t, c) in world.supports.iter_mut() {
         if *t == type_ {
-            *available = value;
+            *c = count;
         }
     }
 
-    let (bg_color, text_color) = button_colors(value);
+    let (bg_color, text_color) = button_colors(count > 0);
     for (mut button, mut bg, children) in &mut buttons {
         if button.type_ != type_ {
             continue;
         }
-        button.available = value;
+        button.count = count;
         bg.0 = bg_color;
         for child in children {
-            if let Ok(mut color) = texts.get_mut(*child) {
+            if let Ok((mut text, mut color)) = texts.get_mut(*child) {
                 color.0 = text_color;
+                text.0 = support_label(type_, count);
             }
         }
     }

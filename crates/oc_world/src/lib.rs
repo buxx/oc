@@ -16,6 +16,7 @@ use oc_mod::Mod;
 use oc_projectile::{Projectile, ProjectileId};
 use oc_root::{
     WcfgInto, WorldConfig, battle::BattlePhase, identity::Identity, material::MaterialKind,
+    side::Side,
 };
 use oc_utils::{d2::Xy, let_some};
 use rustc_hash::FxHashMap;
@@ -27,7 +28,7 @@ use crate::{
     navmesh::Walls,
     resume::WorldResume,
     spawn::SpawnZoneName,
-    support::{PendingSupport, Supports},
+    support::{PendingSupport, SupportType, Supports},
     tile::AlteredTile,
     tile::Tile,
     visibility::Visibilities,
@@ -69,6 +70,7 @@ pub struct World {
     pub flags: Flags,
     pub supports: Supports,
     pub pending_supports: Vec<PendingSupport>,
+    pub support_realized: FxHashMap<(Side, SupportType), Instant>,
     pub tiles: Vec<Tile>,
     pub altered_tiles: Vec<Option<AlteredTile>>,
     pub navmesh: polyanya::Mesh,
@@ -183,6 +185,19 @@ impl World {
         &self.mod_
     }
 
+    /// Supports the side can still request: counter minus already pending ones
+    pub fn available_support(&self, side: Side, type_: SupportType) -> u8 {
+        let pending = self
+            .pending_supports
+            .iter()
+            .filter(|p| p.side == side && p.type_ == type_)
+            .count();
+        self.supports
+            .side(side)
+            .count(type_)
+            .saturating_sub(pending.min(u8::MAX as usize) as u8)
+    }
+
     pub fn resume(&self, identity: &Identity) -> WorldResume {
         let squads = self
             .squads
@@ -198,7 +213,13 @@ impl World {
             })
             .collect();
         let phase = self.phase;
-        let support = self.supports.side(identity.side).0.clone();
+        let support = self
+            .supports
+            .side(identity.side)
+            .0
+            .iter()
+            .map(|(t, _)| (*t, self.available_support(identity.side, *t)))
+            .collect();
         let side_a_spawns = self.side_a_spawns.clone();
         let side_b_spawns = self.side_b_spawns.clone();
 
@@ -277,6 +298,7 @@ mod tests {
             Flags::default(),
             Supports::default(),
             vec![],
+            FxHashMap::default(),
             tiles,
             altered_tiles,
             polyanya::Mesh::default(),
@@ -331,6 +353,7 @@ mod tests {
             Flags::default(),
             Supports::default(),
             vec![],
+            FxHashMap::default(),
             tiles,
             altered_tiles,
             navmesh,

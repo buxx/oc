@@ -41,7 +41,7 @@ impl Plugin for HudPlugin {
             )
             .add_systems(OnEnter(BattlePhase::Fight), actions::update_fight_button)
             .init_resource::<remaining::Remaining>()
-            .add_observer(supports::on_set_support_availability)
+            .add_observer(supports::on_set_support_count)
             .add_observer(squad::spawn_rows)
             .add_observer(squads::outline_selected_cells)
             .add_observer(morale::on_update_morale)

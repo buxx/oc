@@ -1,5 +1,5 @@
 use derive_more::{Constructor, Deref};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use oc_root::{geo::WorldVec2, side::Side};
 
@@ -42,7 +42,8 @@ impl SupportType {
     Deref,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub struct Support(pub Vec<(SupportType, bool)>);
+/// Count of available supports by type
+pub struct Support(pub Vec<(SupportType, u8)>);
 
 #[derive(
     Debug,
@@ -63,11 +64,17 @@ pub struct Supports {
 }
 
 impl Support {
-    pub fn set_availability(&mut self, type_: SupportType, value: bool) {
-        for (t, available) in self.0.iter_mut() {
-            if *t == type_ {
-                *available = value;
-            }
+    pub fn count(&self, type_: SupportType) -> u8 {
+        self.0
+            .iter()
+            .find(|(t, _)| *t == type_)
+            .map(|(_, count)| *count)
+            .unwrap_or_default()
+    }
+
+    pub fn consume(&mut self, type_: SupportType) {
+        if let Some((_, count)) = self.0.iter_mut().find(|(t, _)| *t == type_) {
+            *count = count.saturating_sub(1);
         }
     }
 }
@@ -94,16 +101,23 @@ pub struct PendingSupport {
     pub side: Side,
     pub position: WorldVec2,
     pub start: Option<Instant>,
+    pub delay: Duration,
 }
 
 impl PendingSupport {
-    pub fn fresh(side: Side, type_: SupportType, position: WorldVec2) -> Self {
+    pub fn fresh(side: Side, type_: SupportType, position: WorldVec2, delay: Duration) -> Self {
         Self {
             type_,
             side,
             position,
             start: None,
+            delay,
         }
+    }
+
+    /// Same side, type and position (pending of same kind can coexist)
+    pub fn same_request(&self, other: &PendingSupport) -> bool {
+        self.side == other.side && self.type_ == other.type_ && self.position == other.position
     }
 
     pub fn type_(&self) -> SupportType {
@@ -120,7 +134,7 @@ impl PendingSupport {
     }
 
     pub fn start(&mut self) {
-        self.start = Some(Instant::now());
+        self.start = Some(Instant::now() + self.delay);
     }
 
     pub fn is_ready(&self, support: &oc_mod::support::Support, speed: f32) -> bool {

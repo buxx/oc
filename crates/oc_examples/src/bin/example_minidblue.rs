@@ -83,7 +83,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Case::Empty => Supports::default(),
             Case::EnagedBattleMiddle => Supports::default(),
             Case::DeploySouthBeach => Supports::new(
-                Support(vec![(SupportType::NavalBombard, true)]),
+                Support(vec![(SupportType::NavalBombard, 3)]),
                 Support::default(),
             ),
         });

@@ -161,7 +161,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Case::Support => (
             BattlePhase::Deployment,
             Supports::new(
-                Support(vec![(SupportType::NavalBombard, true)]),
+                Support(vec![(SupportType::NavalBombard, 1)]),
                 Support::default(),
             ),
             vec![],

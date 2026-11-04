@@ -47,7 +47,7 @@ pub enum ToClient {
     Elapsed(std::time::Duration, std::time::Duration), // elapsed, total duration
     Flags(Flags),
     Morale(Morale),
-    SetSupportAvailability(SupportType, bool),
+    SetSupportCount(SupportType, u8),
     Collision(WorldVec3, std::time::Duration), // Duration is lag
 }
 

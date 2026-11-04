@@ -18,5 +18,5 @@ pub struct WorldResume {
     pub side_a_spawns: Vec<SpawnZoneName>,
     pub side_b_spawns: Vec<SpawnZoneName>,
     pub phase: BattlePhase,
-    pub support: Vec<(SupportType, bool)>,
+    pub support: Vec<(SupportType, u8)>,
 }

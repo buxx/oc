@@ -37,6 +37,28 @@ pub struct Snapshot {
     pub side_b_spawns: Vec<SpawnZoneName>,
     pub supports: Supports,
     pub pending_supports: Vec<SnapshotPendingSupport>,
+    pub support_realized: Vec<SnapshotSupportRealized>,
+}
+
+/// Persistable form of a support request time (Instant can't be persisted)
+#[derive(Debug, Clone, Archive, Deserialize, Serialize)]
+pub struct SnapshotSupportRealized {
+    pub side: Side,
+    pub type_: SupportType,
+    #[rkyv(with = AsUnixTime)]
+    pub at: SystemTime,
+}
+
+impl SnapshotSupportRealized {
+    pub fn new(side: Side, type_: SupportType, at: Instant) -> Self {
+        Self {
+            side,
+            type_,
+            at: SystemTime::now()
+                .checked_sub(at.elapsed())
+                .unwrap_or_else(SystemTime::now),
+        }
+    }
 }
 
 /// Persistable form of PendingSupport (Instant can't be persisted)
@@ -47,6 +69,7 @@ pub struct SnapshotPendingSupport {
     pub position: WorldVec2,
     #[rkyv(with = Map<AsUnixTime>)]
     pub start: Option<SystemTime>,
+    pub delay: Duration,
 }
 
 impl From<&PendingSupport> for SnapshotPendingSupport {
@@ -55,6 +78,7 @@ impl From<&PendingSupport> for SnapshotPendingSupport {
             type_: value.type_,
             side: value.side,
             position: value.position,
+            delay: value.delay,
             start: value.start.map(|start| {
                 SystemTime::now()
                     .checked_sub(start.elapsed())
@@ -77,6 +101,7 @@ impl From<SnapshotPendingSupport> for PendingSupport {
             side: value.side,
             position: value.position,
             start,
+            delay: value.delay,
         }
     }
 }
@@ -97,6 +122,7 @@ impl Snapshot {
             side_b_spawns: vec![],
             supports: Supports::default(),
             pending_supports: vec![],
+            support_realized: vec![],
         }
     }
 
