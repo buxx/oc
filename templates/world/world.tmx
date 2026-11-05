@@ -13,7 +13,7 @@
     nextobjectid="20"
 >
  <tileset firstgid="1" source="terrain.tsx" />
- <tileset firstgid="2001" source="trees.tsx" />
+ <tileset firstgid="2001" source="decor.tsx" />
  <tileset firstgid="2021" source="height.tsx" />
  <layer
         id="1"

@@ -45,13 +45,13 @@ pub struct Args {
     #[clap(long)]
     pub terrain_png: Option<PathBuf>,
 
-    /// Trees tsx source file
+    /// Decor tsx source file
     #[clap(long)]
-    pub trees_tsx: Option<PathBuf>,
+    pub decor_tsx: Option<PathBuf>,
 
-    /// Trees png source file
+    /// Decor png source file
     #[clap(long)]
-    pub trees_png: Option<PathBuf>,
+    pub decor_png: Option<PathBuf>,
 
     /// Print analysis informations
     #[clap(short, long)]
@@ -121,13 +121,13 @@ fn main() -> Result<(), anyhow::Error> {
     let terrain_png_path = args.path.join("terrain.png");
     copy(&terrain_png_tpl_path, &terrain_png_path, "terrain.png", f)?;
 
-    let trees_tsx_tpl_path = PathBuf::from("templates/world/trees.tsx");
-    let trees_tsx_path = args.path.join("trees.tsx");
-    copy(&trees_tsx_tpl_path, &trees_tsx_path, "trees.tsx", f)?;
+    let decor_tsx_tpl_path = PathBuf::from("templates/world/decor.tsx");
+    let decor_tsx_path = args.path.join("decor.tsx");
+    copy(&decor_tsx_tpl_path, &decor_tsx_path, "decor.tsx", f)?;
 
-    let trees_png_tpl_path = PathBuf::from("templates/world/trees.png");
-    let trees_png_path = args.path.join("trees.png");
-    copy(&trees_png_tpl_path, &trees_png_path, "trees.png", f)?;
+    let decor_png_tpl_path = PathBuf::from("templates/world/decor.png");
+    let decor_png_path = args.path.join("decor.png");
+    copy(&decor_png_tpl_path, &decor_png_path, "decor.png", f)?;
 
     let meta_tpl_path = PathBuf::from("templates/world/meta.toml");
     let meta_path = args.path.join("meta.toml");
