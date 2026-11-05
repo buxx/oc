@@ -5,7 +5,7 @@ use oc_root::alter::Alter;
 
 // altered.png
 const SIZE: u32 = 30;
-const COLUMNS: u32 = 5;
+const COLUMNS: u32 = 6;
 
 #[derive(Debug, Resource)]
 pub struct AlteredSprites {
@@ -48,6 +48,7 @@ impl AlteredSprites {
             Alter::StoneDebris => 2,
             Alter::WoodDebris => 3,
             Alter::VegetalDebris => 4,
+            Alter::Generic => 5,
         }
     }
 }

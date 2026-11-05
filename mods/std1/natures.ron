@@ -41,7 +41,7 @@
         deny: [],
         crawling_opacity_bonus: 0.02,
         hiding_opacity_bonus: 0.05,
-        // alters: ["MixedDebris"],  // FIXME BS NOW: correct image
+        alters: ["Generic"],
     ),
     (
         name: "Sand",

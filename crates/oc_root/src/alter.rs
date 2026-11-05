@@ -27,6 +27,7 @@ pub enum Alter {
     StoneDebris,
     WoodDebris,
     VegetalDebris,
+    Generic,
 }
 
 impl Alter {
@@ -47,6 +48,7 @@ impl FromStr for Alter {
             "StoneDebris" => Ok(Self::StoneDebris),
             "WoodDebris" => Ok(Self::WoodDebris),
             "VegetalDebris" => Ok(Self::VegetalDebris),
+            "Generic" => Ok(Self::Generic),
             _ => Err(format!("Unknown alter '{s}'")),
         }
     }
