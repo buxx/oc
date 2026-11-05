@@ -17,8 +17,7 @@ pub struct Map {
     spawn_zones: Vec<SpawnZone>,
     width: u32,
     height: u32,
-    // terrain_tiles: Vec<TerrainTile>,
-    decor: Decor,
+    decor: Vec<Option<Decor>>,
     flags: Vec<Flag>,
     places: Vec<Place>,
 }
@@ -33,7 +32,7 @@ impl Map {
         spawn_zones: Vec<SpawnZone>,
         width: u32,
         height: u32,
-        decor: Decor,
+        decor: Vec<Option<Decor>>,
         flags: Vec<Flag>,
         places: Vec<Place>,
     ) -> Self {
@@ -75,7 +74,7 @@ impl Map {
         self.height
     }
 
-    pub fn decor(&self) -> &Decor {
+    pub fn decor(&self) -> &[Option<Decor>] {
         &self.decor
     }
 

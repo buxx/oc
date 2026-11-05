@@ -50,6 +50,7 @@ pub struct SpawnLovProfile {
     pub start: WorldVec2,
     pub start_plus_z: Meters,
     pub stop_plus_z: Meters,
+    pub max: Option<Meters>,
 }
 
 #[derive(Debug, Clone, Component)]
@@ -58,6 +59,7 @@ pub struct Lov {
     pub stop: WorldVec3,
     pub stop_plus_z: Meters,
     pub sections: Vec<(WorldVec2, WorldVec2, Color)>,
+    pub max: Option<Meters>,
 }
 
 #[cfg(feature = "debug")]
@@ -119,6 +121,7 @@ fn on_spawn_beginning_lov(
         stop: start,
         stop_plus_z: spawn.stop_plus_z,
         sections: vec![],
+        max: spawn.max,
     });
 }
 
@@ -185,17 +188,48 @@ fn on_update_lov_for(
     let modifier = oc_lov::Modifier::None(false);
     let path = oc_lov::PathBuilder::new(&g.w, at).build(start, stop, 0, modifier);
 
-    let sections = path.sections.iter().map(|section| {
-        let color = Color::srgb(0.0 + section.opacity.0, 1.0 - section.opacity.0, 0.0);
-        let start = section.start.into();
-        let stop = section.stop.into();
-        tracing::trace!(name = "on-update-lov-for-section", start=?start, stop=?stop, color=?color);
-        (start, stop, color)
-    }).collect();
+    let max_distance = lov.max.map(|m| m.pixels(&g.w));
+    let origin = Vec2::from(WorldVec2::from(start));
+    let sections = path
+        .sections
+        .iter()
+        .flat_map(|section| {
+            let color = Color::srgb(0.0 + section.opacity.0, 1.0 - section.opacity.0, 0.0);
+            let (start, stop) = (section.start.into(), section.stop.into());
+            tracing::trace!(name = "on-update-lov-for-section", start=?start, stop=?stop, color=?color);
+            clip_section(start, stop, color, origin, max_distance)
+        })
+        .collect();
 
     lov.start = start;
     lov.stop = stop;
     lov.sections = sections;
+}
+
+/// Part of the section further than max distance from origin is black
+fn clip_section(
+    start: WorldVec2,
+    stop: WorldVec2,
+    color: Color,
+    origin: Vec2,
+    max_distance: Option<f32>,
+) -> Vec<(WorldVec2, WorldVec2, Color)> {
+    let Some(max) = max_distance else {
+        return vec![(start, stop, color)];
+    };
+
+    let (a, b) = (Vec2::from(start), Vec2::from(stop));
+    let (from, to) = (a.distance(origin), b.distance(origin));
+
+    if to <= max {
+        vec![(start, stop, color)]
+    } else if from >= max {
+        vec![(start, stop, Color::BLACK)]
+    } else {
+        let cut = a.lerp(b, (max - from) / (to - from));
+        let cut = WorldVec2::new(cut.x, cut.y);
+        vec![(start, cut, color), (cut, stop, Color::BLACK)]
+    }
 }
 
 fn path_objects_at(
@@ -220,5 +254,41 @@ fn on_despawn_lov(_: On<DespawnLov>, mut commands: Commands, lovs: Query<(Entity
     tracing::trace!(name = "lov-despawn");
     for (entity, _lov) in lovs {
         commands.entity(entity).despawn();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn clip(start: f32, stop: f32, max: Option<f32>) -> Vec<(f32, f32, Color)> {
+        let (start, stop) = (WorldVec2::new(start, 0.), WorldVec2::new(stop, 0.));
+        clip_section(start, stop, Color::WHITE, Vec2::ZERO, max)
+            .into_iter()
+            .map(|(a, b, color)| (a.x, b.x, color))
+            .collect()
+    }
+
+    #[test]
+    fn clip_without_max_keeps_section() {
+        assert_eq!(clip(10., 50., None), vec![(10., 50., Color::WHITE)]);
+    }
+
+    #[test]
+    fn clip_section_inside_max_keeps_color() {
+        assert_eq!(clip(10., 50., Some(50.)), vec![(10., 50., Color::WHITE)]);
+    }
+
+    #[test]
+    fn clip_section_beyond_max_is_black() {
+        assert_eq!(clip(60., 80., Some(50.)), vec![(60., 80., Color::BLACK)]);
+    }
+
+    #[test]
+    fn clip_section_across_max_is_split() {
+        assert_eq!(
+            clip(10., 90., Some(50.)),
+            vec![(10., 50., Color::WHITE), (50., 90., Color::BLACK)]
+        );
     }
 }

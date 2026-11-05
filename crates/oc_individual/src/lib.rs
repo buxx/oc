@@ -17,7 +17,7 @@ use oc_mod::ammunition::AmmunitionIndex;
 use oc_mod::illustration::IllustrationIndex;
 use oc_mod::magazine::MagazineIndex;
 use oc_mod::nature::Traversability;
-use oc_mod::weapons::WeaponIndex;
+use oc_mod::{grenade::GrenadeIndex, weapons::WeaponIndex};
 use oc_physics::Force;
 use oc_physics::IgnoreSide;
 use oc_physics::Physic;
@@ -313,6 +313,16 @@ impl Individual {
                 HandsGesture::Reloading(_) => "Reloading",
                 HandsGesture::Aiming(_) => "Aiming",
             },
+            Behavior::Grenade(_) => match self.gesture.hands {
+                HandsGesture::Idle => "Grenade",
+                HandsGesture::Reloading(_) => "Reloading",
+                HandsGesture::Aiming(_) => "Aiming",
+            },
+            Behavior::Smoke(_) => match self.gesture.hands {
+                HandsGesture::Idle => "Smoke",
+                HandsGesture::Reloading(_) => "Reloading",
+                HandsGesture::Aiming(_) => "Aiming",
+            },
         }
     }
 
@@ -597,6 +607,7 @@ impl Gesture {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct Weapons {
     pub primary: Option<Weapon>,
+    pub grenades: Vec<GrenadeIndex>,
 }
 
 impl Weapons {
@@ -628,7 +639,7 @@ pub struct Xp(pub u8);
 impl Xp {
     pub const AVERAGE: Xp = Xp(128);
 
-    fn f32(&self) -> f32 {
+    pub fn f32(&self) -> f32 {
         self.0 as f32 / 255.
     }
 }

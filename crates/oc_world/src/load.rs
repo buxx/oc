@@ -57,6 +57,7 @@ impl WorldLoader {
                 tile.alter(altered, &mod_);
             }
         }
+        let decor = snapshot.decor;
         let craters = snapshot.craters;
         let individuals = snapshot.individuals;
         let visibilities = Visibilities::empty(individuals.len());
@@ -129,6 +130,7 @@ impl WorldLoader {
             support_realized,
             tiles,
             altered_tiles,
+            decor,
             craters,
             navmesh,
             visibilities,

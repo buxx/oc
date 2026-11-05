@@ -428,7 +428,9 @@ fn on_refresh_squad_orders(event: On<RefreshSquadsOrdersEvent>, mut commands: Co
             | Order::MoveFastTo(_)
             | Order::SneakTo(_)
             | Order::Engage(_)
-            | Order::Suppress(_) => Some(SpawnSquadOrder::Position(
+            | Order::Suppress(_)
+            | Order::Grenade(_)
+            | Order::Smoke(_) => Some(SpawnSquadOrder::Position(
                 i,
                 OrderIndex(o as u32),
                 order.clone(),
@@ -586,7 +588,9 @@ fn on_spawn_squad_order(
                 | Order::MoveFastTo(_)
                 | Order::SneakTo(_)
                 | Order::Engage(_)
-                | Order::Suppress(_) => return,
+                | Order::Suppress(_)
+                | Order::Grenade(_)
+                | Order::Smoke(_) => return,
                 Order::Defend(direction) => (DirectionSquadOrder::Defend(squad), direction),
                 Order::Hide(direction) => (DirectionSquadOrder::Hide(squad), direction),
             };
@@ -636,7 +640,9 @@ fn on_spawn_squad_orders(event: On<SpawnSquadOrders>, mut commands: Commands) {
             | Order::MoveFastTo(_)
             | Order::SneakTo(_)
             | Order::Engage(_)
-            | Order::Suppress(_) => Some(SpawnSquadOrder::Position(
+            | Order::Suppress(_)
+            | Order::Grenade(_)
+            | Order::Smoke(_) => Some(SpawnSquadOrder::Position(
                 i,
                 OrderIndex(o as u32),
                 order.clone(),

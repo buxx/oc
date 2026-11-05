@@ -79,6 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     let mut snapshot = Snapshot::empty(w.clone())
         .with_tiles(tiles.clone())
+        .with_decor(map.decor().context("Read map decor")?)
         .with_supports(match args.case {
             Case::Empty => Supports::default(),
             Case::EnagedBattleMiddle => Supports::default(),

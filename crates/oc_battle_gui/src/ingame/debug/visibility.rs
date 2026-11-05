@@ -55,6 +55,7 @@ pub fn show_visibilities(
             stop,
             stop_plus_z: Meters(0.), // Field was used for beginning lov
             sections,
+            max: None,
         }));
     }
 }

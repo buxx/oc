@@ -105,7 +105,12 @@ impl Processor<'_> {
                 }
             }
             // Members hold the same order as leader, after moving to their place if needed
-            Order::Defend(_) | Order::Hide(_) | Order::Engage(_) | Order::Suppress(_) => {
+            Order::Defend(_)
+            | Order::Hide(_)
+            | Order::Engage(_)
+            | Order::Suppress(_)
+            | Order::Grenade(_)
+            | Order::Smoke(_) => {
                 let reference: Vec2 = leader.position.into();
                 let direction = order.direction(reference, individual_position);
                 let_some!(direction = direction, return updates);

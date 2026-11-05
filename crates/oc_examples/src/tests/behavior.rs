@@ -5,11 +5,11 @@ use bevy::prelude::*;
 use bon::builder;
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::{
-    BodyGesture, Gesture, IndividualIndex,
+    BodyGesture, Gesture, IndividualIndex, Weapons,
     order::Order,
     squad::{Squad, SquadFormation},
 };
-use oc_mod::illustration::IllustrationIndex;
+use oc_mod::{grenade::GrenadeIndex, illustration::IllustrationIndex};
 use oc_root::{
     WcfgFrom, WorldConfig, battle::BattlePhase, behavior::Stun, physics::Meters, side::Side, y::V,
 };
@@ -28,10 +28,15 @@ type Track = ();
 
 const DIRECTION: Direction = Direction::SOUTH;
 
+/// Grenade (from tests mod) given to individuals
+pub const FRAG_GRENADE: &str = "Frag grenade";
+
 #[builder]
 pub fn run(
     setup: Vec<([f32; 2], Vec<Order>)>,
-    count: usize,
+    individual_count: usize,
+    /// Number of frag grenades carried by each individual
+    grenade_count: usize,
     tests: (Install, Track),
     test: bool,
 ) -> Result<(), anyhow::Error> {
@@ -47,8 +52,10 @@ pub fn run(
         .with_individual_tick_decrease_stunned(Stun(51));
     let tiles = map_.tiles(&w, &mod__).unwrap();
 
-    let individuals = individuals(&w, &tiles, &setup, count);
-    let squads = squads(&w, &individuals, &setup, count);
+    let frag = mod__.grenade_from_name(FRAG_GRENADE)?.index();
+    let grenades = vec![frag; grenade_count];
+    let individuals = individuals(&w, &tiles, &setup, individual_count, &grenades);
+    let squads = squads(&w, &individuals, &setup, individual_count);
     let snapshot = SnapshotBuilder::new(
         map_,
         individuals,
@@ -86,6 +93,7 @@ fn individuals(
     tiles: &[Tile],
     setup: &[([f32; 2], Vec<Order>)],
     count: usize,
+    grenades: &[GrenadeIndex],
 ) -> Vec<oc_individual::Individual> {
     setup
         .iter()
@@ -112,6 +120,10 @@ fn individuals(
 
                 oc_individual::Individual::fresh(w, Side::A, position)
                     .with_gesture(Gesture::body(BodyGesture::StandUp(DIRECTION)))
+                    .with_weapons(Weapons {
+                        primary: None,
+                        grenades: grenades.to_vec(),
+                    })
             })
         })
         .collect()

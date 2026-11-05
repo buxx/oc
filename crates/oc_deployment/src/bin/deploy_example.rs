@@ -18,6 +18,7 @@ fn example() -> Profile {
                 xp: [128, 30],
                 weapons: Weapons {
                     main: Some("Mosin Nagant M1924".to_string()),
+                    grenades: vec!["Frag grenade".to_string()],
                 },
                 magazines: vec![Magazine {
                     count: 10,

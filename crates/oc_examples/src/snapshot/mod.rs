@@ -88,10 +88,13 @@ where
             .clone()
             .unwrap_or_else(|| vec![None; tiles.len()]);
 
+        let decor = vec![None; tiles.len()];
+
         let snapshot = Snapshot {
             w,
             tiles,
             altered_tiles,
+            decor,
             craters: vec![],
             individuals,
             squads,

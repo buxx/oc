@@ -20,7 +20,12 @@ struct Args {
 
     /// Number of squad members
     #[arg(long)]
-    count: usize,
+    individual_count: usize,
+
+    /// Number of frag grenades carried by each individual. Throw grenade cases give one grenade
+    /// order by grenade, so it is also the number of explosions expected by individual.
+    #[arg(long, default_value_t = 1)]
+    grenade_count: usize,
 
     #[arg(long, action)]
     test: bool,
@@ -34,6 +39,21 @@ enum TestCase {
     MoveFastStraightAhead,
     MoveFastStraightAheadObstacle,
     Stunned,
+    /// Throw grenade on a target in range
+    ThrowGrenade,
+    /// Throw grenade on a target out of range: individual must move before
+    ThrowGrenadeAfterMove,
+}
+
+impl TestCase {
+    /// Grenade target of throw cases
+    fn throw_target(self) -> Option<[f32; 2]> {
+        match self {
+            TestCase::ThrowGrenade => Some(TG_TARGET),
+            TestCase::ThrowGrenadeAfterMove => Some(TGAM_TARGET),
+            _ => None,
+        }
+    }
 }
 
 const IDLE_LEADER_POS: [f32; 2] = [150., 150.];
@@ -42,6 +62,16 @@ const STUNNED_POS: [f32; 2] = [150., 150.];
 const STUNNED_MOVE_TARGET: [f32; 2] = [180., 150.];
 const STUNNED_EXPLOSION_DISTANCE: f32 = 5.;
 const STUNNED_SHELL_INDEX: ShellIndex = ShellIndex(1);
+
+const TG_LEADER_POS: [f32; 2] = [150., 150.];
+// 20 meters (< THROW_MAX_DISTANCE)
+const TG_TARGET: [f32; 2] = [250., 150.];
+// 50 meters (> THROW_MAX_DISTANCE)
+const TGAM_TARGET: [f32; 2] = [400., 150.];
+/// Maximum distance between grenade explosion and its target
+const EXPLOSION_TOLERANCE_METERS: f32 = 6.;
+/// Individual which must move to throw, must move at least this distance
+const TGAM_MIN_MOVE_METERS: f32 = 10.;
 
 const MSA_LEADER_POS: [f32; 2] = [150., 150.];
 const MSA_POS1: [f32; 2] = [180., 150.];
@@ -69,6 +99,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         TestCase::Stunned => {
             vec![(STUNNED_POS, vec![])]
+        }
+        TestCase::ThrowGrenade | TestCase::ThrowGrenadeAfterMove => {
+            let target = args.case.throw_target().unwrap();
+            vec![(
+                TG_LEADER_POS,
+                vec![Order::Grenade(target.into()); args.grenade_count],
+            )]
         }
         TestCase::MoveStraightAhead => {
             vec![(
@@ -111,7 +148,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let run = behavior::run()
         .test(args.test)
         .setup(setup)
-        .count(args.count);
+        .individual_count(args.individual_count)
+        .grenade_count(args.grenade_count);
 
     let run = {
         #[cfg_attr(not(feature = "test"), allow(clippy::let_unit_value))]
@@ -120,10 +158,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             {
                 use oc_world_server::tracker::Tracker;
 
-                let count = args.count;
+                let args = args.clone();
+                let count = args.individual_count;
                 Box::new(move |tracker: Tracker| match args.case {
                     // FIXME: test if squad member reach expected position
                     TestCase::Idle | TestCase::Stunned => {}
+                    TestCase::ThrowGrenade | TestCase::ThrowGrenadeAfterMove => {
+                        assert_throw(&tracker.take(), &args);
+                        println!("✅ (SERVER) All tests passed");
+                    }
                     // FIXME: test if leader accomplished twice (two orders), reached expected position
                     //       + squad members
                     TestCase::MoveStraightAhead
@@ -173,6 +216,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 app.init_resource::<StunnedTest>()
                                     .add_systems(Update, stunned_test);
                             }
+                            TestCase::ThrowGrenade | TestCase::ThrowGrenadeAfterMove => {
+                                app.init_resource::<Tracking>();
+                            }
                             TestCase::MoveStraightAhead
                             | TestCase::MoveStraightAheadObstacle
                             | TestCase::MoveFastStraightAhead
@@ -221,11 +267,14 @@ fn end_when_success_or_timeout(
     args: Res<Args_>,
     tracking: Res<Tracking>,
     w: Res<Wcfg>,
+    individuals: Query<&oc_battle_gui::ingame::individual::Weapons>,
 ) {
     let_some!(w = &w.0, return);
     static MOVE_DONE: Mutex<Option<Instant>> = Mutex::new(None);
     let timeout = match args.0.case {
         TestCase::Idle | TestCase::Stunned => Duration::from_secs(20),
+        TestCase::ThrowGrenade => Duration::from_secs(20),
+        TestCase::ThrowGrenadeAfterMove => Duration::from_secs(40),
         TestCase::MoveStraightAhead => Duration::from_secs(40),
         TestCase::MoveStraightAheadObstacle => Duration::from_secs(50),
         TestCase::MoveFastStraightAhead => Duration::from_secs(30),
@@ -233,13 +282,23 @@ fn end_when_success_or_timeout(
     };
     let speed = w.speed();
     // Ensure a minimal timeout to let time to bevy to make "network" exchange with server
-    let timeout = timeout.div_f32(speed).max(Duration::from_secs(2));
+    // Throwing is not shortened by speed as much as moving: give it more time
+    let min_timeout = match args.0.case {
+        TestCase::ThrowGrenade | TestCase::ThrowGrenadeAfterMove => Duration::from_secs(10),
+        _ => Duration::from_secs(2),
+    };
+    let timeout = timeout.div_f32(speed).max(min_timeout);
 
     let timeout = game.started.elapsed() > timeout;
     let mut move_done = MOVE_DONE.lock().unwrap();
     *move_done = match *move_done {
         None => match args.0.case {
             TestCase::Idle | TestCase::Stunned => None,
+            // All individuals threw their grenades. Server tests explosions.
+            TestCase::ThrowGrenade | TestCase::ThrowGrenadeAfterMove => {
+                let empty = individuals.iter().filter(|w| w.grenades.is_empty()).count();
+                (empty == args.0.individual_count).then(Instant::now)
+            }
             TestCase::MoveStraightAhead
             | TestCase::MoveStraightAheadObstacle
             | TestCase::MoveFastStraightAhead
@@ -254,8 +313,9 @@ fn end_when_success_or_timeout(
                             .filter(|e| ***e == oc_individual::IndividualIndex(i))
                             .count()
                     };
-                    (accomplished(0) >= 2 && (1..args.0.count as u64).all(|i| accomplished(i) >= 1))
-                        .then(Instant::now)
+                    (accomplished(0) >= 2
+                        && (1..args.0.individual_count as u64).all(|i| accomplished(i) >= 1))
+                    .then(Instant::now)
                 }
             }
         },
@@ -392,4 +452,84 @@ fn stunned_test(
         }
         _ => {}
     }
+}
+
+/// Every individual must validate the throw, and explosions must match grenades count and target.
+#[cfg(feature = "test")]
+fn assert_throw(tracker: &oc_world_server::tracker::Tracker_, args: &Args) {
+    use oc_root::{WorldConfig, physics::Meters};
+
+    let w = WorldConfig::new(1, 1);
+    let target = args.case.throw_target().unwrap();
+    let moves = matches!(args.case, TestCase::ThrowGrenadeAfterMove);
+
+    let validated = (0..args.individual_count as u64)
+        .map(oc_individual::IndividualIndex)
+        .filter(|i| {
+            no_more_grenade(tracker, *i) && (!moves || moved_in_range(tracker, &w, *i, target))
+        })
+        .count();
+    assert_eq!(
+        validated, args.individual_count,
+        "Only {validated} individuals on {} validate the throw",
+        args.individual_count
+    );
+
+    assert_eq!(
+        tracker.explosions.len(),
+        args.individual_count * args.grenade_count,
+        "Unexpected explosions count"
+    );
+
+    // Grenade lands around the order position (see throw scatter)
+    let tolerance = Meters(EXPLOSION_TOLERANCE_METERS).pixels(&w);
+    for (position, _) in &tracker.explosions {
+        assert!(
+            Vec2::from(*position).distance(target.into()) <= tolerance,
+            "Explosion at {position:?} is too far from target {target:?}"
+        );
+    }
+}
+
+/// Individual last known weapons own no grenade
+#[cfg(feature = "test")]
+fn no_more_grenade(
+    tracker: &oc_world_server::tracker::Tracker_,
+    i: oc_individual::IndividualIndex,
+) -> bool {
+    tracker
+        .individuals
+        .iter()
+        .filter(|(index, _)| *index == i)
+        .filter_map(|(_, update)| match update {
+            oc_individual::Update::SetWeapons(weapons) => Some(weapons),
+            _ => None,
+        })
+        .next_back()
+        .is_some_and(|weapons| weapons.grenades.is_empty())
+}
+
+/// Individual moved a minimal distance and ended in throw range of target
+#[cfg(feature = "test")]
+fn moved_in_range(
+    tracker: &oc_world_server::tracker::Tracker_,
+    w: &oc_root::WorldConfig,
+    i: oc_individual::IndividualIndex,
+    target: [f32; 2],
+) -> bool {
+    use oc_root::{geo::WorldVec3, physics::Meters};
+
+    let mut positions = tracker
+        .individual_positions
+        .iter()
+        .filter(|(index, _)| *index == i)
+        .map(|(_, position)| *position);
+    let Some(first) = positions.next() else {
+        return false;
+    };
+    let last = positions.next_back().unwrap_or(first);
+
+    let target = WorldVec3::new(target[0], target[1], last.z);
+    first.distance(last) > Meters(TGAM_MIN_MOVE_METERS).pixels(w)
+        && last.distance(target) <= oc_individual::behavior::THROW_MAX_DISTANCE.pixels(w)
 }

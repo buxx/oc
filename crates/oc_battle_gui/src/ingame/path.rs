@@ -146,7 +146,9 @@ pub fn draw(
             | oc_individual::behavior::Intent::Defend(_)
             | oc_individual::behavior::Intent::Hide(_)
             | oc_individual::behavior::Intent::Engage(_)
-            | oc_individual::behavior::Intent::Suppress(_) => {}
+            | oc_individual::behavior::Intent::Suppress(_)
+            | oc_individual::behavior::Intent::Grenade(_)
+            | oc_individual::behavior::Intent::Smoke(_) => {}
             oc_individual::behavior::Intent::MoveTo(_, path)
             | oc_individual::behavior::Intent::MoveFastTo(_, path)
             | oc_individual::behavior::Intent::SneakTo(_, path) => {

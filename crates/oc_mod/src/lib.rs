@@ -16,6 +16,7 @@ use thiserror::Error;
 
 use crate::{
     ammunition::{Ammunition, AmmunitionIndex, IndexedAmmunition},
+    grenade::{GrenadeIndex, IndexedGrenade},
     illustration::{IllustrationIndex, IllustrationKind, IndexedIllustration},
     magazine::{IndexedMagazine, MagazineIndex},
     nature::{Nature, NatureIndex},
@@ -26,6 +27,7 @@ use crate::{
 
 pub mod ammunition;
 pub mod armament;
+pub mod grenade;
 pub mod illustration;
 pub mod magazine;
 pub mod nature;
@@ -76,6 +78,8 @@ pub struct Mod {
     #[serde(skip, default)]
     pub shells: Vec<shell::IndexedShell>,
     #[serde(skip, default)]
+    pub grenades: Vec<grenade::IndexedGrenade>,
+    #[serde(skip, default)]
     pub support: support::Support,
     // Below game specs
     #[serde(default = "default_human_default_stand_up_fire_meters")]
@@ -95,6 +99,7 @@ impl Mod {
         mod_.weapons = weapons::load(path, &mod_)?;
         mod_.illustrations = illustration::load(path)?;
         mod_.shells = shell::load(path, &mod_)?;
+        mod_.grenades = grenade::load(path, &mod_)?;
         mod_.support = mod_.resolve_support(support::load(path)?)?;
 
         // TODO: centralize caching at server startup
@@ -161,6 +166,17 @@ impl Mod {
             .iter()
             .find(|s| s.name == name)
             .ok_or(Error::UnknownShellName(name.to_string()))
+    }
+
+    pub fn grenade_from_name(&self, name: &str) -> Result<&IndexedGrenade, Error> {
+        self.grenades
+            .iter()
+            .find(|g| g.name == name)
+            .ok_or(Error::UnknownGrenadeName(name.to_string()))
+    }
+
+    pub fn grenade(&self, index: GrenadeIndex) -> &IndexedGrenade {
+        &self.grenades[index.0 as usize]
     }
 
     pub fn shell(&self, index: ShellIndex) -> &IndexedShell {
@@ -392,6 +408,10 @@ pub enum Error {
     UnknownSoundName(String),
     #[error("Unknown shell name: {0}")]
     UnknownShellName(String),
+    #[error("Unknown grenade name: {0}")]
+    UnknownGrenadeName(String),
+    #[error("Grenades: {0}")]
+    Grenades(#[from] grenade::Error),
     #[error("Shells: {0}")]
     Shells(#[from] shell::Error),
     #[error("Support: {0}")]

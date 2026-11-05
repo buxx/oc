@@ -34,6 +34,7 @@
     ),
     (
         name: "Mud",
+        alters: ["Generic"],
         crater: Mud,
         opacity: 0.0,
         z: Meters(0.0),

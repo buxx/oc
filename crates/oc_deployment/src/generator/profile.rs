@@ -29,6 +29,8 @@ pub struct Individual {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Weapons {
     pub main: Option<String>,
+    #[serde(default)]
+    pub grenades: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

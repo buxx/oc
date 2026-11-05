@@ -13,6 +13,7 @@ use crate::{
 
 pub mod altered;
 pub mod crater;
+pub mod decor;
 pub mod order;
 pub mod outline;
 pub mod soldier;

@@ -160,6 +160,8 @@ fn positions(
             oc_individual::behavior::Behavior::Suppress(_) => (0.55, 0.0, 0.0),
             oc_individual::behavior::Behavior::Defend(_) => (1.0, 0.65, 0.0),
             oc_individual::behavior::Behavior::Hide(_) => (1.0, 1.0, 0.0),
+            oc_individual::behavior::Behavior::Grenade(_) => (1.0, 0.2, 0.0),
+            oc_individual::behavior::Behavior::Smoke(_) => (1.0, 0.5, 0.0),
         };
         // FIXME BS NOW: move alpha in behavior or somewhere else
         let alpha = match squad.leader() == i.0 {
@@ -631,7 +633,9 @@ fn on_move_step_accomplished_event(
         | oc_individual::behavior::Intent::Defend(_)
         | oc_individual::behavior::Intent::Hide(_)
         | oc_individual::behavior::Intent::Engage(_)
-        | oc_individual::behavior::Intent::Suppress(_) => {}
+        | oc_individual::behavior::Intent::Suppress(_)
+        | oc_individual::behavior::Intent::Grenade(_)
+        | oc_individual::behavior::Intent::Smoke(_) => {}
         oc_individual::behavior::Intent::MoveTo(_, path)
         | oc_individual::behavior::Intent::MoveFastTo(_, path)
         | oc_individual::behavior::Intent::SneakTo(_, path) => {

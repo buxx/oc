@@ -9,6 +9,7 @@ use oc_root::Wcfg;
 use oc_root::WcfgFrom;
 use oc_root::WorldConfig;
 use oc_root::geo::WorldVec2;
+use oc_root::physics::Meters;
 use oc_root::y::V;
 use oc_utils::d2::Direction;
 use oc_utils::let_ok;
@@ -104,7 +105,14 @@ fn show(
             commands.trigger(ComputeDisplayPaths(spawns));
         }
         OrderType::Engage | OrderType::Suppress => {
-            let spawns = lov_profiles(ingame, world, drag, position_markers);
+            let spawns = lov_profiles(ingame, world, drag, position_markers, None);
+            for spawn in spawns {
+                commands.trigger(SpawnBeginningLov(spawn));
+            }
+        }
+        OrderType::Grenade | OrderType::Smoke => {
+            let max = Some(oc_individual::behavior::THROW_MAX_DISTANCE);
+            let spawns = lov_profiles(ingame, world, drag, position_markers, max);
             for spawn in spawns {
                 commands.trigger(SpawnBeginningLov(spawn));
             }
@@ -130,6 +138,7 @@ fn lov_profiles(
     world: &crate::world::World,
     drag: &Query<&Phantom>,
     markers: &Query<&PositionSquadOrder>,
+    max_distance: Option<Meters>,
 ) -> Vec<SpawnLovProfile> {
     let mut profiles = vec![];
 
@@ -142,6 +151,7 @@ fn lov_profiles(
             start: leader.position.into(),
             start_plus_z: leader.gesture.body.weapon_z(),
             stop_plus_z: BodyGesture::Prone(Direction::NORTH).target_z(),
+            max: max_distance,
         });
     }
 
@@ -155,6 +165,7 @@ fn lov_profiles(
             start: leader.position.into(),
             start_plus_z: leader.gesture.body.weapon_z(),
             stop_plus_z: BodyGesture::Prone(Direction::NORTH).target_z(),
+            max: max_distance,
         });
     }
 
@@ -343,7 +354,9 @@ pub fn on_click(
                     | OrderType::Defend
                     | OrderType::Hide
                     | OrderType::Engage
-                    | OrderType::Suppress => None,
+                    | OrderType::Suppress
+                    | OrderType::Grenade
+                    | OrderType::Smoke => None,
                 } {
                     ingame.push_pending_orders(order);
                 }
@@ -386,6 +399,8 @@ fn give_orders(
                 OrderType::MoveFastTo => Order::MoveFastTo(point),
                 OrderType::SneakTo => Order::SneakTo(point),
                 OrderType::Suppress => Order::Suppress(point),
+                OrderType::Grenade => Order::Grenade(point),
+                OrderType::Smoke => Order::Smoke(point),
                 OrderType::Defend => {
                     let direction = Direction::from_points2d(squad_.position.into(), point.into());
                     Order::Defend(direction)
@@ -431,7 +446,9 @@ pub fn on_set_left_click(
             | OrderType::MoveFastTo
             | OrderType::SneakTo
             | OrderType::Engage
-            | OrderType::Suppress => None,
+            | OrderType::Suppress
+            | OrderType::Grenade
+            | OrderType::Smoke => None,
         }
     {
         for squad in state.selected_squads() {
@@ -441,7 +458,7 @@ pub fn on_set_left_click(
     }
 }
 
-/// Sprite following cursor when about to give an engage/suppress order
+/// Sprite following cursor when about to give an engage/suppress/grenade/smoke order
 #[derive(Debug, Component)]
 pub struct OrderCursor;
 
@@ -465,7 +482,10 @@ pub fn cursor_sprite(
     use oc_root::y::Y;
 
     // When dragging an existing marker, its phantom is the only sprite to show
-    let LeftClickMode::Order(OrderType::Engage | OrderType::Suppress) = &mode.0 else {
+    let LeftClickMode::Order(
+        order @ (OrderType::Engage | OrderType::Suppress | OrderType::Grenade | OrderType::Smoke),
+    ) = &mode.0
+    else {
         for (entity, _, _) in &cursors {
             commands.entity(entity).despawn();
         }
@@ -485,9 +505,11 @@ pub fn cursor_sprite(
     let opposite_hovered = individuals
         .iter()
         .any(|(i, hovered)| **hovered && world.engageable(i.0, identity.side.opposite()));
-    let rect = match opposite_hovered {
-        true => SquadOrderSprite::Engage,
-        false => SquadOrderSprite::Suppress,
+    let rect = match order {
+        OrderType::Grenade => SquadOrderSprite::Grenade,
+        OrderType::Smoke => SquadOrderSprite::Smoke,
+        _ if opposite_hovered => SquadOrderSprite::Engage,
+        _ => SquadOrderSprite::Suppress,
     }
     .rect();
     let translation = Vec3::new(

@@ -1,72 +1,40 @@
-use std::path::PathBuf;
+use std::path::Path;
 
+use derive_more::Constructor;
 use glam::Vec2;
+use oc_geo::tile::WorldTileIndex;
+use rkyv::{Archive, Deserialize, Serialize};
 
-#[derive(Clone)]
-pub struct DecorTile {
-    pub tileset_i: usize, // Used to rely tileset/sprite_batch in Decor
+/// "On the top" decor (vegetation, ...) displayed on a tile
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq, Constructor)]
+#[rkyv(compare(PartialEq), derive(Debug))]
+pub struct Decor {
+    pub i: WorldTileIndex,
+    /// Id of the sprite in the decor tileset
+    pub tile: u32,
+    /// Explosion destruction force required to remove this decor
+    pub destruction_resistance: f32,
+}
+
+/// Information about the decor tileset required to display `Decor`
+#[derive(Debug, Clone)]
+pub struct DecorTileset {
     pub tile_width: u32,
     pub tile_height: u32,
-    pub relative_tile_width: f32,
-    pub relative_tile_height: f32,
-    pub x: u32,
-    pub y: u32,
-    pub tile_x: u32,
-    pub tile_y: u32,
+    pub columns: u32,
+    pub rows: u32,
+    pub offset: Vec2,
 }
 
-impl DecorTile {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        tileset_i: usize, // Used to rely tileset/sprite_batch in Decor
-        tile_width: u32,
-        tile_height: u32,
-        relative_tile_width: f32,
-        relative_tile_height: f32,
-        x: u32,
-        y: u32,
-        tile_x: u32,
-        tile_y: u32,
-    ) -> Self {
-        Self {
-            tileset_i,
-            tile_width,
-            tile_height,
-            relative_tile_width,
-            relative_tile_height,
-            x,
-            y,
-            tile_x,
-            tile_y,
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct Decor {
-    image_paths: Vec<PathBuf>,
-    tiles: Vec<DecorTile>,
-    offset: Vec2,
-}
-
-impl Decor {
-    pub fn new(image_paths: Vec<PathBuf>, tiles: Vec<DecorTile>, offset: Vec2) -> Self {
-        Self {
-            image_paths,
-            tiles,
-            offset,
-        }
-    }
-
-    pub fn image_paths(&self) -> &Vec<PathBuf> {
-        &self.image_paths
-    }
-
-    pub fn tiles(&self) -> &Vec<DecorTile> {
-        &self.tiles
-    }
-
-    pub fn offset(&self) -> Vec2 {
-        self.offset
+impl DecorTileset {
+    pub fn load(path: &Path) -> Result<Self, tiled::Error> {
+        let tileset = tiled::Loader::new().load_tsx_tileset(path)?;
+        Ok(Self {
+            tile_width: tileset.tile_width,
+            tile_height: tileset.tile_height,
+            columns: tileset.columns,
+            rows: tileset.tilecount / tileset.columns.max(1),
+            offset: Vec2::new(tileset.offset_x as f32, tileset.offset_y as f32),
+        })
     }
 }

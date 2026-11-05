@@ -50,6 +50,7 @@ static SPEED_RAW: AtomicU8 = AtomicU8::new(10); // Will be divided by ten
 pub const DEFAULT_FIGHT_DURATION: Duration = Duration::from_secs(15 * 60);
 pub const DEFAULT_INTERIOR_PENETRATION_PROTECT: f32 = 0.2;
 pub const DEFAULT_INTERIOR_DESTRUCTION_RESISTANCE: f32 = 0.15;
+pub const DEFAULT_DECOR_DESTRUCTION_RESISTANCE: f32 = 0.5;
 
 /// Salts given to `WorldTileIndex::pick`/`seeded` so each feature gets an uncorrelated
 /// pseudo-random value for the same tile

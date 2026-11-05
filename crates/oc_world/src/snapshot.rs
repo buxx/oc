@@ -16,6 +16,7 @@ use rkyv::{
 };
 
 use crate::crater::Crater;
+use crate::decor::Decor;
 use crate::spawn::SpawnZoneName;
 use crate::support::{PendingSupport, SupportType, Supports};
 use crate::tile::{AlteredTile, Tile};
@@ -27,6 +28,7 @@ pub struct Snapshot {
     pub w: WorldConfig,
     pub tiles: Vec<Tile>,
     pub altered_tiles: Vec<Option<AlteredTile>>,
+    pub decor: Vec<Option<Decor>>,
     pub craters: Vec<Crater>,
     pub individuals: Vec<Individual>,
     pub squads: Vec<Squad>,
@@ -114,6 +116,7 @@ impl Snapshot {
             w,
             tiles: vec![],
             altered_tiles: vec![],
+            decor: vec![],
             craters: vec![],
             individuals: vec![],
             squads: vec![],
@@ -144,7 +147,13 @@ impl Snapshot {
 
     pub fn with_tiles(mut self, tiles: Vec<Tile>) -> Self {
         self.altered_tiles = vec![None; tiles.len()];
+        self.decor = vec![None; tiles.len()];
         self.tiles = tiles;
+        self
+    }
+
+    pub fn with_decor(mut self, decor: Vec<Option<Decor>>) -> Self {
+        self.decor = decor;
         self
     }
 

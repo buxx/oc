@@ -1,7 +1,7 @@
 use glam::Vec2;
 use oc_individual::{
     Individual, IndividualIndex,
-    behavior::{Intent, MovePath},
+    behavior::{Intent, MovePath, THROW_MAX_DISTANCE},
     order::Order,
 };
 use oc_root::geo::WorldVec2;
@@ -23,6 +23,9 @@ const PATH_UNSTUCK_DIRECTIONS: [(f32, f32); 8] = [
     (0.7, -0.7),
     (-0.7, -0.7),
 ];
+
+/// Factor to move to position hwere can thro grenade (to ensure near enough)
+const THROW_REACH_FACTOR: f32 = 0.95;
 
 type MoveIntent = fn(WorldVec2, MovePath) -> Intent;
 
@@ -61,6 +64,12 @@ impl Processor<'_> {
                     self.resolve_engage_order(individual, situation, *target)
                 }
                 Some(Order::Suppress(target)) => self.resolve_suppress_order(individual, *target),
+                Some(Order::Grenade(target)) => {
+                    self.resolve_throw_order(individual, *target, Intent::Grenade)
+                }
+                Some(Order::Smoke(target)) => {
+                    self.resolve_throw_order(individual, *target, Intent::Smoke)
+                }
             },
             // Dead (or unable) individuals do nothing: no movement intent is kept
             false => Intent::Idle(individual.gesture.direction()),
@@ -271,6 +280,33 @@ impl Processor<'_> {
         }
 
         Intent::Suppress(target)
+    }
+
+    fn resolve_throw_order(
+        &self,
+        individual: &Individual,
+        target: WorldVec2,
+        intent: fn(WorldVec2) -> Intent,
+    ) -> Intent {
+        tracing::trace!(name="individual-processor-resolve-throw-order", i=?self.i);
+
+        if let Some(intent) = self.suppressed_hide(individual) {
+            return intent;
+        }
+
+        // Too far: move to the nearest position from which target is in range
+        let w = &self.world.w;
+        let max = THROW_MAX_DISTANCE.pixels(w);
+        let from: Vec2 = individual.position.into();
+        let to: Vec2 = target.into();
+        if from.distance(to) > max {
+            let reach = to + (from - to).normalize() * max * THROW_REACH_FACTOR;
+            let reach = WorldVec2::new(reach.x, reach.y);
+            tracing::trace!(name="individual-processor-resolve-throw-order-too-far", i=?self.i, reach=?reach);
+            return self.resolve_move_order(individual, reach, Intent::MoveFastTo);
+        }
+
+        intent(target)
     }
 
     /// Compute path to target, or reuse current if already known path

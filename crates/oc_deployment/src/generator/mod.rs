@@ -35,6 +35,11 @@ impl Generator {
                             individual_.weapons.main = Some(weapon.clone());
                         }
 
+                        for grenade in &individual.weapons.grenades {
+                            let _ = mod_.grenade_from_name(grenade)?;
+                            individual_.weapons.grenades.push(grenade.clone());
+                        }
+
                         for magazine in &individual.magazines {
                             for _ in 0..magazine.count {
                                 let _ = mod_.magazine_from_name(&magazine.name)?;

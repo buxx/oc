@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -9,12 +8,11 @@ use crate::{
     spawn::SpawnZoneName,
     tile::Tile,
 };
-use glam::Vec2;
 use oc_geo::tile::WorldTileIndex;
 use oc_mod::Mod;
 use oc_root::{
-    DEFAULT_INTERIOR_DESTRUCTION_RESISTANCE, DEFAULT_INTERIOR_PENETRATION_PROTECT, WorldConfig,
-    geo::WorldVec2,
+    DEFAULT_DECOR_DESTRUCTION_RESISTANCE, DEFAULT_INTERIOR_DESTRUCTION_RESISTANCE,
+    DEFAULT_INTERIOR_PENETRATION_PROTECT, WorldConfig, geo::WorldVec2,
 };
 use tiled::{
     FiniteTileLayer, Image, ImageLayer, Layer, LayerType, Loader, Map as TiledMap, ObjectLayer,
@@ -23,14 +21,7 @@ use tiled::{
 
 use crate::flag::{Flag, FlagName};
 
-use crate::{
-    decor::{Decor, DecorTile},
-    interior::Interior,
-    map::Map,
-    spawn::SpawnZone,
-};
-
-type DecorTilesets = (Vec<Arc<Tileset>>, HashMap<usize, usize>);
+use crate::{decor::Decor, interior::Interior, map::Map, spawn::SpawnZone};
 
 const BACKGROUND_IMAGE_LAYER_NAME: &str = "background_image";
 const INTERIORS_IMAGE_LAYER_NAME: &str = "interiors_image";
@@ -45,7 +36,7 @@ const DECOR_LAYER_NAME: &str = "decor";
 const TERRAIN_LAYER_NAME: &str = "terrain";
 const HEIGHT_LAYER_NAME: &str = "height";
 const TERRAIN_TILESET_NAME: &str = "terrain";
-// const HEIGHT_TILESET_NAME: &str = "height";
+const DECOR_TILESET_NAME: &str = "decor";
 const TILE_ID_PROPERTY_KEY: &str = "ID";
 
 #[derive(Debug, thiserror::Error)]
@@ -537,100 +528,60 @@ impl MapReader {
         Ok(tiles)
     }
 
-    fn decor_tilesets(&self) -> Result<DecorTilesets, MapReaderError> {
-        let (_, layer_) = self.decor_layer()?;
-        let mut tileset_indexes = vec![];
-        let mut tilesets = vec![];
-        let mut positions = HashMap::new();
-
-        for x in 0..layer_.width() {
-            for y in 0..layer_.height() {
-                if let Some(layer_tile_data) = layer_.get_tile_data(x as i32, y as i32)
-                    && !tileset_indexes.contains(&layer_tile_data.tileset_index())
-                {
-                    tileset_indexes.push(layer_tile_data.tileset_index());
-                };
-            }
-        }
-
-        for (i, tileset) in self.map.tilesets().iter().enumerate() {
-            if tileset_indexes.contains(&i) {
-                positions.insert(i, tilesets.len());
-                tilesets.push(tileset.clone());
-            }
-        }
-
-        Ok((tilesets, positions))
-    }
-
-    fn decor_images(&self) -> Result<Vec<Image>, MapReaderError> {
-        let mut images = vec![];
-        let (tilesets, _) = self.decor_tilesets()?;
-
-        for tileset in tilesets {
-            match &tileset.image {
-                Some(image) => images.push(image.clone()),
-                None => {
-                    return Result::Err(MapReaderError::InvalidTileSet(
-                        "All decor tileset in map must contais image".to_string(),
-                    ));
-                }
-            };
-        }
-
-        Ok(images)
-    }
-
-    fn decor(&self) -> Result<Decor, MapReaderError> {
-        let (decor_layer, decor_layer_) = self.decor_layer()?;
-        let (_, tilesets_positions) = self.decor_tilesets()?;
-        let images = self.decor_images()?;
-        let image_paths = images
+    fn decor_tileset(&self) -> Result<(usize, &Arc<Tileset>), MapReaderError> {
+        self.map
+            .tilesets()
             .iter()
-            .map(|image| self.folder.join(&image.source))
-            .collect();
+            .enumerate()
+            .find(|(_, tileset)| tileset.name == DECOR_TILESET_NAME)
+            .ok_or(MapReaderError::TileSetNotFound(
+                "Can't found decor tileset in map must exist but is not found".to_string(),
+            ))
+    }
 
-        let mut tiles = vec![];
+    /// Decor of each tile of the map (same order than `tiles`)
+    pub fn decor(&self) -> Result<Vec<Option<Decor>>, MapReaderError> {
+        let (_, decor_layer) = self.decor_layer()?;
+        let (decor_tileset_index, decor_tileset) = self.decor_tileset()?;
+        let mut decor_tiles = vec![];
 
-        for x in 0..decor_layer_.width() {
-            for y in 0..decor_layer_.height() {
-                if let Some(layer_tile_data) = decor_layer_.get_tile_data(x as i32, y as i32) {
-                    let tileset = self.map.tilesets()[layer_tile_data.tileset_index()].clone();
-
-                    let decor_tileset_position = *tilesets_positions
-                        .get(&layer_tile_data.tileset_index())
-                        .expect("Positions must are consistent");
-                    let image = images
-                        .get(decor_tileset_position)
-                        .expect("Positions must are consistent");
-                    let tile_width = tileset.tile_width;
-                    let tile_height = tileset.tile_height;
-                    let relative_tile_width = tile_width as f32 / image.width as f32;
-                    let relative_tile_height = tile_height as f32 / image.height as f32;
-
-                    let tile_id = layer_tile_data.id();
-                    let tile_y = tile_id / tileset.columns;
-                    let tile_x = tile_id - (tile_y * tileset.columns);
-
-                    let terrain_tile = DecorTile::new(
-                        decor_tileset_position,
-                        tile_width,
-                        tile_height,
-                        relative_tile_width,
-                        relative_tile_height,
-                        x,
-                        y,
-                        tile_x,
-                        tile_y,
-                    );
-
-                    tiles.push(terrain_tile);
+        let mut tile_id: u64 = 0;
+        for y in 0..decor_layer.height() {
+            for x in 0..decor_layer.width() {
+                let tile = match decor_layer.get_tile_data(x as i32, y as i32) {
+                    Some(data) if data.tileset_index() == decor_tileset_index => {
+                        let tile_data = decor_tileset.get_tile(data.id());
+                        let property = tile_data
+                            .as_ref()
+                            .and_then(|tile| tile.properties.get(DESTRUCTION_RESISTANCE_KEY));
+                        let destruction_resistance = match property {
+                            Some(tiled::PropertyValue::FloatValue(v)) => *v,
+                            Some(tiled::PropertyValue::IntValue(v)) => *v as f32,
+                            _ => DEFAULT_DECOR_DESTRUCTION_RESISTANCE,
+                        };
+                        Some(Decor::new(
+                            WorldTileIndex(tile_id),
+                            data.id(),
+                            destruction_resistance,
+                        ))
+                    }
+                    Some(data) => {
+                        return Result::Err(MapReaderError::TileError(format!(
+                            "Tile at '{}'x'{}' in decor layer in map must be from '{}' tileset (found tileset {})",
+                            x,
+                            y,
+                            DECOR_TILESET_NAME,
+                            data.tileset_index(),
+                        )));
+                    }
+                    None => None,
                 };
+                decor_tiles.push(tile);
+                tile_id += 1;
             }
         }
 
-        let offset = Vec2::new(-decor_layer.offset_x, -decor_layer.offset_y);
-        Ok(Decor::new(image_paths, tiles, offset))
+        Ok(decor_tiles)
     }
 
     pub fn build(&self) -> Result<Map, MapReaderError> {

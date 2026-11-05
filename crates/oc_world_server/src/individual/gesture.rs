@@ -1,11 +1,15 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use glam::Vec2;
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::{
     BodyGesture, Gesture, HandsGesture, Individual, IndividualIndex, WeaponKind, behavior::Behavior,
 };
-use oc_mod::{ammunition::AmmunitionIndex, weapons::IndexedWeapon};
+use oc_mod::{
+    ammunition::AmmunitionIndex,
+    grenade::{GrenadeNature, IndexedGrenade},
+    weapons::IndexedWeapon,
+};
 use oc_root::{
     WcfgFrom,
     geo::{WorldVec2, WorldVec3},
@@ -16,9 +20,12 @@ use oc_utils::{d2::Direction, let_some};
 
 use super::{Processor, situation::Situation};
 use crate::{
-    runner,
+    runner::{self, update::ExplosionOrigin},
     visibility::{path_objects_at, visibility},
 };
+
+/// Duration of each step (reload, aim) of grenade throwing
+const THROW_STEP_SECONDS: f32 = 1.0;
 
 type Updates = Vec<runner::update::Update>;
 
@@ -44,6 +51,12 @@ impl Processor<'_> {
             }
             Behavior::Engage(target) => self.engage_gesture(individual, situation, *target),
             Behavior::Suppress(target) => self.suppress_gesture(individual, situation, *target),
+            Behavior::Grenade(target) => {
+                self.throw_gesture(individual, *target, GrenadeNature::Frag)
+            }
+            Behavior::Smoke(target) => {
+                self.throw_gesture(individual, *target, GrenadeNature::Smoke)
+            }
         }
     }
 
@@ -149,6 +162,84 @@ impl Processor<'_> {
             Gesture::body(BodyGesture::Prone(direction)).with_hands(hands),
             updates,
         )
+    }
+
+    /// Throw a grenade/smoke on target: reload, aim, then throw.
+    pub fn throw_gesture(
+        &self,
+        individual: &Individual,
+        target: WorldVec2,
+        nature: GrenadeNature,
+    ) -> (Gesture, Updates) {
+        let w = &self.world.w;
+        let tick = w.individual_tick();
+        let reference = Vec2::new(individual.position.x, individual.position.y);
+        let direction = Direction::from_points2d(reference, Vec2::new(target.x, target.y));
+        let prone = |hands| {
+            (
+                Gesture::body(BodyGesture::Prone(direction)).with_hands(hands),
+                vec![],
+            )
+        };
+        let total = Seconds(THROW_STEP_SECONDS / w.speed());
+
+        let Some(grenade) = self.grenade_of(individual, nature) else {
+            // Should not happen as such orders are skipped when there is no matching grenade
+            return prone(HandsGesture::Idle);
+        };
+        let (position, grenade) = grenade;
+
+        match individual.gesture.hands.clone() {
+            HandsGesture::Idle => prone(HandsGesture::Reloading(U8Progress::zero())),
+            HandsGesture::Reloading(progress) => {
+                let (progress, _) = progress_(tick, progress, total);
+                match progress.finished() {
+                    true => prone(HandsGesture::Aiming(U8Progress::zero())),
+                    false => prone(HandsGesture::Reloading(progress)),
+                }
+            }
+            HandsGesture::Aiming(progress) => {
+                let (progress, lag) = progress_(tick, progress, total);
+                if !progress.finished() {
+                    return prone(HandsGesture::Aiming(progress));
+                }
+
+                let updates = self.throw(individual, position, grenade, target, lag, direction);
+
+                (
+                    Gesture::body(BodyGesture::Prone(direction)).with_hands(HandsGesture::Idle),
+                    updates,
+                )
+            }
+        }
+    }
+
+    /// Grenade leaves the hands: consume it, schedule its explosion and finish the order.
+    fn throw(
+        &self,
+        individual: &Individual,
+        position: usize,
+        grenade: &IndexedGrenade,
+        target: WorldVec2,
+        lag: Duration,
+        direction: Direction,
+    ) -> Updates {
+        let mut weapons = individual.weapons.clone();
+        weapons.grenades.remove(position);
+
+        let landing = self.throw_landing(individual, target);
+        let explosion = grenade.inner().clone().into();
+        let origin = ExplosionOrigin::Grenade(grenade.index());
+        let explode = runner::update::Update::SpawnExplosion(explosion, landing, origin);
+        let at = Instant::now().checked_sub(lag).unwrap_or_else(Instant::now);
+
+        let weapons = oc_individual::Update::SetWeapons(weapons);
+        let mut updates = vec![
+            runner::update::Update::UpdateIndividual(self.i, weapons),
+            runner::update::Update::Schedule(at, Box::new(explode)),
+        ];
+        updates.extend(self.accomplished_updates(direction));
+        updates
     }
 
     fn hands(

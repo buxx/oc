@@ -145,6 +145,13 @@ impl<'a, E: Client> Dealer<'a, E> {
             self.output.send(message).ok_or_log();
         }
 
+        let decor = world.region_decor(region);
+        if !decor.is_empty() {
+            let decor = ToClient::Decor(region, decor);
+            let message = (self.endpoint.clone(), decor);
+            self.output.send(message).ok_or_log();
+        }
+
         let craters: Vec<_> = craters.iter().map(|i| world.craters[*i].clone()).collect();
         if !craters.is_empty() {
             let craters = ToClient::Craters(region, craters);

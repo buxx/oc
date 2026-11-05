@@ -8,6 +8,9 @@ squads:
     xp: 86
     weapons:
       main: Mosin Nagant M1924
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: MosinNagant5x
     - name: MosinNagant5x
@@ -24,6 +27,9 @@ squads:
     xp: 113
     weapons:
       main: Mosin Nagant M1924
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: MosinNagant5x
     - name: MosinNagant5x
@@ -40,6 +46,9 @@ squads:
     xp: 166
     weapons:
       main: Mosin Nagant M1924
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: MosinNagant5x
     - name: MosinNagant5x
@@ -60,6 +69,9 @@ squads:
     xp: 76
     weapons:
       main: Mosin Nagant M1924
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: MosinNagant5x
     - name: MosinNagant5x
@@ -76,6 +88,9 @@ squads:
     xp: 120
     weapons:
       main: Mosin Nagant M1924
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: MosinNagant5x
     - name: MosinNagant5x
@@ -92,6 +107,9 @@ squads:
     xp: 173
     weapons:
       main: Mosin Nagant M1924
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: MosinNagant5x
     - name: MosinNagant5x
