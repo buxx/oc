@@ -22,6 +22,7 @@ use oc_utils::{d2::Xy, let_some};
 use rustc_hash::FxHashMap;
 
 use crate::{
+    crater::Crater,
     flag::Flags,
     interior::Interior,
     meta::Meta,
@@ -36,6 +37,7 @@ use crate::{
 
 pub mod cache;
 pub mod control;
+pub mod crater;
 pub mod decor;
 pub mod flag;
 pub mod glb;
@@ -73,6 +75,7 @@ pub struct World {
     pub support_realized: FxHashMap<(Side, SupportType), Instant>,
     pub tiles: Vec<Tile>,
     pub altered_tiles: Vec<Option<AlteredTile>>,
+    pub craters: Vec<Crater>,
     pub navmesh: polyanya::Mesh,
     pub visibilities: Visibilities,
     pub individuals: Vec<Individual>,
@@ -301,6 +304,7 @@ mod tests {
             FxHashMap::default(),
             tiles,
             altered_tiles,
+            vec![],
             polyanya::Mesh::default(),
             Visibilities::empty(0),
             vec![],
@@ -356,6 +360,7 @@ mod tests {
             FxHashMap::default(),
             tiles,
             altered_tiles,
+            vec![],
             navmesh,
             Visibilities::empty(0),
             vec![],

@@ -4,7 +4,7 @@ use oc_network::ToClient;
 use oc_projectile::network::Projectile;
 use oc_root::{Wcfg, files};
 
-use crate::ingame::hud::supports::SetSupportCountEvent;
+use crate::ingame::hud::supports::{SetSupportCountEvent, SupportExecutedEvent};
 use crate::{
     fx::FxEvent,
     ingame::collision::CollisionEvent,
@@ -27,7 +27,7 @@ use crate::{
     network,
     network::input::ToClientEvent,
     states::{GameConfig, GuiFiles},
-    world::{InsertAlteredTiles, InsertTiles, UpdateVisibilities},
+    world::{InsertAlteredTiles, InsertCraters, InsertTiles, UpdateVisibilities},
 };
 
 pub fn on_to_client(
@@ -94,6 +94,10 @@ pub fn on_to_client(
             tracing::trace!(name="ingame-input-altered-tiles", region=?region);
             commands.trigger(InsertAlteredTiles(*region, tiles.clone()));
         }
+        ToClient::Craters(region, craters) => {
+            tracing::trace!(name="ingame-input-craters", region=?region);
+            commands.trigger(InsertCraters(*region, craters.clone()));
+        }
         ToClient::Fx(fx) => {
             tracing::trace!(name="ingame-input-fx", fx=?fx);
             commands.trigger(FxEvent(fx.clone()));
@@ -114,6 +118,7 @@ pub fn on_to_client(
         ToClient::SetSupportCount(type_, count) => {
             commands.trigger(SetSupportCountEvent(*type_, *count))
         }
+        ToClient::SupportExecuted(type_) => commands.trigger(SupportExecutedEvent(*type_)),
         ToClient::Collision(position, lag) => commands.trigger(CollisionEvent(*position, *lag)),
     }
 }

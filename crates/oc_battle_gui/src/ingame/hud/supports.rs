@@ -18,6 +18,9 @@ pub struct SupportList;
 #[derive(Debug, Event)]
 pub struct SetSupportCountEvent(pub SupportType, pub u8);
 
+#[derive(Debug, Event)]
+pub struct SupportExecutedEvent(pub SupportType);
+
 #[derive(Component)]
 pub struct SupportButton {
     pub type_: SupportType,
@@ -114,6 +117,13 @@ fn on_click(mut e: On<PointerClick>, mut commands: Commands, buttons: Query<&Sup
     e.propagate(false);
     true_!(button.available(), return);
     commands.trigger(SetLeftClick(LeftClickMode::Support(button.type_)));
+}
+
+pub fn on_support_executed(
+    event: On<SupportExecutedEvent>,
+    mut requested: ResMut<RequestedSupports>,
+) {
+    requested.remove(event.0);
 }
 
 pub fn on_set_support_count(

@@ -21,6 +21,7 @@ use crate::{
 pub mod alter;
 pub mod battle;
 pub mod behavior;
+pub mod craters;
 pub mod end;
 pub mod explosion;
 pub mod files;

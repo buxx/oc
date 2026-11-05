@@ -95,7 +95,8 @@ fn spawn(
 
     for tile in tiles {
         let alters = &g.mod_.nature(tile.nature).alters;
-        let_some!(alter = tile.i.pick(alters, oc_root::TILE_SALT_ALTER_SPRITE).copied(), continue);
+        let alter = tile.i.pick(alters, oc_root::TILE_SALT_ALTER_SPRITE);
+        let_some!(alter = alter.copied(), continue);
         let position = position(tile.i, &g.w);
         if placed.iter().any(|p| p.distance(position) < MIN_DISTANCE) {
             continue;

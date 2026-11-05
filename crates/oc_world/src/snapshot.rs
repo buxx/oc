@@ -15,6 +15,7 @@ use rkyv::{
     with::{AsUnixTime, Map},
 };
 
+use crate::crater::Crater;
 use crate::spawn::SpawnZoneName;
 use crate::support::{PendingSupport, SupportType, Supports};
 use crate::tile::{AlteredTile, Tile};
@@ -26,6 +27,7 @@ pub struct Snapshot {
     pub w: WorldConfig,
     pub tiles: Vec<Tile>,
     pub altered_tiles: Vec<Option<AlteredTile>>,
+    pub craters: Vec<Crater>,
     pub individuals: Vec<Individual>,
     pub squads: Vec<Squad>,
     pub projectiles: Vec<Projectile>,
@@ -112,6 +114,7 @@ impl Snapshot {
             w,
             tiles: vec![],
             altered_tiles: vec![],
+            craters: vec![],
             individuals: vec![],
             squads: vec![],
             projectiles: vec![],

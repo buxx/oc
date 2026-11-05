@@ -5,10 +5,14 @@ use oc_utils::let_some;
 
 use crate::{
     ingame::GameConfigReceived,
-    sprites::{altered::AlteredSprites, soldier::SoldierAnimations, weapon::WeaponAnimations},
+    sprites::{
+        altered::AlteredSprites, crater::CraterSprites, soldier::SoldierAnimations,
+        weapon::WeaponAnimations,
+    },
 };
 
 pub mod altered;
+pub mod crater;
 pub mod order;
 pub mod outline;
 pub mod soldier;
@@ -53,7 +57,9 @@ fn on_game_config_received(
     );
     let weapons = WeaponAnimations::init(&sprites, &soldier.sprite(), &assets);
     let altereds = AlteredSprites::init(&sprites, &assets, &mut atlas_layouts);
+    let craters = CraterSprites::init(&sprites, &assets, &mut atlas_layouts);
 
+    commands.insert_resource(craters);
     commands.insert_resource(altereds);
     commands.insert_resource(soldier);
     commands.insert_resource(weapons);

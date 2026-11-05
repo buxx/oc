@@ -17,6 +17,7 @@ use oc_root::{
 };
 use oc_utils::let_some;
 use oc_world::{
+    crater::Crater,
     support::SupportType,
     tile::{AlteredTile, Tile},
 };
@@ -41,6 +42,9 @@ pub struct InsertTiles(pub WorldRegionIndex, pub Vec<(WorldTileIndex, Tile)>);
 
 #[derive(Debug, Event)]
 pub struct InsertAlteredTiles(pub WorldRegionIndex, pub Vec<AlteredTile>);
+
+#[derive(Debug, Event)]
+pub struct InsertCraters(pub WorldRegionIndex, pub Vec<Crater>);
 
 #[derive(Debug, Event)]
 pub struct UpdateVisibilities(

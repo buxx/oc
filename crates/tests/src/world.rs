@@ -90,6 +90,7 @@ impl TestWorld {
             meta: self.meta,
             tiles,
             altered_tiles,
+            craters: vec![],
             navmesh,
             individuals: self.individuals,
             visibilities: Visibilities::empty(individuals_count),

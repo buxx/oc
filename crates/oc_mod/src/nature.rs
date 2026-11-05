@@ -2,7 +2,8 @@ use std::{ops::Deref, path::Path};
 
 use anyhow::Context;
 use oc_root::{
-    WorldConfig, alter::Alter, material::MaterialKind, opacity::Opacity, physics::Meters,
+    WorldConfig, alter::Alter, craters::CraterType, material::MaterialKind, opacity::Opacity,
+    physics::Meters,
 };
 use rkyv::Archive;
 use strum::IntoEnumIterator;
@@ -257,6 +258,18 @@ pub struct NatureRaw {
     #[serde(default)]
     /// Names of the alterations (like debris)
     pub alters: Vec<String>,
+    /// Kind of crater
+    #[serde(deserialize_with = "required")]
+    pub crater: Option<CraterType>,
+}
+
+/// Permit to required `None` value explicitely in .ron file
+fn required<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::Deserialize<'de>,
+{
+    <Option<T> as serde::Deserialize>::deserialize(deserializer)
 }
 
 impl From<NatureRaw> for Nature {
@@ -274,6 +287,7 @@ impl From<NatureRaw> for Nature {
             destruction_alter: None,
             destruction_resistance: value.destruction_resistance,
             alters: vec![],
+            crater: value.crater,
         }
     }
 }
@@ -306,6 +320,8 @@ pub struct Nature {
     pub destruction_resistance: f32,
     /// When AlternateTile exist, pick from its Nature `alters` values to GUI display,
     pub alters: Vec<Alter>,
+    /// Kind of crater an explosion leaves on this nature
+    pub crater: Option<CraterType>,
 }
 
 #[derive(

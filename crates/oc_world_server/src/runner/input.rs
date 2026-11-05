@@ -100,15 +100,16 @@ impl<'a, E: Client> Dealer<'a, E> {
         tracing::trace!(name="dealer-refresh-region", endpoint=?self.endpoint, region=?region);
         // Lock order is world then indexes everywhere: don't hold indexes while sending subjects
         // (which locks world), or a queued writer makes a deadlock.
-        let (individuals, projectiles) = {
+        let (individuals, projectiles, craters) = {
             let indexes = self.state.indexes();
             (
                 indexes.region_individuals(region).clone(),
                 indexes.region_projectiles(region).clone(),
+                indexes.region_craters(region).clone(),
             )
         };
 
-        self.send_tiles(region);
+        self.send_tiles(region, &craters);
         self.send_subjects(&individuals);
         self.send_subjects(&projectiles);
     }
@@ -130,7 +131,7 @@ impl<'a, E: Client> Dealer<'a, E> {
         }
     }
 
-    fn send_tiles(&self, region: WorldRegionIndex) {
+    fn send_tiles(&self, region: WorldRegionIndex, craters: &[usize]) {
         let world = self.state.world();
         let tiles = region.to_tiles(&world);
         let tiles = ToClient::Tiles(region, tiles);
@@ -141,6 +142,13 @@ impl<'a, E: Client> Dealer<'a, E> {
         if !altered_tiles.is_empty() {
             let altered_tiles = ToClient::AlteredTiles(region, altered_tiles);
             let message = (self.endpoint.clone(), altered_tiles);
+            self.output.send(message).ok_or_log();
+        }
+
+        let craters: Vec<_> = craters.iter().map(|i| world.craters[*i].clone()).collect();
+        if !craters.is_empty() {
+            let craters = ToClient::Craters(region, craters);
+            let message = (self.endpoint.clone(), craters);
             self.output.send(message).ok_or_log();
         }
     }

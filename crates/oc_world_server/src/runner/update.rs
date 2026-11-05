@@ -5,6 +5,7 @@ use crate::routing::Listening;
 use crate::schedule::Schedule;
 use crate::utils::context::Context;
 use oc_geo::region::{Region, WorldRegionIndex};
+use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::IndividualIndex;
 use oc_individual::squad::SquadIndex;
 use oc_mod::PickSound;
@@ -21,7 +22,8 @@ use oc_root::explosion::Explosion;
 use oc_root::geo::WorldVec2;
 use oc_root::geo::WorldVec3;
 use oc_root::side::Side;
-use oc_root::{Client, WcfgInto};
+use oc_root::{Client, WcfgFrom, WcfgInto};
+use oc_world::crater::Crater;
 use oc_world::flag::Flags;
 use oc_world::morale::Morale;
 use oc_world::support::PendingSupport;
@@ -51,6 +53,7 @@ pub enum Update {
     RemovePendingSupport(PendingSupport),
     SpawnExplosion(Explosion, WorldVec2, ExplosionOrigin),
     AlterTiles(Vec<AlteredTile>),
+    AddCrater(Crater),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -137,6 +140,19 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         Update::RemovePendingSupport(pending) => state.remove_pending_support(pending),
         Update::SpawnExplosion(explosion, position, origin) => {
             state.spawn_explosion(explosion, position, origin)
+        }
+        Update::AddCrater(crater) => {
+            let (i, region) = {
+                let mut world = state.world_mut();
+                let position = crater.position;
+                let tile = WorldTileIndex::from_(TileXy::from_(position, &world.w), &world.w);
+                let region: WorldRegionIndex = tile.into_(&world.w);
+                world.craters.push(crater.clone());
+                (world.craters.len() - 1, region)
+            };
+            state.indexes_mut().insert_crater(i, region);
+            let message = ToClient::Craters(region, vec![crater]);
+            vec![(Listening::Regions(vec![region]), vec![message])]
         }
         Update::AlterTiles(altered) => {
             let mut by_region: FxHashMap<WorldRegionIndex, Vec<AlteredTile>> = FxHashMap::default();

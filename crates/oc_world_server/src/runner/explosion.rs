@@ -14,6 +14,7 @@ use oc_root::{Client, TILE_SALT_INTERIOR_DESTRUCTION, WcfgFrom, WcfgInto, WorldC
 use oc_utils::let_some;
 use oc_utils::polygon::Polygon;
 use oc_world::World;
+use oc_world::crater::Crater;
 use oc_world::interior::Interior;
 use oc_world::tile::AlteredTile;
 use rustc_hash::FxHashSet;
@@ -31,7 +32,11 @@ const DEFAULT_INTERIOR_DESTRUCTION_ALTERS: [Alter; 4] = [
     Alter::WoodDebris,
 ];
 
+/// Number of crater sprites available per crater type in the crater sprites
+const CRATER_SPRITES_COUNT: usize = 5;
+
 impl<E: Client> super::State<E> {
+    // TODO: split in multiple functions
     pub fn spawn_explosion(
         &self,
         explosion: Explosion,
@@ -105,6 +110,21 @@ impl<E: Client> super::State<E> {
             let destructed = destructed_tiles(&world, mod_, &explosion, position);
             if !destructed.is_empty() {
                 updates.push(Update::AlterTiles(destructed));
+            }
+
+            let crater_size = explosion.destruction_rayon.pixels(w);
+            let in_interior = world.interiors.iter().any(|i| i.contains(position));
+            let crater_type = tile_nature(&world, tile)
+                .filter(|_| !in_interior)
+                .and_then(|n| mod_.nature(n).crater);
+            if let (true, Some(crater_type)) = (crater_size > 0., crater_type) {
+                let sprite = fastrand::usize(0..CRATER_SPRITES_COUNT);
+                updates.push(Update::AddCrater(Crater::new(
+                    position,
+                    crater_type,
+                    sprite,
+                    crater_size,
+                )));
             }
 
             // Shrapnels

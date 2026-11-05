@@ -9,6 +9,7 @@ use crate::ingame::debug::visibility::ShowVisibility;
 use crate::{
     ingame::{
         behavior::BehaviorPlugin,
+        crater::CraterPlugin,
         draw::world::WorldMapDisplay,
         height::HeightPlugin,
         hud::HudPlugin,
@@ -34,6 +35,7 @@ use crate::{
 pub mod behavior;
 pub mod camera;
 pub mod collision;
+pub mod crater;
 #[cfg(feature = "debug")]
 pub mod debug;
 pub mod draw;
@@ -154,6 +156,7 @@ impl Plugin for IngamePlugin {
             .add_plugins(IndividualPlugin)
             .add_plugins(SquadPlugin)
             .add_plugins(ProjectilePlugin)
+            .add_plugins(CraterPlugin)
             .add_plugins(BehaviorPlugin)
             .add_plugins(LovPlugin)
             .add_plugins(InteriorPlugin)

@@ -47,6 +47,7 @@ pub struct Indexes {
     proximity_individuals: SizedIndex<IndividualIndex>,
     regions_individuals: SizedIndex<IndividualIndex>,
     regions_projectiles: SizedIndex<ProjectileId>,
+    regions_craters: SizedIndex<usize>,
     individuals_squad: Vec<SquadIndex>,
     side_a_individuals: Vec<IndividualIndex>,
     side_b_individuals: Vec<IndividualIndex>,
@@ -60,6 +61,7 @@ impl Indexes {
         let mut proximity_individuals = SizedIndex::new(world.w.tiles_count() as usize);
         let mut regions_individuals = SizedIndex::new(world.w.regions_count() as usize);
         let mut regions_projectiles = SizedIndex::new(world.w.regions_count() as usize);
+        let mut regions_craters = SizedIndex::new(world.w.regions_count() as usize);
         let mut individuals_squad = Vec::with_capacity(world.individuals.len());
         let side_a_count = individuals.iter().filter(|i| i.side == Side::A).count();
         let mut side_a_individuals = Vec::with_capacity(side_a_count);
@@ -122,7 +124,14 @@ impl Indexes {
             regions_projectiles[region.0 as usize].push(*id);
         }
 
+        for (i, crater) in world.craters.iter().enumerate() {
+            let tile = WorldTileIndex::from_(TileXy::from_(crater.position, w), w);
+            let region: WorldRegionIndex = tile.into_(&world.w);
+            regions_craters[region.0 as usize].push(i);
+        }
+
         Self {
+            regions_craters,
             tiles_individuals,
             proximity_individuals,
             regions_individuals,
@@ -131,6 +140,11 @@ impl Indexes {
             side_a_individuals,
             side_b_individuals,
         }
+    }
+
+    /// `i` is the position of the crater in `World::craters`
+    pub fn insert_crater(&mut self, i: usize, region: WorldRegionIndex) {
+        self.regions_craters[region.0 as usize].push(i);
     }
 
     pub fn insert_projectile(&mut self, id: ProjectileId, projectile: &Projectile) {
@@ -232,6 +246,10 @@ impl Indexes {
 
     pub fn region_projectiles(&self, region: WorldRegionIndex) -> &Vec<ProjectileId> {
         &self.regions_projectiles[region.0 as usize]
+    }
+
+    pub fn region_craters(&self, region: WorldRegionIndex) -> &Vec<usize> {
+        &self.regions_craters[region.0 as usize]
     }
 
     pub fn individual_squad(&self, individual: IndividualIndex) -> SquadIndex {

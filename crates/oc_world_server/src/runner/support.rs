@@ -128,14 +128,18 @@ impl<E: Client> super::State<E> {
     ) -> Vec<(Listening, Vec<ToClient>)> {
         let mut world = self.world_mut();
 
-        if let Some(i) = world
+        let Some(i) = world
             .pending_supports
             .iter()
             .position(|p| p.same_request(&pending))
-        {
-            world.pending_supports.remove(i);
-        }
+        else {
+            return vec![];
+        };
+        world.pending_supports.remove(i);
 
-        vec![]
+        vec![(
+            Listening::Side(pending.side),
+            vec![ToClient::SupportExecuted(pending.type_)],
+        )]
     }
 }

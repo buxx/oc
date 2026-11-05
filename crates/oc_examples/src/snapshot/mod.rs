@@ -92,6 +92,7 @@ where
             w,
             tiles,
             altered_tiles,
+            craters: vec![],
             individuals,
             squads,
             projectiles,

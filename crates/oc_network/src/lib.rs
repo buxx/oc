@@ -21,6 +21,7 @@ use oc_root::{
     static_::StaticSource,
 };
 use oc_world::{
+    crater::Crater,
     flag::Flags,
     meta::Meta,
     morale::Morale,
@@ -41,6 +42,7 @@ pub enum ToClient {
     Projectile(Projectile),
     Tiles(WorldRegionIndex, Vec<(WorldTileIndex, Tile)>),
     AlteredTiles(WorldRegionIndex, Vec<AlteredTile>),
+    Craters(WorldRegionIndex, Vec<Crater>),
     Fx(Fx),
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
     SetBattlePhase(BattlePhase),
@@ -48,6 +50,7 @@ pub enum ToClient {
     Flags(Flags),
     Morale(Morale),
     SetSupportCount(SupportType, u8),
+    SupportExecuted(SupportType),
     Collision(WorldVec3, std::time::Duration), // Duration is lag
 }
 
