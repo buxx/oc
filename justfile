@@ -142,6 +142,7 @@ test-e2e speed="":
         test-world-end-time
         test-world-end-morale
         test-world-explosion-alter-wall
+        test-world-smoke-grenade
     )
     for t in "${tests[@]}"; do
         just "$t" || exit 1
@@ -329,6 +330,9 @@ test-world-end-morale:
 
 test-world-explosion-alter-wall:
     RUST_LOG=ERROR cargo run --bin example_world --features test -- explosion-alter-wall --test
+
+test-world-smoke-grenade:
+    RUST_LOG=ERROR cargo run --bin example_world --features test -- smoke-grenade --test
 
 test-all:
     just test

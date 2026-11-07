@@ -1,6 +1,7 @@
 use crate::states::GuiFiles;
 use bevy::audio::Volume;
 use bevy::prelude::*;
+use bevy_hanabi::prelude::EffectAsset;
 use oc_physics::fx::{Audio, Fx, SoundBus, Visual};
 use oc_root::{WcfgFrom, geo::ScreenVec2};
 use oc_utils::let_some;
@@ -8,6 +9,11 @@ use oc_utils::let_some;
 use crate::{ingame::BattlePhase, states::GameConfig};
 
 mod explosion;
+mod flash;
+mod particles;
+mod smoke;
+
+pub use smoke::Smoke;
 
 /// Too many at once starve the output buffer. Extra spatial sounds are dropped.
 const MAX_CONCURRENT_EMITTERS: usize = 64;
@@ -106,10 +112,15 @@ impl Plugin for FxPlugin {
             .add_observer(on_fx)
             .add_observer(on_set_bus_volume)
             .add_observer(on_set_master_volume)
-            .add_systems(Startup, setup)
+            .add_systems(Startup, (setup, particles::setup))
             .add_systems(
                 Update,
-                (update_listener, apply_bus_volumes, explosion::animate),
+                (
+                    update_listener,
+                    apply_bus_volumes,
+                    explosion::animate,
+                    particles::despawn_finished,
+                ),
             );
         #[cfg(feature = "debug")]
         app.add_systems(Update, explosion::draw_debug);
@@ -145,6 +156,8 @@ fn on_fx(
     volumes: Res<BusVolumes>,
     emitters: Query<(), With<Emitter>>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut effects: ResMut<Assets<EffectAsset>>,
+    glow: Option<Res<particles::GlowTexture>>,
 ) {
     let_some!(g = &g.0, return);
     let_some!(files = &files.0, return);
@@ -193,6 +206,16 @@ fn on_fx(
                     *position,
                     *rayon,
                 );
+            }
+            Visual::Flash(position, rayon) => {
+                let_some!(glow = glow.as_deref(), return);
+                tracing::debug!(name = "fx-flash", position=?position, rayon=?rayon);
+                flash::spawn(&mut commands, &mut effects, glow, g, *position, *rayon);
+            }
+            Visual::Smoke(position) => {
+                let_some!(glow = glow.as_deref(), return);
+                tracing::debug!(name = "fx-smoke", position=?position);
+                smoke::spawn(&mut commands, &mut effects, glow, g, *position);
             }
             #[cfg(feature = "debug")]
             Visual::ExplosionDebug(debug) => explosion::spawn_debug(&mut commands, g, debug),

@@ -62,6 +62,7 @@ pub fn run(
         .add_plugins(EguiPlugin::default())
         .add_plugins(Wireframe2dPlugin::default())
         .add_plugins(SpritesheetAnimationPlugin)
+        .add_plugins(bevy_hanabi::HanabiPlugin)
         .add_plugins(ErrorPlugin)
         .add_plugins(NetworkPlugin)
         .add_plugins(FxPlugin)

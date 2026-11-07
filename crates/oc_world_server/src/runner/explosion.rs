@@ -10,6 +10,7 @@ use oc_physics::fx;
 use oc_root::alter::Alter;
 use oc_root::explosion::Explosion;
 use oc_root::geo::{WorldVec2, WorldVec3};
+use oc_root::physics::Meters;
 use oc_root::{Client, TILE_SALT_INTERIOR_DESTRUCTION, WcfgFrom, WcfgInto, WorldConfig};
 use oc_utils::let_some;
 use oc_utils::polygon::Polygon;
@@ -43,7 +44,7 @@ impl<E: Client> super::State<E> {
         position: WorldVec2,
         origin: ExplosionOrigin,
     ) -> Vec<(Listening, Vec<ToClient>)> {
-        let (updates, region, debug_fx, sound) = {
+        let (updates, region, debug_fx, sound, largest_rayon, is_smoke) = {
             let world = self.world();
             let indexes = self.indexes();
             let w = &world.w;
@@ -53,6 +54,8 @@ impl<E: Client> super::State<E> {
             let stunned_rayon = explosion.stunned_rayon.pixels(w);
             let shrapnel_rayon = explosion.shrapnel_rayon.pixels(w);
             let largest_rayon = kill_rayon.max(stunned_rayon).max(shrapnel_rayon);
+            let largest_visual_rayon = explosion.largest_rayon();
+            let is_smoke = origin.is_smoke(&mod_);
 
             // Tiles concerned by largest rayon
             let tile = WorldTileIndex::from_(TileXy::from_(position, w), w);
@@ -157,7 +160,9 @@ impl<E: Client> super::State<E> {
             #[cfg(not(feature = "debug"))]
             let debug_fx = None::<fx::Fx>;
 
+            // Smoke grenade makes no explosion (no sound, sprite nor flash)
             let sound = match origin {
+                _ if is_smoke => None,
                 ExplosionOrigin::Shell(shell) => mod_.shell(shell).pick_sound(),
                 ExplosionOrigin::Grenade(grenade) => mod_.grenade(grenade).pick_sound(),
             }
@@ -169,7 +174,14 @@ impl<E: Client> super::State<E> {
                 ))
             });
 
-            (updates, region, debug_fx, sound)
+            (
+                updates,
+                region,
+                debug_fx,
+                sound,
+                Meters(largest_visual_rayon),
+                is_smoke,
+            )
         };
 
         let now = Instant::now();
@@ -177,8 +189,16 @@ impl<E: Client> super::State<E> {
             self.schedule(now, update);
         }
 
-        let fx = fx::Fx::Visual(fx::Visual::Explosion(position, explosion.stunned_rayon));
-        let mut messages = vec![ToClient::Fx(fx)];
+        let mut messages = match is_smoke {
+            true => vec![ToClient::Fx(fx::Fx::Visual(fx::Visual::Smoke(position)))],
+            false => vec![
+                ToClient::Fx(fx::Fx::Visual(fx::Visual::Explosion(
+                    position,
+                    explosion.stunned_rayon,
+                ))),
+                ToClient::Fx(fx::Fx::Visual(fx::Visual::Flash(position, largest_rayon))),
+            ],
+        };
         messages.extend(sound.map(ToClient::Fx));
         #[cfg(feature = "debug")]
         messages.push(ToClient::Fx(debug_fx));

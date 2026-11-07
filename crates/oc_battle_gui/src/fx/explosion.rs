@@ -13,6 +13,7 @@ use crate::ingame::draw::Z_EXPLOSION;
 const FRAME_SIZE: UVec2 = UVec2::new(196, 190);
 const FRAMES: u32 = 11;
 const FRAME_DURATION: f32 = 0.15;
+pub const ANIMATION_DURATION: f32 = FRAMES as f32 * FRAME_DURATION;
 
 #[derive(Component)]
 pub struct ExplosionAnimation(Timer);
@@ -83,7 +84,7 @@ pub fn spawn_debug(
     debug: &oc_physics::fx::ExplosionDebug,
 ) {
     commands.spawn(ExplosionDebugDisplay {
-        timer: Timer::from_seconds(FRAMES as f32 * FRAME_DURATION, TimerMode::Once),
+        timer: Timer::from_seconds(ANIMATION_DURATION, TimerMode::Once),
         center: ScreenVec2::from_(debug.position, &g.w).into(),
         kill_rayon: debug.kill_rayon.pixels(&g.w),
         stunned_rayon: debug.stunned_rayon.pixels(&g.w),

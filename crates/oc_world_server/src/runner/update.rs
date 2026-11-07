@@ -8,10 +8,10 @@ use oc_geo::region::{Region, WorldRegionIndex};
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::IndividualIndex;
 use oc_individual::squad::SquadIndex;
-use oc_mod::PickSound;
 use oc_mod::grenade::GrenadeIndex;
 use oc_mod::shell::ShellIndex;
 use oc_mod::sound::SoundIndex;
+use oc_mod::{Mod, PickSound};
 use oc_network::ToClient;
 use oc_physics::fx;
 use oc_projectile::NextProjectileId;
@@ -62,6 +62,15 @@ pub enum Update {
 pub enum ExplosionOrigin {
     Shell(ShellIndex),
     Grenade(GrenadeIndex),
+}
+
+impl ExplosionOrigin {
+    pub fn is_smoke(&self, mod_: &Mod) -> bool {
+        matches!(
+            self,
+            ExplosionOrigin::Grenade(grenade) if mod_.grenade(*grenade).nature == oc_mod::grenade::GrenadeNature::Smoke
+        )
+    }
 }
 
 /// Apply updates in order. Consecutive individuals and squads updates only write world, so they

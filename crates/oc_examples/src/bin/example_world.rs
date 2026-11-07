@@ -66,6 +66,7 @@ enum Case {
     EndTime,
     EndMorale,
     ExplosionAlterWall,
+    SmokeGrenade,
 }
 
 #[cfg(feature = "test")]
@@ -157,6 +158,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .make(),
             ],
         ),
+        Case::SmokeGrenade => {
+            let smoke = mod_.grenade_from_name("Smoke grenade")?.index();
+            let target = WorldVec2::new(center.x + Meters(10.).pixels(&w), center.y);
+            (
+                BattlePhase::Deployment,
+                Supports::default(),
+                vec![
+                    TestIndividual::builder()
+                        .side(Side::A)
+                        .position(WorldVec3::new(center.x, center.y, 0.))
+                        .weapons(TestWeapons::builder().grenades(vec![smoke]).build().make())
+                        .build()
+                        .make(&w),
+                ],
+                vec![
+                    TestSquad::builder()
+                        .position(center)
+                        .members(vec![oc_individual::IndividualIndex(0)])
+                        .orders(vec![Order::Smoke(target)])
+                        .build()
+                        .make(),
+                ],
+            )
+        }
         Case::ExplosionAlterWall => (BattlePhase::Deployment, Supports::default(), vec![], vec![]),
         Case::Support => (
             BattlePhase::Deployment,
@@ -204,6 +229,11 @@ fn setup(app: &mut App, center: WorldVec2, #[allow(unused)] speed: f32) {
             app.add_observer(explosion_alter_wall);
             #[cfg(feature = "test")]
             app.add_systems(Update, alter_wall_test);
+        }
+        Case::SmokeGrenade => {
+            app.add_observer(request_fight);
+            #[cfg(feature = "test")]
+            app.add_systems(Update, smoke_test);
         }
         Case::EndMorale => {
             app.add_observer(request_fight);
@@ -283,6 +313,14 @@ fn alter_wall_test(
         commands.write_message(AppExit::from_code(0));
         return;
     }
+
+    SUCCESS.store(true, Ordering::Relaxed);
+    commands.write_message(AppExit::from_code(0));
+}
+
+#[cfg(feature = "test")]
+fn smoke_test(smokes: Query<(), With<oc_battle_gui::fx::Smoke>>, mut commands: Commands) {
+    true_!(!smokes.is_empty(), return);
 
     SUCCESS.store(true, Ordering::Relaxed);
     commands.write_message(AppExit::from_code(0));

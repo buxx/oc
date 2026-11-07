@@ -10,3 +10,13 @@ pub struct Explosion {
     pub shrapnel_quantity: u32,
     pub penetration_force: f32,
 }
+
+impl Explosion {
+    pub fn largest_rayon(&self) -> f32 {
+        self.kill_rayon
+            .0
+            .max(self.stunned_rayon.0)
+            .max(self.shrapnel_rayon.0)
+            .max(self.destruction_rayon.0)
+    }
+}

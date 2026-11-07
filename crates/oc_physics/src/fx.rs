@@ -40,6 +40,10 @@ impl SoundBus {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Visual {
     Explosion(WorldVec2, Meters),
+    /// Light flash at explosion center, sized by the largest explosion rayon
+    Flash(WorldVec2, Meters),
+    /// Smoke cloud (smoke grenade)
+    Smoke(WorldVec2),
     #[cfg(feature = "debug")]
     ExplosionDebug(ExplosionDebug),
 }

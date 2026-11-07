@@ -1,17 +1,22 @@
 use bon::Builder;
 use oc_individual::{Weapon, Weapons};
-use oc_mod::{Mod, ammunition::AmmunitionIndex, magazine::MagazineIndex, weapons::WeaponIndex};
+use oc_mod::{
+    Mod, ammunition::AmmunitionIndex, grenade::GrenadeIndex, magazine::MagazineIndex,
+    weapons::WeaponIndex,
+};
 
 #[derive(Debug, Builder)]
 pub struct TestWeapons {
     primary: Option<Weapon>,
+    #[builder(default)]
+    grenades: Vec<GrenadeIndex>,
 }
 
 impl TestWeapons {
     pub fn make(self) -> Weapons {
         Weapons {
             primary: self.primary,
-            grenades: vec![],
+            grenades: self.grenades,
         }
     }
 }
