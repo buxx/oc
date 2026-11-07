@@ -50,6 +50,7 @@ pub fn show(
                     start: point,
                     start_plus_z: profile.start_plus_z,
                     stop_plus_z: profile.stop_plus_z,
+                    max: None,
                 }));
             }
 

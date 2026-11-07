@@ -46,5 +46,6 @@ Mod (
       "BulletMetalImpact5.ogg",
       "BulletMetalImpact6.ogg"
       ],
+    unpin_grenade: ["Unpin1.ogg", "Unpin2.ogg"],
   ),
 )

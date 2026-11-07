@@ -11,6 +11,7 @@ impl TestWeapons {
     pub fn make(self) -> Weapons {
         Weapons {
             primary: self.primary,
+            grenades: vec![],
         }
     }
 }

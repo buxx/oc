@@ -9,6 +9,7 @@ use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_individual::IndividualIndex;
 use oc_individual::squad::SquadIndex;
 use oc_mod::PickSound;
+use oc_mod::grenade::GrenadeIndex;
 use oc_mod::shell::ShellIndex;
 use oc_mod::sound::SoundIndex;
 use oc_network::ToClient;
@@ -54,11 +55,13 @@ pub enum Update {
     SpawnExplosion(Explosion, WorldVec2, ExplosionOrigin),
     AlterTiles(Vec<AlteredTile>),
     AddCrater(Crater),
+    RemoveDecor(Vec<WorldTileIndex>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ExplosionOrigin {
     Shell(ShellIndex),
+    Grenade(GrenadeIndex),
 }
 
 /// Apply updates in order. Consecutive individuals and squads updates only write world, so they
@@ -139,6 +142,8 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         Update::RealizeSupport(pending) => state.realize_support(pending),
         Update::RemovePendingSupport(pending) => state.remove_pending_support(pending),
         Update::SpawnExplosion(explosion, position, origin) => {
+            #[cfg(feature = "tracker")]
+            ctx.tracker.take().explosions.push((position, origin));
             state.spawn_explosion(explosion, position, origin)
         }
         Update::AddCrater(crater) => {
@@ -153,6 +158,27 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
             state.indexes_mut().insert_crater(i, region);
             let message = ToClient::Craters(region, vec![crater]);
             vec![(Listening::Regions(vec![region]), vec![message])]
+        }
+        Update::RemoveDecor(tiles) => {
+            let mut by_region: FxHashMap<WorldRegionIndex, Vec<WorldTileIndex>> =
+                FxHashMap::default();
+
+            {
+                let mut world = state.world_mut();
+                for i in &tiles {
+                    let region: WorldRegionIndex = (*i).into_(&world.w);
+                    by_region.entry(region).or_default().push(*i);
+                }
+                world.remove_decor(&tiles);
+            }
+
+            by_region
+                .into_iter()
+                .map(|(region, tiles)| {
+                    let message = ToClient::RemovedDecor(region, tiles);
+                    (Listening::Regions(vec![region]), vec![message])
+                })
+                .collect()
         }
         Update::AlterTiles(altered) => {
             let mut by_region: FxHashMap<WorldRegionIndex, Vec<AlteredTile>> = FxHashMap::default();

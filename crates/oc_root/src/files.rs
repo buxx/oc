@@ -213,6 +213,16 @@ impl FilesAsGui {
         }
     }
 
+    pub fn decor_png(&self) -> PathBuf {
+        self.world_().join("decor.png")
+    }
+
+    pub fn decor_tsx(&self) -> PathBuf {
+        PathBuf::from("assets")
+            .join(self.world_())
+            .join("decor.tsx")
+    }
+
     pub fn terrain_tsx(&self) -> PathBuf {
         match &self.sources {
             StaticSource::Remote(_) => {

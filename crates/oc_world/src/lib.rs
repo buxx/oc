@@ -23,6 +23,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     crater::Crater,
+    decor::Decor,
     flag::Flags,
     interior::Interior,
     meta::Meta,
@@ -75,6 +76,7 @@ pub struct World {
     pub support_realized: FxHashMap<(Side, SupportType), Instant>,
     pub tiles: Vec<Tile>,
     pub altered_tiles: Vec<Option<AlteredTile>>,
+    pub decor: Vec<Option<Decor>>,
     pub craters: Vec<Crater>,
     pub navmesh: polyanya::Mesh,
     pub visibilities: Visibilities,
@@ -138,6 +140,19 @@ impl World {
             .into_iter()
             .filter_map(|(i, _)| self.altered_tiles[i.0 as usize].clone())
             .collect()
+    }
+
+    pub fn region_decor(&self, region: WorldRegionIndex) -> Vec<Decor> {
+        self.region_tiles(region)
+            .into_iter()
+            .filter_map(|(i, _)| self.decor[i.0 as usize].clone())
+            .collect()
+    }
+
+    pub fn remove_decor(&mut self, tiles: &[WorldTileIndex]) {
+        for i in tiles {
+            self.decor[i.0 as usize] = None;
+        }
     }
 
     pub fn individuals(&self) -> &[Individual] {
@@ -281,6 +296,7 @@ mod tests {
             vec![],
             IndexedIllustrations::default(),
             vec![],
+            vec![],
             Default::default(),
             1.5,
         );
@@ -289,6 +305,7 @@ mod tests {
             .map(|i| Tile::new(WorldTileIndex(i), NatureIndex(0), 0, Traversability::all()))
             .collect();
         let altered_tiles = vec![None; tiles.len()];
+        let decor = vec![None; tiles.len()];
         let world = World::new(
             w.clone(),
             mod_,
@@ -304,6 +321,7 @@ mod tests {
             FxHashMap::default(),
             tiles,
             altered_tiles,
+            decor,
             vec![],
             polyanya::Mesh::default(),
             Visibilities::empty(0),
@@ -344,6 +362,7 @@ mod tests {
             .map(|i| Tile::new(WorldTileIndex(i), grass, 0, allow.clone()))
             .collect();
         let altered_tiles = vec![None; tiles.len()];
+        let decor = vec![None; tiles.len()];
         let navmesh = navmesh::navmesh(&w, &tiles.as_walls(&mod_));
         let mut world = World::new(
             w.clone(),
@@ -360,6 +379,7 @@ mod tests {
             FxHashMap::default(),
             tiles,
             altered_tiles,
+            decor,
             vec![],
             navmesh,
             Visibilities::empty(0),

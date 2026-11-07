@@ -5,6 +5,7 @@ use oc_utils::let_some;
 
 use crate::{
     http_to_file, ingame,
+    sprites::decor::DecorSprites,
     states::{AppState, GameConfig, PointerIn},
     utils::untar,
     world::World,
@@ -24,6 +25,7 @@ impl Plugin for DownloadingPlugin {
 
 // TODO: for now, this action is blocking, it should be not and display a progress message
 // TODO: refact this ugly non refactored download / cache / assets code
+#[allow(clippy::too_many_arguments)]
 fn download(
     mut commands: Commands,
     g: Res<GameConfig>,
@@ -32,6 +34,7 @@ fn download(
     assets: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) -> Result<(), BevyError> {
     let_some!(g = &g.0, return Ok(()));
     let_some!(files = &files.0, return Ok(()));
@@ -69,6 +72,14 @@ fn download(
         oc_world::terrain::Terrain::load(&files.terrain_tsx(), g.w.clone(), &g.mod_).unwrap(); // TODO
     tracing::trace!(name="downloading-terrain", terrain=?terrain);
     world_.terrain = Some(terrain); // TODO
+
+    let decor_tileset = oc_world::decor::DecorTileset::load(&files.decor_tsx()).unwrap(); // TODO
+    commands.insert_resource(DecorSprites::init(
+        &files.decor_png(),
+        decor_tileset,
+        &assets,
+        &mut atlas_layouts,
+    ));
 
     commands.trigger(Downloaded);
 

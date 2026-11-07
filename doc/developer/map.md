@@ -25,6 +25,7 @@ A map is composed by:
 - A grid of "terrain" tile, composed by `terrain` tileset, to specify terrain nature
 - A grid of "height" tile, composed by `height` tileset, to specify the z axis of terrain
 - A grid of "decor" tile, composed by `decor` tileset, to specify the "on the top" vegetation / decor
+- A decor tile (in `decor.tsx`) can own a `DESTRUCTION_RESISTANCE` float property (default `0.5`): it is removed by an explosion in whose destruction rayon the destruction force is greater
 - An objet layer "interior_zones", to indicate which zone must display "interiors.png" part when soldier in it
 - An objet layer "spawn_zones", to indicate map split and enable/disable zones in deployment phase
 - An objet layer "flags", tu indicate placement of flags to capture

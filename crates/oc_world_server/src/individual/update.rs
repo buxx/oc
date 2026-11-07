@@ -42,7 +42,9 @@ pub fn write(
             | Intent::Defend(_)
             | Intent::Hide(_)
             | Intent::Engage(_)
-            | Intent::Suppress(_) => {}
+            | Intent::Suppress(_)
+            | Intent::Grenade(_)
+            | Intent::Smoke(_) => {}
             Intent::MoveTo(_, path) | Intent::MoveFastTo(_, path) | Intent::SneakTo(_, path) => {
                 path.remove(0);
             }

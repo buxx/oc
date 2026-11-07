@@ -18,6 +18,7 @@ use oc_root::{
 use oc_utils::let_some;
 use oc_world::{
     crater::Crater,
+    decor::Decor,
     support::SupportType,
     tile::{AlteredTile, Tile},
 };
@@ -42,6 +43,12 @@ pub struct InsertTiles(pub WorldRegionIndex, pub Vec<(WorldTileIndex, Tile)>);
 
 #[derive(Debug, Event)]
 pub struct InsertAlteredTiles(pub WorldRegionIndex, pub Vec<AlteredTile>);
+
+#[derive(Debug, Event)]
+pub struct InsertDecor(pub WorldRegionIndex, pub Vec<Decor>);
+
+#[derive(Debug, Event)]
+pub struct RemoveDecor(pub WorldRegionIndex, pub Vec<WorldTileIndex>);
 
 #[derive(Debug, Event)]
 pub struct InsertCraters(pub WorldRegionIndex, pub Vec<Crater>);
@@ -70,6 +77,8 @@ impl Plugin for WorldPlugin {
             .add_observer(on_world_resume)
             .add_observer(tile::on_insert_tiles)
             .add_observer(tile::on_insert_altered_tiles)
+            .add_observer(tile::on_insert_decor)
+            .add_observer(tile::on_remove_decor)
             .add_observer(tile::on_forgotten_region)
             .add_observer(individual::on_insert_individual)
             .add_observer(individual::on_update_individual_physics)
@@ -97,6 +106,7 @@ pub struct World {
     pub individuals_refs: FxHashMap<IndividualIndex, (WorldRegionIndex, WorldTileIndex)>, // TODO: remove pub and ensure x_ref
     pub tiles: Index<WorldTileIndex, Tile>,
     pub altered_tiles: Index<WorldTileIndex, AlteredTile>,
+    pub decor: Index<WorldTileIndex, Decor>,
     pub heights: Index<WorldHeightIndex, u8>,
     pub terrain: Option<oc_world::terrain::Terrain>,
     pub squads: Index<SquadIndex, Squad>,
@@ -158,6 +168,20 @@ impl World {
         }
     }
 
+    pub fn insert_decor(&mut self, region: WorldRegionIndex, decor: Vec<Decor>) {
+        self.decor
+            .entry(region)
+            .or_default()
+            .extend(decor.into_iter().map(|decor| (decor.i, decor)));
+    }
+
+    pub fn remove_decor(&mut self, region: WorldRegionIndex, tiles: &[WorldTileIndex]) {
+        let_some!(decor = self.decor.get_mut(&region), return);
+        for i in tiles {
+            decor.remove(i);
+        }
+    }
+
     pub fn update_navmesh(&mut self, w: &WorldConfig, mod_: &Mod) {
         let tiles: Vec<(&WorldTileIndex, &Tile)> =
             self.tiles.values().flat_map(|inner| inner.iter()).collect();
@@ -167,6 +191,7 @@ impl World {
     pub fn remove_tiles(&mut self, region: WorldRegionIndex) {
         self.tiles.remove(&region);
         self.altered_tiles.remove(&region);
+        self.decor.remove(&region);
     }
 
     pub fn insert_individual(

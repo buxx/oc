@@ -190,6 +190,7 @@ fn on_setup_lovs(_: On<SetupLovs>, _: Res<Wcfg>, mut commands: Commands) {
             stop: WorldVec3::new(start.x, start.y, start.z),
             stop_plus_z: Meters(0.),
             sections: vec![],
+            max: None,
         };
         let entity = commands.spawn(lov);
         let update = UpdateLovFor(entity.id(), WorldVec2::new(end.x, end.y));

@@ -1,9 +1,16 @@
 use derive_more::{Deref, DerefMut};
-use oc_root::{WorldConfig, geo::WorldVec2, physics::MetersSeconds};
+use oc_root::{
+    WorldConfig,
+    geo::WorldVec2,
+    physics::{Meters, MetersSeconds},
+};
 use oc_utils::d2::Direction;
 use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::IndividualIndex;
+
+/// Maximum distance a grenade or smoke can be thrown. Further, individual moves to be near enough.
+pub const THROW_MAX_DISTANCE: Meters = Meters(30.0);
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
 #[rkyv(compare(PartialEq), derive(Debug))]
@@ -16,6 +23,8 @@ pub enum Intent {
     Hide(Direction),
     Engage(IndividualIndex),
     Suppress(WorldVec2),
+    Grenade(WorldVec2),
+    Smoke(WorldVec2),
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq)]
@@ -29,6 +38,8 @@ pub enum Behavior {
     Hide(Direction),
     Engage(IndividualIndex),
     Suppress(WorldVec2),
+    Grenade(WorldVec2),
+    Smoke(WorldVec2),
 }
 
 impl Intent {
@@ -38,7 +49,9 @@ impl Intent {
             | Intent::Defend(_)
             | Intent::Hide(_)
             | Intent::Engage(_)
-            | Intent::Suppress(_) => None,
+            | Intent::Suppress(_)
+            | Intent::Grenade(_)
+            | Intent::Smoke(_) => None,
             Intent::MoveTo(target, path)
             | Intent::MoveFastTo(target, path)
             | Intent::SneakTo(target, path) => Some((*target, path)),
@@ -53,7 +66,9 @@ impl Behavior {
             | Behavior::Defend(_)
             | Behavior::Hide(_)
             | Behavior::Engage(_)
-            | Behavior::Suppress(_) => MetersSeconds(0.0),
+            | Behavior::Suppress(_)
+            | Behavior::Grenade(_)
+            | Behavior::Smoke(_) => MetersSeconds(0.0),
             Behavior::Walk(_) => w.walk_nominal_speed(),
             Behavior::Run(_) => w.run_nominal_speed(),
             Behavior::Crawl(_) => w.crawl_nominal_speed(),

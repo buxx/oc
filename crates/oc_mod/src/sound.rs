@@ -90,6 +90,7 @@ pub struct SoundGroupsNames {
     pub bullet_impact_ground: Vec<String>,
     pub bullet_wall_impact: Vec<String>,
     pub bullet_metal_impact: Vec<String>,
+    pub unpin_grenade: Vec<String>,
 }
 
 /// Sounds groups resolved to sounds indexes
@@ -104,6 +105,7 @@ pub struct SoundGroups {
     pub bullet_impact_ground: Vec<SoundIndex>,
     pub bullet_wall_impact: Vec<SoundIndex>,
     pub bullet_metal_impact: Vec<SoundIndex>,
+    pub unpin_grenade: Vec<SoundIndex>,
 }
 
 /// Pick randomly one of the given sounds

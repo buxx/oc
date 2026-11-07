@@ -124,7 +124,7 @@ fn position(i: WorldTileIndex, w: &oc_root::WorldConfig) -> Vec2 {
 }
 
 /// Pseudo-random angle (radians) seeded by the tile index: always the same for a given tile
-fn rotation(i: WorldTileIndex) -> f32 {
+pub fn rotation(i: WorldTileIndex) -> f32 {
     (i.seeded(oc_root::TILE_SALT_ROTATION) as f64 / u64::MAX as f64) as f32 * std::f32::consts::TAU
 }
 

@@ -8,6 +8,9 @@ squads:
     xp: 130
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -24,6 +27,9 @@ squads:
     xp: 186
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -40,6 +46,9 @@ squads:
     xp: 191
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -56,6 +65,9 @@ squads:
     xp: 85
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -76,6 +88,9 @@ squads:
     xp: 144
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -92,6 +107,9 @@ squads:
     xp: 187
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -108,6 +126,9 @@ squads:
     xp: 195
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -124,6 +145,9 @@ squads:
     xp: 120
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -144,6 +168,9 @@ squads:
     xp: 139
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -160,6 +187,9 @@ squads:
     xp: 134
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -176,6 +206,9 @@ squads:
     xp: 129
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -192,6 +225,9 @@ squads:
     xp: 144
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -212,6 +248,9 @@ squads:
     xp: 191
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -228,6 +267,9 @@ squads:
     xp: 122
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -244,6 +286,9 @@ squads:
     xp: 110
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -260,6 +305,9 @@ squads:
     xp: 86
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -280,6 +328,9 @@ squads:
     xp: 68
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -296,6 +347,9 @@ squads:
     xp: 153
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -312,6 +366,9 @@ squads:
     xp: 88
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -328,6 +385,9 @@ squads:
     xp: 78
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -348,6 +408,9 @@ squads:
     xp: 128
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -366,6 +429,9 @@ squads:
     xp: 198
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -384,6 +450,9 @@ squads:
     xp: 117
     weapons:
       main: Mg34
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mg34_50x
     - name: Mg34_50x
@@ -402,6 +471,9 @@ squads:
     xp: 84
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -420,6 +492,9 @@ squads:
     xp: 196
     weapons:
       main: Mauser G41
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mauser5x
     - name: Mauser5x
@@ -438,6 +513,9 @@ squads:
     xp: 141
     weapons:
       main: Mg34
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - name: Mg34_50x
     - name: Mg34_50x

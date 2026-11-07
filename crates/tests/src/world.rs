@@ -6,6 +6,7 @@ use oc_projectile::{Projectile, ProjectileId};
 use oc_root::{WorldConfig, battle::BattlePhase};
 use oc_world::{
     World,
+    decor::Decor,
     meta::Meta,
     navmesh::{Walls, navmesh},
     spawn::SpawnZoneName,
@@ -38,6 +39,7 @@ pub struct TestWorld {
     side_b_spawns: Vec<SpawnZoneName>,
     tiles: Option<Vec<Tile>>,
     altered_tiles: Option<Vec<AlteredTile>>,
+    decor: Option<Vec<Option<Decor>>>,
     #[builder(default)]
     individuals: Vec<Individual>,
     squads: Option<Vec<Squad>>,
@@ -67,6 +69,7 @@ impl TestWorld {
             altered_tiles[i] = Some(altered);
         }
 
+        let decor = self.decor.unwrap_or_else(|| vec![None; tiles.len()]);
         let walls = tiles.as_walls(&self.mod_);
         let navmesh = navmesh(w, &walls);
         let squads = self.squads.unwrap_or_else(|| {
@@ -90,6 +93,7 @@ impl TestWorld {
             meta: self.meta,
             tiles,
             altered_tiles,
+            decor,
             craters: vec![],
             navmesh,
             individuals: self.individuals,

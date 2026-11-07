@@ -33,6 +33,8 @@ pub enum Order {
     Hide(Direction),
     Engage(IndividualIndex),
     Suppress(WorldVec2),
+    Grenade(WorldVec2),
+    Smoke(WorldVec2),
 }
 
 impl Order {
@@ -49,7 +51,9 @@ impl Order {
             Order::MoveTo(target)
             | Order::MoveFastTo(target)
             | Order::SneakTo(target)
-            | Order::Suppress(target) => Some(Direction::from_points2d(from, (*target).into())),
+            | Order::Suppress(target)
+            | Order::Grenade(target)
+            | Order::Smoke(target) => Some(Direction::from_points2d(from, (*target).into())),
             Order::Engage(target) => {
                 Some(Direction::from_points2d(from, individual_position(*target)))
             }
@@ -63,7 +67,9 @@ impl Order {
             Order::MoveTo(position)
             | Order::MoveFastTo(position)
             | Order::SneakTo(position)
-            | Order::Suppress(position) => Some(*position),
+            | Order::Suppress(position)
+            | Order::Grenade(position)
+            | Order::Smoke(position) => Some(*position),
         }
     }
 
@@ -74,7 +80,9 @@ impl Order {
             Order::MoveTo(position_)
             | Order::MoveFastTo(position_)
             | Order::SneakTo(position_)
-            | Order::Suppress(position_) => *position_ = position,
+            | Order::Suppress(position_)
+            | Order::Grenade(position_)
+            | Order::Smoke(position_) => *position_ = position,
         }
     }
 
@@ -88,15 +96,20 @@ impl Order {
             Order::Hide(_) => "Hide",
             Order::Engage(_) => "Engage",
             Order::Suppress(_) => "Suppress",
+            Order::Grenade(_) => "Grenade",
+            Order::Smoke(_) => "Smoke",
         }
     }
 
     /// Modify self with position if self is an order which accept it
     pub fn with_position(mut self, position: WorldVec2) -> Order {
         match &mut self {
-            Order::MoveTo(p) | Order::MoveFastTo(p) | Order::SneakTo(p) | Order::Suppress(p) => {
-                *p = position
-            }
+            Order::MoveTo(p)
+            | Order::MoveFastTo(p)
+            | Order::SneakTo(p)
+            | Order::Suppress(p)
+            | Order::Grenade(p)
+            | Order::Smoke(p) => *p = position,
             Order::Idle | Order::Defend(_) | Order::Hide(_) | Order::Engage(_) => {}
         }
 

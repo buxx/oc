@@ -22,6 +22,7 @@ use oc_root::{
 };
 use oc_world::{
     crater::Crater,
+    decor::Decor,
     flag::Flags,
     meta::Meta,
     morale::Morale,
@@ -42,6 +43,8 @@ pub enum ToClient {
     Projectile(Projectile),
     Tiles(WorldRegionIndex, Vec<(WorldTileIndex, Tile)>),
     AlteredTiles(WorldRegionIndex, Vec<AlteredTile>),
+    Decor(WorldRegionIndex, Vec<Decor>),
+    RemovedDecor(WorldRegionIndex, Vec<WorldTileIndex>),
     Craters(WorldRegionIndex, Vec<Crater>),
     Fx(Fx),
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),

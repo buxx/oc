@@ -3,7 +3,9 @@ use std::sync::{Arc, Mutex};
 use oc_individual::IndividualIndex;
 use oc_physics::Event;
 
-use crate::state::ObjectId;
+use oc_root::geo::{WorldVec2, WorldVec3};
+
+use crate::{runner::update::ExplosionOrigin, state::ObjectId};
 
 #[derive(Debug, Clone, Default)]
 pub struct Tracker {
@@ -22,4 +24,6 @@ impl Tracker {
 pub struct Tracker_ {
     pub physics: Vec<Event<ObjectId>>,
     pub individuals: Vec<(IndividualIndex, oc_individual::Update)>,
+    pub individual_positions: Vec<(IndividualIndex, WorldVec3)>,
+    pub explosions: Vec<(WorldVec2, ExplosionOrigin)>,
 }

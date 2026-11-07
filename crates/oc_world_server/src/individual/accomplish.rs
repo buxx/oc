@@ -1,10 +1,63 @@
-use oc_individual::{IndividualIndex, Update, behavior::Intent, order::Order};
+use oc_individual::{Update, behavior::Intent, order::Order};
 use oc_utils::d2::{AlmostEqual, Direction};
 
 use super::{PATH_STEP_TOLERANCE, POSITION_TOLERANCE, Processor, situation::Situation};
 use crate::runner;
 
 impl Processor<'_> {
+    /// Builds the "accomplished" update batch for this individual, appending squad-level updates
+    /// when this individual is a squad leader.
+    pub fn accomplished_updates(&self, direction: Direction) -> Vec<runner::update::Update> {
+        let squad_i = self.index.individual_squad(self.i);
+        let squad = self.world.squad(squad_i);
+        let is_squad_leader = self.i == squad.leader();
+
+        let i_accomplish = Update::Accomplished;
+        let i_accomplish = runner::update::Update::UpdateIndividual(self.i, i_accomplish);
+
+        let i_idle = Update::SetIntent(Intent::Idle(direction));
+        let i_idle = runner::update::Update::UpdateIndividual(self.i, i_idle);
+
+        let mut updates = vec![i_accomplish, i_idle];
+
+        if is_squad_leader && !self.members_still_throwing(squad) {
+            // FIXME: Must wait all members finished associated order (only relevant for MoveTo,
+            // kept here since Idle currently shares the same behavior).
+            let accomplish = oc_individual::squad::Update::Accomplished;
+            let accomplish = runner::update::Update::UpdateSquad(squad_i, accomplish);
+
+            let orders = squad.orders.clone().into_iter().skip(1).collect();
+            let orders = oc_individual::squad::Update::SetOrders(orders);
+            let orders = runner::update::Update::UpdateSquad(squad_i, orders);
+
+            updates.extend(vec![accomplish, orders]);
+        }
+
+        updates
+    }
+
+    /// Grenade and smoke orders are finished for the squad when all members threw: leader waits
+    /// for members which still hold the same order and own a matching grenade.
+    fn members_still_throwing(&self, squad: &oc_individual::squad::Squad) -> bool {
+        let Some(order) = self.world.individual(self.i).orders.first() else {
+            return false;
+        };
+        if !matches!(order, Order::Grenade(_) | Order::Smoke(_)) {
+            return false;
+        }
+
+        squad
+            .members
+            .iter()
+            .filter(|member| **member != self.i)
+            .map(|member| self.world.individual(*member))
+            .any(|member| {
+                member.status.is_target()
+                    && member.orders.contains(order)
+                    && self.matching_grenade(member, order).is_some()
+            })
+    }
+
     /// Determine if current order (or order step) is accomplished
     pub fn accomplished(&self, _situation: &Situation) -> Option<Vec<runner::update::Update>> {
         let individual = self.world.individual(self.i);
@@ -12,61 +65,37 @@ impl Processor<'_> {
             tracing::trace!(name = "individual-step-accomplished-no-order", i=?self.i);
             return None;
         };
-        let squad_i = self.index.individual_squad(self.i);
-        let squad = self.world.squad(squad_i);
-        let is_squad_leader = self.i == squad.leader();
         let mut updates = None;
         let direction = individual.gesture.direction();
-
-        // Builds the "accomplished" update batch for given individual, appending squad-level
-        // updates when this individual is a squad leader.
-        let accomplished_updates =
-            |i: IndividualIndex, direction: Direction| -> Vec<runner::update::Update> {
-                let i_accomplish = Update::Accomplished;
-                let i_accomplish = runner::update::Update::UpdateIndividual(i, i_accomplish);
-
-                let i_idle = Update::SetIntent(Intent::Idle(direction));
-                let i_idle = runner::update::Update::UpdateIndividual(i, i_idle);
-
-                let mut updates = vec![i_accomplish, i_idle];
-
-                if is_squad_leader {
-                    // FIXME: Must wait all members finished associated order (only relevant for MoveTo,
-                    // kept here since Idle currently shares the same behavior).
-                    let accomplish = oc_individual::squad::Update::Accomplished;
-                    let accomplish = runner::update::Update::UpdateSquad(squad_i, accomplish);
-
-                    let orders = squad.orders.clone().into_iter().skip(1).collect();
-                    let orders = oc_individual::squad::Update::SetOrders(orders);
-                    let orders = runner::update::Update::UpdateSquad(squad_i, orders);
-
-                    updates.extend(vec![accomplish, orders]);
-                }
-
-                updates
-            };
 
         match order {
             Order::Idle => {
                 tracing::trace!(name = "individual-step-accomplished-idle-finished", i = ?self.i);
-                updates = Some(accomplished_updates(self.i, direction));
+                updates = Some(self.accomplished_updates(direction));
             }
             Order::MoveTo(position) | Order::MoveFastTo(position) | Order::SneakTo(position) => {
                 if position.almost_equal(individual.position, POSITION_TOLERANCE) {
                     tracing::trace!(name = "individual-step-accomplished-move-to-finished", i = ?self.i);
-                    updates = Some(accomplished_updates(self.i, direction));
+                    updates = Some(self.accomplished_updates(direction));
                 }
             }
             // Defend and hide never finish
             Order::Defend(_) | Order::Hide(_) => {}
             // FIXME: must finish when ammo low
             Order::Suppress(_) => {}
+            // Grenade and smoke orders are skipped when individual has no (more) matching grenade.
+            Order::Grenade(_) | Order::Smoke(_) => {
+                if self.matching_grenade(individual, order).is_none() {
+                    tracing::trace!(name = "individual-step-accomplished-no-grenade", i = ?self.i);
+                    updates = Some(self.accomplished_updates(direction));
+                }
+            }
             // Engage finishes when target is no longer operational. Losing sight of it only does
             // not: it can be seen again, or still be seen by another individual of the squad.
             Order::Engage(individual) => {
                 if !self.world.individual(*individual).status.is_target() {
                     tracing::trace!(name = "individual-step-accomplished-engage-finished", i=?self.i, i2=?individual);
-                    updates = Some(accomplished_updates(self.i, direction));
+                    updates = Some(self.accomplished_updates(direction));
                 }
             }
         };
@@ -82,7 +111,9 @@ impl Processor<'_> {
             | Intent::Defend(_)
             | Intent::Hide(_)
             | Intent::Engage(_)
-            | Intent::Suppress(_) => {}
+            | Intent::Suppress(_)
+            | Intent::Grenade(_)
+            | Intent::Smoke(_) => {}
             Intent::MoveTo(_, move_path)
             | Intent::MoveFastTo(_, move_path)
             | Intent::SneakTo(_, move_path) => {

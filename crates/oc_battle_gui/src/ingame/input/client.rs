@@ -27,7 +27,7 @@ use crate::{
     network,
     network::input::ToClientEvent,
     states::{GameConfig, GuiFiles},
-    world::{InsertAlteredTiles, InsertCraters, InsertTiles, UpdateVisibilities},
+    world::{InsertAlteredTiles, InsertCraters, InsertDecor, RemoveDecor, InsertTiles, UpdateVisibilities},
 };
 
 pub fn on_to_client(
@@ -93,6 +93,14 @@ pub fn on_to_client(
         ToClient::AlteredTiles(region, tiles) => {
             tracing::trace!(name="ingame-input-altered-tiles", region=?region);
             commands.trigger(InsertAlteredTiles(*region, tiles.clone()));
+        }
+        ToClient::Decor(region, decor) => {
+            tracing::trace!(name="ingame-input-decor", region=?region);
+            commands.trigger(InsertDecor(*region, decor.clone()));
+        }
+        ToClient::RemovedDecor(region, tiles) => {
+            tracing::trace!(name="ingame-input-removed-decor", region=?region);
+            commands.trigger(RemoveDecor(*region, tiles.clone()));
         }
         ToClient::Craters(region, craters) => {
             tracing::trace!(name="ingame-input-craters", region=?region);

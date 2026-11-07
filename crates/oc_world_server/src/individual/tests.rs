@@ -1,3 +1,5 @@
+use glam::Vec2;
+use oc_root::physics::Meters;
 use std::assert_matches;
 
 use oc_individual::{
@@ -6,7 +8,13 @@ use oc_individual::{
     order::Order,
     squad::SquadIndex,
 };
-use oc_mod::{Mod, ammunition::AmmunitionIndex, magazine::MagazineIndex, weapons::WeaponIndex};
+use oc_mod::{
+    Mod,
+    ammunition::AmmunitionIndex,
+    grenade::{GrenadeIndex, GrenadeNature},
+    magazine::MagazineIndex,
+    weapons::WeaponIndex,
+};
 use oc_root::{
     WorldConfig,
     geo::{WorldVec2, WorldVec3},
@@ -19,8 +27,8 @@ use oc_world::{World, visibility::Visibility};
 
 use crate::{
     index::Indexes,
-    individual::{Processor, gesture::progress_},
-    runner::update::Update,
+    individual::{Processor, gesture::progress_, situation::Situation},
+    runner::update::{ExplosionOrigin, Update},
 };
 use tests::{
     individual::TestIndividual,
@@ -31,6 +39,8 @@ use tests::{
 };
 
 const MOD: &str = "mods/tests1";
+const FRAG_GRENADE: GrenadeIndex = GrenadeIndex(0);
+const SMOKE_GRENADE: GrenadeIndex = GrenadeIndex(1);
 
 #[test]
 fn test_progress_from_zero_not_finished_1hz() {
@@ -350,7 +360,8 @@ fn test_engage_aiming_finished() {
                     i: WeaponIndex(0),
                     filled: Some((MagazineIndex(0), AmmunitionIndex(0))),
                     filled_count: 4
-                })
+                }),
+                grenades: vec![],
             })
         )
     );
@@ -387,7 +398,8 @@ fn test_engage_reload_finished() {
                         i: WeaponIndex(0),
                         filled: Some((MagazineIndex(0), AmmunitionIndex(0))),
                         filled_count: 5
-                    })
+                    }),
+                    grenades: vec![],
                 })
             ),
             Update::UpdateIndividual(
@@ -474,7 +486,8 @@ fn test_engage_reload_finished_uses_compatible_magazine_only() {
                         i: WeaponIndex(0),
                         filled: Some((MagazineIndex(0), AmmunitionIndex(0))),
                         filled_count: 5
-                    })
+                    }),
+                    grenades: vec![],
                 })
             ),
             Update::UpdateIndividual(
@@ -722,4 +735,143 @@ fn test_resolve_defend_order_defend_when_no_enemy_visible() {
 
     // Then
     assert_eq!(intent, Intent::Defend(Direction::EST));
+}
+
+fn throw_test_world(w: &WorldConfig, order: Order, grenades: Vec<GrenadeIndex>) -> World {
+    let mut world = one_individual_world(w, WorldVec3::new(100., 100., 0.), vec![Order::Idle]);
+    let individual = world.individual_mut(IndividualIndex(0));
+    individual.orders = vec![order];
+    individual.weapons.grenades = grenades;
+    world
+}
+
+#[test]
+fn test_grenade_begin_reloads() {
+    // Given
+    let w = WorldConfig::new(100, 100);
+    let target = WorldVec2::new(100., 200.);
+    let world = throw_test_world(&w, Order::Grenade(target), vec![FRAG_GRENADE]);
+    let index = Indexes::new(&world, &w);
+    let processor = Processor::new(&world, &index, 0.into());
+    let individual = world.individual(IndividualIndex(0));
+
+    // When
+    let (gesture, updates) = processor.throw_gesture(individual, target, GrenadeNature::Frag);
+
+    // Then
+    assert_eq!(gesture.hands, HandsGesture::Reloading(U8Progress::zero()));
+    assert_eq!(updates, vec![]);
+}
+
+#[test]
+fn test_grenade_reload_finished_aims() {
+    // Given
+    let w = WorldConfig::new(100, 100).with_individual_tick(Frequency::new(1.0));
+    let target = WorldVec2::new(100., 200.);
+    let mut world = throw_test_world(&w, Order::Grenade(target), vec![FRAG_GRENADE]);
+    world.individual_mut(IndividualIndex(0)).gesture =
+        Gesture::body(BodyGesture::Prone(Direction::EST))
+            .with_hands(HandsGesture::Reloading(U8Progress(254)));
+    let index = Indexes::new(&world, &w);
+    let processor = Processor::new(&world, &index, 0.into());
+    let individual = world.individual(IndividualIndex(0));
+
+    // When
+    let (gesture, updates) = processor.throw_gesture(individual, target, GrenadeNature::Frag);
+
+    // Then
+    assert_eq!(gesture.hands, HandsGesture::Aiming(U8Progress::zero()));
+    assert_eq!(updates, vec![]);
+}
+
+#[test]
+fn test_grenade_aiming_finished_throws() {
+    // Given
+    let w = WorldConfig::new(100, 100).with_individual_tick(Frequency::new(1.0));
+    let target = WorldVec2::new(100., 200.);
+    let mut world = throw_test_world(
+        &w,
+        Order::Grenade(target),
+        vec![SMOKE_GRENADE, FRAG_GRENADE],
+    );
+    world.individual_mut(IndividualIndex(0)).gesture =
+        Gesture::body(BodyGesture::Prone(Direction::EST))
+            .with_hands(HandsGesture::Aiming(U8Progress(254)));
+    let index = Indexes::new(&world, &w);
+    let processor = Processor::new(&world, &index, 0.into());
+    let individual = world.individual(IndividualIndex(0));
+
+    // When
+    let (gesture, updates) = processor.throw_gesture(individual, target, GrenadeNature::Frag);
+
+    // Then
+    assert_eq!(gesture.hands, HandsGesture::Idle);
+    // The explosion grenade is consumed, not the smoke one
+    let weapons = Weapons {
+        primary: None,
+        grenades: vec![SMOKE_GRENADE],
+    };
+    assert!(updates.contains(&Update::UpdateIndividual(
+        IndividualIndex(0),
+        oc_individual::Update::SetWeapons(weapons)
+    )));
+    assert!(updates.iter().any(|u| matches!(
+        u,
+        Update::Schedule(_, explosion)
+            if matches!(**explosion, Update::SpawnExplosion(_, position, ExplosionOrigin::Grenade(FRAG_GRENADE)) if Vec2::from(position).distance(Vec2::from(target)) <= Meters(10.0).pixels(&w))
+    )));
+    // Order is finished
+    assert!(updates.contains(&Update::UpdateIndividual(
+        IndividualIndex(0),
+        oc_individual::Update::Accomplished
+    )));
+}
+
+#[test]
+fn test_grenade_order_skipped_without_matching_grenade() {
+    // Given
+    let w = WorldConfig::new(100, 100);
+    let target = WorldVec2::new(100., 200.);
+
+    for (order, grenades) in [
+        (Order::Grenade(target), vec![]),
+        (Order::Grenade(target), vec![SMOKE_GRENADE]),
+        (Order::Smoke(target), vec![FRAG_GRENADE]),
+    ] {
+        let world = throw_test_world(&w, order, grenades);
+        let index = Indexes::new(&world, &w);
+        let processor = Processor::new(&world, &index, 0.into());
+
+        // When
+        let updates = processor.accomplished(&Situation { visibles: vec![] });
+
+        // Then
+        let updates = updates.expect("Order must be skipped");
+        assert!(updates.contains(&Update::UpdateIndividual(
+            IndividualIndex(0),
+            oc_individual::Update::Accomplished
+        )));
+    }
+}
+
+#[test]
+fn test_grenade_order_kept_with_matching_grenade() {
+    // Given
+    let w = WorldConfig::new(100, 100);
+    let target = WorldVec2::new(100., 200.);
+
+    for (order, grenades) in [
+        (Order::Grenade(target), vec![FRAG_GRENADE]),
+        (Order::Smoke(target), vec![SMOKE_GRENADE]),
+    ] {
+        let world = throw_test_world(&w, order, grenades);
+        let index = Indexes::new(&world, &w);
+        let processor = Processor::new(&world, &index, 0.into());
+
+        // When-Then
+        assert_eq!(
+            processor.accomplished(&Situation { visibles: vec![] }),
+            None
+        );
+    }
 }

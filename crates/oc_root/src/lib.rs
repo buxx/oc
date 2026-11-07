@@ -50,6 +50,7 @@ static SPEED_RAW: AtomicU8 = AtomicU8::new(10); // Will be divided by ten
 pub const DEFAULT_FIGHT_DURATION: Duration = Duration::from_secs(15 * 60);
 pub const DEFAULT_INTERIOR_PENETRATION_PROTECT: f32 = 0.2;
 pub const DEFAULT_INTERIOR_DESTRUCTION_RESISTANCE: f32 = 0.15;
+pub const DEFAULT_DECOR_DESTRUCTION_RESISTANCE: f32 = 0.5;
 
 /// Salts given to `WorldTileIndex::pick`/`seeded` so each feature gets an uncorrelated
 /// pseudo-random value for the same tile
@@ -172,6 +173,9 @@ pub struct WorldConfig {
     #[getset(get_copy = "pub", set_with = "pub")]
     // TODO: When click hide order, permit use key (like Shift) to specify distance
     individual_hide_engage_distance: Meters,
+    /// Distance under which an individual owning a frag grenade throws it on a visible enemy
+    #[getset(get_copy = "pub", set_with = "pub")]
+    individual_grenade_enemy_distance: Meters,
     #[getset(get_copy = "pub", set_with = "pub")]
     /// Distance where hiding opacity bonus is no more effective
     hide_opacity_bonus_ends: Meters,
@@ -254,6 +258,7 @@ impl WorldConfig {
         let explosion_stunned_value = Stun(255);
         let individual_suppress_limit_hide = Suppress(200);
         let individual_hide_engage_distance = Meters(40.0);
+        let individual_grenade_enemy_distance = Meters(15.0);
         let hide_opacity_bonus_ends = Meters(10.);
         let hide_opacity_bonus_meter_factor = 0.005;
         let tiles_radius_opacity_picking = 1;
@@ -311,6 +316,7 @@ impl WorldConfig {
             explosion_stunned_value,
             individual_suppress_limit_hide,
             individual_hide_engage_distance,
+            individual_grenade_enemy_distance,
             hide_opacity_bonus_ends,
             hide_opacity_bonus_meter_factor,
             tiles_radius_opacity_picking,

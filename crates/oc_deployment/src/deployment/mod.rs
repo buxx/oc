@@ -244,6 +244,14 @@ impl Deployments {
             });
         }
 
+        for grenade in &individual_.weapons.grenades {
+            let grenade = mod_.grenade_from_name(grenade).context(format!(
+                "Fill grenade for individual {individual_index} and grenade {grenade} and mod {}",
+                mod_.name()
+            ))?;
+            individual.weapons.grenades.push(grenade.index());
+        }
+
         for magazine in &individual_.magazines {
             let magazine = mod_.magazine_from_name(&magazine.name).context(format!(
                 "Fill magazine for individual {individual_index} and magazine {} and mod {}",

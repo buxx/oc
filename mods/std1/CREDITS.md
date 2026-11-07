@@ -24,10 +24,12 @@
 - Grenade1.ogg : https://opengameart.org/content/q009s-weapon-sounds
 - Grenade2.ogg : https://opengameart.org/content/q009s-weapon-sounds
 - Grenade3.ogg : https://opengameart.org/content/q009s-weapon-sounds
+- grenade4.ogg : https://freesound.org/people/MadPanCake/sounds/660767/
 - Ren1.ogg : https://opengameart.org/content/q009s-weapon-sounds
 - Ren2.ogg : https://opengameart.org/content/q009s-weapon-sounds
 - Ren3.ogg : https://opengameart.org/content/q009s-weapon-sounds
 - debris : CC0 https://www.patreon.com/WhiteFoxWorks
+- Tire gauge pin ringing and clicks : https://freesound.org/people/AnthonyChan0/sounds/209645/
 
 Map sources : 
   - Grass : p0ss https://opengameart.org/node/9717

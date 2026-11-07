@@ -29,6 +29,8 @@ impl Processor<'_> {
             Intent::Hide(direction) => Behavior::Hide(*direction),
             Intent::Engage(target) => Behavior::Engage(*target),
             Intent::Suppress(position) => Behavior::Suppress(*position),
+            Intent::Grenade(position) => Behavior::Grenade(*position),
+            Intent::Smoke(position) => Behavior::Smoke(*position),
         };
 
         match self.world.phase.fight() {
@@ -66,7 +68,9 @@ impl Processor<'_> {
                     target.position.to_vec2().into(),
                 ))
             }
-            Behavior::Suppress(position) => Behavior::Idle(Direction::from_points2d(
+            Behavior::Suppress(position)
+            | Behavior::Grenade(position)
+            | Behavior::Smoke(position) => Behavior::Idle(Direction::from_points2d(
                 from.to_vec2().into(),
                 position.into(),
             )),
@@ -160,7 +164,9 @@ impl Processor<'_> {
             | Behavior::Defend(_)
             | Behavior::Hide(_)
             | Behavior::Engage(_)
-            | Behavior::Suppress(_) => vec![],
+            | Behavior::Suppress(_)
+            | Behavior::Grenade(_)
+            | Behavior::Smoke(_) => vec![],
         }
     }
 }

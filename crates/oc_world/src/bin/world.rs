@@ -201,6 +201,7 @@ fn snapshot_(
         vec![],
         vec![],
         vec![],
+        vec![],
         BattlePhase::Deployment,
         DEFAULT_FIGHT_DURATION,
         None,
@@ -216,6 +217,7 @@ fn snapshot_(
     let tiles = map.tiles(&snapshot.w, mod_)?;
     snapshot.altered_tiles = vec![None; tiles.len()];
     snapshot.tiles = tiles;
+    snapshot.decor = map.decor()?;
 
     tracing::info!("Save snapshot");
     let snapshot = snapshot.save(path);

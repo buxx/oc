@@ -8,6 +8,9 @@ squads:
     xp: [133, 30]
     weapons:
       main: Mosin Nagant M1924
+      grenades:
+      - Frag grenade
+      - Frag grenade
     magazines:
     - count: 10
       name: MosinNagant5x

@@ -1,20 +1,80 @@
 use std::time::Duration;
 
 use glam::Vec3;
-use oc_individual::{Individual, WeaponKind};
+use oc_individual::{Individual, WeaponKind, order::Order};
+use oc_mod::grenade::{GrenadeNature, IndexedGrenade};
 use oc_projectile::spawn::SpawnProjectiles;
 #[cfg(feature = "debug")]
 use oc_root::WorldConfig;
 use oc_root::{
+    WcfgFrom,
     geo::{WorldVec2, WorldVec3},
     opacity::CumulatedOpacity,
+    physics::Meters,
 };
 use oc_utils::{if_true, let_some, random::direction_with_inaccuracy};
 
 use super::Processor;
 use crate::runner;
 
+/// Radius around the order position where a grenade lands, for a non-experienced individual
+const THROW_SCATTER_METERS: Meters = Meters(5.0);
+/// Radius added to scatter by 1.0 of opacity at the order position
+const THROW_SCATTER_OPACITY_METERS: Meters = Meters(5.0);
+
 impl Processor<'_> {
+    /// Random position around the order position where the grenade lands. Scatter is reduced by
+    /// experience (divided by 1 up to 10 for max experience) and increased by order position opacity.
+    pub fn throw_landing(&self, individual: &Individual, target: WorldVec2) -> WorldVec2 {
+        let w = &self.world.w;
+        let mod_ = self.world.mod_();
+        let xy = oc_geo::tile::TileXy::from_([target.x, target.y], w);
+        let index = oc_geo::tile::WorldTileIndex::from_(xy, w);
+        let opacity = self
+            .world
+            .tile(index)
+            .map(|t| mod_.nature(t.nature).opacity)
+            .unwrap_or(0.0);
+
+        let divisor = (individual.xp.f32() * 10.0).max(1.0);
+        let rayon = (THROW_SCATTER_METERS * (1.0 / divisor)).pixels(w)
+            + (THROW_SCATTER_OPACITY_METERS * opacity).pixels(w);
+
+        let distance = fastrand::f32().sqrt() * rayon;
+        let angle = fastrand::f32() * std::f32::consts::TAU;
+        WorldVec2::new(
+            target.x + angle.cos() * distance,
+            target.y + angle.sin() * distance,
+        )
+    }
+
+    pub fn grenade_of(
+        &self,
+        individual: &Individual,
+        nature: GrenadeNature,
+    ) -> Option<(usize, &IndexedGrenade)> {
+        individual
+            .weapons
+            .grenades
+            .iter()
+            .enumerate()
+            .map(|(position, grenade)| (position, self.world.mod_.grenade(*grenade)))
+            .find(|(_, grenade)| grenade.nature == nature)
+    }
+
+    pub fn matching_grenade(
+        &self,
+        individual: &Individual,
+        order: &Order,
+    ) -> Option<(usize, &IndexedGrenade)> {
+        let nature = match order {
+            Order::Grenade(_) => GrenadeNature::Frag,
+            Order::Smoke(_) => GrenadeNature::Smoke,
+            _ => return None,
+        };
+        self.grenade_of(individual, nature)
+    }
+
     fn compatible_magazine<'m>(
         &self,
         individual: &Individual,

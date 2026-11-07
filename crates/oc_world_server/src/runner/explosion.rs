@@ -112,6 +112,11 @@ impl<E: Client> super::State<E> {
                 updates.push(Update::AlterTiles(destructed));
             }
 
+            let removed_decor = destructed_decor(&world, &explosion, position);
+            if !removed_decor.is_empty() {
+                updates.push(Update::RemoveDecor(removed_decor));
+            }
+
             let crater_size = explosion.destruction_rayon.pixels(w);
             let in_interior = world.interiors.iter().any(|i| i.contains(position));
             let crater_type = tile_nature(&world, tile)
@@ -154,6 +159,7 @@ impl<E: Client> super::State<E> {
 
             let sound = match origin {
                 ExplosionOrigin::Shell(shell) => mod_.shell(shell).pick_sound(),
+                ExplosionOrigin::Grenade(grenade) => mod_.grenade(grenade).pick_sound(),
             }
             .map(|sound| {
                 fx::Fx::Audio(fx::Audio::PlayWithGeo(
@@ -192,6 +198,23 @@ fn destructed_tiles(
     tiles_in_destruction_rayon(world, explosion, position)
         .into_iter()
         .filter_map(|i| destructed_tile(world, mod_, explosion, i))
+        .collect()
+}
+
+/// Tiles with a decor which resists less than the explosion destruction force, in its destruction
+/// rayon
+fn destructed_decor(
+    world: &World,
+    explosion: &Explosion,
+    position: WorldVec2,
+) -> Vec<WorldTileIndex> {
+    tiles_in_destruction_rayon(world, explosion, position)
+        .into_iter()
+        .filter(|i| {
+            world.decor[i.0 as usize]
+                .as_ref()
+                .is_some_and(|decor| decor.destruction_resistance < explosion.destruction_force)
+        })
         .collect()
 }
 

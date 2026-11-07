@@ -11,6 +11,8 @@ pub enum SquadOrderSprite {
     Crawl,
     Engage,
     Suppress,
+    Grenade,
+    Smoke,
     Defend,
     Hide,
 }
@@ -22,6 +24,8 @@ pub enum IndividualOrderSprite {
     Crawl,
     Engage,
     Suppress,
+    Grenade,
+    Smoke,
     Defend,
     Hide,
 }
@@ -37,6 +41,8 @@ impl IntoSprite<SquadOrderSprite> for Order {
             Order::Hide(_) => SquadOrderSprite::Hide,
             Order::Engage(_) => SquadOrderSprite::Engage,
             Order::Suppress(_) => SquadOrderSprite::Suppress,
+            Order::Grenade(_) => SquadOrderSprite::Grenade,
+            Order::Smoke(_) => SquadOrderSprite::Smoke,
         }
     }
 }
@@ -44,12 +50,12 @@ impl IntoSprite<SquadOrderSprite> for Order {
 impl SpriteRect for SquadOrderSprite {
     fn rect(&self) -> Rect {
         const POSITION_START_X: f32 = 0.;
-        const POSITION_START_Y: f32 = 115.;
+        const POSITION_START_Y: f32 = 145.;
         const POSITION_WIDTH: f32 = 11.;
         const POSITION_HEIGHT: f32 = 11.;
 
         const DIRECTION_START_X: f32 = 0.;
-        const DIRECTION_START_Y: f32 = 160.;
+        const DIRECTION_START_Y: f32 = 190.;
         const DIRECTION_WIDTH: f32 = 50.;
         const DIRECTION_HEIGHT: f32 = 45.;
 
@@ -105,6 +111,26 @@ impl SpriteRect for SquadOrderSprite {
                     start_y + POSITION_HEIGHT,
                 )
             }
+            SquadOrderSprite::Grenade => {
+                const INDEX: f32 = 0.;
+                let start_y = POSITION_START_Y + (INDEX * POSITION_HEIGHT);
+                Rect::new(
+                    POSITION_START_X + POSITION_WIDTH,
+                    start_y,
+                    POSITION_START_X + POSITION_WIDTH + POSITION_WIDTH,
+                    start_y + POSITION_HEIGHT,
+                )
+            }
+            SquadOrderSprite::Smoke => {
+                const INDEX: f32 = 1.;
+                let start_y = POSITION_START_Y + (INDEX * POSITION_HEIGHT);
+                Rect::new(
+                    POSITION_START_X + POSITION_WIDTH,
+                    start_y,
+                    POSITION_START_X + POSITION_WIDTH + POSITION_WIDTH,
+                    start_y + POSITION_HEIGHT,
+                )
+            }
             SquadOrderSprite::Defend => {
                 const INDEX: f32 = 1.;
                 let start_y = DIRECTION_START_Y + (INDEX * DIRECTION_HEIGHT);
@@ -140,6 +166,8 @@ impl IntoIndividualSprite<IndividualOrderSprite> for Order {
             Order::Hide(_) => IndividualOrderSprite::Hide,
             Order::Engage(_) => IndividualOrderSprite::Engage,
             Order::Suppress(_) => IndividualOrderSprite::Suppress,
+            Order::Grenade(_) => IndividualOrderSprite::Grenade,
+            Order::Smoke(_) => IndividualOrderSprite::Smoke,
         }
     }
 }
@@ -147,23 +175,26 @@ impl IntoIndividualSprite<IndividualOrderSprite> for Order {
 impl SpriteRect for IndividualOrderSprite {
     fn rect(&self) -> Rect {
         const START_X: f32 = 22.;
-        const START_Y: f32 = 115.;
+        const START_Y: f32 = 145.;
         const WIDTH: f32 = 11.;
         const HEIGHT: f32 = 11.;
 
-        let i = match self {
+        let (column, i) = match self {
             IndividualOrderSprite::Idle => return Rect::EMPTY, // Should never happen
-            IndividualOrderSprite::Move => 0,
-            IndividualOrderSprite::MoveFast => 1,
-            IndividualOrderSprite::Crawl => 2,
-            IndividualOrderSprite::Engage => 3,
-            IndividualOrderSprite::Suppress => 3,
+            IndividualOrderSprite::Move => (0, 0),
+            IndividualOrderSprite::MoveFast => (0, 1),
+            IndividualOrderSprite::Crawl => (0, 2),
+            IndividualOrderSprite::Engage => (0, 3),
+            IndividualOrderSprite::Suppress => (0, 3),
+            IndividualOrderSprite::Grenade => (1, 0),
+            IndividualOrderSprite::Smoke => (1, 1),
             IndividualOrderSprite::Defend => return Rect::EMPTY, // Should never happen
             IndividualOrderSprite::Hide => return Rect::EMPTY,   // Should never happen
-        } as f32;
+        };
 
-        let start_y = START_Y + (i * HEIGHT);
-        Rect::new(START_X, start_y, START_X + WIDTH, start_y + HEIGHT)
+        let start_x = START_X + (column as f32 * WIDTH);
+        let start_y = START_Y + (i as f32 * HEIGHT);
+        Rect::new(start_x, start_y, start_x + WIDTH, start_y + HEIGHT)
     }
 }
 

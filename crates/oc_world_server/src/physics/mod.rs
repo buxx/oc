@@ -42,6 +42,9 @@ impl<'x, E: Client> Processor<'x, E> {
         let (subject_upds, subject_events) = self.step_for(i, |w| w.individuals().with_ids());
         let subject_effects = self.write(subject_upds);
 
+        #[cfg(feature = "tracker")]
+        self.track_subject_effects(&subject_effects);
+
         let (projectile_upds, projectile_events) = self.step_for(i, |w| w.projectiles().with_ids());
         let projectile_effects = self.write(projectile_upds);
 
@@ -52,6 +55,19 @@ impl<'x, E: Client> Processor<'x, E> {
         updates.extend(self.react(subject_events));
         updates.extend(self.react(projectile_events));
         updates
+    }
+
+    #[cfg(feature = "tracker")]
+    fn track_subject_effects(
+        &self,
+        subject_effects: &Vec<(IndividualIndex, (WorldRegionIndex, Option<Effect>), Update)>,
+    ) {
+        let mut tracker = self.ctx.tracker.take();
+        for (i, _, update) in subject_effects {
+            if let Update::SetPosition(position, _) = update {
+                tracker.individual_positions.push((*i, *position));
+            }
+        }
     }
 
     fn step_for<F, I, T>(&self, i: usize, all: F) -> StepForResult<I>

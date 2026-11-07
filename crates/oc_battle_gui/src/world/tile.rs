@@ -3,7 +3,7 @@ use oc_utils::let_some;
 
 use crate::ingame::region::ForgottenRegion;
 use crate::states::GameConfig;
-use crate::world::{InsertAlteredTiles, InsertTiles, InsertedTiles};
+use crate::world::{InsertAlteredTiles, InsertDecor, InsertTiles, InsertedTiles, RemoveDecor};
 
 // TODO: gui receive region and tiles, then despawn all, then receive a new time ...
 pub fn on_insert_tiles(
@@ -34,6 +34,16 @@ pub fn on_insert_altered_tiles(
     world.insert_altered_tiles(insert.0, insert.1.clone(), &g.mod_);
     // TODO: maybe perormance problem ? (ui freeze)
     world.update_navmesh(&g.w, &g.mod_);
+}
+
+pub fn on_insert_decor(insert: On<InsertDecor>, mut world: ResMut<super::World>) {
+    tracing::debug!("Insert decor for region {:?}", insert.0);
+    world.insert_decor(insert.0, insert.1.clone());
+}
+
+pub fn on_remove_decor(remove: On<RemoveDecor>, mut world: ResMut<super::World>) {
+    tracing::debug!("Remove decor for region {:?}", remove.0);
+    world.remove_decor(remove.0, &remove.1);
 }
 
 // TODO: should be automatized (macro? derive ?)
