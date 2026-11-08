@@ -9,11 +9,19 @@ pub trait Choice<E: Event + Clone + std::fmt::Debug>: IntoEnumIterator + Compone
     fn event(&self) -> E;
     fn idle(&self) -> Rect;
     fn hover(&self) -> Rect;
+    /// Sprite rect used when the choice is disabled (if the menu supports disabled choices)
+    fn disabled(&self) -> Rect {
+        self.idle()
+    }
 }
+
+/// Marker of a menu item which cannot be hovered nor chosen
+#[derive(Debug, Component)]
+pub struct DisabledChoice;
 
 pub fn choose<T: ContextualMenu + Send + Sync + 'static>(
     event: On<PointerPress>,
-    items: Query<&T::Choices>,
+    items: Query<&T::Choices, Without<DisabledChoice>>,
     mut commands: Commands,
 ) where
     for<'a> <T::ChoiceEvent as Event>::Trigger<'a>: Default,
@@ -43,7 +51,7 @@ pub fn context_item<T: Choice<E>, E: Event + Clone + std::fmt::Debug>(
 
 pub fn on_over<T: ContextualMenu + Send + Sync + 'static>(
     event: On<PointerOver>,
-    items: Query<(&T::Choices, &Children)>,
+    items: Query<(&T::Choices, &Children), Without<DisabledChoice>>,
     mut images: Query<&mut ImageNode>,
 ) {
     let target = event.event_target();
@@ -60,7 +68,7 @@ pub fn on_over<T: ContextualMenu + Send + Sync + 'static>(
 
 pub fn on_out<T: ContextualMenu + Send + Sync + 'static>(
     event: On<PointerOut>,
-    items: Query<(&T::Choices, &Children)>,
+    items: Query<(&T::Choices, &Children), Without<DisabledChoice>>,
     mut images: Query<&mut ImageNode>,
 ) {
     let target = event.event_target();

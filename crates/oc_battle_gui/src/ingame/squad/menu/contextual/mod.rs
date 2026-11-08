@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 use oc_individual::order::OrderType;
+use oc_mod::grenade::GrenadeNature;
+use oc_network::GameConfig;
 use oc_root::geo::WorldVec2;
+use oc_utils::let_some;
 use strum_macros::{Display, EnumIter};
 
 use crate::{
@@ -15,6 +18,7 @@ const ITEMS_IDLE_START_X: f32 = 0.;
 const ITEMS_IDLE_START_Y: f32 = 0.;
 const ITEMS_HOVER_START_X: f32 = 71.;
 const ITEMS_HOVER_START_Y: f32 = 0.;
+const ITEMS_DISABLED_START_X: f32 = 142.;
 const ITEM_HEIGHT: f32 = 15.;
 const ITEM_WIDTH: f32 = 70.;
 
@@ -22,7 +26,11 @@ const ITEM_WIDTH: f32 = 70.;
 pub struct PrepareOpenSquadContextualMenu(pub WorldVec2);
 
 #[derive(Debug, Event)]
-pub struct Open(pub WorldVec2);
+pub struct Open {
+    pub position: WorldVec2,
+    pub frag: bool,
+    pub smoke: bool,
+}
 
 #[derive(Debug)]
 pub struct Menu;
@@ -42,7 +50,15 @@ pub enum Choice {
 
 impl OpenContextualMenu<Menu> for Open {
     fn position(&self) -> WorldVec2 {
-        self.0
+        self.position
+    }
+
+    fn is_disabled(&self, choice: &Choice) -> bool {
+        match choice {
+            Choice::Grenade => !self.frag,
+            Choice::Smoke => !self.smoke,
+            _ => false,
+        }
     }
 }
 
@@ -66,54 +82,43 @@ impl contextual::choice::Choice<Choice> for Choice {
     }
 
     fn idle(&self) -> Rect {
-        let index = match self {
-            Choice::Move => 0,
-            Choice::MoveFast => 1,
-            Choice::Sneak => 2,
-            Choice::Engage => 3,
-            Choice::Suppress => 4,
-            Choice::Grenade => 5,
-            Choice::Smoke => 6,
-            Choice::Defend => 7,
-            Choice::Hide => 8,
-        };
-
-        let yp = index as f32 * ITEM_HEIGHT;
-        let x0 = ITEMS_IDLE_START_X;
-        let y0 = ITEMS_IDLE_START_Y + yp;
-        let x1 = x0 + ITEM_WIDTH;
-        let y1 = y0 + ITEM_HEIGHT;
-        Rect::new(x0, y0, x1, y1)
+        item_rect(*self, ITEMS_IDLE_START_X, ITEMS_IDLE_START_Y)
     }
 
     fn hover(&self) -> Rect {
-        let index = match self {
-            Choice::Move => 0,
-            Choice::MoveFast => 1,
-            Choice::Sneak => 2,
-            Choice::Engage => 3,
-            Choice::Suppress => 4,
-            Choice::Grenade => 5,
-            Choice::Smoke => 6,
-            Choice::Defend => 7,
-            Choice::Hide => 8,
-        };
-
-        let yp = index as f32 * ITEM_HEIGHT;
-        let x0 = ITEMS_HOVER_START_X;
-        let y0 = ITEMS_HOVER_START_Y + yp;
-        let x1 = x0 + ITEM_WIDTH;
-        let y1 = y0 + ITEM_HEIGHT;
-        Rect::new(x0, y0, x1, y1)
+        item_rect(*self, ITEMS_HOVER_START_X, ITEMS_HOVER_START_Y)
     }
+
+    fn disabled(&self) -> Rect {
+        item_rect(*self, ITEMS_DISABLED_START_X, ITEMS_IDLE_START_Y)
+    }
+}
+
+fn item_rect(choice: Choice, start_x: f32, start_y: f32) -> Rect {
+    let index = match choice {
+        Choice::Move => 0,
+        Choice::MoveFast => 1,
+        Choice::Sneak => 2,
+        Choice::Engage => 3,
+        Choice::Suppress => 4,
+        Choice::Grenade => 5,
+        Choice::Smoke => 6,
+        Choice::Defend => 7,
+        Choice::Hide => 8,
+    };
+    let y0 = start_y + index as f32 * ITEM_HEIGHT;
+    Rect::new(start_x, y0, start_x + ITEM_WIDTH, y0 + ITEM_HEIGHT)
 }
 
 pub fn on_prepare_open_squad_contextual_menu(
     event: On<PrepareOpenSquadContextualMenu>,
     state: Res<crate::ingame::state::State>,
     world: Res<crate::world::World>,
+    g: Res<crate::states::GameConfig>,
     mut commands: Commands,
 ) {
+    let_some!(g = &g.0, return);
+
     // Squad orders require selected squads owning a leader able to lead
     if !state.selected_squads().iter().any(|i| {
         world
@@ -126,7 +131,37 @@ pub fn on_prepare_open_squad_contextual_menu(
     }
 
     tracing::debug!("Trigger open contextual menu");
-    commands.trigger(Open(event.0))
+    let (frag, smoke) = grenades(state, world, g);
+
+    commands.trigger(Open {
+        position: event.0,
+        frag,
+        smoke,
+    })
+}
+
+fn grenades(
+    state: Res<'_, crate::ingame::state::State>,
+    world: Res<'_, crate::world::World>,
+    g: &GameConfig,
+) -> (bool, bool) {
+    let (mut frag, mut smoke) = (false, false);
+
+    for grenade in state
+        .selected_squads()
+        .iter()
+        .filter_map(|i| world.squad(*i))
+        .flat_map(|squad| squad.members.iter())
+        .filter_map(|i| world.individual(*i))
+        .flat_map(|individual| individual.weapons.grenades.iter())
+    {
+        match g.mod_.grenade(*grenade).nature {
+            GrenadeNature::Frag => frag = true,
+            GrenadeNature::Smoke => smoke = true,
+        }
+    }
+
+    (frag, smoke)
 }
 
 pub fn on_choose(item: On<Choice>, mut commands: Commands) {

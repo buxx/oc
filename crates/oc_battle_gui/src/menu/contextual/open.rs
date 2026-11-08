@@ -9,13 +9,16 @@ use strum::IntoEnumIterator;
 use crate::{
     menu::contextual::{
         ContextMenu, ContextualMenu,
-        choice::{Choice, choose, context_item},
+        choice::{Choice, DisabledChoice, choose, context_item},
     },
     states::GameConfig,
 };
 
 pub trait OpenContextualMenu<T: ContextualMenu + Send + Sync + 'static> {
     fn position(&self) -> WorldVec2;
+    fn is_disabled(&self, _choice: &T::Choices) -> bool {
+        false
+    }
 }
 
 pub fn on_open<T>(
@@ -51,8 +54,16 @@ pub fn on_open<T>(
         ))
         .with_children(|parent| {
             T::Choices::iter().for_each(|item| {
-                let image = ImageNode::new(asset_server.load(T::image())).with_rect(item.idle());
-                parent.spawn(context_item(item, image));
+                let disabled = event.is_disabled(&item);
+                let rect = if disabled {
+                    item.disabled()
+                } else {
+                    item.idle()
+                };
+                let image = ImageNode::new(asset_server.load(T::image())).with_rect(rect);
+                parent
+                    .spawn(context_item(item, image))
+                    .insert_if(DisabledChoice, || disabled);
             })
         })
         .observe(choose::<T>);

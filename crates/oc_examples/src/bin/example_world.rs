@@ -5,7 +5,6 @@ use oc_root::WcfgFrom;
 use std::path::PathBuf;
 #[cfg(feature = "test")]
 use std::sync::atomic::{AtomicBool, Ordering};
-#[cfg(feature = "test")]
 use std::time::Duration;
 
 use anyhow::Context as ContextExt;
