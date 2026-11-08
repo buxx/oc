@@ -75,8 +75,8 @@ example-stress *args:
 test:
     cargo nextest run
 
-# speed: when not empty, run tests with OC_SPEED=100
-test-e2e speed="":
+# speed: when not empty, run tests with OC_SPEED=100. jobs: number of tests run in parallel
+test-e2e speed="" jobs="4":
     #!/usr/bin/env bash
     if [ -n "{{ speed }}" ]; then
         export OC_SPEED=100
@@ -120,6 +120,7 @@ test-e2e speed="":
         test-visibilities-hidden
         test-visibilities-discover
         test-visibilities-move-then-enemy-visible
+        test-visibilities-altered-wall
         test-engaging-direct
         test-engaging-direct2
         test-engaging-far-machine-gun
@@ -144,9 +145,22 @@ test-e2e speed="":
         test-world-explosion-alter-wall
         test-world-smoke-grenade
     )
-    for t in "${tests[@]}"; do
-        just "$t" || exit 1
-    done
+    # Build once, so parallel runs below don't compete on cargo build lock
+    cargo build --bins --features test || exit 1
+    logs=$(mktemp -d)
+    trap 'rm -rf "$logs"' EXIT
+    run() {
+        if just "$1" >"$logs/$1.log" 2>&1; then
+            echo "✅ $1"
+        else
+            echo "❌ $1"
+            cat "$logs/$1.log"
+            return 1
+        fi
+    }
+    export -f run
+    export logs
+    printf '%s\n' "${tests[@]}" | xargs -P {{ jobs }} -I{} bash -c 'run {}'
 
 test-projectiles-obstacles-one-wall:
     RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-against-wall --test
