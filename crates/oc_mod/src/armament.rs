@@ -1,38 +1,12 @@
-use derive_more::Deref;
 use oc_root::physics::Seconds;
 use rkyv::Archive;
 
+use crate::indexed::Indexed;
 use crate::{Mod, sound::SoundIndex};
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-    Deref,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct ShotModeIndex(pub u32);
+index_type!(ShotModeIndex(u32));
 
-#[derive(
-    Debug,
-    Clone,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct IndexedShotMode(pub ShotModeIndex, pub ShotMode);
-
-indexed_accessors!(IndexedShotMode, ShotModeIndex, ShotMode);
+pub type IndexedShotMode = Indexed<ShotModeIndex, ShotMode>;
 
 #[derive(
     Debug,

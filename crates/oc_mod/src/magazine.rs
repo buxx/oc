@@ -1,42 +1,15 @@
 use std::path::Path;
 
-use anyhow::Context;
+use crate::indexed::{Indexed, index_all, read_ron};
 use rkyv::Archive;
 use strum_macros::EnumIter;
 use thiserror::Error;
 
 pub const MAGAZINES_RON: &str = "magazine.ron";
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct MagazineIndex(pub u32);
+index_type!(MagazineIndex(u32));
 
-index_deref!(MagazineIndex, u32);
-
-#[derive(
-    Debug,
-    Clone,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct IndexedMagazine(pub MagazineIndex, pub Magazine);
-
-indexed_accessors!(IndexedMagazine, MagazineIndex, Magazine);
+pub type IndexedMagazine = Indexed<MagazineIndex, Magazine>;
 
 #[derive(
     Debug,
@@ -110,24 +83,14 @@ pub struct Cartridge {
     accept: Vec<String>,
 }
 
-// TODO: use something generic here (bullet/weapon/etc)
 pub fn load(path: &Path) -> Result<Vec<IndexedMagazine>, Error> {
-    let path = path.join(MAGAZINES_RON);
-    let magazines = std::fs::read_to_string(&path);
-    let magazines = magazines.context(format!("Read {}", path.display()))?;
-    let magazines: Vec<Magazine> = ron::from_str(&magazines)?;
+    let magazines: Vec<Magazine> = read_ron::<_, Error>(path, MAGAZINES_RON)?;
 
     if magazines.is_empty() {
         return Err(Error::Empty);
     }
 
-    let magazines = magazines
-        .into_iter()
-        .enumerate()
-        .map(|(i, p)| IndexedMagazine(MagazineIndex(i as u32), p))
-        .collect();
-
-    Ok(magazines)
+    Ok(index_all(magazines))
 }
 
 #[derive(Debug, Error)]

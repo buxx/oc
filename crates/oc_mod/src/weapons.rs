@@ -1,11 +1,11 @@
 use std::path::Path;
 
-use anyhow::Context;
 use oc_root::{
     WorldConfig,
     physics::{MetersSeconds, Seconds},
 };
 use rkyv::Archive;
+
 use strum_macros::EnumIter;
 use thiserror::Error;
 
@@ -13,6 +13,7 @@ use crate::{
     Mod, PickSound,
     ammunition::IndexedAmmunition,
     armament::{IndexedShotMode, ShotMode, ShotModeIndex, ShotModeRaw},
+    indexed::{ArchivedDebug, Indexed, index_all, read_ron},
     magazine::IndexedMagazine,
     sound::SoundIndex,
 };
@@ -20,32 +21,11 @@ use crate::{
 pub const WEAPONS_RON: &str = "weapons.ron";
 pub const DEFAULT_RELOAD_SOUND: &str = "ReloadGeneric1.ogg";
 
-/// Run the same expression on the inner struct of either weapon variant.
-macro_rules! dispatch {
-    ($self:expr, $enum:ident, $w:ident => $e:expr) => {
-        match $self {
-            $enum::Rifle($w) => $e,
-            $enum::MachineGun($w) => $e,
-        }
-    };
-}
+index_type!(WeaponIndex(u32));
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct WeaponIndex(pub u32);
+pub type IndexedWeapon = Indexed<WeaponIndex, Weapon>;
 
-index_deref!(WeaponIndex, u32);
-
+/// Kind of weapon, wrapping its data `G` (the same for each kind)
 #[derive(
     Debug,
     Clone,
@@ -57,67 +37,37 @@ index_deref!(WeaponIndex, u32);
     serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub struct IndexedWeapon(pub WeaponIndex, pub Weapon);
-
-indexed_accessors!(IndexedWeapon, WeaponIndex, Weapon);
-
-#[derive(
-    Debug,
-    Clone,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub enum Weapon {
-    Rifle(Rifle),
-    MachineGun(MachineGun),
+pub enum WeaponKind<G: ArchivedDebug> {
+    Rifle(G),
+    MachineGun(G),
 }
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub enum WeaponRaw {
-    Rifle(RifleRaw),
-    MachineGun(MachineGunRaw),
-}
+pub type Weapon = WeaponKind<Gun>;
 
-impl From<WeaponRaw> for Weapon {
-    fn from(val: WeaponRaw) -> Self {
-        match val {
-            WeaponRaw::Rifle(rifle) => Weapon::Rifle(rifle.into()),
-            WeaponRaw::MachineGun(machine_gun) => Weapon::MachineGun(machine_gun.into()),
+/// Weapon as written in weapons.ron (references by name)
+pub type WeaponRaw = WeaponKind<GunRaw>;
+
+impl<G: ArchivedDebug> WeaponKind<G> {
+    pub fn gun(&self) -> &G {
+        match self {
+            Self::Rifle(gun) | Self::MachineGun(gun) => gun,
         }
     }
-}
 
-impl WeaponRaw {
-    pub fn name(&self) -> &str {
-        dispatch!(self, WeaponRaw, x => &x.name)
-    }
-
-    pub fn amunitions(&self) -> &Vec<String> {
-        dispatch!(self, WeaponRaw, x => &x.amunitions)
-    }
-
-    pub fn magazines(&self) -> &Vec<String> {
-        dispatch!(self, WeaponRaw, x => &x.magazines)
-    }
-
-    pub fn reload_sound(&self) -> Option<&str> {
-        dispatch!(self, WeaponRaw, x => x.reload_sound.as_deref())
-    }
-
-    pub fn shots(&self) -> &Vec<ShotModeRaw> {
-        dispatch!(self, WeaponRaw, x => &x.shots)
+    fn try_map<H: ArchivedDebug, E>(
+        self,
+        f: impl FnOnce(G) -> Result<H, E>,
+    ) -> Result<WeaponKind<H>, E> {
+        Ok(match self {
+            Self::Rifle(gun) => WeaponKind::Rifle(f(gun)?),
+            Self::MachineGun(gun) => WeaponKind::MachineGun(f(gun)?),
+        })
     }
 }
 
 impl Weapon {
-    // TODO: derive (idem amunitions)
     pub fn name(&self) -> &str {
-        dispatch!(self, Weapon, x => &x.name)
+        &self.gun().name
     }
 
     // TODO: derive (idem amunitions)
@@ -129,59 +79,43 @@ impl Weapon {
     }
 
     pub fn ammunitions(&self) -> &Vec<IndexedAmmunition> {
-        dispatch!(self, Weapon, x => &x.amunitions)
-    }
-
-    pub fn set_ammunitions(&mut self, value: Vec<IndexedAmmunition>) {
-        dispatch!(self, Weapon, x => x.amunitions = value)
+        &self.gun().amunitions
     }
 
     pub fn magazines(&self) -> &Vec<IndexedMagazine> {
-        dispatch!(self, Weapon, x => &x.magazines)
-    }
-
-    pub fn set_magazines(&mut self, value: Vec<IndexedMagazine>) {
-        dispatch!(self, Weapon, x => x.magazines = value)
+        &self.gun().magazines
     }
 
     pub fn interval(&self) -> Seconds {
-        dispatch!(self, Weapon, x => x.interval)
+        self.gun().interval
     }
 
     pub fn shots(&self) -> &Vec<IndexedShotMode> {
-        dispatch!(self, Weapon, x => &x.shots)
+        &self.gun().shots
     }
 
     pub fn velocity(&self) -> MetersSeconds {
-        dispatch!(self, Weapon, x => x.velocity)
-    }
-
-    fn set_shots(&mut self, value: Vec<IndexedShotMode>) {
-        dispatch!(self, Weapon, x => x.shots = value)
+        self.gun().velocity
     }
 
     pub fn shot(&self, index: ShotModeIndex) -> &ShotMode {
-        dispatch!(self, Weapon, x => &x.shots[index.0 as usize])
+        &self.gun().shots[index.0 as usize]
     }
 
     pub fn reload(&self, w: &WorldConfig) -> Seconds {
-        dispatch!(self, Weapon, x => x.reload / w.speed())
+        self.gun().reload / w.speed()
     }
 
     pub fn reload_sound(&self) -> Option<SoundIndex> {
-        dispatch!(self, Weapon, x => x.reload_sound)
-    }
-
-    fn set_reload_sound(&mut self, value: Option<SoundIndex>) {
-        dispatch!(self, Weapon, x => x.reload_sound = value)
+        self.gun().reload_sound
     }
 
     pub fn aim(&self, w: &WorldConfig) -> Seconds {
-        dispatch!(self, Weapon, x => x.aim / w.speed())
+        self.gun().aim / w.speed()
     }
 
     pub fn inaccuracy(&self, _w: &oc_root::WorldConfig) -> f32 {
-        dispatch!(self, Weapon, x => x.inaccuracy)
+        self.gun().inaccuracy
     }
 }
 
@@ -202,6 +136,8 @@ impl WeaponType {
     }
 }
 
+/// Data of a weapon. Generic over references to other mod items: by name in the `.ron` file
+/// (`GunRaw`), resolved to indexed items once the mod is loaded (`Gun`).
 #[derive(
     Debug,
     Clone,
@@ -213,171 +149,97 @@ impl WeaponType {
     serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub struct Rifle {
+pub struct Gun<
+    A: ArchivedDebug = Vec<IndexedAmmunition>,
+    M: ArchivedDebug = Vec<IndexedMagazine>,
+    S: ArchivedDebug = Vec<IndexedShotMode>,
+    R: ArchivedDebug = Option<SoundIndex>,
+> {
     name: String,
-    amunitions: Vec<IndexedAmmunition>,
-    magazines: Vec<IndexedMagazine>,
-    shots: Vec<IndexedShotMode>,
-    interval: Seconds,
-    velocity: MetersSeconds,
-    reload: Seconds,
-    reload_sound: Option<SoundIndex>,
-    aim: Seconds,
-    inaccuracy: f32,
-}
-
-// TODO: Derive or macro to raw version
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub struct RifleRaw {
-    name: String,
-    amunitions: Vec<String>,
-    magazines: Vec<String>,
-    shots: Vec<ShotModeRaw>,
+    amunitions: A,
+    magazines: M,
+    shots: S,
     interval: Seconds,
     velocity: MetersSeconds,
     reload: Seconds,
     #[serde(default)]
-    reload_sound: Option<String>,
+    reload_sound: R,
     aim: Seconds,
     inaccuracy: f32,
 }
 
-impl From<RifleRaw> for Rifle {
-    fn from(val: RifleRaw) -> Self {
-        Rifle {
-            name: val.name,
-            amunitions: vec![],
-            magazines: vec![],
-            shots: vec![],
-            interval: val.interval,
-            velocity: val.velocity,
-            reload: val.reload,
-            reload_sound: None,
-            aim: val.aim,
-            inaccuracy: val.inaccuracy,
+pub type GunRaw = Gun<Vec<String>, Vec<String>, Vec<ShotModeRaw>, Option<String>>;
+
+impl<A: ArchivedDebug, M: ArchivedDebug, S: ArchivedDebug, R: ArchivedDebug> Gun<A, M, S, R> {
+    /// Replace the references to other mod items
+    fn with_refs<A2, M2, S2, R2>(self, a: A2, m: M2, s: S2, r: R2) -> Gun<A2, M2, S2, R2>
+    where
+        A2: ArchivedDebug,
+        M2: ArchivedDebug,
+        S2: ArchivedDebug,
+        R2: ArchivedDebug,
+    {
+        Gun {
+            name: self.name,
+            amunitions: a,
+            magazines: m,
+            shots: s,
+            interval: self.interval,
+            velocity: self.velocity,
+            reload: self.reload,
+            reload_sound: r,
+            aim: self.aim,
+            inaccuracy: self.inaccuracy,
         }
     }
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct MachineGun {
-    name: String,
-    amunitions: Vec<IndexedAmmunition>,
-    magazines: Vec<IndexedMagazine>,
-    shots: Vec<IndexedShotMode>,
-    interval: Seconds,
-    velocity: MetersSeconds,
-    reload: Seconds,
-    reload_sound: Option<SoundIndex>,
-    aim: Seconds,
-    inaccuracy: f32,
-}
+impl GunRaw {
+    fn resolve(self, mod_: &Mod) -> Result<Gun, Error> {
+        let name = &self.name;
+        let amunitions = mod_
+            .ammunitions_from_model_names(&self.amunitions)
+            .into_iter()
+            .cloned()
+            .collect();
+        let magazines = mod_
+            .magazines_from_names(self.magazines.clone())
+            .map_err(|e| Error::MagazineRef(name.clone(), e.to_string()))?
+            .into_iter()
+            .cloned()
+            .collect();
+        let shots = self
+            .shots
+            .iter()
+            .map(|mode| mode.clone().resolve_(mod_))
+            .collect::<Result<Vec<ShotMode>, super::Error>>()
+            .map_err(|e| Error::ShotMode(name.clone(), e.to_string()))?;
 
-// TODO: Derive or macro to raw version
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub struct MachineGunRaw {
-    name: String,
-    amunitions: Vec<String>,
-    magazines: Vec<String>,
-    shots: Vec<ShotModeRaw>,
-    interval: Seconds,
-    velocity: MetersSeconds,
-    reload: Seconds,
-    #[serde(default)]
-    reload_sound: Option<String>,
-    aim: Seconds,
-    inaccuracy: f32,
-}
+        // Explicit reload sound must exist, but the default one is optional
+        let reload_sound = match &self.reload_sound {
+            Some(sound) => Some(
+                mod_.find_sound(sound)
+                    .map_err(|e| Error::ReloadSound(name.clone(), e.to_string()))?,
+            ),
+            None => mod_.find_sound(DEFAULT_RELOAD_SOUND).ok(),
+        };
 
-impl From<MachineGunRaw> for MachineGun {
-    fn from(val: MachineGunRaw) -> Self {
-        MachineGun {
-            name: val.name,
-            amunitions: vec![],
-            magazines: vec![],
-            shots: vec![],
-            interval: val.interval,
-            velocity: val.velocity,
-            reload: val.reload,
-            reload_sound: None,
-            aim: val.aim,
-            inaccuracy: val.inaccuracy,
-        }
+        Ok(self.with_refs(amunitions, magazines, index_all(shots), reload_sound))
     }
 }
 
-// TODO: use something generic here (bullet/weapon/etc)
 pub fn load(path: &Path, mod_: &Mod) -> Result<Vec<IndexedWeapon>, Error> {
-    let path = path.join(WEAPONS_RON);
-    let weapons = std::fs::read_to_string(&path);
-    let weapons = weapons.context(format!("Read {}", path.display()))?;
-    let weapons: Vec<WeaponRaw> = ron::from_str(&weapons)?;
-    let weapons: Vec<Weapon> = weapons
+    let weapons: Vec<WeaponRaw> = read_ron::<_, Error>(path, WEAPONS_RON)?;
+    let weapons = weapons
         .into_iter()
-        .map(|weapon_| {
-            let amunitions = mod_
-                .ammunitions_from_model_names(weapon_.amunitions())
-                .into_iter()
-                .cloned()
-                .collect();
-            let magazines = mod_
-                .magazines_from_names(weapon_.magazines().clone())
-                .map_err(|e| Error::MagazineRef(weapon_.name().to_string(), e.to_string()))?
-                .into_iter()
-                .cloned()
-                .collect();
-            let shots = weapon_
-                .shots()
-                .iter()
-                .map(|mode| mode.clone().resolve_(mod_))
-                .collect::<Result<Vec<ShotMode>, super::Error>>()
-                .map_err(|e| Error::ShotMode(weapon_.name().to_string(), e.to_string()))?
-                .into_iter()
-                .enumerate()
-                .map(|(i, shot)| IndexedShotMode(ShotModeIndex(i as u32), shot))
-                .collect();
-
-            // Explicit reload sound must exist, but the default one is optional
-            let reload_sound =
-                match weapon_.reload_sound() {
-                    Some(name) => Some(mod_.find_sound(name).map_err(|e| {
-                        Error::ReloadSound(weapon_.name().to_string(), e.to_string())
-                    })?),
-                    None => mod_.find_sound(DEFAULT_RELOAD_SOUND).ok(),
-                };
-
-            let mut weapon: Weapon = weapon_.into();
-            weapon.set_reload_sound(reload_sound);
-
-            weapon.set_ammunitions(amunitions);
-            weapon.set_magazines(magazines);
-            weapon.set_shots(shots);
-
-            Ok(weapon)
-        })
+        .map(|weapon| weapon.try_map(|gun| gun.resolve(mod_)))
         .collect::<Result<Vec<Weapon>, Error>>()?;
 
     if weapons.is_empty() {
         return Err(Error::Empty);
     }
 
-    let weapons = weapons
-        .into_iter()
-        .enumerate()
-        .map(|(i, p)| IndexedWeapon(WeaponIndex(i as u32), p))
-        .collect();
-
-    Ok(weapons)
+    Ok(index_all(weapons))
 }
 
 impl PickSound<(WeaponIndex, ShotModeIndex)> for Mod {

@@ -25,42 +25,8 @@ use crate::{
     weapons::{IndexedWeapon, WeaponIndex},
 };
 
-/// `Deref` to the inner `u16`/`u32` for an index newtype.
-macro_rules! index_deref {
-    ($index:ident, $int:ty) => {
-        impl std::ops::Deref for $index {
-            type Target = $int;
-
-            fn deref(&self) -> &Self::Target {
-                &self.0
-            }
-        }
-    };
-}
-
-/// `Deref`, `index()` and `inner()` for an `Indexed*(Index, Inner)` tuple struct.
-macro_rules! indexed_accessors {
-    ($indexed:ident, $index:ident, $inner:ident) => {
-        impl std::ops::Deref for $indexed {
-            type Target = $inner;
-
-            fn deref(&self) -> &Self::Target {
-                &self.1
-            }
-        }
-
-        impl $indexed {
-            pub fn index(&self) -> $index {
-                self.0
-            }
-
-            pub fn inner(&self) -> &$inner {
-                &self.1
-            }
-        }
-    };
-}
-
+#[macro_use]
+pub mod indexed;
 pub mod ammunition;
 pub mod armament;
 pub mod grenade;
@@ -280,6 +246,10 @@ impl Mod {
                     .ok_or(Error::UnknownSoundName(name.clone()))
             })
             .collect()
+    }
+
+    fn find_sound_indexes(&self, names: &[String]) -> Result<Vec<SoundIndex>, Error> {
+        Ok(self.find_sounds(names)?.iter().map(|s| s.index()).collect())
     }
 
     pub fn find_sound(&self, name: &str) -> Result<SoundIndex, Error> {

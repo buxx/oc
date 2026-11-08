@@ -1,40 +1,15 @@
 use std::path::{Path, PathBuf};
 
-use derive_more::{Constructor, Deref};
+use crate::indexed::{Indexed, index_all};
+use derive_more::Constructor;
 use rkyv::Archive;
 use thiserror::Error;
 
 pub const SOUNDS_FOLDER: &str = "sounds";
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-    Deref,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct SoundIndex(pub u32);
+index_type!(SoundIndex(u32));
 
-#[derive(
-    Debug,
-    Clone,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct IndexedSound(pub SoundIndex, pub Sound);
-
-indexed_accessors!(IndexedSound, SoundIndex, Sound);
+pub type IndexedSound = Indexed<SoundIndex, Sound>;
 #[derive(
     Debug,
     Clone,
@@ -116,13 +91,7 @@ pub fn load(path: &Path) -> Result<Vec<IndexedSound>, Error> {
         sounds.push(Sound::new(name.to_string()));
     }
 
-    let sounds = sounds
-        .into_iter()
-        .enumerate()
-        .map(|(i, p)| IndexedSound(SoundIndex(i as u32), p))
-        .collect();
-
-    Ok(sounds)
+    Ok(index_all(sounds))
 }
 
 #[derive(Debug, Error)]

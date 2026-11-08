@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use anyhow::Context;
+use crate::indexed::{Indexed, index_all, read_ron};
 use oc_root::{
     WorldConfig, alter::Alter, craters::CraterType, material::MaterialKind, opacity::Opacity,
     physics::Meters,
@@ -11,39 +11,9 @@ use thiserror::Error;
 
 pub const NATURES_RON: &str = "natures.ron";
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-    Eq,
-    Hash,
-    Default,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct NatureIndex(pub u16);
+index_type!(NatureIndex(u16));
 
-index_deref!(NatureIndex, u16);
-
-#[derive(
-    Debug,
-    Clone,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct IndexedNature(pub NatureIndex, pub Nature);
-
-indexed_accessors!(IndexedNature, NatureIndex, Nature);
+pub type IndexedNature = Indexed<NatureIndex, Nature>;
 
 #[derive(
     Debug,
@@ -423,24 +393,14 @@ pub fn alter_natures(natures: &[IndexedNature]) -> Result<[NatureIndex; Alter::C
     Ok(result.map(|index| index.unwrap_or_default()))
 }
 
-// TODO: use something generic here (bullet/weapon/etc)
 pub fn load(path: &Path) -> Result<Vec<IndexedNature>, Error> {
-    let path = path.join(NATURES_RON);
-    let natures = std::fs::read_to_string(&path);
-    let natures = natures.context(format!("Read {}", path.display()))?;
-    let natures: Vec<NatureRaw> = ron::from_str(&natures)?;
+    let natures: Vec<NatureRaw> = read_ron::<_, Error>(path, NATURES_RON)?;
 
     if natures.is_empty() {
         return Err(Error::Empty);
     }
 
-    let natures = resolve(&natures)?
-        .into_iter()
-        .enumerate()
-        .map(|(i, p)| IndexedNature(NatureIndex(i as u16), p))
-        .collect();
-
-    Ok(natures)
+    Ok(index_all(resolve(&natures)?))
 }
 
 #[derive(Debug, Error)]

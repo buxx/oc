@@ -1,32 +1,20 @@
 use std::path::Path;
 
-use anyhow::Context;
 use oc_root::{explosion::Explosion, physics::Meters};
 
-use crate::{Mod, sound::SoundIndex};
+use crate::{
+    Mod,
+    indexed::{ArchivedDebug, Indexed, index_all, read_ron},
+    sound::SoundIndex,
+};
 use rkyv::Archive;
 use thiserror::Error;
 
 pub const SHELLS_RON: &str = "shells.ron";
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    Default,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-    Eq,
-    Hash,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct ShellIndex(pub u16);
+index_type!(ShellIndex(u16));
 
-index_deref!(ShellIndex, u16);
+pub type IndexedShell = Indexed<ShellIndex, Shell>;
 
 #[derive(
     Debug,
@@ -39,22 +27,7 @@ index_deref!(ShellIndex, u16);
     serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub struct IndexedShell(pub ShellIndex, pub Shell);
-
-indexed_accessors!(IndexedShell, ShellIndex, Shell);
-
-#[derive(
-    Debug,
-    Clone,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct Shell {
+pub struct Shell<S: ArchivedDebug = Vec<SoundIndex>> {
     pub name: String,
     pub kill_rayon: Meters,
     pub stunned_rayon: Meters,
@@ -63,22 +36,12 @@ pub struct Shell {
     pub destruction_force: f32,
     pub shrapnel_quantity: u32,
     pub penetration_force: f32,
-    pub sounds: Vec<SoundIndex>,
+    #[serde(default)]
+    pub sounds: S,
 }
 
-#[derive(Debug, serde::Deserialize)]
-struct ShellRaw {
-    name: String,
-    kill_rayon: Meters,
-    stunned_rayon: Meters,
-    shrapnel_rayon: Meters,
-    destruction_rayon: Meters,
-    destruction_force: f32,
-    shrapnel_quantity: u32,
-    penetration_force: f32,
-    #[serde(default)]
-    sounds: Vec<String>,
-}
+/// Shell as written in shells.ron (sounds referenced by name)
+pub type ShellRaw = Shell<Vec<String>>;
 
 impl Shell {
     pub fn pick_sound(&self) -> Option<SoundIndex> {
@@ -100,36 +63,31 @@ impl From<Shell> for Explosion {
     }
 }
 
-pub fn load(path: &Path, mod_: &Mod) -> Result<Vec<IndexedShell>, Error> {
-    let path = path.join(SHELLS_RON);
-    let shells = std::fs::read_to_string(&path);
-    let shells = shells.context(format!("Read {}", path.display()))?;
-    let shells: Vec<ShellRaw> = ron::from_str(&shells)?;
-
-    shells
-        .into_iter()
-        .enumerate()
-        .map(|(i, s)| {
-            let sounds = s
-                .sounds
-                .iter()
-                .map(|name| mod_.find_sound(name))
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(Box::new)?;
-            let shell = Shell {
-                name: s.name,
-                kill_rayon: s.kill_rayon,
-                stunned_rayon: s.stunned_rayon,
-                shrapnel_rayon: s.shrapnel_rayon,
-                destruction_rayon: s.destruction_rayon,
-                destruction_force: s.destruction_force,
-                shrapnel_quantity: s.shrapnel_quantity,
-                penetration_force: s.penetration_force,
-                sounds,
-            };
-            Ok(IndexedShell(ShellIndex(i as u16), shell))
+impl ShellRaw {
+    fn resolve(self, mod_: &Mod) -> Result<Shell, Error> {
+        let sounds = mod_.find_sound_indexes(&self.sounds).map_err(Box::new)?;
+        Ok(Shell {
+            name: self.name,
+            kill_rayon: self.kill_rayon,
+            stunned_rayon: self.stunned_rayon,
+            shrapnel_rayon: self.shrapnel_rayon,
+            destruction_rayon: self.destruction_rayon,
+            destruction_force: self.destruction_force,
+            shrapnel_quantity: self.shrapnel_quantity,
+            penetration_force: self.penetration_force,
+            sounds,
         })
-        .collect()
+    }
+}
+
+pub fn load(path: &Path, mod_: &Mod) -> Result<Vec<IndexedShell>, Error> {
+    let shells: Vec<ShellRaw> = read_ron::<_, Error>(path, SHELLS_RON)?;
+    Ok(index_all(
+        shells
+            .into_iter()
+            .map(|shell| shell.resolve(mod_))
+            .collect::<Result<Vec<_>, _>>()?,
+    ))
 }
 
 #[derive(Debug, Error)]

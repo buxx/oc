@@ -3,8 +3,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::indexed::{Indexed, index_all};
 use anyhow::Context;
-use derive_more::{Constructor, Deref};
+use derive_more::Constructor;
 use rkyv::Archive;
 use strum_macros::Display;
 use thiserror::Error;
@@ -31,20 +32,7 @@ pub enum IllustrationKind {
     IngameIndividual,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-    Deref,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct IllustrationIndex(pub u32);
+index_type!(IllustrationIndex(u32));
 
 #[derive(
     Debug,
@@ -119,20 +107,7 @@ pub struct Illustration {
     pub height: u32,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct IndexedIllustration(pub IllustrationIndex, pub Illustration);
-
-indexed_accessors!(IndexedIllustration, IllustrationIndex, Illustration);
+pub type IndexedIllustration = Indexed<IllustrationIndex, Illustration>;
 
 pub fn load(path: &Path) -> Result<IndexedIllustrations, Error> {
     let path = path.join(ILLUSTRATION_RON);
@@ -190,11 +165,7 @@ fn index_sheet(
         ));
     }
 
-    Ok(illustrations
-        .into_iter()
-        .enumerate()
-        .map(|(i, p)| IndexedIllustration(IllustrationIndex(i as u32), p))
-        .collect())
+    Ok(index_all(illustrations))
 }
 
 #[derive(Debug, Error)]

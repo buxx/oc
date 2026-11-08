@@ -1,31 +1,17 @@
 use std::path::Path;
 
-use crate::{Mod, sound::SoundIndex};
-use anyhow::Context;
+use crate::{
+    Mod,
+    indexed::{ArchivedDebug, Indexed, index_all, read_ron},
+    sound::SoundIndex,
+};
 use oc_root::{explosion::Explosion, physics::Meters};
 use rkyv::Archive;
 use thiserror::Error;
 
 pub const GRENADES_RON: &str = "grenades.ron";
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    Default,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-    Eq,
-    Hash,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct GrenadeIndex(pub u16);
-
-index_deref!(GrenadeIndex, u16);
+index_type!(GrenadeIndex(u16));
 
 #[derive(
     Debug,
@@ -45,20 +31,7 @@ pub enum GrenadeNature {
     Smoke,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    PartialEq,
-    serde::Deserialize,
-    serde::Serialize,
-)]
-#[rkyv(compare(PartialEq), derive(Debug))]
-pub struct IndexedGrenade(pub GrenadeIndex, pub Grenade);
-
-indexed_accessors!(IndexedGrenade, GrenadeIndex, Grenade);
+pub type IndexedGrenade = Indexed<GrenadeIndex, Grenade>;
 
 #[derive(
     Debug,
@@ -71,33 +44,24 @@ indexed_accessors!(IndexedGrenade, GrenadeIndex, Grenade);
     serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
-pub struct Grenade {
+pub struct Grenade<S: ArchivedDebug = Vec<SoundIndex>> {
     pub name: String,
     pub blast_rayon: Meters,
     pub shrapnel_rayon: Meters,
     pub shrapnel_quantity: u32,
     pub nature: GrenadeNature,
-    pub sounds: Vec<SoundIndex>,
+    #[serde(default)]
+    pub sounds: S,
     /// Smoke only: seconds the smoke keeps its full opacity
+    #[serde(default)]
     pub smoke_duration: f32,
     /// Smoke only: seconds, after `smoke_duration`, the smoke takes to disappear
+    #[serde(default)]
     pub smoke_fade_duration: f32,
 }
 
-#[derive(Debug, serde::Deserialize)]
-struct GrenadeRaw {
-    name: String,
-    blast_rayon: Meters,
-    shrapnel_rayon: Meters,
-    shrapnel_quantity: u32,
-    nature: GrenadeNature,
-    #[serde(default)]
-    sounds: Vec<String>,
-    #[serde(default)]
-    smoke_duration: f32,
-    #[serde(default)]
-    smoke_fade_duration: f32,
-}
+/// Grenade as written in grenades.ron (sounds referenced by name)
+pub type GrenadeRaw = Grenade<Vec<String>>;
 
 impl Grenade {
     pub fn pick_sound(&self) -> Option<SoundIndex> {
@@ -130,35 +94,30 @@ impl From<Grenade> for Explosion {
     }
 }
 
-pub fn load(path: &Path, mod_: &Mod) -> Result<Vec<IndexedGrenade>, Error> {
-    let path = path.join(GRENADES_RON);
-    let grenades = std::fs::read_to_string(&path);
-    let grenades = grenades.context(format!("Read {}", path.display()))?;
-    let grenades: Vec<GrenadeRaw> = ron::from_str(&grenades)?;
-
-    grenades
-        .into_iter()
-        .enumerate()
-        .map(|(i, g)| {
-            let sounds = g
-                .sounds
-                .iter()
-                .map(|name| mod_.find_sound(name))
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(Box::new)?;
-            let grenade = Grenade {
-                name: g.name,
-                blast_rayon: g.blast_rayon,
-                shrapnel_rayon: g.shrapnel_rayon,
-                shrapnel_quantity: g.shrapnel_quantity,
-                nature: g.nature,
-                sounds,
-                smoke_duration: g.smoke_duration,
-                smoke_fade_duration: g.smoke_fade_duration,
-            };
-            Ok(IndexedGrenade(GrenadeIndex(i as u16), grenade))
+impl GrenadeRaw {
+    fn resolve(self, mod_: &Mod) -> Result<Grenade, Error> {
+        let sounds = mod_.find_sound_indexes(&self.sounds).map_err(Box::new)?;
+        Ok(Grenade {
+            name: self.name,
+            blast_rayon: self.blast_rayon,
+            shrapnel_rayon: self.shrapnel_rayon,
+            shrapnel_quantity: self.shrapnel_quantity,
+            nature: self.nature,
+            sounds,
+            smoke_duration: self.smoke_duration,
+            smoke_fade_duration: self.smoke_fade_duration,
         })
-        .collect()
+    }
+}
+
+pub fn load(path: &Path, mod_: &Mod) -> Result<Vec<IndexedGrenade>, Error> {
+    let grenades: Vec<GrenadeRaw> = read_ron::<_, Error>(path, GRENADES_RON)?;
+    Ok(index_all(
+        grenades
+            .into_iter()
+            .map(|grenade| grenade.resolve(mod_))
+            .collect::<Result<Vec<_>, _>>()?,
+    ))
 }
 
 #[derive(Debug, Error)]
