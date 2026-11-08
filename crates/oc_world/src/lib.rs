@@ -31,7 +31,6 @@ use crate::{
     navmesh::Walls,
     resume::WorldResume,
     smoke::SmokeCloud,
-    spawn::SpawnZoneName,
     support::{PendingSupport, SupportType, Supports},
     tile::AlteredTile,
     tile::Tile,
@@ -71,8 +70,6 @@ pub struct World {
     pub phase: BattlePhase,
     pub duration: Duration,
     pub start: Option<Instant>,
-    pub side_a_spawns: Vec<SpawnZoneName>,
-    pub side_b_spawns: Vec<SpawnZoneName>,
     pub side_a_spawn_zones: Vec<crate::spawn::SpawnZone>,
     pub side_b_spawn_zones: Vec<crate::spawn::SpawnZone>,
     pub flags: Flags,
@@ -293,8 +290,16 @@ impl World {
             .iter()
             .map(|(t, _)| (*t, self.available_support(identity.side, *t)))
             .collect();
-        let side_a_spawns = self.side_a_spawns.clone();
-        let side_b_spawns = self.side_b_spawns.clone();
+        let side_a_spawns = self
+            .side_a_spawn_zones
+            .iter()
+            .map(|z| z.name.clone())
+            .collect();
+        let side_b_spawns = self
+            .side_b_spawn_zones
+            .iter()
+            .map(|z| z.name.clone())
+            .collect();
 
         WorldResume {
             squads,
@@ -370,8 +375,6 @@ mod tests {
             Some(Instant::now()),
             vec![],
             vec![],
-            vec![],
-            vec![],
             Flags::default(),
             Supports::default(),
             vec![],
@@ -430,8 +433,6 @@ mod tests {
             BattlePhase::Fight,
             DEFAULT_FIGHT_DURATION,
             Some(Instant::now()),
-            vec![],
-            vec![],
             vec![],
             vec![],
             Flags::default(),

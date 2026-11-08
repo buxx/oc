@@ -5,12 +5,12 @@ use crate::{
     world::World,
 };
 
+use crate::utils::hover::Hovered;
 use bevy::prelude::*;
 use oc_individual::{Individual, IndividualIndex, Status};
-use crate::utils::hover::Hovered;
 use oc_mod::{Mod, grenade::GrenadeNature, illustration::IllustrationKind};
-use oc_utils::bevy::EntityMapping;
 use oc_root::files::FilesAsGui;
+use oc_utils::bevy::EntityMapping;
 use oc_utils::{every, let_ok, let_some};
 use std::time::Duration;
 
@@ -174,11 +174,17 @@ pub fn update_rows(
     g: Res<GameConfig>,
     mut texts: Query<
         (&IndividualStatusText, &mut Text),
-        (Without<IndividualRoundsText>, Without<IndividualGrenadesText>),
+        (
+            Without<IndividualRoundsText>,
+            Without<IndividualGrenadesText>,
+        ),
     >,
     mut rounds: Query<
         (&IndividualRoundsText, &mut Text),
-        (Without<IndividualStatusText>, Without<IndividualGrenadesText>),
+        (
+            Without<IndividualStatusText>,
+            Without<IndividualGrenadesText>,
+        ),
     >,
     mut grenades: Query<
         (&IndividualGrenadesText, &mut Text),

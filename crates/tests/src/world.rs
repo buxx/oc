@@ -34,10 +34,6 @@ pub struct TestWorld {
     #[builder(default = oc_root::DEFAULT_FIGHT_DURATION)]
     duration: std::time::Duration,
     start: Option<std::time::Instant>,
-    #[builder(default)]
-    side_a_spawns: Vec<SpawnZoneName>,
-    #[builder(default)]
-    side_b_spawns: Vec<SpawnZoneName>,
     tiles: Option<Vec<Tile>>,
     altered_tiles: Option<Vec<AlteredTile>>,
     decor: Option<Vec<Option<Decor>>>,
@@ -113,8 +109,6 @@ impl TestWorld {
             phase: self.phase,
             duration: self.duration,
             start: self.start,
-            side_a_spawns: self.side_a_spawns.clone(),
-            side_b_spawns: self.side_b_spawns.clone(),
             flags: Default::default(),
             supports: Default::default(),
             pending_supports: vec![],
