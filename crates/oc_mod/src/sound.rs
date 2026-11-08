@@ -34,23 +34,7 @@ pub struct SoundIndex(pub u32);
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndexedSound(pub SoundIndex, pub Sound);
 
-impl std::ops::Deref for IndexedSound {
-    type Target = Sound;
-
-    fn deref(&self) -> &Self::Target {
-        &self.1
-    }
-}
-
-impl IndexedSound {
-    pub fn index(&self) -> SoundIndex {
-        self.0
-    }
-
-    pub fn inner(&self) -> &Sound {
-        &self.1
-    }
-}
+indexed_accessors!(IndexedSound, SoundIndex, Sound);
 #[derive(
     Debug,
     Clone,

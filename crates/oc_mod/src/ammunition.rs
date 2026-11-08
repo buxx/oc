@@ -1,4 +1,4 @@
-use std::{ops::Deref, path::Path};
+use std::path::Path;
 
 use anyhow::Context;
 use rkyv::Archive;
@@ -23,27 +23,13 @@ pub const PROJECTILES_RON: &str = "amunitions.ron";
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct AmmunitionIndex(pub u32);
 
-impl Deref for AmmunitionIndex {
-    type Target = u32;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+index_deref!(AmmunitionIndex, u32);
 
 #[derive(
     Debug, Clone, Archive, rkyv::Deserialize, rkyv::Serialize, serde::Deserialize, serde::Serialize,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndexedAmmunition(pub AmmunitionIndex, pub Ammunition);
-
-impl Deref for IndexedAmmunition {
-    type Target = Ammunition;
-
-    fn deref(&self) -> &Self::Target {
-        &self.1
-    }
-}
 
 impl PartialEq for IndexedAmmunition {
     fn eq(&self, other: &Self) -> bool {
@@ -59,15 +45,7 @@ impl std::hash::Hash for IndexedAmmunition {
     }
 }
 
-impl IndexedAmmunition {
-    pub fn index(&self) -> AmmunitionIndex {
-        self.0
-    }
-
-    pub fn inner(&self) -> &Ammunition {
-        &self.1
-    }
-}
+indexed_accessors!(IndexedAmmunition, AmmunitionIndex, Ammunition);
 
 #[derive(
     Debug,

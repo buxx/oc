@@ -1,4 +1,4 @@
-use std::{ops::Deref, path::Path};
+use std::path::Path;
 
 use crate::{Mod, sound::SoundIndex};
 use anyhow::Context;
@@ -25,13 +25,7 @@ pub const GRENADES_RON: &str = "grenades.ron";
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct GrenadeIndex(pub u16);
 
-impl Deref for GrenadeIndex {
-    type Target = u16;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+index_deref!(GrenadeIndex, u16);
 
 #[derive(
     Debug,
@@ -64,23 +58,7 @@ pub enum GrenadeNature {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndexedGrenade(pub GrenadeIndex, pub Grenade);
 
-impl Deref for IndexedGrenade {
-    type Target = Grenade;
-
-    fn deref(&self) -> &Self::Target {
-        &self.1
-    }
-}
-
-impl IndexedGrenade {
-    pub fn index(&self) -> GrenadeIndex {
-        self.0
-    }
-
-    pub fn inner(&self) -> &Grenade {
-        &self.1
-    }
-}
+indexed_accessors!(IndexedGrenade, GrenadeIndex, Grenade);
 
 #[derive(
     Debug,

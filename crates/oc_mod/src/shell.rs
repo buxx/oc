@@ -1,4 +1,4 @@
-use std::{ops::Deref, path::Path};
+use std::path::Path;
 
 use anyhow::Context;
 use oc_root::{explosion::Explosion, physics::Meters};
@@ -26,13 +26,7 @@ pub const SHELLS_RON: &str = "shells.ron";
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct ShellIndex(pub u16);
 
-impl Deref for ShellIndex {
-    type Target = u16;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+index_deref!(ShellIndex, u16);
 
 #[derive(
     Debug,
@@ -47,23 +41,7 @@ impl Deref for ShellIndex {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndexedShell(pub ShellIndex, pub Shell);
 
-impl Deref for IndexedShell {
-    type Target = Shell;
-
-    fn deref(&self) -> &Self::Target {
-        &self.1
-    }
-}
-
-impl IndexedShell {
-    pub fn index(&self) -> ShellIndex {
-        self.0
-    }
-
-    pub fn inner(&self) -> &Shell {
-        &self.1
-    }
-}
+indexed_accessors!(IndexedShell, ShellIndex, Shell);
 
 #[derive(
     Debug,

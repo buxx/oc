@@ -1,4 +1,4 @@
-use std::{ops::Deref, path::Path};
+use std::path::Path;
 
 use anyhow::Context;
 use rkyv::Archive;
@@ -21,13 +21,7 @@ pub const MAGAZINES_RON: &str = "magazine.ron";
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct MagazineIndex(pub u32);
 
-impl Deref for MagazineIndex {
-    type Target = u32;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+index_deref!(MagazineIndex, u32);
 
 #[derive(
     Debug,
@@ -42,23 +36,7 @@ impl Deref for MagazineIndex {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndexedMagazine(pub MagazineIndex, pub Magazine);
 
-impl Deref for IndexedMagazine {
-    type Target = Magazine;
-
-    fn deref(&self) -> &Self::Target {
-        &self.1
-    }
-}
-
-impl IndexedMagazine {
-    pub fn index(&self) -> MagazineIndex {
-        self.0
-    }
-
-    pub fn inner(&self) -> &Magazine {
-        &self.1
-    }
-}
+indexed_accessors!(IndexedMagazine, MagazineIndex, Magazine);
 
 #[derive(
     Debug,

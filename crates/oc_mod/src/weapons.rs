@@ -1,4 +1,4 @@
-use std::{ops::Deref, path::Path};
+use std::path::Path;
 
 use anyhow::Context;
 use oc_root::{
@@ -20,6 +20,16 @@ use crate::{
 pub const WEAPONS_RON: &str = "weapons.ron";
 pub const DEFAULT_RELOAD_SOUND: &str = "ReloadGeneric1.ogg";
 
+/// Run the same expression on the inner struct of either weapon variant.
+macro_rules! dispatch {
+    ($self:expr, $enum:ident, $w:ident => $e:expr) => {
+        match $self {
+            $enum::Rifle($w) => $e,
+            $enum::MachineGun($w) => $e,
+        }
+    };
+}
+
 #[derive(
     Debug,
     Clone,
@@ -34,13 +44,7 @@ pub const DEFAULT_RELOAD_SOUND: &str = "ReloadGeneric1.ogg";
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct WeaponIndex(pub u32);
 
-impl Deref for WeaponIndex {
-    type Target = u32;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+index_deref!(WeaponIndex, u32);
 
 #[derive(
     Debug,
@@ -55,23 +59,7 @@ impl Deref for WeaponIndex {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndexedWeapon(pub WeaponIndex, pub Weapon);
 
-impl Deref for IndexedWeapon {
-    type Target = Weapon;
-
-    fn deref(&self) -> &Self::Target {
-        &self.1
-    }
-}
-
-impl IndexedWeapon {
-    pub fn index(&self) -> WeaponIndex {
-        self.0
-    }
-
-    pub fn inner(&self) -> &Weapon {
-        &self.1
-    }
-}
+indexed_accessors!(IndexedWeapon, WeaponIndex, Weapon);
 
 #[derive(
     Debug,
@@ -106,48 +94,30 @@ impl From<WeaponRaw> for Weapon {
 
 impl WeaponRaw {
     pub fn name(&self) -> &str {
-        match self {
-            WeaponRaw::Rifle(rifle) => &rifle.name,
-            WeaponRaw::MachineGun(machine_gun) => &machine_gun.name,
-        }
+        dispatch!(self, WeaponRaw, x => &x.name)
     }
 
     pub fn amunitions(&self) -> &Vec<String> {
-        match self {
-            WeaponRaw::Rifle(rifle) => &rifle.amunitions,
-            WeaponRaw::MachineGun(machine_gun) => &machine_gun.amunitions,
-        }
+        dispatch!(self, WeaponRaw, x => &x.amunitions)
     }
 
     pub fn magazines(&self) -> &Vec<String> {
-        match self {
-            WeaponRaw::Rifle(rifle) => &rifle.magazines,
-            WeaponRaw::MachineGun(machine_gun) => &machine_gun.magazines,
-        }
+        dispatch!(self, WeaponRaw, x => &x.magazines)
     }
 
     pub fn reload_sound(&self) -> Option<&str> {
-        match self {
-            WeaponRaw::Rifle(rifle) => rifle.reload_sound.as_deref(),
-            WeaponRaw::MachineGun(machine_gun) => machine_gun.reload_sound.as_deref(),
-        }
+        dispatch!(self, WeaponRaw, x => x.reload_sound.as_deref())
     }
 
     pub fn shots(&self) -> &Vec<ShotModeRaw> {
-        match self {
-            WeaponRaw::Rifle(rifle) => &rifle.shots,
-            WeaponRaw::MachineGun(machine_gun) => &machine_gun.shots,
-        }
+        dispatch!(self, WeaponRaw, x => &x.shots)
     }
 }
 
 impl Weapon {
     // TODO: derive (idem amunitions)
     pub fn name(&self) -> &str {
-        match self {
-            Weapon::Rifle(rifle) => &rifle.name,
-            Weapon::MachineGun(machine_gun) => &machine_gun.name,
-        }
+        dispatch!(self, Weapon, x => &x.name)
     }
 
     // TODO: derive (idem amunitions)
@@ -159,101 +129,59 @@ impl Weapon {
     }
 
     pub fn ammunitions(&self) -> &Vec<IndexedAmmunition> {
-        match self {
-            Weapon::Rifle(rifle) => &rifle.amunitions,
-            Weapon::MachineGun(machine_gun) => &machine_gun.amunitions,
-        }
+        dispatch!(self, Weapon, x => &x.amunitions)
     }
 
     pub fn set_ammunitions(&mut self, value: Vec<IndexedAmmunition>) {
-        match self {
-            Weapon::Rifle(rifle) => rifle.amunitions = value,
-            Weapon::MachineGun(machine_gun) => machine_gun.amunitions = value,
-        }
+        dispatch!(self, Weapon, x => x.amunitions = value)
     }
 
     pub fn magazines(&self) -> &Vec<IndexedMagazine> {
-        match self {
-            Weapon::Rifle(rifle) => &rifle.magazines,
-            Weapon::MachineGun(machine_gun) => &machine_gun.magazines,
-        }
+        dispatch!(self, Weapon, x => &x.magazines)
     }
 
     pub fn set_magazines(&mut self, value: Vec<IndexedMagazine>) {
-        match self {
-            Weapon::Rifle(rifle) => rifle.magazines = value,
-            Weapon::MachineGun(machine_gun) => machine_gun.magazines = value,
-        }
+        dispatch!(self, Weapon, x => x.magazines = value)
     }
 
     pub fn interval(&self) -> Seconds {
-        match self {
-            Weapon::Rifle(rifle) => rifle.interval,
-            Weapon::MachineGun(machine_gun) => machine_gun.interval,
-        }
+        dispatch!(self, Weapon, x => x.interval)
     }
 
     pub fn shots(&self) -> &Vec<IndexedShotMode> {
-        match self {
-            Weapon::Rifle(rifle) => &rifle.shots,
-            Weapon::MachineGun(machine_gun) => &machine_gun.shots,
-        }
+        dispatch!(self, Weapon, x => &x.shots)
     }
 
     pub fn velocity(&self) -> MetersSeconds {
-        match self {
-            Weapon::Rifle(rifle) => rifle.velocity,
-            Weapon::MachineGun(machine_gun) => machine_gun.velocity,
-        }
+        dispatch!(self, Weapon, x => x.velocity)
     }
 
     fn set_shots(&mut self, value: Vec<IndexedShotMode>) {
-        match self {
-            Weapon::Rifle(rifle) => rifle.shots = value,
-            Weapon::MachineGun(machine_gun) => machine_gun.shots = value,
-        }
+        dispatch!(self, Weapon, x => x.shots = value)
     }
 
     pub fn shot(&self, index: ShotModeIndex) -> &ShotMode {
-        match self {
-            Weapon::Rifle(rifle) => &rifle.shots[index.0 as usize],
-            Weapon::MachineGun(machine_gun) => &machine_gun.shots[index.0 as usize],
-        }
+        dispatch!(self, Weapon, x => &x.shots[index.0 as usize])
     }
 
     pub fn reload(&self, w: &WorldConfig) -> Seconds {
-        match self {
-            Weapon::Rifle(rifle) => rifle.reload / w.speed(),
-            Weapon::MachineGun(machine_gun) => machine_gun.reload / w.speed(),
-        }
+        dispatch!(self, Weapon, x => x.reload / w.speed())
     }
 
     pub fn reload_sound(&self) -> Option<SoundIndex> {
-        match self {
-            Weapon::Rifle(rifle) => rifle.reload_sound,
-            Weapon::MachineGun(machine_gun) => machine_gun.reload_sound,
-        }
+        dispatch!(self, Weapon, x => x.reload_sound)
     }
 
     fn set_reload_sound(&mut self, value: Option<SoundIndex>) {
-        match self {
-            Weapon::Rifle(rifle) => rifle.reload_sound = value,
-            Weapon::MachineGun(machine_gun) => machine_gun.reload_sound = value,
-        }
+        dispatch!(self, Weapon, x => x.reload_sound = value)
     }
 
     pub fn aim(&self, w: &WorldConfig) -> Seconds {
-        match self {
-            Weapon::Rifle(rifle) => rifle.aim / w.speed(),
-            Weapon::MachineGun(machine_gun) => machine_gun.aim / w.speed(),
-        }
+        dispatch!(self, Weapon, x => x.aim / w.speed())
     }
 
     pub fn inaccuracy(&self, _w: &oc_root::WorldConfig) -> f32 {
-        match self {
-            Weapon::Rifle(rifle) => rifle.inaccuracy,
-            Weapon::MachineGun(machine_gun) => machine_gun.inaccuracy,
-        }
+        dispatch!(self, Weapon, x => x.inaccuracy)
     }
 }
 

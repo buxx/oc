@@ -132,23 +132,7 @@ pub struct Illustration {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndexedIllustration(pub IllustrationIndex, pub Illustration);
 
-impl std::ops::Deref for IndexedIllustration {
-    type Target = Illustration;
-
-    fn deref(&self) -> &Self::Target {
-        &self.1
-    }
-}
-
-impl IndexedIllustration {
-    pub fn index(&self) -> IllustrationIndex {
-        self.0
-    }
-
-    pub fn inner(&self) -> &Illustration {
-        &self.1
-    }
-}
+indexed_accessors!(IndexedIllustration, IllustrationIndex, Illustration);
 
 pub fn load(path: &Path) -> Result<IndexedIllustrations, Error> {
     let path = path.join(ILLUSTRATION_RON);

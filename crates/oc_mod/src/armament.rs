@@ -32,23 +32,7 @@ pub struct ShotModeIndex(pub u32);
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndexedShotMode(pub ShotModeIndex, pub ShotMode);
 
-impl std::ops::Deref for IndexedShotMode {
-    type Target = ShotMode;
-
-    fn deref(&self) -> &Self::Target {
-        &self.1
-    }
-}
-
-impl IndexedShotMode {
-    pub fn index(&self) -> ShotModeIndex {
-        self.0
-    }
-
-    pub fn inner(&self) -> &ShotMode {
-        &self.1
-    }
-}
+indexed_accessors!(IndexedShotMode, ShotModeIndex, ShotMode);
 
 #[derive(
     Debug,

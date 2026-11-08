@@ -1,4 +1,4 @@
-use std::{ops::Deref, path::Path};
+use std::path::Path;
 
 use anyhow::Context;
 use oc_root::{
@@ -28,13 +28,7 @@ pub const NATURES_RON: &str = "natures.ron";
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct NatureIndex(pub u16);
 
-impl Deref for NatureIndex {
-    type Target = u16;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+index_deref!(NatureIndex, u16);
 
 #[derive(
     Debug,
@@ -49,23 +43,7 @@ impl Deref for NatureIndex {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub struct IndexedNature(pub NatureIndex, pub Nature);
 
-impl Deref for IndexedNature {
-    type Target = Nature;
-
-    fn deref(&self) -> &Self::Target {
-        &self.1
-    }
-}
-
-impl IndexedNature {
-    pub fn index(&self) -> NatureIndex {
-        self.0
-    }
-
-    pub fn inner(&self) -> &Nature {
-        &self.1
-    }
-}
+indexed_accessors!(IndexedNature, NatureIndex, Nature);
 
 #[derive(
     Debug,
