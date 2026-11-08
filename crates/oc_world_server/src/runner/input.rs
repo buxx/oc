@@ -240,10 +240,10 @@ impl<'a, E: Client> Dealer<'a, E> {
         let squad_ = world.squad(squad);
         let tiles = &world.tiles;
         let count = squad_.members.len();
-        let places = Deployment::members_positions(&world.w, &world.mod_, tiles, position, count);
-
         // Leader and all members must stay in zones owned by the squad side
         let zones = world.spawn_zones(squad_.side);
+        let places =
+            Deployment::members_positions(&world.w, &world.mod_, tiles, zones, position, count);
         let inside = |p: WorldVec2| zones.iter().any(|z| z.contains(p));
         if !inside(position) || !places.iter().all(|p| inside(*p)) {
             tracing::debug!(name="runner-input-set-leader-position-outside-spawn", squad=?squad, position=?position);

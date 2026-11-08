@@ -10,7 +10,7 @@ use oc_individual::{
 };
 use oc_mod::{Mod, illustration::IllustrationKind};
 use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec2, material::MaterialKind, side::Side, y::V};
-use oc_utils::d2::{Angle, Xy};
+use oc_utils::{d2::{Angle, Xy}, polygon::Polygon};
 use oc_world::{snapshot::Snapshot, spawn::SpawnZone, tile::Tile};
 use serde::{Deserialize, Serialize};
 
@@ -110,7 +110,7 @@ impl Deployments {
         };
         let occupied: Vec<WorldVec2> = snapshot.squads.iter().map(|s| s.position).collect();
         let position = placer.place(spawns, squad.uuid, &occupied);
-        let places = Self::members_positions(w, mod_, tiles, position, squad.individuals.len());
+        let places = Self::members_positions(w, mod_, tiles, spawns, position, squad.individuals.len());
 
         for (indiv, position_) in squad.individuals.iter().zip(places) {
             let individual = self.fill_individual(w, mod_, i, side, indiv, position_, tiles)?;
@@ -137,6 +137,7 @@ impl Deployments {
         w: &WorldConfig,
         mod_: &Mod,
         tiles: &[Tile],
+        spawns: &[SpawnZone],
         position: WorldVec2,
         count: usize,
     ) -> Vec<WorldVec2> {
@@ -148,7 +149,7 @@ impl Deployments {
             .into_iter()
             .map(|slot| {
                 let slot = WorldVec2::new(slot.x, slot.y);
-                Self::best_tile_position(w, mod_, tiles, slot, &mut taken)
+                Self::best_tile_position(w, mod_, tiles, spawns, slot, position, &mut taken)
             })
             .collect()
     }
@@ -160,7 +161,9 @@ impl Deployments {
         w: &WorldConfig,
         mod_: &Mod,
         tiles: &[Tile],
+        spawns: &[SpawnZone],
         place: WorldVec2,
+        fallback: WorldVec2,
         taken: &mut HashSet<WorldTileIndex>,
     ) -> WorldVec2 {
         let radius = w.formation_tiles_radius_placement() as i64;
@@ -178,6 +181,13 @@ impl Deployments {
                 if taken.contains(&index) || tile.allow.deny(MaterialKind::Individual) {
                     continue;
                 }
+                // Members must stay in owned spawn zones
+                let [px, py] = xy.point(w);
+                let half = w.geo_pixels_per_tile() as f32 / 2.;
+                let center = WorldVec2::new(px + half, py + half);
+                if !spawns.iter().any(|s| s.contains(center)) {
+                    continue;
+                }
 
                 let opacity = mod_.nature(tile.nature).opacity;
                 if best.is_none_or(|(best_opacity, _, _)| opacity > best_opacity) {
@@ -186,9 +196,9 @@ impl Deployments {
             }
         }
 
-        // No free walkable tile around: stay on formation place
+        // No free walkable tile around in spawn zones: stay on squad position
         let Some((_, index, xy)) = best else {
-            return place;
+            return fallback;
         };
         taken.insert(index);
         let [x, y] = xy.point(w);

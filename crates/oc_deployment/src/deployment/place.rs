@@ -33,7 +33,10 @@ impl Placer {
 
     pub fn place(&self, spawns: &[SpawnZone], uuid: Uuid, occupied: &[WorldVec2]) -> WorldVec2 {
         // If placer already know a place for the squad, us it
-        if let Some(place) = self.assigned.get(&uuid) {
+        // (only if it is in an owned spawn zone)
+        if let Some(place) = self.assigned.get(&uuid)
+            && spawns.iter().any(|s| s.contains(*place))
+        {
             return *place;
         }
 
@@ -46,8 +49,11 @@ impl Placer {
             return *place;
         }
 
-        // FIXME BS NOW: place somewhere randomly
-        todo!()
+        // No free place: use the start of an owned spawn zone
+        spawns
+            .first()
+            .map(|s| s.start)
+            .expect("Side must own at least one spawn zone")
     }
 
     pub fn orders(
