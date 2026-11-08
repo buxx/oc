@@ -48,6 +48,8 @@ pub struct Grenade<S: ArchivedDebug = Vec<SoundIndex>> {
     pub name: String,
     pub blast_rayon: Meters,
     pub shrapnel_rayon: Meters,
+    #[serde(default)]
+    pub suppress_rayon: Meters,
     pub shrapnel_quantity: u32,
     pub nature: GrenadeNature,
     #[serde(default)]
@@ -76,6 +78,7 @@ impl From<Grenade> for Explosion {
                 kill_rayon: value.blast_rayon,
                 stunned_rayon: value.blast_rayon,
                 shrapnel_rayon: value.shrapnel_rayon,
+                suppress_rayon: value.suppress_rayon,
                 destruction_rayon: Meters(0.0),
                 destruction_force: 0.0,
                 shrapnel_quantity: value.shrapnel_quantity,
@@ -85,6 +88,7 @@ impl From<Grenade> for Explosion {
                 kill_rayon: Meters(0.0),
                 stunned_rayon: Meters(0.0),
                 shrapnel_rayon: Meters(0.0),
+                suppress_rayon: Meters(0.0),
                 destruction_rayon: Meters(0.0),
                 destruction_force: 0.0,
                 shrapnel_quantity: 0,
@@ -101,6 +105,7 @@ impl GrenadeRaw {
             name: self.name,
             blast_rayon: self.blast_rayon,
             shrapnel_rayon: self.shrapnel_rayon,
+            suppress_rayon: self.suppress_rayon,
             shrapnel_quantity: self.shrapnel_quantity,
             nature: self.nature,
             sounds,

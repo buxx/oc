@@ -42,6 +42,9 @@ const SMOKE_CENTER_OPACITY: Percent = Percent(100);
 /// Smoke opacity at the edge of the cloud
 const SMOKE_EDGE_OPACITY: Percent = Percent(43);
 
+/// Suppress value added to survivors in the explosion suppress rayon
+const EXPLOSION_SUPPRESS_INCREASE: u8 = 75;
+
 /// Number of crater sprites available per crater type in the crater sprites
 const CRATER_SPRITES_COUNT: usize = 5;
 
@@ -62,7 +65,11 @@ impl<E: Client> super::State<E> {
             let kill_rayon = explosion.kill_rayon.pixels(w);
             let stunned_rayon = explosion.stunned_rayon.pixels(w);
             let shrapnel_rayon = explosion.shrapnel_rayon.pixels(w);
-            let largest_rayon = kill_rayon.max(stunned_rayon).max(shrapnel_rayon);
+            let suppress_rayon = explosion.suppress_rayon.pixels(w);
+            let largest_rayon = kill_rayon
+                .max(stunned_rayon)
+                .max(shrapnel_rayon)
+                .max(suppress_rayon);
             let largest_visual_rayon = explosion.largest_rayon();
             let is_smoke = origin.is_smoke(&mod_);
             let mut smoke_fx = None;
@@ -116,6 +123,19 @@ impl<E: Client> super::State<E> {
                     updates.push(Update::UpdateIndividual(
                         *i,
                         IndividualUpdate::SetStatus(Status::Stunned(stunned_value)),
+                    ));
+                }
+            }
+
+            // Survivors in suppress rayon are suppressed
+            for i in &individuals {
+                if !killed.contains(i) && distance(*i) <= suppress_rayon {
+                    let suppress = world.individual(*i).suppress;
+                    updates.push(Update::UpdateIndividual(
+                        *i,
+                        IndividualUpdate::SetSuppress(oc_root::behavior::Suppress(
+                            suppress.0.saturating_add(EXPLOSION_SUPPRESS_INCREASE),
+                        )),
                     ));
                 }
             }
