@@ -52,6 +52,9 @@ const MAP: &str = "examples/meadow1";
 /// Precision of smoke durations check (server fading tick, network and frames)
 #[cfg(feature = "test")]
 const SMOKE_TOLERANCE: Duration = Duration::from_millis(900);
+/// Network and frames precision, whatever the speed
+#[cfg(feature = "test")]
+const SMOKE_MIN_TOLERANCE: Duration = Duration::from_millis(300);
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -99,7 +102,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
         .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
     if matches!(args.case, Case::EndTime) {
-        w = w.with_fight_duration(std::time::Duration::from_secs(2));
+        // Real time duration, let enough time to individual to move before the end
+        let duration = Duration::from_secs(2).div_f32(w.speed());
+        w = w.with_fight_duration(duration.max(Duration::from_secs(1)));
     }
     let speed = w.speed();
     let center = WorldVec2::new(
@@ -347,8 +352,11 @@ fn smoke_test(
 ) {
     let_some!(g = &g.0, return);
     let grenade = g.mod_.grenade_from_name("Smoke grenade").unwrap();
-    let hold = Duration::from_secs_f32(grenade.smoke_duration);
-    let fade = Duration::from_secs_f32(grenade.smoke_fade_duration);
+    // Durations are in game time, while elapsed time is real time
+    let speed = g.w.speed();
+    let hold = Duration::from_secs_f32(grenade.smoke_duration / speed);
+    let fade = Duration::from_secs_f32(grenade.smoke_fade_duration / speed);
+    let tolerance = SMOKE_TOLERANCE.div_f32(speed).max(SMOKE_MIN_TOLERANCE);
 
     let target = WorldVec2::new(center.0.x + Meters(10.).pixels(&g.w), center.0.y);
     let tile = oc_geo::tile::TileXy::from_([target.x, target.y], &g.w);
@@ -369,7 +377,7 @@ fn smoke_test(
     };
     let age = time.elapsed() - seen;
 
-    if age + SMOKE_TOLERANCE < hold && (!displayed || opacity != watch.initial) {
+    if age + tolerance < hold && (!displayed || opacity != watch.initial) {
         let message = format!(
             "Smoke must be kept during {hold:?}, but at {age:?}: displayed={displayed}, \
              opacity={opacity:?} (initial {:?})",
@@ -378,7 +386,7 @@ fn smoke_test(
         return fail(&mut commands, message);
     }
 
-    if age > hold + fade + SMOKE_TOLERANCE {
+    if age > hold + fade + tolerance {
         if displayed || !opacity.is_zero() {
             let message = format!(
                 "Smoke must be gone after {:?}, but at {age:?}: displayed={displayed}, \
@@ -494,8 +502,10 @@ fn watch_individual_after_end(
         &oc_battle_gui::entity::individual::IndividualIndex,
     )>,
     mut watch: ResMut<EndWatch>,
+    g: Res<oc_battle_gui::states::GameConfig>,
     mut commands: Commands,
 ) {
+    let_some!(g = &g.0, return);
     let_some!(position = individual_position(&individuals), return);
     let start = *watch.start.get_or_insert(position);
     let_some!((end_time, end_position) = watch.end, return);
@@ -506,7 +516,12 @@ fn watch_individual_after_end(
         return;
     }
 
-    if time.elapsed() >= end_time + Duration::from_secs(2) {
+    if time.elapsed()
+        >= end_time
+            + Duration::from_secs(2)
+                .div_f32(g.w.speed())
+                .max(Duration::from_millis(500))
+    {
         if end_position.almost_equal(start, 0.001) {
             eprintln!("❌ Individual never moved before End");
         } else {

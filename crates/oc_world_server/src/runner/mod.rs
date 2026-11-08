@@ -23,6 +23,7 @@ use crate::{
 const WORLD_INTERVAL: Duration = Duration::from_secs(5);
 /// Smoke clouds fading precision
 const SMOKE_INTERVAL: Duration = Duration::from_millis(250);
+const SMOKE_MIN_INTERVAL: Duration = Duration::from_millis(20); // For e2e tests purposes
 /// Watchers computed by visibilities thread between two releases of world locks
 const VISIBILITIES_CHUNK: usize = 2;
 /// Individuals/squads step
@@ -308,7 +309,7 @@ impl Kind {
             Kind::Squads => w.squad_tick().interval(),
             Kind::Visibilities => w.visibilities_tick().interval(),
             Kind::World => WORLD_INTERVAL.div_f32(w.speed()),
-            Kind::Smoke => SMOKE_INTERVAL,
+            Kind::Smoke => SMOKE_INTERVAL.div_f32(w.speed()).max(SMOKE_MIN_INTERVAL),
         }
     }
 

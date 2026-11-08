@@ -312,7 +312,7 @@ fn install(app: &mut bevy::app::App) {
                     _ => Duration::from_secs(5),
                 };
                 // Ensure a minimal timeout to let time to bevy to make "network" exchange with server
-                let timeout = timeout.div_f32(g.w.speed()).max(Duration::from_secs(2));
+                let timeout = timeout.div_f32(g.w.speed()).max(Duration::from_secs(1));
                 if game.started.elapsed() > timeout {
                     commands.write_message(bevy::app::AppExit::from_code(0));
                 }

@@ -40,6 +40,9 @@ use oc_world::{meta::Meta, tile::Tile};
 use tests::{individual::TestIndividual, squad::TestSquad};
 
 #[cfg(feature = "test")]
+/// Minimal time to let bevy make "network" exchange with server, whatever the speed
+const MIN_TIMEOUT: Duration = Duration::from_secs(1);
+const MIN_EXPLOSION_DELAY: Duration = Duration::from_secs(1);
 const AFTER_SUCCESS_WAIT: Duration = Duration::from_secs(1);
 const MOD: &str = "mods/tests1";
 
@@ -219,7 +222,7 @@ fn individuals(w: &WorldConfig, _tiles: &Vec<Tile>, args: &Args) -> Vec<oc_indiv
         TestCase::AlteredWall => vec![
             TestIndividual::builder()
                 .side(side::Side::A)
-                .position(WorldVec3::new(259., 75., 0.))
+                .position(WorldVec3::new(130., 75., 0.))
                 .build()
                 .make(w),
             TestIndividual::builder()
@@ -331,23 +334,31 @@ fn install(app: &mut bevy::app::App) {
     }
 }
 
+fn explosion_delay(speed: f32) -> Duration {
+    Duration::from_secs(2)
+        .div_f32(speed)
+        .max(MIN_EXPLOSION_DELAY)
+}
+
 /// Destroy the walls
 #[cfg(feature = "debug")]
 fn fire_explosion(
     mut commands: Commands,
     mut fired: Local<Option<std::time::Instant>>,
     individuals: Query<&oc_battle_gui::entity::individual::IndividualIndex>,
+    g: Res<oc_battle_gui::states::GameConfig>,
 ) {
     use oc_battle_gui::network::output::ToServerEvent;
     use oc_network::ToServer;
 
+    let_some!(g = &g.0, return);
     if individuals.iter().count() < 2 {
         return;
     }
 
     // Let some time to observe the initial (hidden) state
     let first = *fired.get_or_insert_with(std::time::Instant::now);
-    if first.elapsed() < std::time::Duration::from_secs(2)
+    if first.elapsed() < explosion_delay(g.w.speed())
         || EXPLOSION_FIRED.swap(true, Ordering::Relaxed)
     {
         return;
@@ -370,7 +381,11 @@ fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>, w
     let args = Args::parse();
     let speed = w.speed();
     // Ensure a minimal timeout to let time to bevy to make "network" exchange with server
-    let timeout = args.timeout().div_f32(speed).max(Duration::from_secs(2));
+    let mut timeout = args.timeout().div_f32(speed).max(MIN_TIMEOUT);
+    if matches!(args.case, TestCase::AlteredWall) {
+        // Let time to see the effect of the explosion
+        timeout = timeout.max(explosion_delay(speed) + Duration::from_secs(2));
+    }
     if game.started.elapsed() > timeout
         || state
             .success

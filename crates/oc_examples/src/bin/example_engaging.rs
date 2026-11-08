@@ -689,7 +689,7 @@ fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>, w
     let args = Args::parse();
     let speed = w.0.as_ref().map(|w| w.speed()).unwrap_or(1.0);
     // Ensure a minimal timeout to let time to bevy to make "network" exchange with server
-    let timeout = args.timeout().div_f32(speed).max(Duration::from_secs(2));
+    let timeout = args.timeout().div_f32(speed).max(Duration::from_secs(1));
     if game.started.elapsed() > timeout
         || state
             .success

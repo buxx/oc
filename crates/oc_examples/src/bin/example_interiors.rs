@@ -86,8 +86,8 @@ impl Case {
     }
 
     /// Explosions to fire: delay since the first one, shell and position
-    fn explosions(&self) -> Vec<(Duration, ShellIndex, [f32; 2])> {
-        let second = Duration::from_secs(3);
+    fn explosions(&self, speed: f32) -> Vec<(Duration, ShellIndex, [f32; 2])> {
+        let second = Duration::from_secs(3).div_f32(speed);
         match self {
             Case::OutsideExplosionProtected => {
                 vec![(Duration::ZERO, EXPLOSION_PROTECTED_SHELL, [255., 356.])]
@@ -107,16 +107,26 @@ impl Case {
                 vec![(Duration::ZERO, EXPLOSION_NOT_PROTECTED_SHELL, [118., 211.])]
             }
             Case::NearExplosionProtectedInBunker => (0..10)
-                .map(|i| (Duration::from_millis(250 * i), NAVAL_SHELL, [167., 365.]))
+                .map(|i| {
+                    (
+                        Duration::from_millis(250 * i).div_f32(speed),
+                        NAVAL_SHELL,
+                        [167., 365.],
+                    )
+                })
                 .collect(),
             Case::Enter | Case::Out => unreachable!(),
         }
     }
 
     /// Time after which the individual is expected to be (or not) dead
-    fn test_duration(&self) -> Duration {
-        let last = self.explosions().last().map(|e| e.0).unwrap_or_default();
-        last + Duration::from_secs(5)
+    fn test_duration(&self, speed: f32) -> Duration {
+        let last = self
+            .explosions(speed)
+            .last()
+            .map(|e| e.0)
+            .unwrap_or_default();
+        last + Duration::from_secs(5).div_f32(speed).max(MIN_TEST_DURATION)
     }
 
     fn expect_dead(&self) -> bool {
@@ -341,6 +351,7 @@ fn fire_explosion(
     mut start: Local<Option<std::time::Instant>>,
     mut fired: Local<usize>,
     individuals: Query<&oc_battle_gui::entity::individual::IndividualIndex>,
+    g: Res<GameConfig>,
 ) {
     use oc_battle_gui::network::output::ToServerEvent;
     use oc_network::ToServer;
@@ -353,8 +364,9 @@ fn fire_explosion(
         return;
     }
 
+    let_some!(g = &g.0, return);
     let start = *start.get_or_insert_with(std::time::Instant::now);
-    let explosions = Args::parse().case.explosions();
+    let explosions = Args::parse().case.explosions(g.w.speed());
     while let Some((delay, shell, position)) = explosions.get(*fired) {
         if start.elapsed() < *delay {
             break;
@@ -366,6 +378,9 @@ fn fire_explosion(
         *fired += 1;
     }
 }
+
+#[cfg(feature = "test")]
+const MIN_TEST_DURATION: Duration = Duration::from_millis(500);
 
 #[cfg(feature = "test")]
 #[derive(Debug, Resource, Default)]
@@ -384,7 +399,7 @@ fn explosion_protected_test(
         &oc_battle_gui::ingame::individual::Status,
     )>,
 ) {
-    let_some!(_ = &g.0, return);
+    let_some!(g = &g.0, return);
     let expected = Args::parse().case.individual_positions().len();
     if individuals.iter().count() < expected {
         return;
@@ -394,7 +409,7 @@ fn explosion_protected_test(
     let dead = individuals
         .iter()
         .any(|(_, status)| matches!(status.0, oc_individual::Status::Dead));
-    let elapsed = fired.elapsed() > Args::parse().case.test_duration();
+    let elapsed = fired.elapsed() > Args::parse().case.test_duration(g.w.speed());
     if !(dead || elapsed) {
         return;
     }
@@ -430,7 +445,7 @@ fn test_interior_visibility(
         _ => return,
     }
     .div_f32(speed)
-    .max(Duration::from_secs(2));
+    .max(Duration::from_secs(1));
 
     if match args.case {
         Case::Enter => query.iter().any(|(_, v)| matches!(v, Visibility::Visible)),

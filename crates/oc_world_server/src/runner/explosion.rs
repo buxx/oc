@@ -150,13 +150,17 @@ impl<E: Client> super::State<E> {
 
             if let (true, ExplosionOrigin::Grenade(grenade)) = (is_smoke, origin) {
                 let grenade = mod_.grenade(grenade);
-                smoke_fx = Some((grenade.smoke_duration, grenade.smoke_fade_duration));
+                // Durations are in game time: shorter in real time when speed is higher
+                let speed = w.speed();
+                let hold = grenade.smoke_duration / speed;
+                let fade = grenade.smoke_fade_duration / speed;
+                smoke_fx = Some((hold, fade));
                 let tiles = smoke_tiles(&world, position);
                 if !tiles.is_empty() {
                     updates.push(Update::AddSmokeCloud(SmokeCloud::new(
                         Instant::now(),
-                        Duration::from_secs_f32(grenade.smoke_duration),
-                        Duration::from_secs_f32(grenade.smoke_fade_duration),
+                        Duration::from_secs_f32(hold),
+                        Duration::from_secs_f32(fade),
                         tiles,
                     )));
                 }
