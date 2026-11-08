@@ -245,7 +245,12 @@ fn path_objects_at(
             let tile_z = t.z as f32 * w.geo_meters_per_z().0 * w.geo_pixels_per_meters();
             let relative_z = z - tile_z;
             let nature = mod_.nature(t.nature);
-            vec![oc_lov::Step::from_nature(w, nature, relative_z)]
+            let mut steps = vec![oc_lov::Step::from_nature(w, nature, relative_z)];
+            let smoke = world.smoke_at(TileXy(at), w);
+            if !smoke.is_zero() {
+                steps.push(oc_lov::Step::from_smoke(smoke));
+            }
+            steps
         })
         .unwrap_or(vec![])
 }

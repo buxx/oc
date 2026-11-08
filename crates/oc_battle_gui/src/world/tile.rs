@@ -3,7 +3,9 @@ use oc_utils::let_some;
 
 use crate::ingame::region::ForgottenRegion;
 use crate::states::GameConfig;
-use crate::world::{InsertAlteredTiles, InsertDecor, InsertTiles, InsertedTiles, RemoveDecor};
+use crate::world::{
+    InsertAlteredTiles, InsertDecor, InsertTiles, InsertedTiles, RemoveDecor, UpdateSmoke,
+};
 
 // TODO: gui receive region and tiles, then despawn all, then receive a new time ...
 pub fn on_insert_tiles(
@@ -44,6 +46,11 @@ pub fn on_insert_decor(insert: On<InsertDecor>, mut world: ResMut<super::World>)
 pub fn on_remove_decor(remove: On<RemoveDecor>, mut world: ResMut<super::World>) {
     tracing::debug!("Remove decor for region {:?}", remove.0);
     world.remove_decor(remove.0, &remove.1);
+}
+
+pub fn on_update_smoke(update: On<UpdateSmoke>, mut world: ResMut<super::World>) {
+    tracing::debug!("Update smoke for region {:?}", update.0);
+    world.update_smoke(update.0, &update.1);
 }
 
 // TODO: should be automatized (macro? derive ?)

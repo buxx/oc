@@ -10,6 +10,7 @@ pub mod debug;
 pub mod error;
 pub mod image;
 pub mod number;
+pub mod percent;
 pub mod polygon;
 pub mod random;
 #[cfg(feature = "tiled")]

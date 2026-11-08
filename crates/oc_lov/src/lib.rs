@@ -11,6 +11,7 @@ use oc_root::{
     opacity::{CumulatedOpacity, Opacity},
 };
 use oc_utils::d2::Xy;
+use oc_utils::percent::Percent;
 
 #[derive(Debug, Constructor)]
 pub struct PathBuilder<'a, F, I>
@@ -207,6 +208,16 @@ impl Step {
             opacity,
             crawling_opacity_bonus: nature.crawling_opacity_bonus,
             hiding_opacity_bonus: nature.hiding_opacity_bonus,
+        }
+    }
+}
+
+impl Step {
+    pub fn from_smoke(opacity: Percent) -> Self {
+        Self {
+            opacity: Opacity(opacity.ratio()),
+            crawling_opacity_bonus: 0.0,
+            hiding_opacity_bonus: 0.0,
         }
     }
 }

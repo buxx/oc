@@ -165,17 +165,24 @@ pub fn path_objects_at(
     world: &World,
     at: Xy,
     z: f32,
-) -> Option<oc_lov::Step> {
+) -> Vec<oc_lov::Step> {
+    let i = WorldTileIndex::from_(TileXy(at), w);
+    let smoke = world.smoke_at(i);
     world
-        .tile(WorldTileIndex::from_(TileXy(at), w))
+        .tile(i)
         .map(|t| {
             let tile_z = t.z as f32 * w.geo_meters_per_z().0 * w.geo_pixels_per_meters();
             let relative_z = z - tile_z;
             let nature = mod_.nature(t.nature);
             let opacity = nature.opacity(w, relative_z);
             tracing::trace!(name="visibility-path-objects-at", at=?at, z=z, t=?t, tile_z=?tile_z, relative_z=?relative_z, nature=?nature, opacity=?opacity);
-            oc_lov::Step::from_nature(w, nature, relative_z)
+            let mut steps = vec![oc_lov::Step::from_nature(w, nature, relative_z)];
+            if !smoke.is_zero() {
+                steps.push(oc_lov::Step::from_smoke(smoke));
+            }
+            steps
         })
+        .unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -261,6 +268,38 @@ mod tests {
             .find(|(i1, i2, _)| *i1 == WATCHER && *i2 == TARGET)
             .expect("Pair must be computed");
         visibility.visible
+    }
+
+    #[test]
+    fn test_smoke_between_watcher_and_target_hides_target() {
+        let w = WorldConfig::new(100, 100);
+        let individuals = vec![
+            TestIndividual::builder()
+                .side(Side::A)
+                .position(WorldVec3::new(10., 10., 0.))
+                .build()
+                .make(&w),
+            TestIndividual::builder()
+                .side(Side::B)
+                .position(WorldVec3::new(50., 50., 0.))
+                .build()
+                .make(&w),
+        ];
+        let mut world = TestWorld::builder()
+            .individuals(individuals)
+            .build()
+            .make(&w);
+        // Dense smoke on every tile
+        world
+            .smoke
+            .iter_mut()
+            .for_each(|s| *s = oc_utils::percent::Percent::FULL);
+        let indexes = Indexes::new(&world, &w);
+
+        let visibilities = Processor::new(&world, &indexes).compute_for(&[WATCHER], &[TARGET]);
+
+        let (_, _, visibility) = visibilities.into_iter().next().expect("Pair computed");
+        assert!(!visibility.visible);
     }
 
     #[test]

@@ -42,8 +42,9 @@ pub enum Visual {
     Explosion(WorldVec2, Meters),
     /// Light flash at explosion center, sized by the largest explosion rayon
     Flash(WorldVec2, Meters),
-    /// Smoke cloud (smoke grenade)
-    Smoke(WorldVec2),
+    /// Smoke cloud (smoke grenade): position, seconds it keeps full opacity, seconds it takes to
+    /// fade after that
+    Smoke(WorldVec2, f32, f32),
     #[cfg(feature = "debug")]
     ExplosionDebug(ExplosionDebug),
 }

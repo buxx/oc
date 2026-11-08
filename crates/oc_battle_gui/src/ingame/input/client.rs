@@ -27,7 +27,10 @@ use crate::{
     network,
     network::input::ToClientEvent,
     states::{GameConfig, GuiFiles},
-    world::{InsertAlteredTiles, InsertCraters, InsertDecor, RemoveDecor, InsertTiles, UpdateVisibilities},
+    world::{
+        InsertAlteredTiles, InsertCraters, InsertDecor, InsertTiles, RemoveDecor, UpdateSmoke,
+        UpdateVisibilities,
+    },
 };
 
 pub fn on_to_client(
@@ -105,6 +108,10 @@ pub fn on_to_client(
         ToClient::Craters(region, craters) => {
             tracing::trace!(name="ingame-input-craters", region=?region);
             commands.trigger(InsertCraters(*region, craters.clone()));
+        }
+        ToClient::Smoke(region, smoke) => {
+            tracing::trace!(name="ingame-input-smoke", region=?region);
+            commands.trigger(UpdateSmoke(*region, smoke.clone()));
         }
         ToClient::Fx(fx) => {
             tracing::trace!(name="ingame-input-fx", fx=?fx);

@@ -59,6 +59,8 @@ impl WorldLoader {
         }
         let decor = snapshot.decor;
         let craters = snapshot.craters;
+        let smoke = snapshot.smoke;
+        let smoke_clouds = snapshot.smoke_clouds.into_iter().map(Into::into).collect();
         let individuals = snapshot.individuals;
         let visibilities = Visibilities::empty(individuals.len());
         let squads = snapshot.squads;
@@ -132,6 +134,8 @@ impl WorldLoader {
             altered_tiles,
             decor,
             craters,
+            smoke,
+            smoke_clouds,
             navmesh,
             visibilities,
             individuals,

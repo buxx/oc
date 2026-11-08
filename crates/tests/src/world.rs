@@ -4,6 +4,7 @@ use oc_individual::{Individual, IndividualIndex, squad::Squad};
 use oc_mod::{Mod, nature::NatureIndex};
 use oc_projectile::{Projectile, ProjectileId};
 use oc_root::{WorldConfig, battle::BattlePhase};
+use oc_utils::percent::Percent;
 use oc_world::{
     World,
     decor::Decor,
@@ -40,6 +41,7 @@ pub struct TestWorld {
     tiles: Option<Vec<Tile>>,
     altered_tiles: Option<Vec<AlteredTile>>,
     decor: Option<Vec<Option<Decor>>>,
+    smoke: Option<Vec<(WorldTileIndex, Percent)>>,
     #[builder(default)]
     individuals: Vec<Individual>,
     squads: Option<Vec<Squad>>,
@@ -70,6 +72,10 @@ impl TestWorld {
         }
 
         let decor = self.decor.unwrap_or_else(|| vec![None; tiles.len()]);
+        let mut smoke = vec![Percent::ZERO; tiles.len()];
+        for (i, opacity) in self.smoke.unwrap_or_default() {
+            smoke[i.0 as usize] = opacity;
+        }
         let walls = tiles.as_walls(&self.mod_);
         let navmesh = navmesh(w, &walls);
         let squads = self.squads.unwrap_or_else(|| {
@@ -95,6 +101,8 @@ impl TestWorld {
             altered_tiles,
             decor,
             craters: vec![],
+            smoke,
+            smoke_clouds: vec![],
             navmesh,
             individuals: self.individuals,
             visibilities: Visibilities::empty(individuals_count),
@@ -139,6 +147,14 @@ mod tests {
         let altered = altered(&mod_());
         let world = TestWorld::builder().altered_tiles(vec![altered]);
         assert_altered(&world.build().make(&WorldConfig::new(2, 2)));
+    }
+
+    #[test]
+    fn test_smoke_applied_at_build() {
+        let world = TestWorld::builder().smoke(vec![(WorldTileIndex(1), Percent(80))]);
+        let world = world.build().make(&WorldConfig::new(2, 2));
+        assert_eq!(world.smoke_at(WorldTileIndex(1)), Percent(80));
+        assert_eq!(world.smoke_at(WorldTileIndex(0)), Percent::ZERO);
     }
 
     #[test]

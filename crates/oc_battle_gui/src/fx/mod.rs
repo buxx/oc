@@ -212,10 +212,18 @@ fn on_fx(
                 tracing::debug!(name = "fx-flash", position=?position, rayon=?rayon);
                 flash::spawn(&mut commands, &mut effects, glow, g, *position, *rayon);
             }
-            Visual::Smoke(position) => {
+            Visual::Smoke(position, hold, fade) => {
                 let_some!(glow = glow.as_deref(), return);
-                tracing::debug!(name = "fx-smoke", position=?position);
-                smoke::spawn(&mut commands, &mut effects, glow, g, *position);
+                tracing::debug!(name = "fx-smoke", position=?position, hold=hold, fade=fade);
+                smoke::spawn(
+                    &mut commands,
+                    &mut effects,
+                    glow,
+                    g,
+                    *position,
+                    *hold,
+                    *fade,
+                );
             }
             #[cfg(feature = "debug")]
             Visual::ExplosionDebug(debug) => explosion::spawn_debug(&mut commands, g, debug),

@@ -16,6 +16,7 @@ use oc_root::{
     geo::{WorldVec2, WorldVec3},
 };
 use oc_utils::let_some;
+use oc_utils::percent::Percent;
 use oc_world::{
     crater::Crater,
     decor::Decor,
@@ -40,6 +41,9 @@ pub mod visibilities;
 
 #[derive(Debug, Event)]
 pub struct InsertTiles(pub WorldRegionIndex, pub Vec<(WorldTileIndex, Tile)>);
+
+#[derive(Debug, Event)]
+pub struct UpdateSmoke(pub WorldRegionIndex, pub Vec<(WorldTileIndex, Percent)>);
 
 #[derive(Debug, Event)]
 pub struct InsertAlteredTiles(pub WorldRegionIndex, pub Vec<AlteredTile>);
@@ -79,6 +83,7 @@ impl Plugin for WorldPlugin {
             .add_observer(tile::on_insert_altered_tiles)
             .add_observer(tile::on_insert_decor)
             .add_observer(tile::on_remove_decor)
+            .add_observer(tile::on_update_smoke)
             .add_observer(tile::on_forgotten_region)
             .add_observer(individual::on_insert_individual)
             .add_observer(individual::on_update_individual_physics)
@@ -107,6 +112,8 @@ pub struct World {
     pub tiles: Index<WorldTileIndex, Tile>,
     pub altered_tiles: Index<WorldTileIndex, AlteredTile>,
     pub decor: Index<WorldTileIndex, Decor>,
+    /// Smoke opacity (255 is 1.0) of tiles with smoke
+    pub smoke: Index<WorldTileIndex, Percent>,
     pub heights: Index<WorldHeightIndex, u8>,
     pub terrain: Option<oc_world::terrain::Terrain>,
     pub squads: Index<SquadIndex, Squad>,
@@ -182,6 +189,26 @@ impl World {
         }
     }
 
+    pub fn update_smoke(&mut self, region: WorldRegionIndex, smoke: &[(WorldTileIndex, Percent)]) {
+        let region_smoke = self.smoke.entry(region).or_default();
+        for (i, opacity) in smoke {
+            match opacity.is_zero() {
+                true => region_smoke.remove(i),
+                false => region_smoke.insert(*i, *opacity),
+            };
+        }
+    }
+
+    pub fn smoke_at(&self, xy: TileXy, w: &WorldConfig) -> Percent {
+        let i = WorldTileIndex::from_(xy, w);
+        let region: WorldRegionIndex = i.into_(w);
+        self.smoke
+            .get(&region)
+            .and_then(|smoke| smoke.get(&i))
+            .copied()
+            .unwrap_or_default()
+    }
+
     pub fn update_navmesh(&mut self, w: &WorldConfig, mod_: &Mod) {
         let tiles: Vec<(&WorldTileIndex, &Tile)> =
             self.tiles.values().flat_map(|inner| inner.iter()).collect();
@@ -192,6 +219,7 @@ impl World {
         self.tiles.remove(&region);
         self.altered_tiles.remove(&region);
         self.decor.remove(&region);
+        self.smoke.remove(&region);
     }
 
     pub fn insert_individual(

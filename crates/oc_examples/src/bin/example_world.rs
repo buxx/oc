@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
+#[cfg(feature = "test")]
+use oc_root::WcfgFrom;
 use std::path::PathBuf;
 #[cfg(feature = "test")]
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -46,6 +48,10 @@ static SUCCESS: AtomicBool = AtomicBool::new(false);
 const WALL_POSITION: WorldVec2 = WorldVec2::new(17.5, 77.5);
 
 const MAP: &str = "examples/meadow1";
+
+/// Precision of smoke durations check (server fading tick, network and frames)
+#[cfg(feature = "test")]
+const SMOKE_TOLERANCE: Duration = Duration::from_millis(900);
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -319,11 +325,71 @@ fn alter_wall_test(
 }
 
 #[cfg(feature = "test")]
-fn smoke_test(smokes: Query<(), With<oc_battle_gui::fx::Smoke>>, mut commands: Commands) {
-    true_!(!smokes.is_empty(), return);
+#[derive(Default)]
+struct SmokeWatch {
+    /// Elapsed time when the cloud was first seen (displayed and in world)
+    seen: Option<Duration>,
+    /// Opacity seen at first
+    initial: oc_utils::percent::Percent,
+}
 
-    SUCCESS.store(true, Ordering::Relaxed);
-    commands.write_message(AppExit::from_code(0));
+/// Smoke cloud must keep its full opacity (displayed and in world) during smoke_duration of
+/// grenade, then be gone after smoke_fade_duration.
+#[cfg(feature = "test")]
+fn smoke_test(
+    smokes: Query<(), With<oc_battle_gui::fx::Smoke>>,
+    world: Res<oc_battle_gui::world::World>,
+    g: Res<oc_battle_gui::states::GameConfig>,
+    center: Res<Center>,
+    time: Res<Time>,
+    mut watch: Local<SmokeWatch>,
+    mut commands: Commands,
+) {
+    let_some!(g = &g.0, return);
+    let grenade = g.mod_.grenade_from_name("Smoke grenade").unwrap();
+    let hold = Duration::from_secs_f32(grenade.smoke_duration);
+    let fade = Duration::from_secs_f32(grenade.smoke_fade_duration);
+
+    let target = WorldVec2::new(center.0.x + Meters(10.).pixels(&g.w), center.0.y);
+    let tile = oc_geo::tile::TileXy::from_([target.x, target.y], &g.w);
+    let opacity = world.smoke_at(tile, &g.w);
+    let displayed = !smokes.is_empty();
+
+    let fail = |commands: &mut Commands, message: String| {
+        eprintln!("❌ {message}");
+        commands.write_message(AppExit::from_code(0));
+    };
+
+    let Some(seen) = watch.seen else {
+        if displayed && !opacity.is_zero() {
+            watch.seen = Some(time.elapsed());
+            watch.initial = opacity;
+        }
+        return;
+    };
+    let age = time.elapsed() - seen;
+
+    if age + SMOKE_TOLERANCE < hold && (!displayed || opacity != watch.initial) {
+        let message = format!(
+            "Smoke must be kept during {hold:?}, but at {age:?}: displayed={displayed}, \
+             opacity={opacity:?} (initial {:?})",
+            watch.initial
+        );
+        return fail(&mut commands, message);
+    }
+
+    if age > hold + fade + SMOKE_TOLERANCE {
+        if displayed || !opacity.is_zero() {
+            let message = format!(
+                "Smoke must be gone after {:?}, but at {age:?}: displayed={displayed}, \
+                 opacity={opacity:?}",
+                hold + fade
+            );
+            return fail(&mut commands, message);
+        }
+        SUCCESS.store(true, Ordering::Relaxed);
+        commands.write_message(AppExit::from_code(0));
+    }
 }
 
 #[derive(Resource, Default)]

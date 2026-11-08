@@ -95,10 +95,9 @@ impl LeftClickMode {
                 | OrderType::SneakTo
                 | OrderType::Defend
                 | OrderType::Hide => false,
-                OrderType::Engage
-                | OrderType::Suppress
-                | OrderType::Grenade
-                | OrderType::Smoke => true,
+                OrderType::Engage | OrderType::Suppress | OrderType::Grenade | OrderType::Smoke => {
+                    true
+                }
             },
         }
     }

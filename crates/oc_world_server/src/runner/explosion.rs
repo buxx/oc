@@ -1,4 +1,5 @@
-use std::time::Instant;
+use oc_utils::percent::Percent;
+use std::time::{Duration, Instant};
 
 use line_drawing::Bresenham3d;
 use oc_geo::region::WorldRegionIndex;
@@ -17,6 +18,7 @@ use oc_utils::polygon::Polygon;
 use oc_world::World;
 use oc_world::crater::Crater;
 use oc_world::interior::Interior;
+use oc_world::smoke::SmokeCloud;
 use oc_world::tile::AlteredTile;
 use rustc_hash::FxHashSet;
 
@@ -33,6 +35,13 @@ const DEFAULT_INTERIOR_DESTRUCTION_ALTERS: [Alter; 4] = [
     Alter::WoodDebris,
 ];
 
+/// Rayon of the smoke cloud made by a smoke grenade
+const SMOKE_RAYON: Meters = Meters(6.0);
+/// Smoke opacity at the center of the cloud
+const SMOKE_CENTER_OPACITY: Percent = Percent(100);
+/// Smoke opacity at the edge of the cloud
+const SMOKE_EDGE_OPACITY: Percent = Percent(43);
+
 /// Number of crater sprites available per crater type in the crater sprites
 const CRATER_SPRITES_COUNT: usize = 5;
 
@@ -44,7 +53,7 @@ impl<E: Client> super::State<E> {
         position: WorldVec2,
         origin: ExplosionOrigin,
     ) -> Vec<(Listening, Vec<ToClient>)> {
-        let (updates, region, debug_fx, sound, largest_rayon, is_smoke) = {
+        let (updates, region, debug_fx, sound, largest_rayon, smoke_fx) = {
             let world = self.world();
             let indexes = self.indexes();
             let w = &world.w;
@@ -56,6 +65,7 @@ impl<E: Client> super::State<E> {
             let largest_rayon = kill_rayon.max(stunned_rayon).max(shrapnel_rayon);
             let largest_visual_rayon = explosion.largest_rayon();
             let is_smoke = origin.is_smoke(&mod_);
+            let mut smoke_fx = None;
 
             // Tiles concerned by largest rayon
             let tile = WorldTileIndex::from_(TileXy::from_(position, w), w);
@@ -110,16 +120,19 @@ impl<E: Client> super::State<E> {
                 }
             }
 
+            // Destructed tiles
             let destructed = destructed_tiles(&world, mod_, &explosion, position);
             if !destructed.is_empty() {
                 updates.push(Update::AlterTiles(destructed));
             }
 
+            // Destructed decor
             let removed_decor = destructed_decor(&world, &explosion, position);
             if !removed_decor.is_empty() {
                 updates.push(Update::RemoveDecor(removed_decor));
             }
 
+            // Craters
             let crater_size = explosion.destruction_rayon.pixels(w);
             let in_interior = world.interiors.iter().any(|i| i.contains(position));
             let crater_type = tile_nature(&world, tile)
@@ -133,6 +146,20 @@ impl<E: Client> super::State<E> {
                     sprite,
                     crater_size,
                 )));
+            }
+
+            if let (true, ExplosionOrigin::Grenade(grenade)) = (is_smoke, origin) {
+                let grenade = mod_.grenade(grenade);
+                smoke_fx = Some((grenade.smoke_duration, grenade.smoke_fade_duration));
+                let tiles = smoke_tiles(&world, position);
+                if !tiles.is_empty() {
+                    updates.push(Update::AddSmokeCloud(SmokeCloud::new(
+                        Instant::now(),
+                        Duration::from_secs_f32(grenade.smoke_duration),
+                        Duration::from_secs_f32(grenade.smoke_fade_duration),
+                        tiles,
+                    )));
+                }
             }
 
             // Shrapnels
@@ -180,7 +207,7 @@ impl<E: Client> super::State<E> {
                 debug_fx,
                 sound,
                 Meters(largest_visual_rayon),
-                is_smoke,
+                smoke_fx,
             )
         };
 
@@ -189,9 +216,11 @@ impl<E: Client> super::State<E> {
             self.schedule(now, update);
         }
 
-        let mut messages = match is_smoke {
-            true => vec![ToClient::Fx(fx::Fx::Visual(fx::Visual::Smoke(position)))],
-            false => vec![
+        let mut messages = match smoke_fx {
+            Some((hold, fade)) => vec![ToClient::Fx(fx::Fx::Visual(fx::Visual::Smoke(
+                position, hold, fade,
+            )))],
+            None => vec![
                 ToClient::Fx(fx::Fx::Visual(fx::Visual::Explosion(
                     position,
                     explosion.stunned_rayon,
@@ -218,6 +247,30 @@ fn destructed_tiles(
     tiles_in_destruction_rayon(world, explosion, position)
         .into_iter()
         .filter_map(|i| destructed_tile(world, mod_, explosion, i))
+        .collect()
+}
+
+/// Initial opacities of tiles in the smoke cloud
+fn smoke_tiles(world: &World, position: WorldVec2) -> Vec<(WorldTileIndex, Percent)> {
+    let w = &world.w;
+    let rayon = SMOKE_RAYON.pixels(w);
+    let tiles_rayon = (rayon / w.geo_pixels_per_tile() as f32).ceil() as u64;
+    let center = WorldTileIndex::from_(TileXy::from_(position, w), w);
+
+    crate::utils::d2::shape_from_tile(center, tiles_rayon, w)
+        .into_iter()
+        .filter_map(|i| {
+            let tile_center = tile_center(w, i);
+            let (dx, dy) = (tile_center.x - position.x, tile_center.y - position.y);
+            let distance = (dx * dx + dy * dy).sqrt();
+            if distance > rayon {
+                return None;
+            }
+
+            let ratio = distance / rayon;
+            let (center, edge) = (SMOKE_CENTER_OPACITY.ratio(), SMOKE_EDGE_OPACITY.ratio());
+            Some((i, Percent::from_ratio(center + (edge - center) * ratio)))
+        })
         .collect()
 }
 

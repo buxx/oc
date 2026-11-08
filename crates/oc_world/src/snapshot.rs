@@ -1,3 +1,4 @@
+use oc_utils::percent::Percent;
 use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime};
 
@@ -17,9 +18,11 @@ use rkyv::{
 
 use crate::crater::Crater;
 use crate::decor::Decor;
+use crate::smoke::SmokeCloud;
 use crate::spawn::SpawnZoneName;
 use crate::support::{PendingSupport, SupportType, Supports};
 use crate::tile::{AlteredTile, Tile};
+use oc_geo::tile::WorldTileIndex;
 use oc_root::DEFAULT_FIGHT_DURATION;
 
 #[derive(Debug, Archive, Deserialize, Serialize, Constructor)]
@@ -30,6 +33,8 @@ pub struct Snapshot {
     pub altered_tiles: Vec<Option<AlteredTile>>,
     pub decor: Vec<Option<Decor>>,
     pub craters: Vec<Crater>,
+    pub smoke: Vec<Percent>,
+    pub smoke_clouds: Vec<SnapshotSmokeCloud>,
     pub individuals: Vec<Individual>,
     pub squads: Vec<Squad>,
     pub projectiles: Vec<Projectile>,
@@ -62,6 +67,38 @@ impl SnapshotSupportRealized {
                 .checked_sub(at.elapsed())
                 .unwrap_or_else(SystemTime::now),
         }
+    }
+}
+
+#[derive(Debug, Clone, Archive, Deserialize, Serialize)]
+pub struct SnapshotSmokeCloud {
+    #[rkyv(with = AsUnixTime)]
+    pub start: SystemTime,
+    pub hold: Duration,
+    pub fade: Duration,
+    pub tiles: Vec<(WorldTileIndex, Percent)>,
+}
+
+impl From<&SmokeCloud> for SnapshotSmokeCloud {
+    fn from(value: &SmokeCloud) -> Self {
+        Self {
+            start: SystemTime::now()
+                .checked_sub(value.start.elapsed())
+                .unwrap_or_else(SystemTime::now),
+            hold: value.hold,
+            fade: value.fade,
+            tiles: value.tiles.clone(),
+        }
+    }
+}
+
+impl From<SnapshotSmokeCloud> for SmokeCloud {
+    fn from(value: SnapshotSmokeCloud) -> Self {
+        let elapsed = value.start.elapsed().unwrap_or_default();
+        let start = Instant::now()
+            .checked_sub(elapsed)
+            .unwrap_or_else(Instant::now);
+        Self::new(start, value.hold, value.fade, value.tiles)
     }
 }
 
@@ -118,6 +155,8 @@ impl Snapshot {
             altered_tiles: vec![],
             decor: vec![],
             craters: vec![],
+            smoke: vec![],
+            smoke_clouds: vec![],
             individuals: vec![],
             squads: vec![],
             projectiles: vec![],
@@ -148,6 +187,7 @@ impl Snapshot {
     pub fn with_tiles(mut self, tiles: Vec<Tile>) -> Self {
         self.altered_tiles = vec![None; tiles.len()];
         self.decor = vec![None; tiles.len()];
+        self.smoke = vec![Percent::ZERO; tiles.len()];
         self.tiles = tiles;
         self
     }

@@ -100,6 +100,10 @@ pub struct Grenade {
     pub shrapnel_quantity: u32,
     pub nature: GrenadeNature,
     pub sounds: Vec<SoundIndex>,
+    /// Smoke only: seconds the smoke keeps its full opacity
+    pub smoke_duration: f32,
+    /// Smoke only: seconds, after `smoke_duration`, the smoke takes to disappear
+    pub smoke_fade_duration: f32,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -111,6 +115,10 @@ struct GrenadeRaw {
     nature: GrenadeNature,
     #[serde(default)]
     sounds: Vec<String>,
+    #[serde(default)]
+    smoke_duration: f32,
+    #[serde(default)]
+    smoke_fade_duration: f32,
 }
 
 impl Grenade {
@@ -167,6 +175,8 @@ pub fn load(path: &Path, mod_: &Mod) -> Result<Vec<IndexedGrenade>, Error> {
                 shrapnel_quantity: g.shrapnel_quantity,
                 nature: g.nature,
                 sounds,
+                smoke_duration: g.smoke_duration,
+                smoke_fade_duration: g.smoke_fade_duration,
             };
             Ok(IndexedGrenade(GrenadeIndex(i as u16), grenade))
         })

@@ -19,8 +19,6 @@ pub struct Smoke;
 
 /// Smoke is drawn above individuals and explosions
 const Z_SMOKE: f32 = Z_EXPLOSION + 0.2;
-/// Smoke cloud lifetime
-const DURATION: f32 = 30.0;
 /// Smoke cloud diameter
 const SIZE: Meters = Meters(20.0);
 const PUFFS: f32 = 48.0;
@@ -31,25 +29,36 @@ const SPAWN_RAYON_FACTOR: f32 = 0.3;
 const DRIFT_SPEED: Meters = Meters(0.08);
 const MAX_ALPHA: f32 = 0.4;
 
-/// Smoke grenade cloud: puffs of soft grey particles which grow, then fade. Its limit never
-/// goes over [`SIZE`].
+/// Minimum fade time: avoid a gradient with two keys at the same place
+const MIN_FADE: f32 = 0.1;
+
+/// Smoke grenade cloud: puffs of soft grey particles which grow, keep their opacity during `hold`
+/// seconds, then fade during `fade` seconds. Its limit never goes over [`SIZE`].
 pub fn spawn(
     commands: &mut Commands,
     effects: &mut Assets<EffectAsset>,
     glow: &GlowTexture,
     g: &GameConfig,
     position: WorldVec2,
+    hold: f32,
+    fade: f32,
 ) {
+    let fade = fade.max(MIN_FADE);
+    let duration = hold.max(0.) + fade;
+    let faded_from = hold.max(0.) / duration;
     let rayon = SIZE.pixels(&g.w) / 2.;
     let position = ScreenVec2::from_(position, &g.w);
     let drift_speed = DRIFT_SPEED.pixels(&g.w);
     // Puff rayon at the end is what remains between spawn disc, drift and cloud edge
-    let end_diameter = (rayon * (1.0 - SPAWN_RAYON_FACTOR) - drift_speed * DURATION) * 2.;
+    let end_diameter = (rayon * (1.0 - SPAWN_RAYON_FACTOR) - drift_speed * duration) * 2.;
 
     let mut color = Gradient::new();
     color.add_key(0.0, Vec4::new(0.8, 0.8, 0.8, 0.0));
     color.add_key(0.05, Vec4::new(0.8, 0.8, 0.8, MAX_ALPHA));
-    color.add_key(0.7, Vec4::new(0.7, 0.7, 0.7, MAX_ALPHA * 0.8));
+    color.add_key(
+        faded_from.max(0.06),
+        Vec4::new(0.7, 0.7, 0.7, MAX_ALPHA * 0.8),
+    );
     color.add_key(1.0, Vec4::new(0.6, 0.6, 0.6, 0.0));
 
     let mut size = Gradient::new();
@@ -69,10 +78,8 @@ pub fn spawn(
         speed: (writer.rand(ScalarType::Float) * writer.lit(drift_speed)).expr(),
     };
     let init_age = SetAttributeModifier::new(Attribute::AGE, writer.lit(0.).expr());
-    // Last puffs fade out exactly at the end of cloud duration
-    let lifetime =
-        writer.lit(DURATION * 0.8) + writer.rand(ScalarType::Float) * writer.lit(DURATION * 0.2);
-    let init_lifetime = SetAttributeModifier::new(Attribute::LIFETIME, lifetime.expr());
+    // Puffs fade out exactly at the end of cloud duration
+    let init_lifetime = SetAttributeModifier::new(Attribute::LIFETIME, writer.lit(duration).expr());
     let mut module = writer.finish();
     module.add_texture_slot("glow", SlotDimension::D2);
 
@@ -100,6 +107,6 @@ pub fn spawn(
         },
         Transform::from_xyz(position.x, position.y, Z_SMOKE),
         Smoke,
-        Lifetime(Timer::from_seconds(DURATION + 0.1, TimerMode::Once)),
+        Lifetime(Timer::from_seconds(duration + 0.1, TimerMode::Once)),
     ));
 }

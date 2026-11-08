@@ -89,6 +89,7 @@ where
             .unwrap_or_else(|| vec![None; tiles.len()]);
 
         let decor = vec![None; tiles.len()];
+        let smoke = vec![oc_utils::percent::Percent::ZERO; tiles.len()];
 
         let snapshot = Snapshot {
             w,
@@ -96,6 +97,8 @@ where
             altered_tiles,
             decor,
             craters: vec![],
+            smoke,
+            smoke_clouds: vec![],
             individuals,
             squads,
             projectiles,

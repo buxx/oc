@@ -20,6 +20,7 @@ use oc_root::{
     identity::Identity,
     static_::StaticSource,
 };
+use oc_utils::percent::Percent;
 use oc_world::{
     crater::Crater,
     decor::Decor,
@@ -46,6 +47,7 @@ pub enum ToClient {
     Decor(WorldRegionIndex, Vec<Decor>),
     RemovedDecor(WorldRegionIndex, Vec<WorldTileIndex>),
     Craters(WorldRegionIndex, Vec<Crater>),
+    Smoke(WorldRegionIndex, Vec<(WorldTileIndex, Percent)>),
     Fx(Fx),
     UpdateVisibilities(Vec<(IndividualIndex, IndividualIndex, Visibility)>),
     SetBattlePhase(BattlePhase),

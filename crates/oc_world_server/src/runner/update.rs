@@ -1,3 +1,4 @@
+use oc_utils::percent::Percent;
 use std::time::{Duration, Instant};
 
 use crate::projectile;
@@ -23,10 +24,11 @@ use oc_root::explosion::Explosion;
 use oc_root::geo::WorldVec2;
 use oc_root::geo::WorldVec3;
 use oc_root::side::Side;
-use oc_root::{Client, WcfgFrom, WcfgInto};
+use oc_root::{Client, WcfgFrom, WcfgInto, WorldConfig};
 use oc_world::crater::Crater;
 use oc_world::flag::Flags;
 use oc_world::morale::Morale;
+use oc_world::smoke::SmokeCloud;
 use oc_world::support::PendingSupport;
 use oc_world::tile::AlteredTile;
 use oc_world::visibility::Visibilities;
@@ -55,6 +57,9 @@ pub enum Update {
     SpawnExplosion(Explosion, WorldVec2, ExplosionOrigin),
     AlterTiles(Vec<AlteredTile>),
     AddCrater(Crater),
+    AddSmokeCloud(SmokeCloud),
+    /// Fade smoke clouds and forget expired ones
+    UpdateSmoke,
     RemoveDecor(Vec<WorldTileIndex>),
 }
 
@@ -168,6 +173,22 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
             let message = ToClient::Craters(region, vec![crater]);
             vec![(Listening::Regions(vec![region]), vec![message])]
         }
+        Update::AddSmokeCloud(cloud) => {
+            let mut world = state.world_mut();
+            let smoke: Vec<_> = cloud
+                .tiles
+                .iter()
+                .map(|(i, opacity)| (*i, (*opacity).max(world.smoke_at(*i))))
+                .collect();
+            world.set_smoke(&smoke);
+            world.smoke_clouds.push(cloud);
+            smoke_messages(&world.w, smoke)
+        }
+        Update::UpdateSmoke => {
+            let mut world = state.world_mut();
+            let smoke = world.update_smoke(Instant::now());
+            smoke_messages(&world.w, smoke)
+        }
         Update::RemoveDecor(tiles) => {
             let mut by_region: FxHashMap<WorldRegionIndex, Vec<WorldTileIndex>> =
                 FxHashMap::default();
@@ -213,6 +234,27 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
         tracing::trace!(name="runner-update-broadcast", filter=?filter, messages=?messages);
         ctx.broadcast(filter, messages);
     }
+}
+
+/// Tell listeners of regions of changed smoke opacities
+fn smoke_messages(
+    w: &WorldConfig,
+    smoke: Vec<(WorldTileIndex, Percent)>,
+) -> Vec<(Listening, Vec<ToClient>)> {
+    let mut by_region: FxHashMap<WorldRegionIndex, Vec<(WorldTileIndex, Percent)>> =
+        FxHashMap::default();
+    for (i, opacity) in smoke {
+        let region: WorldRegionIndex = i.into_(w);
+        by_region.entry(region).or_default().push((i, opacity));
+    }
+
+    by_region
+        .into_iter()
+        .map(|(region, smoke)| {
+            let message = ToClient::Smoke(region, smoke);
+            (Listening::Regions(vec![region]), vec![message])
+        })
+        .collect()
 }
 
 impl<E: Client> super::State<E> {

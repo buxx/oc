@@ -21,6 +21,8 @@ use crate::{
 };
 
 const WORLD_INTERVAL: Duration = Duration::from_secs(5);
+/// Smoke clouds fading precision
+const SMOKE_INTERVAL: Duration = Duration::from_millis(250);
 /// Watchers computed by visibilities thread between two releases of world locks
 const VISIBILITIES_CHUNK: usize = 2;
 /// Individuals/squads step
@@ -56,6 +58,7 @@ impl<E: Client> Runner<E> {
         self.start_visibilities();
         self.start_squads();
         self.start_world();
+        self.start_smoke();
         self.start_scheduler();
 
         let _ = ready.send(Ok(()));
@@ -192,6 +195,18 @@ impl<E: Client> Runner<E> {
         });
     }
 
+    fn start_smoke(&self) {
+        tracing::debug!("Start smoke");
+
+        spawn_ticker(self.context(), Kind::Smoke, true, |ctx| {
+            tracing::trace!(name = "runner-smoke");
+            let has_clouds = !ctx.state.world().smoke_clouds.is_empty();
+            if has_clouds {
+                update::update(ctx, update::Update::UpdateSmoke);
+            }
+        });
+    }
+
     #[cfg(feature = "perfs")]
     fn perfs(&self) {
         let state = self.state.clone();
@@ -281,6 +296,7 @@ enum Kind {
     Squads,
     Visibilities,
     World,
+    Smoke,
 }
 
 impl Kind {
@@ -292,6 +308,7 @@ impl Kind {
             Kind::Squads => w.squad_tick().interval(),
             Kind::Visibilities => w.visibilities_tick().interval(),
             Kind::World => WORLD_INTERVAL.div_f32(w.speed()),
+            Kind::Smoke => SMOKE_INTERVAL,
         }
     }
 
@@ -302,7 +319,7 @@ impl Kind {
             Kind::Individuals => &perf.individuals,
             Kind::Squads => &perf.squads,
             Kind::Visibilities => &perf.visibilities,
-            Kind::World => &perf.world,
+            Kind::World | Kind::Smoke => &perf.world,
         }
     }
 }

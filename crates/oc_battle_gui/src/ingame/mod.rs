@@ -37,9 +37,9 @@ pub mod behavior;
 pub mod camera;
 pub mod collision;
 pub mod crater;
-pub mod decor;
 #[cfg(feature = "debug")]
 pub mod debug;
+pub mod decor;
 pub mod draw;
 pub mod flag;
 pub mod height;

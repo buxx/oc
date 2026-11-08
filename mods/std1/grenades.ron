@@ -13,5 +13,7 @@
     shrapnel_rayon: Meters(0.0),
     shrapnel_quantity: 0,
     nature: Smoke,
+    smoke_duration: 50.0,
+    smoke_fade_duration: 10.0,
   ),
 ]

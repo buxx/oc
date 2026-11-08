@@ -202,6 +202,8 @@ fn snapshot_(
         vec![],
         vec![],
         vec![],
+        vec![],
+        vec![],
         BattlePhase::Deployment,
         DEFAULT_FIGHT_DURATION,
         None,
@@ -216,6 +218,7 @@ fn snapshot_(
     let map = reader::MapReader::new(map)?;
     let tiles = map.tiles(&snapshot.w, mod_)?;
     snapshot.altered_tiles = vec![None; tiles.len()];
+    snapshot.smoke = vec![oc_utils::percent::Percent::ZERO; tiles.len()];
     snapshot.tiles = tiles;
     snapshot.decor = map.decor()?;
 

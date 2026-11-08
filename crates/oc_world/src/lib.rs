@@ -1,6 +1,7 @@
 // derive_more::Constructor triggers a false positive
 #![allow(clippy::redundant_field_names)]
 
+use oc_utils::percent::Percent;
 use std::time::{Duration, Instant};
 
 use derive_more::Constructor;
@@ -29,6 +30,7 @@ use crate::{
     meta::Meta,
     navmesh::Walls,
     resume::WorldResume,
+    smoke::SmokeCloud,
     spawn::SpawnZoneName,
     support::{PendingSupport, SupportType, Supports},
     tile::AlteredTile,
@@ -51,6 +53,7 @@ pub mod navmesh;
 pub mod place;
 pub mod reader;
 pub mod resume;
+pub mod smoke;
 pub mod snapshot;
 pub mod spawn;
 pub mod support;
@@ -78,6 +81,8 @@ pub struct World {
     pub altered_tiles: Vec<Option<AlteredTile>>,
     pub decor: Vec<Option<Decor>>,
     pub craters: Vec<Crater>,
+    pub smoke: Vec<Percent>,
+    pub smoke_clouds: Vec<SmokeCloud>,
     pub navmesh: polyanya::Mesh,
     pub visibilities: Visibilities,
     pub individuals: Vec<Individual>,
@@ -146,6 +151,46 @@ impl World {
         self.region_tiles(region)
             .into_iter()
             .filter_map(|(i, _)| self.decor[i.0 as usize].clone())
+            .collect()
+    }
+
+    pub fn smoke_at(&self, i: WorldTileIndex) -> Percent {
+        self.smoke.get(i.0 as usize).copied().unwrap_or_default()
+    }
+
+    pub fn set_smoke(&mut self, smoke: &[(WorldTileIndex, Percent)]) {
+        for (i, opacity) in smoke {
+            self.smoke[i.0 as usize] = *opacity;
+        }
+    }
+
+    /// Smoke clouds keep their opacity during their duration, then fade. Expired clouds are
+    /// forgotten. Returns tiles whose opacity changed.
+    pub fn update_smoke(&mut self, now: Instant) -> Vec<(WorldTileIndex, Percent)> {
+        let mut opacities: FxHashMap<WorldTileIndex, Percent> = FxHashMap::default();
+
+        for cloud in &self.smoke_clouds {
+            for (i, opacity) in cloud.opacities(now) {
+                let max = opacities.entry(i).or_default();
+                *max = (*max).max(opacity);
+            }
+        }
+
+        let changed: Vec<(WorldTileIndex, Percent)> = opacities
+            .into_iter()
+            .filter(|(i, opacity)| self.smoke_at(*i) != *opacity)
+            .collect();
+        self.set_smoke(&changed);
+        self.smoke_clouds.retain(|cloud| !cloud.expired(now));
+
+        changed
+    }
+
+    pub fn region_smoke(&self, region: WorldRegionIndex) -> Vec<(WorldTileIndex, Percent)> {
+        self.region_tiles(region)
+            .into_iter()
+            .map(|(i, _)| (i, self.smoke_at(i)))
+            .filter(|(_, opacity)| !opacity.is_zero())
             .collect()
     }
 
@@ -323,6 +368,8 @@ mod tests {
             altered_tiles,
             decor,
             vec![],
+            vec![Percent::ZERO; w.tiles_count() as usize],
+            vec![],
             polyanya::Mesh::default(),
             Visibilities::empty(0),
             vec![],
@@ -380,6 +427,8 @@ mod tests {
             tiles,
             altered_tiles,
             decor,
+            vec![],
+            vec![Percent::ZERO; w.tiles_count() as usize],
             vec![],
             navmesh,
             Visibilities::empty(0),
