@@ -7,7 +7,9 @@ use crate::{
 
 use bevy::prelude::*;
 use oc_individual::{Individual, IndividualIndex, Status};
-use oc_mod::{Mod, illustration::IllustrationKind};
+use crate::utils::hover::Hovered;
+use oc_mod::{Mod, grenade::GrenadeNature, illustration::IllustrationKind};
+use oc_utils::bevy::EntityMapping;
 use oc_root::files::FilesAsGui;
 use oc_utils::{every, let_ok, let_some};
 use std::time::Duration;
@@ -16,6 +18,7 @@ const ROW_BG: Color = Color::srgb(0.2, 0.25, 0.2);
 const STATUS_OPERATIONAL_BG: Color = Color::srgb(0.1, 0.5, 0.15);
 const STATUS_STUNNED_BG: Color = Color::srgba(1.0, 0.55, 0.0, 0.3);
 const STATUS_DEAD_BG: Color = Color::srgb(0.5, 0., 0.);
+pub const HOVER_COLOR: Color = Color::srgb(0.6, 0.8, 1.0);
 const ROW_HEIGHT: f32 = 32.;
 const COLUMNS_WIDTH: f32 = 200.;
 const INDIVIDUAL_ICON_WIDTH: f32 = 30.;
@@ -25,7 +28,10 @@ const INDIVIDUAL_ICON_HEIGHT: f32 = 30.;
 pub struct SquadDetails;
 
 #[derive(Component)]
-pub struct IndividualRow;
+pub struct IndividualRow(pub IndividualIndex);
+
+#[derive(Component, Default, Clone)]
+pub struct IndividualGrenadesText(pub Option<IndividualIndex>);
 
 #[derive(Component, Default, Clone)]
 pub struct IndividualNameText(pub Option<IndividualIndex>);
@@ -68,6 +74,7 @@ fn row(
     let kia_visibility = kia_visibility(individual.status);
     let rounds = format!("{} rnds.", primary_rounds(&g.mod_, individual));
     let status_color = status_color(individual.status);
+    let grenades = grenades_label(&g.mod_, individual);
 
     bsn! {
         Node {
@@ -79,6 +86,8 @@ fn row(
             padding: UiRect::horizontal(px(2)),
         }
         BackgroundColor(ROW_BG)
+        on(on_hover)
+        on(on_out)
         Children [
             // Icon
             Node { width: px(INDIVIDUAL_ICON_WIDTH), height: px(INDIVIDUAL_ICON_HEIGHT), flex_shrink: 0. }
@@ -121,6 +130,11 @@ fn row(
                 Text(rounds)
                 TextFont { font_size: px(10) }
                 Pickable::IGNORE
+                --
+                IndividualGrenadesText(i)
+                Text(grenades)
+                TextFont { font_size: px(10) }
+                Pickable::IGNORE
             ]
         ]
     }
@@ -151,15 +165,25 @@ pub fn spawn_rows(
 
         commands
             .spawn_scene(row(g, files, i, individual))
-            .insert((IndividualRow, ChildOf(details)));
+            .insert((IndividualRow(i), ChildOf(details)));
     }
 }
 
 pub fn update_rows(
     world: Res<World>,
     g: Res<GameConfig>,
-    mut texts: Query<(&IndividualStatusText, &mut Text), Without<IndividualRoundsText>>,
-    mut rounds: Query<(&IndividualRoundsText, &mut Text), Without<IndividualStatusText>>,
+    mut texts: Query<
+        (&IndividualStatusText, &mut Text),
+        (Without<IndividualRoundsText>, Without<IndividualGrenadesText>),
+    >,
+    mut rounds: Query<
+        (&IndividualRoundsText, &mut Text),
+        (Without<IndividualStatusText>, Without<IndividualGrenadesText>),
+    >,
+    mut grenades: Query<
+        (&IndividualGrenadesText, &mut Text),
+        (Without<IndividualStatusText>, Without<IndividualRoundsText>),
+    >,
     mut names: Query<(&IndividualNameText, &mut BackgroundColor)>,
     mut kias: Query<(&IndividualKiaText, &mut Visibility)>,
     time: Res<Time>,
@@ -191,6 +215,53 @@ pub fn update_rows(
         let_some!(individual = world.individual(individual), continue);
         text.0 = format!("{} rnds.", primary_rounds(&g.mod_, individual));
     }
+
+    for (individual, mut text) in &mut grenades {
+        let_some!(individual = individual.0, continue);
+        let_some!(individual = world.individual(individual), continue);
+        text.0 = grenades_label(&g.mod_, individual);
+    }
+}
+
+fn grenades_label(mod_: &Mod, individual: &Individual) -> String {
+    let (mut frag, mut smoke) = (0, 0);
+    for grenade in &individual.weapons.grenades {
+        match mod_.grenade(*grenade).nature {
+            GrenadeNature::Frag => frag += 1,
+            GrenadeNature::Smoke => smoke += 1,
+        }
+    }
+    format!("gr. {frag} sm. {smoke}")
+}
+
+fn on_hover(
+    e: On<PointerOver>,
+    mut commands: Commands,
+    rows: Query<&IndividualRow>,
+    individuals: Res<EntityMapping<IndividualIndex>>,
+    mut hovered: Query<&mut Hovered>,
+) {
+    let_ok!(row = rows.get(e.entity), return);
+    commands
+        .entity(e.entity)
+        .insert(Outline::new(px(1), Val::ZERO, HOVER_COLOR));
+    let_some!(entity = individuals.get(&row.0), return);
+    let_ok!(mut h = hovered.get_mut(*entity), return);
+    **h = true;
+}
+
+fn on_out(
+    e: On<PointerOut>,
+    mut commands: Commands,
+    rows: Query<&IndividualRow>,
+    individuals: Res<EntityMapping<IndividualIndex>>,
+    mut hovered: Query<&mut Hovered>,
+) {
+    let_ok!(row = rows.get(e.entity), return);
+    commands.entity(e.entity).remove::<Outline>();
+    let_some!(entity = individuals.get(&row.0), return);
+    let_ok!(mut h = hovered.get_mut(*entity), return);
+    **h = false;
 }
 
 fn status_label(individual: &Individual) -> String {

@@ -529,7 +529,7 @@ pub struct Hover;
 
 impl hover::Hover for Hover {
     fn color() -> Srgba {
-        bevy::color::palettes::css::DARK_BLUE
+        Srgba::new(0.6, 0.8, 1.0, 1.0)
     }
 
     fn size() -> Vec2 {
