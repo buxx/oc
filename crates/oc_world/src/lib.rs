@@ -73,6 +73,8 @@ pub struct World {
     pub start: Option<Instant>,
     pub side_a_spawns: Vec<SpawnZoneName>,
     pub side_b_spawns: Vec<SpawnZoneName>,
+    pub side_a_spawn_zones: Vec<crate::spawn::SpawnZone>,
+    pub side_b_spawn_zones: Vec<crate::spawn::SpawnZone>,
     pub flags: Flags,
     pub supports: Supports,
     pub pending_supports: Vec<PendingSupport>,
@@ -92,6 +94,14 @@ pub struct World {
 }
 
 impl World {
+    /// Spawn zones owned by given side
+    pub fn spawn_zones(&self, side: Side) -> &[crate::spawn::SpawnZone] {
+        match side {
+            Side::A => &self.side_a_spawn_zones,
+            Side::B => &self.side_b_spawn_zones,
+        }
+    }
+
     pub fn tile(&self, i: WorldTileIndex) -> Option<&Tile> {
         self.tiles.get(i.0 as usize)
     }
@@ -360,6 +370,8 @@ mod tests {
             Some(Instant::now()),
             vec![],
             vec![],
+            vec![],
+            vec![],
             Flags::default(),
             Supports::default(),
             vec![],
@@ -418,6 +430,8 @@ mod tests {
             BattlePhase::Fight,
             DEFAULT_FIGHT_DURATION,
             Some(Instant::now()),
+            vec![],
+            vec![],
             vec![],
             vec![],
             Flags::default(),

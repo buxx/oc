@@ -184,16 +184,27 @@ impl MapReader {
         let mut interiors = vec![];
 
         for object in self.interiors_zones_layer()?.objects() {
-            interiors.push(match &object.shape {
-                tiled::ObjectShape::Polygon { points } => {
-                    let x = object.x;
-                    let y = object.y;
-                    let first = WorldVec2::new(x, y);
-                    let points: Vec<WorldVec2> = points
+            interiors.push({
+                let (x, y) = (object.x, object.y);
+                let points: Vec<WorldVec2> = match &object.shape {
+                    tiled::ObjectShape::Polygon { points } => points
                         .iter()
-                        .map(|(x, y)| WorldVec2::new(first.x + x, first.y + y))
-                        .collect();
-
+                        .map(|(px, py)| WorldVec2::new(x + px, y + py))
+                        .collect(),
+                    tiled::ObjectShape::Rect { width, height } => vec![
+                        WorldVec2::new(x, y),
+                        WorldVec2::new(x + width, y),
+                        WorldVec2::new(x + width, y + height),
+                        WorldVec2::new(x, y + height),
+                    ],
+                    _ => {
+                        return Result::Err(MapReaderError::InvalidLayer(format!(
+                            "Layer '{}' in map contains non Rect/Polygon shapes, this is not supported now",
+                            INTERIORS_ZONES_LAYER_NAME,
+                        )));
+                    }
+                };
+                {
                     // Warning: image crop must fit with this start point to be correctly displayed
                     let min_x = points.iter().map(|p| p.x).fold(f32::INFINITY, f32::min);
                     let min_y = points.iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
@@ -234,13 +245,7 @@ impl MapReader {
                         destruction_alter_natures,
                     )
                 }
-                _ => {
-                    return Result::Err(MapReaderError::InvalidLayer(format!(
-                        "Layer '{}' in map contains non Polygon shapes, this is not supported now",
-                        INTERIORS_ZONES_LAYER_NAME,
-                    )));
-                }
-            })
+            });
         }
 
         Ok(interiors)

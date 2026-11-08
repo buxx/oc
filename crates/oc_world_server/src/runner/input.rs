@@ -12,6 +12,7 @@ use oc_root::battle::BattlePhase;
 use oc_root::identity::Identity;
 use oc_root::{Client, WcfgFrom, geo::WorldVec2};
 use oc_utils::error::OkOrLogError;
+use oc_utils::polygon::Polygon;
 use oc_world::{
     support::{PendingSupport, SupportType},
     tile::IntoTiles,
@@ -240,6 +241,14 @@ impl<'a, E: Client> Dealer<'a, E> {
         let tiles = &world.tiles;
         let count = squad_.members.len();
         let places = Deployment::members_positions(&world.w, &world.mod_, tiles, position, count);
+
+        // Leader and all members must stay in zones owned by the squad side
+        let zones = world.spawn_zones(squad_.side);
+        let inside = |p: WorldVec2| zones.iter().any(|z| z.contains(p));
+        if !inside(position) || !places.iter().all(|p| inside(*p)) {
+            tracing::debug!(name="runner-input-set-leader-position-outside-spawn", squad=?squad, position=?position);
+            return vec![];
+        }
 
         // Update squad position first to let GUI use squad position when orders refresh
         let set_position = oc_individual::squad::Update::SetPosition(position);

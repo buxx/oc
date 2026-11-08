@@ -101,7 +101,7 @@ pub fn on_show_spawn_zones(
         } else if is_their {
             (Visibility::Visible, 0.95)
         } else {
-            (Visibility::Visible, 0.5)
+            (Visibility::Visible, 0.75)
         };
 
         *visibility = visibility_;

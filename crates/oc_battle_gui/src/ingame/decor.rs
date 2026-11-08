@@ -12,14 +12,48 @@ use crate::{
     world::{InsertDecor, InsertedTiles, RemoveDecor},
 };
 
+const Z_DECOR_SPAN: f32 = 0.05;
+
 pub struct DecorPlugin;
 
 impl Plugin for DecorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(on_inserted_tiles)
+        app.init_resource::<DecorsVisible>()
+            .add_systems(Update, toggle_decors)
+            .add_observer(on_inserted_tiles)
             .add_observer(on_insert_decor)
             .add_observer(on_remove_decor)
             .add_observer(on_forgotten_region);
+    }
+}
+
+#[derive(Debug, Resource)]
+struct DecorsVisible(bool);
+
+impl Default for DecorsVisible {
+    fn default() -> Self {
+        Self(true)
+    }
+}
+
+/// Press T to show/hide decors.
+fn toggle_decors(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut visible: ResMut<DecorsVisible>,
+    mut sprites: Query<&mut Visibility, With<DecorSprite>>,
+) {
+    if keys.just_pressed(KeyCode::KeyT) {
+        visible.0 = !visible.0;
+        for mut v in &mut sprites {
+            *v = visibility(visible.0);
+        }
+    }
+}
+
+fn visibility(visible: bool) -> Visibility {
+    match visible {
+        true => Visibility::Inherited,
+        false => Visibility::Hidden,
     }
 }
 
@@ -52,18 +86,23 @@ fn on_insert_decor(
     mut commands: Commands,
     g: Res<GameConfig>,
     sprites: Option<Res<DecorSprites>>,
+    visible: Res<DecorsVisible>,
 ) {
     let_some!(g = &g.0, return);
     let_some!(sprites = sprites, return);
 
     for decor in &insert.1 {
+        // Distinct z per decor to avoids z-fighting
+        let total = (g.w.world_width() * g.w.world_height()).max(1) as f32;
+        let z = Z_DECOR + (decor.i.0 as f32 / total) * Z_DECOR_SPAN;
         commands.spawn((
             DecorSprite(decor.i),
             Region(insert.0),
             sprites.sprite(decor.tile),
-            Transform::from_translation(position(decor, &sprites, &g.w).extend(Z_DECOR))
+            Transform::from_translation(position(decor, &sprites, &g.w).extend(z))
                 .with_rotation(Quat::from_rotation_z(rotation(decor.i))),
             Anchor::CENTER,
+            visibility(visible.0),
         ));
     }
 }

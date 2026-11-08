@@ -101,6 +101,8 @@ impl TestWorld {
             altered_tiles,
             decor,
             craters: vec![],
+            side_a_spawn_zones: vec![],
+            side_b_spawn_zones: vec![],
             smoke,
             smoke_clouds: vec![],
             navmesh,
