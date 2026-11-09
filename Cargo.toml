@@ -2,6 +2,9 @@
 resolver = "2"
 members = ["crates/*"]
 
+[workspace.package]
+version = "0.1.0"
+
 [profile.dev]
 opt-level = 1
 # Prevent enormous (1.7Go) bin which kill CPU by IO wait
