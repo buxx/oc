@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "test"), allow(dead_code, unused_imports))]
 #![allow(clippy::unwrap_used)]
 
 #[cfg(feature = "test")]
@@ -8,7 +9,7 @@ use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
 use oc_battle_gui::ingame::{GameConfigReceived, camera::move_::CenterCameraOn};
-#[cfg(feature = "test")]
+#[cfg(any(feature = "test", feature = "debug"))]
 use oc_battle_gui::states::GameConfig;
 use oc_examples::{logging, run, snapshot::SnapshotBuilder};
 use oc_geo::tile::WorldTileIndex;
@@ -18,7 +19,7 @@ use oc_root::{
     WcfgInto, WorldConfig, battle::BattlePhase, geo::WorldVec2, physics::Meters, side::Side,
     utils::Frequency,
 };
-#[cfg(feature = "test")]
+#[cfg(any(feature = "test", feature = "debug"))]
 use oc_utils::let_some;
 #[cfg(feature = "test")]
 use oc_world::interior::Interior;
@@ -379,7 +380,6 @@ fn fire_explosion(
     }
 }
 
-#[cfg(feature = "test")]
 const MIN_TEST_DURATION: Duration = Duration::from_millis(500);
 
 #[cfg(feature = "test")]

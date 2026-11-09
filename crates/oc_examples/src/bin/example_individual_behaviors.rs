@@ -8,6 +8,7 @@ use oc_battle_gui::ingame::camera::squad::ToggleShowFormationPositions;
 use oc_battle_gui::ingame::individual::{AccomplishedEvent, MoveStepAccomplishedEvent};
 use oc_examples::{logging, tests::behavior};
 use oc_individual::order::Order;
+#[cfg(feature = "debug")]
 use oc_mod::shell::ShellIndex;
 #[cfg(feature = "debug")]
 use oc_utils::let_some;
@@ -61,8 +62,11 @@ impl TestCase {
 const IDLE_LEADER_POS: [f32; 2] = [150., 150.];
 
 const STUNNED_POS: [f32; 2] = [150., 150.];
+#[cfg(feature = "debug")]
 const STUNNED_MOVE_TARGET: [f32; 2] = [180., 150.];
+#[cfg(feature = "debug")]
 const STUNNED_EXPLOSION_DISTANCE: f32 = 5.;
+#[cfg(feature = "debug")]
 const STUNNED_SHELL_INDEX: ShellIndex = ShellIndex(1);
 
 const TG_LEADER_POS: [f32; 2] = [150., 150.];
@@ -71,8 +75,10 @@ const TG_TARGET: [f32; 2] = [250., 150.];
 // 50 meters (> THROW_MAX_DISTANCE)
 const TGAM_TARGET: [f32; 2] = [400., 150.];
 /// Maximum distance between grenade explosion and its target
+#[cfg(feature = "test")]
 const EXPLOSION_TOLERANCE_METERS: f32 = 6.;
 /// Individual which must move to throw, must move at least this distance
+#[cfg(feature = "test")]
 const TGAM_MIN_MOVE_METERS: f32 = 10.;
 
 const TGWEN_POS: [f32; 2] = [150., 150.];

@@ -10,7 +10,6 @@ use oc_world::{
     decor::Decor,
     meta::Meta,
     navmesh::{Walls, navmesh},
-    spawn::SpawnZoneName,
     tile::{AlteredTile, Tile},
     visibility::Visibilities,
 };

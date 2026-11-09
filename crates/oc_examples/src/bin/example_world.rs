@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "test"), allow(dead_code, unused_imports))]
 #![allow(clippy::unwrap_used)]
 
 #[cfg(feature = "test")]
@@ -24,11 +25,13 @@ use oc_network::ToServer;
 use oc_physics::update::bevy::Position;
 use oc_root::{
     WorldConfig,
-    battle::{BattlePhase, End, Result as BattleResult, SideResult},
+    battle::BattlePhase,
     geo::{WorldVec2, WorldVec3},
     physics::Meters,
     side::Side,
 };
+#[cfg(feature = "test")]
+use oc_root::battle::{End, Result as BattleResult, SideResult};
 #[cfg(feature = "test")]
 use oc_utils::{d2::AlmostEqual, let_some, true_};
 use oc_world::{
@@ -236,6 +239,7 @@ fn setup(app: &mut App, center: WorldVec2, #[allow(unused)] speed: f32) {
                 .add_systems(Update, request_support_and_fight);
         }
         Case::ExplosionAlterWall => {
+            #[cfg(feature = "debug")]
             app.add_observer(explosion_alter_wall);
             #[cfg(feature = "test")]
             app.add_systems(Update, alter_wall_test);
@@ -269,6 +273,7 @@ fn setup(app: &mut App, center: WorldVec2, #[allow(unused)] speed: f32) {
 }
 
 /// Fire an explosion near the BrickWall square
+#[cfg(feature = "debug")]
 fn explosion_alter_wall(_: On<GameConfigReceived>, mut commands: Commands) {
     let mod_ = Mod::load(&PathBuf::from("mods").join(Args::parse().mod_), None).unwrap();
     let shell = mod_

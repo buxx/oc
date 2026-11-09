@@ -1,14 +1,13 @@
+#![cfg_attr(not(feature = "test"), allow(dead_code, unused_imports))]
 #![allow(clippy::unwrap_used)]
 
 use std::{
     path::PathBuf,
     sync::atomic::{AtomicBool, Ordering},
 };
+use std::time::Duration;
 #[cfg(feature = "test")]
-use std::{
-    sync::Mutex,
-    time::{Duration, Instant},
-};
+use std::{sync::Mutex, time::Instant};
 
 use bevy::prelude::*;
 
@@ -34,7 +33,7 @@ use oc_root::{
     side,
     utils::Frequency,
 };
-#[cfg(feature = "test")]
+#[cfg(any(feature = "test", feature = "debug"))]
 use oc_utils::let_some;
 use oc_world::{meta::Meta, tile::Tile};
 use tests::{individual::TestIndividual, squad::TestSquad};

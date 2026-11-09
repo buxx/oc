@@ -13,6 +13,7 @@ mod flash;
 mod particles;
 mod smoke;
 
+#[allow(unused_imports, reason = "used by examples")]
 pub use smoke::Smoke;
 
 /// Too many at once starve the output buffer. Extra spatial sounds are dropped.
