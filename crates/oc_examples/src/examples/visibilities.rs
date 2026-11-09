@@ -19,7 +19,7 @@ use oc_battle_gui::{
     ingame::individual::{Gesture, SetGestureEvent},
     states::{Game, GameConfig},
 };
-use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
 #[allow(unused_imports)]
 use oc_mod::shell::ShellIndex;
@@ -90,10 +90,10 @@ const DESTRUCTION_SHELL: ShellIndex = ShellIndex(3); // "Destruction Only (10 me
 #[allow(unused)]
 const ALTERED_WALL_EXPLOSION_POSITION: [f32; 2] = [60., 78.];
 
-fn main() -> Result<(), anyhow::Error> {
+pub fn main() -> Result<(), anyhow::Error> {
     logging::setup_logging()?;
 
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
     if args.test {
         #[cfg(not(feature = "test"))]
         {
@@ -302,7 +302,7 @@ struct State {
 
 #[allow(unused)]
 fn install(app: &mut bevy::app::App) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
 
     #[cfg(feature = "test")]
     if args.test {
@@ -377,7 +377,7 @@ fn on_set_gesture(event: On<SetGestureEvent>, mut state: ResMut<State>) {
 #[cfg(feature = "test")]
 fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>, w: Res<Wcfg>) {
     let_some!(w = &w.0, return);
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
     let speed = w.speed();
     // Ensure a minimal timeout to let time to bevy to make "network" exchange with server
     let mut timeout = args.timeout().div_f32(speed).max(MIN_TIMEOUT);
@@ -402,7 +402,7 @@ fn tracking(
     g: Res<GameConfig>,
 ) {
     let_some!(g = &g.0, return);
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
 
     static I2_INVISIBLE_SINCE: Mutex<Option<Instant>> = Mutex::new(None);
     static I2_HIDDEN_BEFORE_EXPLOSION: AtomicBool = AtomicBool::new(false);

@@ -26,7 +26,7 @@ use oc_battle_gui::{
     },
     states::Game,
 };
-use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
 #[cfg(feature = "test")]
 use oc_root::Wcfg;
@@ -98,10 +98,10 @@ enum TestCase {
 }
 
 // FIXME BS NOW: set random precision (fire) and permit set precise at 100% for test
-fn main() -> Result<(), anyhow::Error> {
+pub fn main() -> Result<(), anyhow::Error> {
     logging::setup_logging()?;
 
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
     if args.test {
         #[cfg(any(not(feature = "test"), not(feature = "debug")))]
         {
@@ -623,7 +623,7 @@ struct State {
 
 #[cfg(feature = "test")]
 fn install(app: &mut bevy::app::App) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
 
     #[cfg(feature = "test")]
     if args.test {
@@ -686,7 +686,7 @@ fn on_set_gesture(event: On<SetGestureEvent>, mut state: ResMut<State>) {
 
 #[cfg(feature = "test")]
 fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>, w: Res<Wcfg>) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
     let speed = w.0.as_ref().map(|w| w.speed()).unwrap_or(1.0);
     // Ensure a minimal timeout to let time to bevy to make "network" exchange with server
     let timeout = args.timeout().div_f32(speed).max(Duration::from_secs(1));
@@ -720,7 +720,7 @@ fn tracking(
 ) {
     let_some!(w = &w.0, return);
     let speed = w.speed();
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
 
     static I0_SEEN_PRONE: AtomicBool = AtomicBool::new(false);
     static I0_SEEN_DEAD: AtomicBool = AtomicBool::new(false);

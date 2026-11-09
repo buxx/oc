@@ -18,7 +18,7 @@ use oc_battle_gui::entity::individual::IndividualIndex;
 use oc_battle_gui::ingame::GameConfigReceived;
 use oc_battle_gui::ingame::lov::{Lov, UpdateLovFor};
 use oc_battle_gui::world::InsertedTiles;
-use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
 #[cfg(feature = "test")]
 use oc_physics::update::bevy::Position;
@@ -51,8 +51,8 @@ enum Case {
     Climb,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Args::parse();
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse_from(crate::args());
     logging::setup_logging()?;
 
     #[cfg(not(feature = "test"))]
@@ -121,7 +121,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 struct SetupLovs;
 
 fn setup(app: &mut bevy::app::App) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
 
     match args.case {
         Case::Visibilities => {

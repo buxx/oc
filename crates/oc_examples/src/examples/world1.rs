@@ -3,12 +3,12 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
-use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
 use oc_root::{WorldConfig, battle::BattlePhase, physics::Meters};
 use oc_world::meta::Meta;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
 
     let mod_ = Mod::load(&PathBuf::from("mods/std1"), None)?;

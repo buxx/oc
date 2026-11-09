@@ -7,7 +7,7 @@ use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use oc_battle_gui::ingame::GameConfigReceived;
 use oc_battle_gui::{ingame::camera::move_::CenterCameraOn, network::output::ToServerEvent};
-use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_mod::{
     Mod, ammunition::IndexedAmmunition, armament::IndexedShotMode, weapons::IndexedWeapon,
 };
@@ -18,7 +18,7 @@ use oc_root::geo::WorldVec2;
 use oc_root::{WorldConfig, geo::WorldVec3, physics::Meters, side::Side};
 use oc_world::meta::Meta;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
 
     let mod_ = PathBuf::from("mods/tests1");

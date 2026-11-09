@@ -8,7 +8,7 @@ use oc_deployment::deployment::{
     self,
     place::{OrderPolicy, Placer},
 };
-use oc_examples::{logging, run, utils::find_spawn};
+use crate::{logging, run, utils::find_spawn};
 use oc_mod::Mod;
 use oc_root::{WorldConfig, battle::BattlePhase, geo::WorldVec2, physics::Meters, side::Side};
 use oc_world::{
@@ -38,8 +38,8 @@ enum Case {
     DeploySouthBeach,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Args::parse();
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse_from(crate::args());
     logging::setup_logging()?;
 
     let mod_ = Mod::load(&PathBuf::from("mods/std1"), None)?;

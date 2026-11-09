@@ -11,7 +11,7 @@ use clap::{Parser, ValueEnum};
 use oc_battle_gui::ingame::{GameConfigReceived, camera::move_::CenterCameraOn};
 #[cfg(any(feature = "test", feature = "debug"))]
 use oc_battle_gui::states::GameConfig;
-use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_geo::tile::WorldTileIndex;
 use oc_individual::order::Order;
 use oc_mod::{Mod, shell::ShellIndex};
@@ -151,8 +151,8 @@ const NO_PENETRATION_SHELL: ShellIndex = ShellIndex(5);
 /// "Destruction Only (10 meters)"
 const DESTRUCTION_SHELL: ShellIndex = ShellIndex(3);
 
-fn main() -> Result<(), anyhow::Error> {
-    let args = Args::parse();
+pub fn main() -> Result<(), anyhow::Error> {
+    let args = Args::parse_from(crate::args());
     if args.test {
         #[cfg(any(not(feature = "test"), not(feature = "debug")))]
         {
@@ -301,7 +301,7 @@ fn squads(
 }
 
 fn install(app: &mut bevy::app::App) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
 
     match args.case {
         Case::Enter
@@ -367,7 +367,7 @@ fn fire_explosion(
 
     let_some!(g = &g.0, return);
     let start = *start.get_or_insert_with(std::time::Instant::now);
-    let explosions = Args::parse().case.explosions(g.w.speed());
+    let explosions = Args::parse_from(crate::args()).case.explosions(g.w.speed());
     while let Some((delay, shell, position)) = explosions.get(*fired) {
         if start.elapsed() < *delay {
             break;
@@ -400,7 +400,7 @@ fn explosion_protected_test(
     )>,
 ) {
     let_some!(g = &g.0, return);
-    let expected = Args::parse().case.individual_positions().len();
+    let expected = Args::parse_from(crate::args()).case.individual_positions().len();
     if individuals.iter().count() < expected {
         return;
     }
@@ -409,12 +409,12 @@ fn explosion_protected_test(
     let dead = individuals
         .iter()
         .any(|(_, status)| matches!(status.0, oc_individual::Status::Dead));
-    let elapsed = fired.elapsed() > Args::parse().case.test_duration(g.w.speed());
+    let elapsed = fired.elapsed() > Args::parse_from(crate::args()).case.test_duration(g.w.speed());
     if !(dead || elapsed) {
         return;
     }
 
-    if dead == Args::parse().case.expect_dead() {
+    if dead == Args::parse_from(crate::args()).case.expect_dead() {
         println!("✅ Success !");
         commands.write_message(bevy::app::AppExit::from_code(0));
     } else {
@@ -438,7 +438,7 @@ fn test_interior_visibility(
 ) {
     let_some!(g = &g.0, return);
     let speed = g.w.speed();
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
 
     let timeout = match args.case {
         Case::Enter | Case::Out => Duration::from_secs(10),

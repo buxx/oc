@@ -6,7 +6,7 @@ use bevy::prelude::*;
 
 use anyhow::Context as ContextExt;
 use clap::{Parser, ValueEnum};
-use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
 use oc_root::{
     WorldConfig,
@@ -40,13 +40,13 @@ enum TestCase {
 
 // FIXME BS NOW: ca rame plus le temps passe. Inspecter.
 #[allow(unreachable_code)]
-fn main() -> Result<(), anyhow::Error> {
+pub fn main() -> Result<(), anyhow::Error> {
     logging::setup_logging()?;
 
     #[cfg(not(feature = "debug"))]
     panic!("You must enable 'debug' feature for this example");
 
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
     let mod_ = PathBuf::from(MOD);
     let mod__ = oc_mod::Mod::load(&mod_, None)?;
     let map = PathBuf::from("examples/world1");

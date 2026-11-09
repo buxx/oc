@@ -10,7 +10,7 @@ use oc_battle_gui::{
     network::output::ToServerEvent,
     states::{Game, GameConfig},
 };
-use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::{Individual, IndividualIndex, order::Order, squad::Squad};
 use oc_mod::Mod;
 use oc_network::ToServer;
@@ -49,10 +49,10 @@ enum TestCase {
     IndividualShotBlockedByVolume,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
 
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
     if args.test {
         #[cfg(not(feature = "test"))]
         {
@@ -299,14 +299,14 @@ fn individuals_and_squads(
 }
 
 fn install(app: &mut bevy::app::App) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
 
     if args.test {
         app.add_systems(
             Update,
             |mut commands: Commands, game: Res<Game>, g: Res<GameConfig>| {
                 let_some!(g = &g.0, return);
-                let timeout = match Args::parse().case {
+                let timeout = match Args::parse_from(crate::args()).case {
                     TestCase::IndividualShotTraverseVolume => Duration::from_secs(15),
                     TestCase::IndividualShotBlockedByVolume => Duration::from_secs(30),
                     _ => Duration::from_secs(5),
@@ -324,7 +324,7 @@ fn install(app: &mut bevy::app::App) {
 }
 
 fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
     let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
 
     let weapon1 = mod_.weapons.iter().find(|w| w.name() == "Weapon1").unwrap();

@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::Context as ContextExt;
 use bevy::prelude::*;
-use oc_examples::{logging, snapshot::SnapshotBuilder};
+use crate::{logging, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectiles;
@@ -21,7 +21,7 @@ use oc_world::meta::Meta;
 use oc_world_server::tracker::Tracker;
 use oc_world_server::{bridge::Event, config::ServerConfig};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
 
     let world = PathBuf::from("examples/world1");

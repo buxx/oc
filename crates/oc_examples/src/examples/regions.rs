@@ -21,7 +21,7 @@ use oc_battle_gui::{
     network::output::ToServerEvent,
     states::Game,
 };
-use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::{IndividualIndex, order::Order};
 use oc_mod::Mod;
 use oc_network::ToServer;
@@ -69,10 +69,10 @@ enum TestCase {
     IndividualAtCross,
 }
 
-fn main() -> Result<(), anyhow::Error> {
+pub fn main() -> Result<(), anyhow::Error> {
     logging::setup_logging()?;
 
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
     let mod_ = PathBuf::from(MOD);
     let mod__ = oc_mod::Mod::load(&mod_, None)?;
     let map = PathBuf::from("examples/meadow1");
@@ -193,7 +193,7 @@ struct State {
 }
 
 fn install(app: &mut bevy::app::App) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
 
     if args.test {
         app.add_systems(Update, test_tracker);
@@ -220,7 +220,7 @@ fn install(app: &mut bevy::app::App) {
 }
 
 fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>, w: Res<Wcfg>) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
     let speed = w.0.as_ref().map(|w| w.speed()).unwrap_or(1.0);
     let timeout = args.timeout().div_f32(speed);
     if game.started.elapsed() > timeout
@@ -234,7 +234,7 @@ fn test_tracker(mut commands: Commands, game: Res<Game>, state: ResMut<State>, w
 }
 
 fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
     let mod_ = Mod::load(&PathBuf::from(MOD), None).unwrap();
 
     let weapon1 = mod_.weapons.iter().find(|w| w.name() == "Weapon1").unwrap();

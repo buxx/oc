@@ -14,7 +14,7 @@ use oc_battle_gui::{
     network::output::ToServerEvent,
     states::Game,
 };
-use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::{
     INDIVIDUAL_PRONE_VOLUME_WIDTH, IndividualIndex, order::Order, squad::SquadFormation,
 };
@@ -47,10 +47,10 @@ enum TestCase {
     NearRotatedProne,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
 
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
     if args.test {
         #[cfg(not(feature = "test"))]
         {
@@ -200,7 +200,7 @@ fn individuals(
 }
 
 fn install(app: &mut bevy::app::App) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
 
     if args.test {
         let (expected_status, expected_duration, timeout) = match args.case {
@@ -276,7 +276,7 @@ fn install(app: &mut bevy::app::App) {
 }
 
 fn on_first_ingame_enter(_: On<FirstIngameEnter>, mut commands: Commands) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
     let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None).unwrap();
 
     let weapon1 = mod_.weapons.iter().find(|w| w.name() == "Weapon1").unwrap();

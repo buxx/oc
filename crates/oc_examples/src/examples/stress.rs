@@ -5,7 +5,7 @@ use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use clap::Parser;
 use oc_battle_gui::{ingame::GameConfigReceived, network::output::ToServerEvent};
-use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::{Individual, IndividualIndex, order::Order, squad::Squad};
 use oc_mod::Mod;
 use oc_network::ToServer;
@@ -52,8 +52,8 @@ fn grid(w: &WorldConfig, squads: usize) -> (usize, usize) {
     (columns, squads.div_ceil(columns))
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Args::parse();
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse_from(crate::args());
     logging::setup_logging()?;
 
     #[cfg(feature = "debug")]

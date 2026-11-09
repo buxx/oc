@@ -17,7 +17,7 @@ use oc_battle_gui::fx::FxEvent;
 use oc_battle_gui::ingame::SetBattlePhase;
 use oc_battle_gui::ingame::{GameConfigReceived, camera::move_::CenterCameraOn};
 use oc_battle_gui::network::output::ToServerEvent;
-use oc_examples::{logging, run, snapshot::SnapshotBuilder};
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
 use oc_mod::Mod;
 use oc_network::ToServer;
@@ -87,8 +87,8 @@ struct Timeout(Duration);
 #[derive(Resource)]
 struct Center(WorldVec2);
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Args::parse();
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse_from(crate::args());
     logging::setup_logging()?;
 
     #[cfg(not(feature = "test"))]
@@ -228,7 +228,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn setup(app: &mut App, center: WorldVec2, #[allow(unused)] speed: f32) {
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
 
     app.insert_resource(Center(center));
 
@@ -275,7 +275,7 @@ fn setup(app: &mut App, center: WorldVec2, #[allow(unused)] speed: f32) {
 /// Fire an explosion near the BrickWall square
 #[cfg(feature = "debug")]
 fn explosion_alter_wall(_: On<GameConfigReceived>, mut commands: Commands) {
-    let mod_ = Mod::load(&PathBuf::from("mods").join(Args::parse().mod_), None).unwrap();
+    let mod_ = Mod::load(&PathBuf::from("mods").join(Args::parse_from(crate::args()).mod_), None).unwrap();
     let shell = mod_
         .shell_from_name("Destruction Only (10 meters)")
         .unwrap()

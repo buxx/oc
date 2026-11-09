@@ -6,7 +6,7 @@ use clap::{Parser, ValueEnum};
 use oc_battle_gui::ingame::camera::squad::ToggleShowFormationPositions;
 #[cfg(feature = "test")]
 use oc_battle_gui::ingame::individual::{AccomplishedEvent, MoveStepAccomplishedEvent};
-use oc_examples::{logging, tests::behavior};
+use crate::{logging, tests::behavior};
 use oc_individual::order::Order;
 #[cfg(feature = "debug")]
 use oc_mod::shell::ShellIndex;
@@ -93,10 +93,10 @@ const MSAO_LEADER_POS: [f32; 2] = [160., 415.];
 const MSAO_POS1: [f32; 2] = [235., 415.];
 const MSAO_POS2: [f32; 2] = [250., 415.];
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
 
-    let args = Args::parse();
+    let args = Args::parse_from(crate::args());
 
     #[cfg(not(feature = "test"))]
     {

@@ -28,49 +28,49 @@ gui *args:
     cargo run --bin oc_battle_gui {{ args }} -- --autoconnect 127.0.0.1:6589
 
 example-world1 *args:
-    cargo run --bin example_world1 --features debug {{ args }}
+    cargo run --bin oc_example --features debug -- world1 {{ args }}
 
 example-minidblue *args:
-    cargo run --bin example_minidblue {{ args }}
+    cargo run --bin oc_example -- minidblue {{ args }}
 
 example-height *args:
-    cargo run --bin example_height --features debug {{ args }}
+    cargo run --bin oc_example --features debug -- height {{ args }}
 
 example-projectiles-obstacles *args:
-    cargo run --bin example_projectiles_obstacles --features debug {{ args }}
+    cargo run --bin oc_example --features debug -- projectiles-obstacles {{ args }}
 
 example-individual-shots *args:
-    cargo run --bin example_individual_shots --features debug {{ args }}
+    cargo run --bin oc_example --features debug -- individual-shots {{ args }}
 
 example-regions *args:
-    cargo run --bin example_regions --features debug -- {{ args }}
+    cargo run --bin oc_example --features debug -- regions {{ args }}
 
 example-individual-behaviors *args:
-    cargo run --bin example_individual_behaviors --features debug {{ args }}
+    cargo run --bin oc_example --features debug -- individual-behaviors {{ args }}
 
 example-visibilities *args:
-    cargo run --bin example_visibilities --features debug {{ args }}
+    cargo run --bin oc_example --features debug -- visibilities {{ args }}
 
 example-engaging *args:
-    cargo run --bin example_engaging --features debug {{ args }}
+    cargo run --bin oc_example --features debug -- engaging {{ args }}
 
 example-stress-gui-projectiles:
-    cargo run --bin example_stress_projectiles --features debug,perfs --release
+    cargo run --bin oc_example --features debug,perfs --release -- stress-projectiles
 
 example-stress-server-projectiles:
-    cargo run --bin example_stress_projectiles_server --features perfs --release
+    cargo run --bin oc_example --features perfs --release -- stress-projectiles-server
 
 example-weapons *args:
-    cargo run --bin example_weapons --features debug {{ args }}
+    cargo run --bin oc_example --features debug -- weapons {{ args }}
 
 example-world *args:
-    cargo run --bin example_world --features debug -- {{ args }}
+    cargo run --bin oc_example --features debug -- world {{ args }}
 
 example-interiors *args:
-    cargo run --bin example_interiors --features debug {{ args }}
+    cargo run --bin oc_example --features debug -- interiors {{ args }}
 
 example-stress *args:
-    cargo run --bin example_stress --features debug --release {{ args }}
+    cargo run --bin oc_example --features debug --release -- stress {{ args }}
 
 test:
     cargo nextest run
@@ -163,190 +163,190 @@ test-e2e speed="" jobs="4":
     printf '%s\n' "${tests[@]}" | xargs -P {{ jobs }} -I{} bash -c 'run {}'
 
 test-projectiles-obstacles-one-wall:
-    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-against-wall --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- projectiles-obstacles one-against-wall --test
 
 test-projectiles-obstacles-multiple-wall:
-    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- multiple-against-wall --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- projectiles-obstacles multiple-against-wall --test
 
 test-projectiles-obstacles-one-hill:
-    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-against-hill --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- projectiles-obstacles one-against-hill --test
 
 test-projectiles-obstacles-multiple-hill:
-    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- multiple-against-hill --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- projectiles-obstacles multiple-against-hill --test
 
 test-projectiles-obstacles-one-traverse-volumes:
-    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-traverse-volumes --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- projectiles-obstacles one-traverse-volumes --test
 
 test-projectiles-obstacles-one-start-inside-wall:
-    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- one-start-inside-wall --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- projectiles-obstacles one-start-inside-wall --test
 
 test-projectiles-obstacles-individual-shot-traverse-volume:
-    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- individual-shot-traverse-volume --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- projectiles-obstacles individual-shot-traverse-volume --test
 
 test-projectiles-obstacles-individual-shot-blocked-by-volume:
-    RUST_LOG=ERROR cargo run --bin example_projectiles_obstacles --features test -- individual-shot-blocked-by-volume --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- projectiles-obstacles individual-shot-blocked-by-volume --test
 
 test-individual-shots-same-pixel:
-    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- same-pixel --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-shots same-pixel --test
 
 test-individual-shots-in-volume:
-    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- in-volume --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-shots in-volume --test
 
 test-individual-shots-different-tile:
-    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- different-tile --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-shots different-tile --test
 
 test-individual-shots-above:
-    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- above --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-shots above --test
 
 test-individual-shots-above-prone:
-    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- above-prone --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-shots above-prone --test
 
 test-individual-shots-near-rotated-prone:
-    RUST_LOG=ERROR cargo run --bin example_individual_shots --features test -- near-rotated-prone --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-shots near-rotated-prone --test
 
 test-individual-behaviors-move-straight-ahead1:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead --test --individual-count 1
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors move-straight-ahead --test --individual-count 1
 
 test-individual-behaviors-move-straight-ahead-obstacle1:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead-obstacle --test --individual-count 1
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors move-straight-ahead-obstacle --test --individual-count 1
 
 test-individual-behaviors-move-straight-ahead2:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead --test --individual-count 2
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors move-straight-ahead --test --individual-count 2
 
 test-individual-behaviors-move-straight-ahead-obstacle2:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-straight-ahead-obstacle --test --individual-count 2
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors move-straight-ahead-obstacle --test --individual-count 2
 
 test-individual-behaviors-move-fast-straight-ahead1:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-fast-straight-ahead --test --individual-count 1
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors move-fast-straight-ahead --test --individual-count 1
 
 test-individual-behaviors-move-fast-straight-ahead-obstacle1:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-fast-straight-ahead-obstacle --test --individual-count 1
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors move-fast-straight-ahead-obstacle --test --individual-count 1
 
 test-individual-behaviors-move-fast-straight-ahead2:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-fast-straight-ahead --test --individual-count 2
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors move-fast-straight-ahead --test --individual-count 2
 
 test-individual-behaviors-move-fast-straight-ahead-obstacle2:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- move-fast-straight-ahead-obstacle --test --individual-count 2
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors move-fast-straight-ahead-obstacle --test --individual-count 2
 
 test-individual-behaviors-stunned:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- stunned --test --individual-count 1
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors stunned --test --individual-count 1
 
 test-individual-behaviors-throw-grenade:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- throw-grenade --individual-count 1 --grenade-count 1 --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors throw-grenade --individual-count 1 --grenade-count 1 --test
 
 test-individual-behaviors-throw-grenade-multiple:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- throw-grenade --individual-count 2 --grenade-count 2 --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors throw-grenade --individual-count 2 --grenade-count 2 --test
 
 test-individual-behaviors-throw-grenade-after-move:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- throw-grenade-after-move --individual-count 1 --grenade-count 1 --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors throw-grenade-after-move --individual-count 1 --grenade-count 1 --test
 
 test-individual-behaviors-throw-grenade-after-move-multiple:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- throw-grenade-after-move --individual-count 2 --grenade-count 2 --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors throw-grenade-after-move --individual-count 2 --grenade-count 2 --test
 
 test-individual-behaviors-throw-grenade-when-ennemy-near:
-    RUST_LOG=ERROR cargo run --bin example_individual_behaviors --features test -- throw-grenade-when-ennemy-near --individual-count 1 --grenade-count 1 --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- individual-behaviors throw-grenade-when-ennemy-near --individual-count 1 --grenade-count 1 --test
 
 test-regions-projectile-move-out:
-    RUST_LOG=ERROR cargo run --bin example_regions --features test -- projectile-move-out --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- regions projectile-move-out --test
 
 test-regions-projectile-move-in:
-    RUST_LOG=ERROR cargo run --bin example_regions --features test -- projectile-move-in --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- regions projectile-move-in --test
 
 test-regions-individual-move-out:
-    RUST_LOG=ERROR cargo run --bin example_regions --features test -- individual-move-out --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- regions individual-move-out --test
 
 test-regions-individual-move-in:
-    RUST_LOG=ERROR cargo run --bin example_regions --features test -- individual-move-in --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- regions individual-move-in --test
 
 test-visibilities-direct:
-    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- direct --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- visibilities direct --test
 
 test-visibilities-through:
-    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- through --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- visibilities through --test
 
 test-visibilities-not-visible:
-    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- not-visible --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- visibilities not-visible --test
 
 test-visibilities-hidden:
-    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- hidden --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- visibilities hidden --test
 
 test-visibilities-discover:
-    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- discover --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- visibilities discover --test
 
 test-visibilities-move-then-enemy-visible:
-    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- move-then-enemy-visible --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- visibilities move-then-enemy-visible --test
 
 test-visibilities-altered-wall:
-    RUST_LOG=ERROR cargo run --bin example_visibilities --features test -- altered-wall --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- visibilities altered-wall --test
 
 test-engaging-direct:
-    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- direct --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- engaging direct --test
 
 test-engaging-direct2:
-    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- direct2 --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- engaging direct2 --test
 
 test-engaging-far-machine-gun:
-    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- far-machine-gun --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- engaging far-machine-gun --test
 
 test-engaging-hedge:
-    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- hedge --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- engaging hedge --test
 
 test-engaging-suppressed:
-    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- suppressed --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- engaging suppressed --test
 
 test-engaging-move-to-hiding:
-    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- move-to-hiding --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- engaging move-to-hiding --test
 
 test-engaging-move-to-hiding-then-discover:
-    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- move-to-hiding-then-discover --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- engaging move-to-hiding-then-discover --test
 
 test-engaging-engage-one-by-one:
-    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- engage-one-by-one --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- engaging engage-one-by-one --test
 
 test-engaging-suppress-fire:
-    RUST_LOG=ERROR cargo run --bin example_engaging --features test,debug -- suppress-fire --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- engaging suppress-fire --test
 
 test-height-climb:
-    RUST_LOG=ERROR cargo run --bin example_height --features test -- climb --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- height climb --test
 
 test-interiors-enter:
-    RUST_LOG=ERROR cargo run --bin example_interiors --features test,debug -- enter --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- interiors enter --test
 
 test-interiors-out:
-    RUST_LOG=ERROR cargo run --bin example_interiors --features test,debug -- out --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- interiors out --test
 
 test-interiors-outside-explosion-protected:
-    RUST_LOG=ERROR cargo run --bin example_interiors --features test,debug -- outside-explosion-protected --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- interiors outside-explosion-protected --test
 
 test-interiors-outside-explosion-not-protected:
-    RUST_LOG=ERROR cargo run --bin example_interiors --features test,debug -- outside-explosion-not-protected --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- interiors outside-explosion-not-protected --test
 
 test-interiors-on-the-top-explosion-protected:
-    RUST_LOG=ERROR cargo run --bin example_interiors --features test,debug -- on-the-top-explosion-protected --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- interiors on-the-top-explosion-protected --test
 
 test-interiors-on-the-top-explosion-not-protected-because-broken:
-    RUST_LOG=ERROR cargo run --bin example_interiors --features test,debug -- on-the-top-explosion-not-protected-because-broken --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- interiors on-the-top-explosion-not-protected-because-broken --test
 
 test-interiors-on-the-top-explosion-not-protected:
-    RUST_LOG=ERROR cargo run --bin example_interiors --features test,debug -- on-the-top-explosion-not-protected --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- interiors on-the-top-explosion-not-protected --test
 
 test-interiors-near-explosion-protected-in-bunker:
-    RUST_LOG=ERROR cargo run --bin example_interiors --features test,debug -- near-explosion-protected-in-bunker --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test,debug -- interiors near-explosion-protected-in-bunker --test
 
 test-world-support:
-    RUST_LOG=ERROR cargo run --bin example_world --features test -- support --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- world support --test
 
 test-world-end-time:
-    RUST_LOG=ERROR cargo run --bin example_world --features test -- end-time --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- world end-time --test
 
 test-world-end-morale:
-    RUST_LOG=ERROR cargo run --bin example_world --features test -- end-morale --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- world end-morale --test
 
 test-world-explosion-alter-wall:
-    RUST_LOG=ERROR cargo run --bin example_world --features test -- explosion-alter-wall --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- world explosion-alter-wall --test
 
 test-world-smoke-grenade:
-    RUST_LOG=ERROR cargo run --bin example_world --features test -- smoke-grenade --test
+    RUST_LOG=ERROR cargo run --bin oc_example --features test -- world smoke-grenade --test
 
 test-all:
     just test
