@@ -37,7 +37,7 @@ impl Default for Game {
 pub struct GameConfig(pub Option<oc_network::GameConfig>);
 
 #[derive(Deref, DerefMut, Resource, Default)]
-pub struct GuiFiles(pub Option<oc_root::files::FilesAsGui>);
+pub struct GuiFiles(pub Option<oc_root::files::Files>);
 
 #[derive(Deref, DerefMut, Resource, Default)]
 pub struct Window(pub Option<crate::window::Window>);

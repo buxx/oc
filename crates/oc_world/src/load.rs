@@ -32,7 +32,7 @@ pub struct WorldLoader {
     w: WorldConfig,
     mod_: Mod,
     world: PathBuf,
-    cache: PathBuf,
+    cache: files::Roots,
 }
 
 impl WorldLoader {
@@ -199,13 +199,16 @@ impl WorldLoader {
         map: &MapReader,
     ) -> Result<(), CacheError> {
         tracing::info!("Check cache for {}", self.world.display());
-        let files = files::Files::new("".to_string(), meta.canonical());
-        let files = files.into_server(self.cache.clone());
-        let world = files.world();
-        let archive = files.world_archive();
-        let minimap = files.minimap();
+        let files = files::Files::derived_only(self.cache.clone(), "", &meta.canonical());
+        let archive = files.fs(files::File::WorldArchive);
+        let minimap = files.fs(files::File::Minimap);
 
-        std::fs::create_dir_all(&world).unwrap(); // TODO
+        if let Some(parent) = minimap.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        if let Some(parent) = archive.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
         let background = image::open(self.world.background())?;
         let interior = image::open(self.world.interiors())?;
 
@@ -233,7 +236,7 @@ impl WorldLoader {
             }
         }
 
-        let hud_minimap = files.hud_minimap();
+        let hud_minimap = files.fs(files::File::HudMinimap);
         if hud_minimap.exists() {
             tracing::info!("Hud minimap already exists ({})", hud_minimap.display());
         } else {
@@ -256,7 +259,8 @@ impl WorldLoader {
             let encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
             let mut builder = tar::Builder::new(encoder);
 
-            builder.append_dir_all(&meta.name, &self.world)?;
+            // Archive content at its root: clients extract it under their own world directory
+            builder.append_dir_all(".", &self.world)?;
             builder.finish()?;
             tracing::info!("Finished cache for world ({})", archive.display());
         }
@@ -268,7 +272,7 @@ impl WorldLoader {
         &self,
         region_width: u64,
         region_height: u64,
-        files: &files::FilesAsServer,
+        files: &files::Files,
         image: &image::DynamicImage,
     ) -> Result<(), CacheError> {
         let counter = Arc::new(AtomicU32::new(0));
@@ -277,7 +281,11 @@ impl WorldLoader {
             .into_par_iter()
             .map(|i| {
                 let i = WorldRegionIndex(i);
-                let region = files.region(i.0, region_width, region_height);
+                let region = files.fs(files::File::Region {
+                    index: i.0,
+                    width: region_width,
+                    height: region_height,
+                });
 
                 match region.exists() {
                     true => {
@@ -300,7 +308,7 @@ impl WorldLoader {
     fn cache_interiors(
         &self,
         map: &MapReader,
-        files: &files::FilesAsServer,
+        files: &files::Files,
         image: &image::DynamicImage,
     ) -> Result<(), CacheError> {
         let interiors = map.interiors()?;
@@ -308,7 +316,7 @@ impl WorldLoader {
 
         let mut cached = 0;
         for interior in &interiors {
-            let path = files.interior(interior.id);
+            let path = files.fs(files::File::Interior(interior.id));
 
             if !std::fs::exists(&path).map_err(|e| {
                 CacheError::Interior(format!(

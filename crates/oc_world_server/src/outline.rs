@@ -13,11 +13,10 @@ const THICKNESS: i32 = 1;
 pub fn cache_soldiers_outline(
     mod_: &Mod,
     mod_path: &Path,
-    cache: &Path,
+    roots: &files::Roots,
 ) -> Result<(), anyhow::Error> {
-    let files =
-        files::Files::new(mod_.canonical(), "".to_string()).into_server(cache.to_path_buf());
-    let target = files.soldier_outline();
+    let files = files::Files::derived_only(roots.clone(), &mod_.canonical(), "");
+    let target = files.fs(files::File::IndividualOutline);
     if target.exists() {
         tracing::info!("Soldiers outline already exists ({})", target.display());
         return Ok(());

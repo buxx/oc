@@ -162,7 +162,7 @@ fn on_fx(
 ) {
     let_some!(g = &g.0, return);
     let_some!(files = &files.0, return);
-    let path = files.mod_().join("sounds");
+    let path = files.sounds();
 
     match &fx.0 {
         Fx::Audio(audio) => match audio {

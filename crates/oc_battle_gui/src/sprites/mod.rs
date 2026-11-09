@@ -1,6 +1,7 @@
 use crate::states::GuiFiles;
 use bevy::prelude::*;
 use bevy_spritesheet_animation::prelude::*;
+use oc_root::files::File;
 use oc_utils::let_some;
 
 use crate::{
@@ -47,11 +48,20 @@ fn on_game_config_received(
     mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let_some!(files = &files.0, return);
+
+    // FIXME: find solution to initialize that before (dowloading)
+    // Sprites are needed as soon as individuals are received, before the download step
+    for file in [File::ModArchive, File::IndividualOutline] {
+        if let Err(e) = crate::downloading::ensure_file(files, file) {
+            tracing::error!("Unable to get {file}: {e}");
+            return;
+        }
+    }
     let sprites = files.sprites();
 
     let soldier = SoldierAnimations::init(
         &sprites,
-        &files.soldier_outline(),
+        &files.asset(oc_root::files::File::IndividualOutline),
         &assets,
         &mut animations,
         &mut atlas_layouts,

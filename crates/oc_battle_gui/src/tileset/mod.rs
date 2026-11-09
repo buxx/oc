@@ -1,8 +1,6 @@
-use std::path::PathBuf;
-
 use bevy::image::TextureAtlasLayout;
 use oc_geo::region::WorldRegionIndex;
-use oc_root::files::FilesAsGui;
+use oc_root::files::Files;
 use rustc_hash::FxHashMap;
 
 use crate::world::World;
@@ -16,7 +14,7 @@ pub trait ConcernedTileset<I, T, S: Tileset<I, T>> {
 
 pub trait Tileset<I, T> {
     fn layout(&self) -> TextureAtlasLayout;
-    fn spriteset(&self, files: &FilesAsGui) -> PathBuf;
+    fn spriteset(&self, files: &Files) -> String;
     fn z(&self) -> f32;
     fn tiles<'a>(
         &'a self,

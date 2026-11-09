@@ -23,3 +23,4 @@ bevy = { workspace = true, optional = true }
 uuid.workspace = true
 clap = { workspace = true, optional = true }
 getset.workspace = true
+directories.workspace = true

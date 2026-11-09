@@ -9,7 +9,10 @@ use std::{
 use bevy::prelude::*;
 use bon::Builder;
 use oc_network::ToServer;
-use oc_root::{files::Connection, side::Side};
+use oc_root::{
+    files::{Connection, Roots},
+    side::Side,
+};
 
 use crate::network::input::NetworkMessage;
 
@@ -20,6 +23,9 @@ pub struct Config_ {
     #[builder(default = 10)]
     pub regions_height: u64,
     pub auto_connect: Option<(Connect, Side)>,
+    /// Where files are (embedded: server's ones, network: local download directory)
+    #[builder(default)]
+    pub roots: Roots,
 }
 
 #[derive(Debug, Clone)]

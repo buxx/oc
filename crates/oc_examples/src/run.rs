@@ -7,7 +7,7 @@ use anyhow::Context;
 use bevy::app::AppExit;
 use bon::Builder;
 use oc_root::side::Side;
-use oc_root::{files::Files, static_::StaticSource};
+use oc_root::{files::Roots, static_::StaticSource};
 use oc_world::{load::WorldPath, meta::Meta};
 use oc_world_server::config::ServerConfig;
 #[cfg(feature = "test")]
@@ -43,12 +43,23 @@ pub struct Example {
 
 impl Example {
     pub fn run(self) -> Result_ {
-        let cache = PathBuf::from("assets/cache_");
-        let files = Files::new("".to_string(), "".to_string()).into_server(cache.clone());
-        std::fs::create_dir_all(files.mods())
-            .context(format!("Create dir {}", files.mods().display()))?;
-        std::fs::create_dir_all(files.worlds())
-            .context(format!("Create dir {}", files.worlds().display()))?;
+        // Server and gui share files: sources are used in place, derived files go under `.cache`
+        let parent = |path: &PathBuf| -> anyhow::Result<PathBuf> {
+            Ok(std::path::absolute(path)
+                .context(format!("Absolute path of {}", path.display()))?
+                .parent()
+                .map(|p| p.to_path_buf())
+                .unwrap_or_default())
+        };
+        let roots = Roots::in_place(
+            &parent(&self.mod_)?,
+            &parent(&self.world)?,
+            &PathBuf::from(".cache"),
+        )
+        .context("Build files roots")?;
+        roots
+            .ensure_server_dirs()
+            .context(format!("Create dirs under {}", roots.derived.display()))?;
 
         #[cfg(feature = "test")]
         let tracker = Tracker::default();
@@ -57,7 +68,7 @@ impl Example {
         let (_, stop_rx) = channel::<()>();
         let (to_client_tx, to_client_rx) = channel();
         let (to_server_tx, to_server_rx) = channel();
-        let world = Meta::from_file(&self.world.meta())
+        let _ = Meta::from_file(&self.world.meta())
             .context(format!("Read file {}", self.world.meta().display()))?;
 
         let map = oc_world::reader::MapReader::new(&self.world)
@@ -67,14 +78,11 @@ impl Example {
 
         tracing::info!("Start server");
 
-        let static_ = StaticSource::Local {
-            mod_: self.mod_.display().to_string(),
-            world: world.name.clone(),
-        };
+        let static_ = StaticSource::Local;
         let config = ServerConfig::builder()
             .world(self.world.clone())
             .mod_(self.mod_.clone())
-            .cache(cache)
+            .roots(roots.clone())
             .static_(static_)
             .snapshot(self.snapshot.clone())
             .region_width(self.region_width.unwrap_or(map_width as u64))
@@ -111,6 +119,7 @@ impl Example {
         let server_rx2 = Arc::new(Mutex::new(server_rx2));
         let connect = oc_battle_gui::config::Connect::Embedded(client_tx2, server_rx2);
         let config = oc_battle_gui::config::Config_::builder()
+            .roots(roots)
             .auto_connect((connect, self.side))
             .regions_width(self.regions_width)
             .regions_height(self.regions_height);

@@ -24,10 +24,15 @@ use oc_world_server::{bridge::Event, config::ServerConfig};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
 
-    let cache = PathBuf::from(".cache");
     let world = PathBuf::from("examples/world1");
     let mod_ = PathBuf::from("mods/tests1");
     let mod__ = Mod::load(&mod_, None)?;
+    let roots = oc_root::files::Roots::in_place(
+        &PathBuf::from("mods"),
+        &PathBuf::from("examples"),
+        &PathBuf::from(".cache"),
+    )?;
+    roots.ensure_server_dirs()?;
     let static_ = StaticSource::Remote(32000);
     let meta = Meta::from_file(&PathBuf::from("examples/world1/meta.toml"))?;
     let map_ = PathBuf::from("examples/world1");
@@ -48,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = ServerConfig::builder()
         .world(world.clone())
         .mod_(mod_.clone())
-        .cache(cache)
+        .roots(roots)
         .static_(static_)
         .snapshot(snapshot.clone())
         .region_width(100)

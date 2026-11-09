@@ -1,8 +1,6 @@
-use std::path::PathBuf;
-
 use bevy::{image::TextureAtlasLayout, math::UVec2};
 use oc_geo::{region::WorldRegionIndex, tile::WorldHeightIndex};
-use oc_root::files::FilesAsGui;
+use oc_root::files::Files;
 use oc_world::terrain::Terrain;
 use rustc_hash::FxHashMap;
 
@@ -20,7 +18,7 @@ impl super::Tileset<WorldHeightIndex, u8> for Terrain {
         )
     }
 
-    fn spriteset(&self, files: &FilesAsGui) -> PathBuf {
+    fn spriteset(&self, files: &Files) -> String {
         files.height_png()
     }
 

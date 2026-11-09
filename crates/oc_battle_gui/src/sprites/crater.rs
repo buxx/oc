@@ -1,6 +1,6 @@
-use std::path::Path;
 
 use bevy::prelude::*;
+use oc_root::files::AssetDir;
 use oc_root::craters::CraterType;
 
 const SIZE: u32 = 64;
@@ -15,7 +15,7 @@ pub struct CraterSprites {
 
 impl CraterSprites {
     pub fn init(
-        sprites: &Path,
+        sprites: &AssetDir,
         assets: &AssetServer,
         atlas_layouts: &mut Assets<TextureAtlasLayout>,
     ) -> Self {

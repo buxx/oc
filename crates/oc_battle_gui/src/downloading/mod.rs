@@ -1,6 +1,6 @@
 use crate::states::GuiFiles;
 use bevy::prelude::*;
-use oc_root::files::{self};
+use oc_root::files::{self, File, Files};
 use oc_utils::let_some;
 
 use crate::{
@@ -43,20 +43,24 @@ fn download(
     let r_width = g.w.region_width();
     let r_height = g.w.region_height();
 
-    ensure_file(files, files::File::Mod, r_width, r_height).unwrap(); // TODO
-    ensure_file(files, files::File::World, r_width, r_height).unwrap(); // TODO
-    ensure_file(files, files::File::Minimap, r_width, r_height).unwrap(); // TODO
-    ensure_file(files, files::File::HudMinimap, r_width, r_height).unwrap(); // TODO
-    ensure_file(files, files::File::IndividualOutline, r_width, r_height).unwrap(); // TODO
+    ensure_file(files, File::ModArchive).unwrap(); // TODO
+    ensure_file(files, File::WorldArchive).unwrap(); // TODO
+    ensure_file(files, File::Minimap).unwrap(); // TODO
+    ensure_file(files, File::HudMinimap).unwrap(); // TODO
+    ensure_file(files, File::IndividualOutline).unwrap(); // TODO
 
-    for region in 0..g.w.regions_count() {
-        ensure_file(files, files::File::Region(region), r_width, r_height).unwrap(); // TODO
+    for index in 0..g.w.regions_count() {
+        let region = File::Region {
+            index,
+            width: r_width,
+            height: r_height,
+        };
+        ensure_file(files, region).unwrap(); // TODO
     }
 
-    let world_dir = std::path::Path::new("assets").join(files.world_());
-    let map = oc_world::reader::MapReader::new(&world_dir).unwrap(); // TODO
+    let map = oc_world::reader::MapReader::new(&files.world_dir()).unwrap(); // TODO
     for interior in map.interiors().unwrap() {
-        ensure_file(files, files::File::Interior(interior.id), r_width, r_height).unwrap(); // TODO
+        ensure_file(files, File::Interior(interior.id)).unwrap(); // TODO
         // TODO: when quit ingame state, must despawn
         ingame::interior::spawn(&mut commands, &assets, files, &g.w, interior.clone());
     }
@@ -86,37 +90,47 @@ fn download(
     Ok(())
 }
 
-fn ensure_file(
-    files: &files::FilesAsGui,
-    file: files::File,
-    region_width: u64,
-    region_height: u64,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let Some((sync, target)) = files.method(file, region_width, region_height) else {
+pub fn ensure_file(files: &Files, file: File) -> Result<(), Box<dyn std::error::Error>> {
+    let Some((sync, target)) = files.sync(file) else {
         tracing::info!("Use local {file}");
         return Ok(());
     };
 
+    if target.exists() {
+        tracing::debug!("File {} already exists", target.display());
+        return Ok(());
+    }
+
     tracing::info!("Download {file}");
     tracing::debug!("Ensure file with sync {sync} ({})", target.display());
 
-    if !target.exists() {
-        tracing::debug!("File {} doesn't exist", target.display());
-        std::fs::create_dir_all(target.parent().unwrap()).unwrap(); // TODO
+    let mut partial = target.clone().into_os_string();
+    partial.push(".part");
+    let partial = std::path::PathBuf::from(partial);
+    if partial.is_dir() {
+        std::fs::remove_dir_all(&partial)?;
+    } else if partial.exists() {
+        std::fs::remove_file(&partial)?;
+    }
 
-        match sync {
-            files::Sync::DirectDownload(url) => {
-                tracing::debug!("Direct download from {url}");
-                http_to_file!(url, &target);
-            }
-            files::Sync::ArchiveDownload(url) => {
-                tracing::debug!("Download archive from {url}");
-                let (_, path) = tempfile::NamedTempFile::new().unwrap().keep().unwrap(); // TODO
-                http_to_file!(url, &path);
-                untar(&path, &target)?;
-            }
+    match sync {
+        files::Sync::DirectDownload(url) => {
+            tracing::debug!("Direct download from {url}");
+            http_to_file!(url, &partial);
         }
-    };
+        files::Sync::ArchiveDownload(url) => {
+            tracing::debug!("Download archive from {url}");
+            let (_, path) = tempfile::NamedTempFile::new()?.keep()?;
+            http_to_file!(url, &path);
+            std::fs::create_dir_all(&partial)?;
+            untar(&path, &partial)?;
+        }
+    }
+
+    if let Some(parent) = target.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::rename(&partial, &target)?;
 
     Ok(())
 }

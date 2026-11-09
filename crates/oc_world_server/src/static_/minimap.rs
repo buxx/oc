@@ -1,31 +1,12 @@
-use axum::{body::Body, extract::State, http::Response, response::IntoResponse};
-use oc_root::files;
+use axum::{extract::State, response::IntoResponse};
+use oc_root::files::File;
 
 #[axum::debug_handler]
 pub async fn get(State(state): State<super::State>) -> impl IntoResponse {
-    let mod_ = state.world().mod_().canonical();
-    let world = state.world().meta().canonical();
-    let files = files::Files::new(mod_, world).into_server(state.config.cache.clone());
-    let minimap = files.minimap();
-    let minimap = tokio::fs::File::open(minimap).await.unwrap(); // TODO
-    let minimap = tokio_util::io::ReaderStream::new(minimap);
-
-    Response::builder()
-        .header("Content-Type", "application/octet-stream")
-        .body(Body::from_stream(minimap))
-        .unwrap() // TODO
+    super::stream(state.files().fs(File::Minimap)).await
 }
 
 #[axum::debug_handler]
 pub async fn get_hud(State(state): State<super::State>) -> impl IntoResponse {
-    let mod_ = state.world().mod_().canonical();
-    let world = state.world().meta().canonical();
-    let files = files::Files::new(mod_, world).into_server(state.config.cache.clone());
-    let minimap = tokio::fs::File::open(files.hud_minimap()).await.unwrap(); // TODO
-    let minimap = tokio_util::io::ReaderStream::new(minimap);
-
-    Response::builder()
-        .header("Content-Type", "application/octet-stream")
-        .body(Body::from_stream(minimap))
-        .unwrap() // TODO
+    super::stream(state.files().fs(File::HudMinimap)).await
 }

@@ -2,7 +2,7 @@ use bevy::{prelude::*, sprite::Anchor};
 use oc_physics::update::bevy::Position;
 use oc_root::{
     WcfgInto, WorldConfig,
-    files::FilesAsGui,
+    files::{File, Files},
     geo::{ScreenVec2, WorldVec2},
 };
 use oc_utils::{every, let_some, polygon::Polygon};
@@ -29,11 +29,11 @@ impl Plugin for InteriorPlugin {
 pub fn spawn(
     commands: &mut Commands,
     assets: &AssetServer,
-    files: &FilesAsGui,
+    files: &Files,
     w: &WorldConfig,
     interior: Interior,
 ) {
-    let path = files.interior(interior.id);
+    let path = files.asset(File::Interior(interior.id));
     // Cropped image starts at top left rect of polygon
     let start = WorldVec2::new(interior.start.x, interior.start.y);
     let position: ScreenVec2 = start.into_(w);

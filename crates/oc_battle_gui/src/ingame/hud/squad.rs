@@ -9,7 +9,7 @@ use crate::utils::hover::Hovered;
 use bevy::prelude::*;
 use oc_individual::{Individual, IndividualIndex, Status};
 use oc_mod::{Mod, grenade::GrenadeNature, illustration::IllustrationKind};
-use oc_root::files::FilesAsGui;
+use oc_root::files::Files;
 use oc_utils::bevy::EntityMapping;
 use oc_utils::{every, let_ok, let_some};
 use std::time::Duration;
@@ -61,7 +61,7 @@ pub fn squad() -> impl Scene {
 
 fn row(
     g: &oc_network::GameConfig,
-    files: &FilesAsGui,
+    files: &Files,
     i: IndividualIndex,
     individual: &Individual,
 ) -> impl Scene {

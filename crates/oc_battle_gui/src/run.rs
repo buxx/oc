@@ -1,3 +1,4 @@
+use bevy::asset::io::AssetSourceBuilder;
 use bevy::audio::{AudioPlugin, SpatialScale};
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
@@ -36,6 +37,14 @@ pub fn run(
     #[builder(default)] logging: bool,
 ) -> AppExit {
     let mut app = App::new();
+
+    // Mods, worlds and derived files are read from where the roots are (see `oc_root::files`)
+    for (name, dir) in config.roots.asset_sources() {
+        app.register_asset_source(
+            name,
+            AssetSourceBuilder::platform_default(&dir.display().to_string(), None),
+        );
+    }
 
     let default = DefaultPlugins
         .set(WindowPlugin {

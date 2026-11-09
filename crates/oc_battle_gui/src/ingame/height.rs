@@ -1,5 +1,4 @@
 use std::f32::consts::PI;
-use std::path::PathBuf;
 
 use bevy::color::palettes::css::WHITE;
 use bevy::input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll};
@@ -9,6 +8,7 @@ use oc_geo::region::{RegionXy, WorldRegionIndex};
 use oc_geo::tile::{TileXy, WorldTileIndex};
 use oc_physics::Physic;
 use oc_physics::volume::Volume;
+use oc_root::files::File;
 use oc_root::y::{V, Y};
 use oc_root::{Wcfg, WcfgFrom, WcfgInto, WorldConfig};
 use oc_utils::d2::Xy;
@@ -55,9 +55,11 @@ impl Plugin for HeightPlugin {
 
 // FIXME: if all tiles are z0, nothing display
 // FIXME: avoid blocking way of background + mesh generation by doing it in background and before real need
+#[allow(clippy::too_many_arguments)]
 fn on_spawn(
     center: On<Spawn>,
     g: Res<GameConfig>,
+    files: Res<crate::states::GuiFiles>,
     world: Res<World>,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -66,6 +68,7 @@ fn on_spawn(
 ) {
     tracing::debug!("Spawn height map");
     let_some!(g = &g.0, return);
+    let_some!(files = &files.0, return);
     let center = center.0;
     tracing::trace!(name="ingame-height-on-spawn-center", center=?center);
 
@@ -73,19 +76,19 @@ fn on_spawn(
     let grid_size = UVec2::new(g.w.region_width() as u32, g.w.region_height() as u32);
 
     for region in regions {
-        // FIXME Files
-        let texture = PathBuf::from("cache_")
-            .join("worlds")
-            .join(g.meta.canonical())
-            .join(format!("region{}.png", region.0));
-        if !std::fs::exists(PathBuf::from("assets").join(&texture)).unwrap() {
+        let background = File::Region {
+            index: region.0,
+            width: g.w.region_width(),
+            height: g.w.region_height(),
+        };
+        if !files.fs(background).exists() {
             tracing::warn!(
                 "Can't build heigh map for region {region:?}: background file {} do not exist",
-                texture.display()
+                files.fs(background).display()
             );
             continue;
         }
-        let texture: Handle<Image> = asset_server.load(texture.display().to_string());
+        let texture: Handle<Image> = asset_server.load(files.asset(background));
         tracing::trace!(name = "ingame-height-on-spawn-mesh-generate", region = ?region);
 
         let Some(tiles) = world.tiles.get(&region) else {

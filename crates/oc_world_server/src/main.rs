@@ -9,7 +9,7 @@ use std::{
 
 use clap::Parser;
 use message_io::network::Endpoint;
-use oc_root::{files, static_::StaticSource};
+use oc_root::{files::Roots, static_::StaticSource};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
@@ -74,15 +74,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     setup_logging()?;
 
-    let files = files::Files::new("".to_string(), "".to_string()).into_server(args.cache.clone());
-    std::fs::create_dir_all(files.mods()).unwrap(); // TODO
-    std::fs::create_dir_all(files.worlds()).unwrap(); // TODO
 
     #[cfg(feature = "tracker")]
     let tracker = Tracker::default();
 
     let network: NetworkConfig = args.clone().into();
-    let config: ServerConfig = args.clone().into();
+    let config = args.server_config()?;
+    config.roots.ensure_server_dirs()?;
 
     let map = oc_world::reader::MapReader::new(&args.world)?;
     let state = state::init::<Endpoint>(config.clone(), &map)?;
@@ -136,17 +134,25 @@ fn setup_logging() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-impl From<Args> for ServerConfig {
-    fn from(value: Args) -> Self {
-        Self {
-            world: value.world.clone(),
-            mod_: value.mod_.clone(),
-            cache: value.cache.clone(),
-            static_: StaticSource::Remote(value.static_.port()),
-            snapshot: value.snapshot,
-            region_width: value.region_width,
-            region_height: value.region_height,
-        }
+impl Args {
+    fn server_config(&self) -> std::io::Result<ServerConfig> {
+        let parent = |path: &PathBuf| -> std::io::Result<PathBuf> {
+            Ok(std::path::absolute(path)?
+                .parent()
+                .map(|p| p.to_path_buf())
+                .unwrap_or_default())
+        };
+        let roots = Roots::in_place(&parent(&self.mod_)?, &parent(&self.world)?, &self.cache)?;
+
+        Ok(ServerConfig {
+            world: self.world.clone(),
+            mod_: self.mod_.clone(),
+            roots,
+            static_: StaticSource::Remote(self.static_.port()),
+            snapshot: self.snapshot.clone(),
+            region_width: self.region_width,
+            region_height: self.region_height,
+        })
     }
 }
 

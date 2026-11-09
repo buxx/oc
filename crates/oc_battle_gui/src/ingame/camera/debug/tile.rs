@@ -170,7 +170,7 @@ pub fn on_spawn_region<E, I, T, S>(
     let region = event.region();
     tracing::debug!("Spawn region {:?} tiles", region);
 
-    let spriteset = tileset.spriteset(files).display().to_string();
+    let spriteset = tileset.spriteset(files);
 
     let texture = asset_server.load(&spriteset);
     let layout = tileset.layout();

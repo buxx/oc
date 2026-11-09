@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use oc_individual::network::{Individual, Squad};
 use oc_network::ToClient;
 use oc_projectile::network::Projectile;
-use oc_root::{Wcfg, files};
+use oc_root::{Wcfg, files, static_::StaticSource};
 
 use crate::ingame::hud::supports::{SetSupportCountEvent, SupportExecutedEvent};
 use crate::{
@@ -33,6 +33,34 @@ use crate::{
     },
 };
 
+/// Files layout of the server whose game config has been received
+fn gui_files(
+    roots: &files::Roots,
+    config: &oc_network::GameConfig,
+    connection: files::Connection,
+) -> files::Files {
+    let (mod_id, world_id) = (config.mod_.canonical(), config.meta.canonical());
+
+    match (connection, &config.static_) {
+        (files::Connection::Network(server), StaticSource::Remote(port)) => {
+            // Downloaded sources are stored under their id (versions don't collide)
+            files::Files::new(roots.clone(), &mod_id, &mod_id, &world_id, &world_id).with_remote(
+                Some(files::Remote {
+                    base_url: format!("http://{}:{}", server.ip(), port),
+                }),
+            )
+        }
+        // Sources are used in place, under their name
+        _ => files::Files::new(
+            roots.clone(),
+            config.mod_.name(),
+            &mod_id,
+            &config.meta.name,
+            &world_id,
+        ),
+    }
+}
+
 pub fn on_to_client(
     to_client: On<ToClientEvent>,
     mut commands: Commands,
@@ -40,6 +68,7 @@ pub fn on_to_client(
     mut files: ResMut<GuiFiles>,
     network: Res<network::state::State>,
     mut w: ResMut<Wcfg>,
+    app_config: Res<crate::config::Config>,
 ) {
     tracing::trace!(name = "ingame-input-client");
 
@@ -49,8 +78,7 @@ pub fn on_to_client(
             g.0 = Some((**config).clone());
             w.0 = Some(config.w.clone());
             files.0 = network.server.clone().map(|connect| {
-                files::Files::new(config.mod_.canonical(), config.meta.canonical())
-                    .into_gui(config.static_.clone(), connect.into())
+                gui_files(&app_config.roots, config, connect.into())
             });
             commands.trigger(GameConfigReceived);
         }

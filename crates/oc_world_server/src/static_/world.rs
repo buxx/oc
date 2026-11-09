@@ -1,7 +1,7 @@
 use axum::extract::Path;
-use axum::{body::Body, extract::State, http::Response, response::IntoResponse};
+use axum::{extract::State, response::IntoResponse};
 use oc_geo::region::WorldRegionIndex;
-use oc_root::files;
+use oc_root::files::File;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -14,20 +14,12 @@ pub async fn get_region(
     path: Path<GetRegionBackgroundPath>,
     State(state): State<super::State>,
 ) -> impl IntoResponse {
-    let region = path.region;
-    let mod_ = state.world().mod_().canonical();
-    let world = state.world().meta().canonical();
-    let files = files::Files::new(mod_, world).into_server(state.config.cache.clone());
-    let region_width = state.config.region_width;
-    let region_height = state.config.region_height;
-    let path = files.region(region.0, region_width, region_height);
-    let region = tokio::fs::File::open(path).await.unwrap(); // TODO
-    let region = tokio_util::io::ReaderStream::new(region);
-
-    Response::builder()
-        .header("Content-Type", "application/octet-stream")
-        .body(Body::from_stream(region))
-        .unwrap()
+    let file = File::Region {
+        index: path.region.0,
+        width: state.config.region_width,
+        height: state.config.region_height,
+    };
+    super::stream(state.files().fs(file)).await
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,30 +32,10 @@ pub async fn get_interior(
     path: Path<GetInteriorPath>,
     State(state): State<super::State>,
 ) -> impl IntoResponse {
-    let mod_ = state.world().mod_().canonical();
-    let world = state.world().meta().canonical();
-    let files = files::Files::new(mod_, world).into_server(state.config.cache.clone());
-    let path = files.interior(path.interior);
-    let interior = tokio::fs::File::open(path).await.unwrap(); // TODO
-    let interior = tokio_util::io::ReaderStream::new(interior);
-
-    Response::builder()
-        .header("Content-Type", "application/octet-stream")
-        .body(Body::from_stream(interior))
-        .unwrap()
+    super::stream(state.files().fs(File::Interior(path.interior))).await
 }
 
 #[axum::debug_handler]
 pub async fn get(State(state): State<super::State>) -> impl IntoResponse {
-    let mod_ = state.world().mod_().canonical();
-    let world = state.world().meta().canonical();
-    let files = files::Files::new(mod_, world).into_server(state.config.cache.clone());
-    let archive = files.world_archive();
-    let archive = tokio::fs::File::open(archive).await.unwrap(); // TODO
-    let archive = tokio_util::io::ReaderStream::new(archive);
-
-    Response::builder()
-        .header("Content-Type", "application/octet-stream")
-        .body(Body::from_stream(archive))
-        .unwrap() // TODO
+    super::stream(state.files().fs(File::WorldArchive)).await
 }

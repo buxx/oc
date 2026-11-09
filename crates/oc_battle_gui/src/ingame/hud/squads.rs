@@ -16,7 +16,7 @@ use bevy::{
 };
 use oc_individual::squad::{Squad, SquadIndex, SquadStatus};
 use oc_mod::illustration::IllustrationKind;
-use oc_root::files::FilesAsGui;
+use oc_root::files::Files;
 use oc_utils::bevy::EntityMapping;
 use oc_utils::{every, let_ok, let_some, true_};
 use std::time::Duration;
@@ -91,7 +91,7 @@ fn status_color(status: &SquadStatus) -> Color {
 
 fn squad_cell(
     g: &oc_network::GameConfig,
-    files: &FilesAsGui,
+    files: &Files,
     i: SquadIndex,
     squad: &Squad,
 ) -> impl Scene {

@@ -1,6 +1,6 @@
-use std::path::Path;
 
 use bevy::prelude::*;
+use oc_root::files::AssetDir;
 use oc_mod::weapons::{Weapon, WeaponType};
 use oc_utils::bevy::EntityMapping;
 use oc_utils::{let_ok, let_some};
@@ -24,7 +24,7 @@ pub struct WeaponAnimations {
 }
 
 impl WeaponAnimations {
-    pub fn init(sprites: &Path, soldier: &Sprite, assets: &AssetServer) -> Self {
+    pub fn init(sprites: &AssetDir, soldier: &Sprite, assets: &AssetServer) -> Self {
         let load = |name: &str| Sprite {
             image: assets.load(sprites.join(name)),
             texture_atlas: soldier.texture_atlas.clone(),

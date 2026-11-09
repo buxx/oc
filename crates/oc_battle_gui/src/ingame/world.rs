@@ -41,7 +41,7 @@ pub fn on_spawn_minimap(
     let_some!(files = &files.0, return);
 
     let display = WorldMapDisplay::from_env(w, window.size());
-    let minimap = files.minimap();
+    let minimap = files.asset(oc_root::files::File::Minimap);
 
     let x = display.center.x;
     let y = display.center.y;

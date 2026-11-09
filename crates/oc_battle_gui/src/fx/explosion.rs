@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use oc_network::GameConfig;
 use oc_root::{
     WcfgFrom,
-    files::FilesAsGui,
+    files::Files,
     geo::{ScreenVec2, WorldVec2},
     physics::Meters,
 };
@@ -23,7 +23,7 @@ pub fn spawn(
     assets: &AssetServer,
     layouts: &mut Assets<TextureAtlasLayout>,
     g: &GameConfig,
-    files: &FilesAsGui,
+    files: &Files,
     position: WorldVec2,
     rayon: Meters,
 ) {

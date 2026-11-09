@@ -53,6 +53,33 @@ impl Static {
     }
 }
 
+impl State {
+    pub fn files(&self) -> oc_root::files::Files {
+        let mod_ = self.world().mod_().canonical();
+        let world = self.world().meta().canonical();
+        oc_root::files::Files::derived_only(self.config.roots.clone(), &mod_, &world)
+    }
+}
+
+/// Stream a file as response body
+pub async fn stream(path: std::path::PathBuf) -> axum::response::Response {
+    use axum::response::IntoResponse;
+
+    match tokio::fs::File::open(&path).await {
+        Ok(file) => axum::http::Response::builder()
+            .header("Content-Type", "application/octet-stream")
+            .body(axum::body::Body::from_stream(
+                tokio_util::io::ReaderStream::new(file),
+            ))
+            .unwrap()
+            .into_response(),
+        Err(e) => {
+            tracing::error!("Can't open static file {}: {e}", path.display());
+            axum::http::StatusCode::NOT_FOUND.into_response()
+        }
+    }
+}
+
 impl Deref for State {
     type Target = crate::state::State<Endpoint>;
 

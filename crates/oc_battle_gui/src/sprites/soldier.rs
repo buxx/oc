@@ -1,6 +1,6 @@
-use std::path::Path;
 
 use bevy::prelude::*;
+use oc_root::files::AssetDir;
 use bevy_spritesheet_animation::prelude::*;
 use derive_more::Constructor;
 use oc_root::{side::Side, sprites};
@@ -33,8 +33,8 @@ pub struct SoldierAnimations {
 
 impl SoldierAnimations {
     pub fn init(
-        sprites: &Path,
-        outline: &Path,
+        sprites: &AssetDir,
+        outline: &str,
         assets: &AssetServer,
         animations: &mut Assets<Animation>,
         atlas_layouts: &mut Assets<TextureAtlasLayout>,
@@ -142,7 +142,7 @@ impl SoldierAnimations {
             .sprite(atlas_layouts);
 
         let outline = Sprite {
-            image: assets.load(outline.to_path_buf()),
+            image: assets.load(outline.to_string()),
             texture_atlas: sprite.texture_atlas.clone(),
             ..default()
         };

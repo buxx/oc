@@ -1,4 +1,3 @@
-use std::path::Path;
 
 use bevy::prelude::*;
 use oc_world::decor::DecorTileset;
@@ -12,7 +11,7 @@ pub struct DecorSprites {
 
 impl DecorSprites {
     pub fn init(
-        image: &Path,
+        image: &str,
         tileset: DecorTileset,
         assets: &AssetServer,
         atlas_layouts: &mut Assets<TextureAtlasLayout>,
@@ -26,7 +25,7 @@ impl DecorSprites {
         );
 
         Self {
-            image: assets.load(image.to_path_buf()),
+            image: assets.load(image.to_string()),
             layout: atlas_layouts.add(layout),
             tileset,
         }

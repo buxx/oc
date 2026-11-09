@@ -97,7 +97,7 @@ pub enum ObjectId {
 }
 
 pub fn init<E: Client>(config: ServerConfig, map: &MapReader) -> Result<State<E>, anyhow::Error> {
-    let cache = config.cache.clone();
+    let cache = config.roots.clone();
     let world = config.world.clone();
     let mod_ = config.mod_.clone();
 

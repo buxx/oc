@@ -43,7 +43,11 @@ pub fn on_listening_region(
     let y = y + height / 2.;
     let y = y.to_gui_y(&g.w);
     let i: WorldRegionIndex = region.into_(&g.w);
-    let background = files.region(i.0, region_width, region_height);
+    let background = files.asset(oc_root::files::File::Region {
+        index: i.0,
+        width: region_width,
+        height: region_height,
+    });
 
     tracing::trace!(name="spawn-region-background", region=?region, x=x, y=y, path=?background);
     commands.spawn((

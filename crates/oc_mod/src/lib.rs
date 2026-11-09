@@ -9,7 +9,7 @@ use std::{
 use anyhow::Context;
 use derive_more::Constructor;
 use flate2::{Compression, write::GzEncoder};
-use oc_root::{alter::Alter, files, physics::Meters};
+use oc_root::{alter::Alter, files::{self, Roots}, physics::Meters};
 use rkyv::{Archive, Deserialize, Serialize};
 use tar::Builder;
 use thiserror::Error;
@@ -89,7 +89,7 @@ pub struct Mod {
 }
 
 impl Mod {
-    pub fn load(path: &PathBuf, cache_: Option<&PathBuf>) -> Result<Self, Error> {
+    pub fn load(path: &PathBuf, cache_: Option<&Roots>) -> Result<Self, Error> {
         let mut mod_ = load_mod(path)?;
 
         mod_.natures = nature::load(path)?;
@@ -368,10 +368,13 @@ fn load_mod(path: &Path) -> Result<Mod, ModError> {
 }
 
 // TODO: centralize caching at server startup
-fn cache(mod_: &Mod, path: &PathBuf, cache: &Path) -> Result<(), CacheError> {
-    let files =
-        files::Files::new(mod_.canonical(), "".to_string()).into_server(cache.to_path_buf());
-    let cache = files.mod_archive();
+fn cache(mod_: &Mod, path: &PathBuf, roots: &Roots) -> Result<(), CacheError> {
+    let files = files::Files::derived_only(roots.clone(), &mod_.canonical(), "");
+    let cache = files.fs(files::File::ModArchive);
+    if let Some(parent) = cache.parent() {
+        std::fs::create_dir_all(parent)
+            .context(format!("Create dir {}", parent.display()))?;
+    }
     if !std::fs::exists(&cache).context(format!("Test if {} exists", cache.display()))? {
         tracing::info!("Caching {} to {}", &mod_.name, cache.display());
 
@@ -380,10 +383,11 @@ fn cache(mod_: &Mod, path: &PathBuf, cache: &Path) -> Result<(), CacheError> {
         let encoder = GzEncoder::new(file, Compression::default());
         let mut builder = Builder::new(encoder);
 
-        builder.append_dir_all(&mod_.name, path).context(format!(
-            "Create archive from under '{}' from '{}'",
-            mod_.name,
-            path.display()
+        // Archive content at its root: clients extract it under their own mod directory
+        builder.append_dir_all(".", path).context(format!(
+            "Create archive from '{}' ({})",
+            path.display(),
+            mod_.name
         ))?;
         builder
             .finish()

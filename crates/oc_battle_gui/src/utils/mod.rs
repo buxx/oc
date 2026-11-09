@@ -11,7 +11,7 @@ macro_rules! http_to_file {
         if let Some(parent) = $path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let mut resp = reqwest::blocking::get($url)?;
+        let mut resp = reqwest::blocking::get($url)?.error_for_status()?;
         let mut file = std::fs::File::create($path)?;
         std::io::copy(&mut resp, &mut file)?;
     };
