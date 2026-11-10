@@ -415,7 +415,7 @@ mod tests {
         }));
         let (sync, target) = files.sync(File::WorldArchive).unwrap();
         assert_eq!(sync.to_string(), "ArchiveDownload(http://h:1/world)");
-        assert_eq!(target, PathBuf::from("/w/b_1"));
+        assert_eq!(target, PathBuf::from("/w/b"));
         assert!(files.sync(File::Minimap).is_none());
     }
 }
