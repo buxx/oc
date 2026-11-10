@@ -2,4 +2,5 @@
   name: "Demo2",
   description: "Hello world",
   map: "demo2",
+  scenarios: ["scenario_1.ron"],
 )

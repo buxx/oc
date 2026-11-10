@@ -11,3 +11,4 @@ eframe = "0.36"
 serde.workspace = true
 ron.workspace = true
 oc_world = { path = "../oc_world" }
+oc_battle = { path = "../oc_battle" }

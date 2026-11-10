@@ -19,6 +19,7 @@ pub struct App {
     battles: Vec<Battle>,
     maps: Vec<Map>,
     selected_battle: Option<usize>,
+    selected_scenario: Option<usize>,
     show_all_battles: bool,
     errors: Vec<String>,
     show_errors: bool,
@@ -37,6 +38,7 @@ impl App {
             battles: vec![],
             maps: vec![],
             selected_battle: None,
+            selected_scenario: None,
             show_all_battles: false,
             loading: true,
             errors: vec![],
@@ -140,6 +142,7 @@ impl App {
                 battles: &self.battles,
                 maps: &self.maps,
                 selected_battle: &mut self.selected_battle,
+                selected_scenario: &mut self.selected_scenario,
                 show_all_battles: &mut self.show_all_battles,
                 selected_mod: self.selected_mod.as_deref(),
             };

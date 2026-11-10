@@ -14,6 +14,7 @@ use oc_utils::polygon::Polygon;
     PartialEq,
 )]
 #[rkyv(compare(PartialEq), derive(Debug))]
+#[serde(transparent)]
 pub struct SpawnZoneName(pub String);
 
 impl SpawnZoneName {

@@ -31,6 +31,7 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
                         .clicked()
                     {
                         *ctx.selected_battle = Some(i);
+                        *ctx.selected_scenario = None;
                     }
                 }
             });
@@ -56,6 +57,9 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
                 ui.separator();
 
                 ui.label(&battle.description);
+
+                ui.add_space(8.0);
+                scenarios(ui, battle, ctx.selected_scenario);
             }
             None => {
                 ui.label("Select a battle");
@@ -127,4 +131,39 @@ fn compatibility(ui: &mut egui::Ui, errors: &[String]) {
     }
 
     ui.data_mut(|d| d.insert_temp(open_id, open));
+}
+
+/// Scenarios list (left) and selected scenario details (right).
+fn scenarios(ui: &mut egui::Ui, battle: &Battle, selected: &mut Option<usize>) {
+    egui::Panel::left("scenarios_list")
+        .resizable(true)
+        .default_size(200.0)
+        .show(ui, |ui| {
+            ui.strong("Scenario");
+            ui.separator();
+
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                for (i, scenario) in battle.scenarios.iter().enumerate() {
+                    if ui
+                        .selectable_label(*selected == Some(i), &scenario.name)
+                        .clicked()
+                    {
+                        *selected = Some(i);
+                    }
+                }
+            });
+        });
+
+    egui::CentralPanel::default().show(ui, |ui| {
+        match selected.and_then(|i| battle.scenarios.get(i)) {
+            Some(scenario) => {
+                ui.heading(&scenario.name);
+                ui.separator();
+                ui.label(&scenario.description);
+            }
+            None => {
+                ui.label("Select a scenario");
+            }
+        }
+    });
 }

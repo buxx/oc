@@ -6477,6 +6477,7 @@ name = "oc_basecamp"
 version = "0.1.1"
 dependencies = [
  "eframe",
+ "oc_battle",
  "oc_world",
  "ron",
  "serde",
@@ -6489,9 +6490,12 @@ dependencies = [
  "bon",
  "derive_more",
  "getset",
+ "oc_deployment",
  "oc_root",
+ "oc_world",
  "ron",
  "serde",
+ "tempfile",
  "thiserror 2.0.21",
 ]
 

@@ -6,6 +6,7 @@ pub struct PageContext<'a> {
     pub battles: &'a [Battle],
     pub maps: &'a [Map],
     pub selected_battle: &'a mut Option<usize>,
+    pub selected_scenario: &'a mut Option<usize>,
     pub show_all_battles: &'a mut bool,
     pub selected_mod: Option<&'a str>,
 }
