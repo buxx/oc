@@ -4,12 +4,16 @@ use crate::{battle::Battle, map::Map, page::Page};
 
 use super::PageContext;
 
+/// Same height for list headers and the name row facing them
+const HEADER_HEIGHT: f32 = 28.0;
+
 pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
     egui::Panel::left("battles_list")
         .resizable(true)
         .default_size(220.0)
         .show(ui, |ui| {
             ui.horizontal(|ui| {
+                ui.set_min_height(HEADER_HEIGHT);
                 ui.strong("Battle");
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.checkbox(ctx.show_all_battles, "Show all").on_hover_text(
@@ -37,35 +41,38 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
             });
         });
 
-    egui::CentralPanel::default().show(ui, |ui| {
-        match ctx
-            .selected_battle
-            .and_then(|i| ctx.battles.get(i))
-            .filter(|b| is_listed(ctx, b))
-        {
-            Some(battle) => {
-                let errors = mod_errors(battle, ctx.maps, ctx.selected_mod);
-                ui.horizontal(|ui| {
-                    ui.heading(&battle.name);
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if let Some(errors) = &errors {
-                            compatibility(ui, errors);
-                        }
+    egui::CentralPanel::default()
+        .frame(central_frame(ui))
+        .show(ui, |ui| {
+            match ctx
+                .selected_battle
+                .and_then(|i| ctx.battles.get(i))
+                .filter(|b| is_listed(ctx, b))
+            {
+                Some(battle) => {
+                    let errors = mod_errors(battle, ctx.maps, ctx.selected_mod);
+                    ui.horizontal(|ui| {
+                        ui.set_min_height(HEADER_HEIGHT);
+                        ui.strong(&battle.name);
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if let Some(errors) = &errors {
+                                compatibility(ui, errors);
+                            }
+                        });
                     });
-                });
 
-                ui.separator();
+                    ui.separator();
 
-                ui.label(&battle.description);
+                    ui.label(&battle.description);
 
-                ui.add_space(8.0);
-                scenarios(ui, battle, ctx.selected_scenario);
+                    ui.add_space(8.0);
+                    scenarios(ui, battle, ctx.selected_scenario);
+                }
+                None => {
+                    ui.label("Select a battle");
+                }
             }
-            None => {
-                ui.label("Select a battle");
-            }
-        }
-    });
+        });
 
     None
 }
@@ -139,7 +146,10 @@ fn scenarios(ui: &mut egui::Ui, battle: &Battle, selected: &mut Option<usize>) {
         .resizable(true)
         .default_size(200.0)
         .show(ui, |ui| {
-            ui.strong("Scenario");
+            ui.horizontal(|ui| {
+                ui.set_min_height(HEADER_HEIGHT);
+                ui.strong("Scenario");
+            });
             ui.separator();
 
             egui::ScrollArea::vertical().show(ui, |ui| {
@@ -154,16 +164,26 @@ fn scenarios(ui: &mut egui::Ui, battle: &Battle, selected: &mut Option<usize>) {
             });
         });
 
-    egui::CentralPanel::default().show(ui, |ui| {
-        match selected.and_then(|i| battle.scenarios.get(i)) {
-            Some(scenario) => {
-                ui.heading(&scenario.name);
-                ui.separator();
-                ui.label(&scenario.description);
+    egui::CentralPanel::default()
+        .frame(central_frame(ui))
+        .show(ui, |ui| {
+            match selected.and_then(|i| battle.scenarios.get(i)) {
+                Some(scenario) => {
+                    ui.horizontal(|ui| {
+                        ui.set_min_height(HEADER_HEIGHT);
+                        ui.strong(&scenario.name);
+                    });
+                    ui.separator();
+                    ui.label(&scenario.description);
+                }
+                None => {
+                    ui.label("Select a scenario");
+                }
             }
-            None => {
-                ui.label("Select a scenario");
-            }
-        }
-    });
+        });
+}
+
+/// Central panel frame with the same vertical margins as side panels, so headers of both align.
+fn central_frame(ui: &egui::Ui) -> egui::Frame {
+    egui::Frame::central_panel(ui.style()).inner_margin(egui::Margin::symmetric(8, 2))
 }
