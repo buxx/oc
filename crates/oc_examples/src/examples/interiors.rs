@@ -5,13 +5,13 @@
 use std::time::Instant;
 use std::{path::PathBuf, time::Duration};
 
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
 use oc_battle_gui::ingame::{GameConfigReceived, camera::move_::CenterCameraOn};
 #[cfg(any(feature = "test", feature = "debug"))]
 use oc_battle_gui::states::GameConfig;
-use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_geo::tile::WorldTileIndex;
 use oc_individual::order::Order;
 use oc_mod::{Mod, shell::ShellIndex};
@@ -400,7 +400,10 @@ fn explosion_protected_test(
     )>,
 ) {
     let_some!(g = &g.0, return);
-    let expected = Args::parse_from(crate::args()).case.individual_positions().len();
+    let expected = Args::parse_from(crate::args())
+        .case
+        .individual_positions()
+        .len();
     if individuals.iter().count() < expected {
         return;
     }
@@ -409,7 +412,10 @@ fn explosion_protected_test(
     let dead = individuals
         .iter()
         .any(|(_, status)| matches!(status.0, oc_individual::Status::Dead));
-    let elapsed = fired.elapsed() > Args::parse_from(crate::args()).case.test_duration(g.w.speed());
+    let elapsed = fired.elapsed()
+        > Args::parse_from(crate::args())
+            .case
+            .test_duration(g.w.speed());
     if !(dead || elapsed) {
         return;
     }

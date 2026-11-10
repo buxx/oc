@@ -10,7 +10,10 @@ use oc_individual::{
 };
 use oc_mod::{Mod, illustration::IllustrationKind};
 use oc_root::{WcfgFrom, WorldConfig, geo::WorldVec2, material::MaterialKind, side::Side, y::V};
-use oc_utils::{d2::{Angle, Xy}, polygon::Polygon};
+use oc_utils::{
+    d2::{Angle, Xy},
+    polygon::Polygon,
+};
 use oc_world::{snapshot::Snapshot, spawn::SpawnZone, tile::Tile};
 use serde::{Deserialize, Serialize};
 
@@ -110,7 +113,8 @@ impl Deployments {
         };
         let occupied: Vec<WorldVec2> = snapshot.squads.iter().map(|s| s.position).collect();
         let position = placer.place(spawns, squad.uuid, &occupied);
-        let places = Self::members_positions(w, mod_, tiles, spawns, position, squad.individuals.len());
+        let places =
+            Self::members_positions(w, mod_, tiles, spawns, position, squad.individuals.len());
 
         for (indiv, position_) in squad.individuals.iter().zip(places) {
             let individual = self.fill_individual(w, mod_, i, side, indiv, position_, tiles)?;

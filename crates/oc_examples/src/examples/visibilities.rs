@@ -1,16 +1,17 @@
 #![cfg_attr(not(feature = "test"), allow(dead_code, unused_imports))]
 #![allow(clippy::unwrap_used)]
 
+use std::time::Duration;
 use std::{
     path::PathBuf,
     sync::atomic::{AtomicBool, Ordering},
 };
-use std::time::Duration;
 #[cfg(feature = "test")]
 use std::{sync::Mutex, time::Instant};
 
 use bevy::prelude::*;
 
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use anyhow::Context as ContextExt;
 use clap::{Parser, ValueEnum};
 #[cfg(feature = "test")]
@@ -19,7 +20,6 @@ use oc_battle_gui::{
     ingame::individual::{Gesture, SetGestureEvent},
     states::{Game, GameConfig},
 };
-use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
 #[allow(unused_imports)]
 use oc_mod::shell::ShellIndex;

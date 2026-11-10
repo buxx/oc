@@ -6,6 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
@@ -14,7 +15,6 @@ use oc_battle_gui::{
     network::output::ToServerEvent,
     states::Game,
 };
-use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::{
     INDIVIDUAL_PRONE_VOLUME_WIDTH, IndividualIndex, order::Order, squad::SquadFormation,
 };

@@ -8,6 +8,7 @@ use std::{
 
 use bevy::prelude::*;
 
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use anyhow::Context as ContextExt;
 use clap::{Parser, ValueEnum};
 use oc_battle_gui::{
@@ -21,7 +22,6 @@ use oc_battle_gui::{
     network::output::ToServerEvent,
     states::Game,
 };
-use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::{IndividualIndex, order::Order};
 use oc_mod::Mod;
 use oc_network::ToServer;

@@ -4,9 +4,9 @@ use std::path::PathBuf;
 
 use bevy::prelude::*;
 
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use anyhow::Context as ContextExt;
 use clap::{Parser, ValueEnum};
-use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
 use oc_root::{
     WorldConfig,

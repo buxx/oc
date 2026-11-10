@@ -1,7 +1,6 @@
-
 use bevy::prelude::*;
-use oc_root::files::AssetDir;
 use oc_root::alter::Alter;
+use oc_root::files::AssetDir;
 
 // altered.png
 const SIZE: u32 = 30;

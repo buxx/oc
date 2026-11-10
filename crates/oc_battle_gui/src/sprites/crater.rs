@@ -1,7 +1,6 @@
-
 use bevy::prelude::*;
-use oc_root::files::AssetDir;
 use oc_root::craters::CraterType;
+use oc_root::files::AssetDir;
 
 const SIZE: u32 = 64;
 const COLUMNS: u32 = 5;

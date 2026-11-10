@@ -74,7 +74,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     setup_logging()?;
 
-
     #[cfg(feature = "tracker")]
     let tracker = Tracker::default();
 

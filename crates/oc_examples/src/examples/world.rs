@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
@@ -17,12 +18,13 @@ use oc_battle_gui::fx::FxEvent;
 use oc_battle_gui::ingame::SetBattlePhase;
 use oc_battle_gui::ingame::{GameConfigReceived, camera::move_::CenterCameraOn};
 use oc_battle_gui::network::output::ToServerEvent;
-use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
 use oc_mod::Mod;
 use oc_network::ToServer;
 #[cfg(feature = "test")]
 use oc_physics::update::bevy::Position;
+#[cfg(feature = "test")]
+use oc_root::battle::{End, Result as BattleResult, SideResult};
 use oc_root::{
     WorldConfig,
     battle::BattlePhase,
@@ -30,8 +32,6 @@ use oc_root::{
     physics::Meters,
     side::Side,
 };
-#[cfg(feature = "test")]
-use oc_root::battle::{End, Result as BattleResult, SideResult};
 #[cfg(feature = "test")]
 use oc_utils::{d2::AlmostEqual, let_some, true_};
 use oc_world::{
@@ -275,7 +275,11 @@ fn setup(app: &mut App, center: WorldVec2, #[allow(unused)] speed: f32) {
 /// Fire an explosion near the BrickWall square
 #[cfg(feature = "debug")]
 fn explosion_alter_wall(_: On<GameConfigReceived>, mut commands: Commands) {
-    let mod_ = Mod::load(&PathBuf::from("mods").join(Args::parse_from(crate::args()).mod_), None).unwrap();
+    let mod_ = Mod::load(
+        &PathBuf::from("mods").join(Args::parse_from(crate::args()).mod_),
+        None,
+    )
+    .unwrap();
     let shell = mod_
         .shell_from_name("Destruction Only (10 meters)")
         .unwrap()

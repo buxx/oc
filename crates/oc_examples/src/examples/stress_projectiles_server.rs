@@ -6,9 +6,9 @@ use std::{
     time::Duration,
 };
 
+use crate::{logging, snapshot::SnapshotBuilder};
 use anyhow::Context as ContextExt;
 use bevy::prelude::*;
-use crate::{logging, snapshot::SnapshotBuilder};
 use oc_mod::Mod;
 use oc_network::ToServer;
 use oc_projectile::spawn::SpawnProjectiles;

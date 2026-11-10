@@ -1,8 +1,7 @@
-
 use bevy::prelude::*;
-use oc_root::files::AssetDir;
 use bevy_spritesheet_animation::prelude::*;
 use derive_more::Constructor;
+use oc_root::files::AssetDir;
 use oc_root::{side::Side, sprites};
 
 use crate::sprites::IntoAnimation;

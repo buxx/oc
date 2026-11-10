@@ -77,9 +77,10 @@ pub fn on_to_client(
             tracing::debug!("Received GameConfig");
             g.0 = Some((**config).clone());
             w.0 = Some(config.w.clone());
-            files.0 = network.server.clone().map(|connect| {
-                gui_files(&app_config.roots, config, connect.into())
-            });
+            files.0 = network
+                .server
+                .clone()
+                .map(|connect| gui_files(&app_config.roots, config, connect.into()));
             commands.trigger(GameConfigReceived);
         }
         ToClient::WorldResume(resume) => {

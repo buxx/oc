@@ -55,9 +55,9 @@ pub fn load_image(
     files: Res<GuiFiles>,
 ) {
     let_some!(files = &files.0, return);
-    commands
-        .entity(*slot)
-        .insert(ImageNode::new(assets.load(files.asset(oc_root::files::File::HudMinimap))));
+    commands.entity(*slot).insert(ImageNode::new(
+        assets.load(files.asset(oc_root::files::File::HudMinimap)),
+    ));
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -12,6 +12,7 @@ use std::{
 
 use bevy::prelude::*;
 
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use anyhow::Context as ContextExt;
 use clap::{Parser, ValueEnum};
 #[cfg(feature = "test")]
@@ -26,7 +27,6 @@ use oc_battle_gui::{
     },
     states::Game,
 };
-use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
 #[cfg(feature = "test")]
 use oc_root::Wcfg;

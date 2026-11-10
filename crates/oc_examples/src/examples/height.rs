@@ -10,6 +10,7 @@ use std::sync::atomic::Ordering;
 #[cfg(feature = "test")]
 use std::time::Instant;
 
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
@@ -18,7 +19,6 @@ use oc_battle_gui::entity::individual::IndividualIndex;
 use oc_battle_gui::ingame::GameConfigReceived;
 use oc_battle_gui::ingame::lov::{Lov, UpdateLovFor};
 use oc_battle_gui::world::InsertedTiles;
-use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::order::Order;
 #[cfg(feature = "test")]
 use oc_physics::update::bevy::Position;

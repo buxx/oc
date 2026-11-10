@@ -1,12 +1,12 @@
 #![allow(clippy::unwrap_used)]
 
+use crate::{logging, tests::behavior};
 use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
 #[cfg(feature = "debug")]
 use oc_battle_gui::ingame::camera::squad::ToggleShowFormationPositions;
 #[cfg(feature = "test")]
 use oc_battle_gui::ingame::individual::{AccomplishedEvent, MoveStepAccomplishedEvent};
-use crate::{logging, tests::behavior};
 use oc_individual::order::Order;
 #[cfg(feature = "debug")]
 use oc_mod::shell::ShellIndex;

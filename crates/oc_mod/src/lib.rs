@@ -9,7 +9,11 @@ use std::{
 use anyhow::Context;
 use derive_more::Constructor;
 use flate2::{Compression, write::GzEncoder};
-use oc_root::{alter::Alter, files::{self, Roots}, physics::Meters};
+use oc_root::{
+    alter::Alter,
+    files::{self, Roots},
+    physics::Meters,
+};
 use rkyv::{Archive, Deserialize, Serialize};
 use tar::Builder;
 use thiserror::Error;
@@ -372,8 +376,7 @@ fn cache(mod_: &Mod, path: &PathBuf, roots: &Roots) -> Result<(), CacheError> {
     let files = files::Files::derived_only(roots.clone(), &mod_.canonical(), "");
     let cache = files.fs(files::File::ModArchive);
     if let Some(parent) = cache.parent() {
-        std::fs::create_dir_all(parent)
-            .context(format!("Create dir {}", parent.display()))?;
+        std::fs::create_dir_all(parent).context(format!("Create dir {}", parent.display()))?;
     }
     if !std::fs::exists(&cache).context(format!("Test if {} exists", cache.display()))? {
         tracing::info!("Caching {} to {}", &mod_.name, cache.display());

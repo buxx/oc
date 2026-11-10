@@ -1,7 +1,6 @@
-
 use bevy::prelude::*;
-use oc_root::files::AssetDir;
 use oc_mod::weapons::{Weapon, WeaponType};
+use oc_root::files::AssetDir;
 use oc_utils::bevy::EntityMapping;
 use oc_utils::{let_ok, let_some};
 

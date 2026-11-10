@@ -1,11 +1,11 @@
 #![allow(clippy::unwrap_used)]
 use std::path::PathBuf;
 
+use crate::{logging, run, snapshot::SnapshotBuilder};
 use anyhow::Context as ContextExt;
 use bevy::prelude::*;
 use clap::Parser;
 use oc_battle_gui::{ingame::GameConfigReceived, network::output::ToServerEvent};
-use crate::{logging, run, snapshot::SnapshotBuilder};
 use oc_individual::{Individual, IndividualIndex, order::Order, squad::Squad};
 use oc_mod::Mod;
 use oc_network::ToServer;
