@@ -23,8 +23,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mod_ = PathBuf::from("mods/tests1");
     let mod__ = Mod::load(&mod_, None)?;
-    let meta = Meta::from_file(&PathBuf::from("examples/world1/meta.toml"))?;
-    let map_ = PathBuf::from("examples/world1");
+    let meta = Meta::from_file(&PathBuf::from("maps/world1/meta.toml"))?;
+    let map_ = PathBuf::from("maps/world1");
     let map = oc_world::reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
@@ -41,7 +41,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     .build(w, &mod__)?;
 
     let example = run::Example::builder()
-        .world(PathBuf::from("examples/world1"))
+        .world(PathBuf::from("maps/world1"))
         .mod_(mod_)
         .install(Box::new(install))
         .snapshot(snapshot);
@@ -68,8 +68,8 @@ struct Orbiter {
 
 fn install(app: &mut bevy::app::App) {
     // TODO: avoid repetition with main()
-    let meta = Meta::from_file(&PathBuf::from("examples/world1/meta.toml")).unwrap();
-    let map_ = PathBuf::from("examples/world1");
+    let meta = Meta::from_file(&PathBuf::from("maps/world1/meta.toml")).unwrap();
+    let map_ = PathBuf::from("maps/world1");
     let map = oc_world::reader::MapReader::new(&map_).unwrap();
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
         .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));

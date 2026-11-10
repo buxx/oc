@@ -24,7 +24,7 @@ use oc_world_server::{bridge::Event, config::ServerConfig};
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
 
-    let world = PathBuf::from("examples/world1");
+    let world = PathBuf::from("maps/world1");
     let mod_ = PathBuf::from("mods/tests1");
     let mod__ = Mod::load(&mod_, None)?;
     let roots = oc_root::files::Roots::in_place(
@@ -34,8 +34,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     roots.ensure_server_dirs()?;
     let static_ = StaticSource::Remote(32000);
-    let meta = Meta::from_file(&PathBuf::from("examples/world1/meta.toml"))?;
-    let map_ = PathBuf::from("examples/world1");
+    let meta = Meta::from_file(&PathBuf::from("maps/world1/meta.toml"))?;
+    let map_ = PathBuf::from("maps/world1");
     let map = oc_world::reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)

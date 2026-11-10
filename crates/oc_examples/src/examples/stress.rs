@@ -26,7 +26,7 @@ use tests::{
 // WARNING: AI generated module
 
 const MOD: &str = "mods/std1";
-const MAP: &str = "examples/world1";
+const MAP: &str = "maps/world1";
 const INDIVIDUALS_BY_SQUAD: usize = 5;
 /// Distance between individuals of a same squad (pixels)
 const MEMBERS_GAP: f32 = 6.;

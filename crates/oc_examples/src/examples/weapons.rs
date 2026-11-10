@@ -49,7 +49,7 @@ pub fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse_from(crate::args());
     let mod_ = PathBuf::from(MOD);
     let mod__ = oc_mod::Mod::load(&mod_, None)?;
-    let map = PathBuf::from("examples/world1");
+    let map = PathBuf::from("maps/world1");
     let meta = Meta::from_file(&map.join("meta.toml"))?;
     let map_ = oc_world::reader::MapReader::new(&map);
     let map_ = map_.context(format!("Read map_ {}", map.display()))?;

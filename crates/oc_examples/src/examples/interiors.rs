@@ -164,7 +164,7 @@ pub fn main() -> Result<(), anyhow::Error> {
 
     let mod__ = args.mod_.clone();
     let mod_ = Mod::load(&mod__, None)?;
-    let map_ = PathBuf::from("examples/minidblue");
+    let map_ = PathBuf::from("maps/minidblue");
     let map = oc_world::reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
     let world = Meta::from_file(&map_.meta());

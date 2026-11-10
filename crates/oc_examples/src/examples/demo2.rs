@@ -41,7 +41,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
 
     let mod_ = Mod::load(&PathBuf::from("mods/std1"), None)?;
-    let map_ = PathBuf::from("examples/demo2");
+    let map_ = PathBuf::from("maps/demo2");
     let map = oc_world::reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
     let world = Meta::from_file(&map_.meta());
@@ -54,8 +54,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let deployments = match args.case {
         Case::Empty => deployment::Deployments::default(),
         Case::DeploySouthEst => deployment::Deployments::from_files(
-            &PathBuf::from("examples/deployment_allied1.yml"),
-            &PathBuf::from("examples/deployment_axis1.yml"),
+            &PathBuf::from("maps/deployment_allied1.yml"),
+            &PathBuf::from("maps/deployment_axis1.yml"),
         )
         .unwrap()
         .with_spawns(

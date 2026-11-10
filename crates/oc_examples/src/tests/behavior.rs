@@ -45,7 +45,7 @@ pub fn run(
 ) -> Result<(), anyhow::Error> {
     let mod_ = PathBuf::from("mods/tests1");
     let mod__ = oc_mod::Mod::load(&mod_, None)?;
-    let map = PathBuf::from("examples/meadow1");
+    let map = PathBuf::from("maps/meadow1");
     let meta = Meta::from_file(&map.join("meta.toml"))?;
     let map_ = oc_world::reader::MapReader::new(&map);
     let map_ = map_.context(format!("Read map_ {}", map.display()))?;

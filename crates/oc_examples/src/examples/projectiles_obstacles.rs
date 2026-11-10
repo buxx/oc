@@ -61,7 +61,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let mod_ = Mod::load(&PathBuf::from("mods/tests1"), None)?;
-    let map_ = PathBuf::from("examples/height");
+    let map_ = PathBuf::from("maps/height");
     let map = reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
     let world = Meta::from_file(&map_.meta());

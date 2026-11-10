@@ -60,7 +60,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mod_ = PathBuf::from("mods/tests1");
     let mod__ = oc_mod::Mod::load(&mod_, None)?;
-    let map = PathBuf::from("examples/meadow1");
+    let map = PathBuf::from("maps/meadow1");
     let meta = Meta::from_file(&map.join("meta.toml"))?;
     let map_ = oc_world::reader::MapReader::new(&map);
     let map_ = map_.context(format!("Read map_ {}", map.display()))?;
@@ -156,8 +156,8 @@ fn individuals(
     };
 
     // TODO: avoid repetition with main()
-    let meta = Meta::from_file(&PathBuf::from("examples/meadow1/meta.toml")).unwrap();
-    let map_ = PathBuf::from("examples/meadow1");
+    let meta = Meta::from_file(&PathBuf::from("maps/meadow1/meta.toml")).unwrap();
+    let map_ = PathBuf::from("maps/meadow1");
     let map = oc_world::reader::MapReader::new(&map_).unwrap();
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
         .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));

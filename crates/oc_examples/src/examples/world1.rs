@@ -12,8 +12,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::setup_logging()?;
 
     let mod_ = Mod::load(&PathBuf::from("mods/std1"), None)?;
-    let meta = Meta::from_file(&PathBuf::from("examples/world1/meta.toml"))?;
-    let map_ = PathBuf::from("examples/world1");
+    let meta = Meta::from_file(&PathBuf::from("maps/world1/meta.toml"))?;
+    let map_ = PathBuf::from("maps/world1");
     let map = oc_world::reader::MapReader::new(&map_);
     let map = map.context(format!("Read map {}", map_.display()))?;
     let w = WorldConfig::new(map.width().unwrap() as u64, map.height().unwrap() as u64)
@@ -30,7 +30,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     .build(w, &mod_)?;
 
     let example = run::Example::builder()
-        .world(PathBuf::from("examples/world1"))
+        .world(PathBuf::from("maps/world1"))
         .mod_(PathBuf::from("mods/std1"))
         .snapshot(snapshot);
     example.build().run()?;

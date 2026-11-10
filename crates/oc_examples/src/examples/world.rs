@@ -49,7 +49,7 @@ static SUCCESS: AtomicBool = AtomicBool::new(false);
 /// Center of a BrickWall tile (tile 3,15 of meadow1)
 const WALL_POSITION: WorldVec2 = WorldVec2::new(17.5, 77.5);
 
-const MAP: &str = "examples/meadow1";
+const MAP: &str = "maps/meadow1";
 
 /// Precision of smoke durations check (server fading tick, network and frames)
 #[cfg(feature = "test")]
