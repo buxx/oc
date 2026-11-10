@@ -6,7 +6,6 @@ use message_io::network::Endpoint;
 
 use crate::{config::ServerConfig, network::NetworkConfig};
 
-mod minimap;
 mod mod_;
 mod sprites;
 mod world;
@@ -37,8 +36,6 @@ impl Static {
             .route("/world", get(world::get))
             .route("/region/{region}", get(world::get_region))
             .route("/interior/{interior}", get(world::get_interior))
-            .route("/minimap", get(minimap::get))
-            .route("/hud_minimap", get(minimap::get_hud))
             .route("/soldiers_outline", get(sprites::get_soldiers_outline))
             .with_state(state);
 

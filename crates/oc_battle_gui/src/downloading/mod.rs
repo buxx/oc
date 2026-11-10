@@ -45,8 +45,6 @@ fn download(
 
     ensure_file(files, File::ModArchive).unwrap(); // TODO
     ensure_file(files, File::WorldArchive).unwrap(); // TODO
-    ensure_file(files, File::Minimap).unwrap(); // TODO
-    ensure_file(files, File::HudMinimap).unwrap(); // TODO
     ensure_file(files, File::IndividualOutline).unwrap(); // TODO
 
     for index in 0..g.w.regions_count() {

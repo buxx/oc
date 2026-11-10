@@ -4,7 +4,7 @@ use ::image::{ImageBuffer, Rgba};
 use anyhow::Context;
 use clap::Parser;
 use oc_mod::Mod;
-use oc_root::{DEFAULT_FIGHT_DURATION, WorldConfig, battle::BattlePhase};
+use oc_root::{DEFAULT_FIGHT_DURATION, HUD_MINIMAP_SIZE, WorldConfig, battle::BattlePhase};
 use oc_utils::image;
 use oc_world::{reader, snapshot::Snapshot, support::Supports, terrain::Terrain};
 use tracing::level_filters::LevelFilter;
@@ -137,6 +137,8 @@ fn main() -> Result<(), anyhow::Error> {
     let world_path = args.path.join("world.tmx");
     world(&world_tpl_path, &world_path, width, height, args.tile_size)?;
 
+    minimaps(&w, &args.path, f)?;
+
     if let Some(mod_) = &args.r#mod {
         let mod_ = Mod::load(mod_, None).context(format!("Load cache from {}", mod_.display()))?;
         analyze_terrain(&w, &terrain_tsx_path, &mod_)?;
@@ -148,6 +150,44 @@ fn main() -> Result<(), anyhow::Error> {
         };
         let mod_ = Mod::load(mod_, None).context(format!("Load cache from {}", mod_.display()))?;
         snapshot_(w, &args.path, snapshot, &mod_, args.replace)?;
+    }
+
+    Ok(())
+}
+
+fn minimaps(w: &WorldConfig, dir: &Path, replace: bool) -> Result<(), anyhow::Error> {
+    let minimap = dir.join(oc_world::load::MINIMAP_FILE);
+    let hud_minimap = dir.join(oc_world::load::HUD_MINIMAP_FILE);
+    if !replace && minimap.exists() && hud_minimap.exists() {
+        tracing::info!("Minimaps already exist");
+        return Ok(());
+    }
+
+    let background_path = dir.join("background.png");
+    let background =
+        ::image::open(&background_path).context(format!("Open {}", background_path.display()))?;
+
+    for (path, width, height) in [
+        (
+            minimap,
+            w.minimap_width_pixels() as u32,
+            w.minimap_height_pixels() as u32,
+        ),
+        (hud_minimap, HUD_MINIMAP_SIZE, HUD_MINIMAP_SIZE),
+    ] {
+        if path.exists() && !replace {
+            tracing::info!("{} already exists", path.display());
+            continue;
+        }
+        tracing::info!("Generate {} ({width}x{height})", path.display());
+        ::image::imageops::resize(
+            &background,
+            width,
+            height,
+            ::image::imageops::FilterType::Gaussian,
+        )
+        .save(&path)
+        .context(format!("Save {}", path.display()))?;
     }
 
     Ok(())

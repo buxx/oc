@@ -6,11 +6,10 @@ use std::{
 };
 
 use derive_more::Constructor;
-use image::imageops::FilterType;
 use oc_geo::region::WorldRegionIndex;
 use oc_mod::Mod;
 use oc_projectile::NextProjectileId;
-use oc_root::{HUD_MINIMAP_SIZE, WorldConfig, files, ids::Ids};
+use oc_root::{WorldConfig, files, ids::Ids};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use thiserror::Error;
 
@@ -26,6 +25,9 @@ use crate::{
     utils::image::crop::crop_polygon,
     visibility::Visibilities,
 };
+
+pub const MINIMAP_FILE: &str = "minimap.png";
+pub const HUD_MINIMAP_FILE: &str = "hud_minimap.png";
 
 #[derive(Debug, Constructor)]
 pub struct WorldLoader {
@@ -201,52 +203,16 @@ impl WorldLoader {
         tracing::info!("Check cache for {}", self.world.display());
         let files = files::Files::derived_only(self.cache.clone(), "", &meta.canonical());
         let archive = files.fs(files::File::WorldArchive);
-        let minimap = files.fs(files::File::Minimap);
-
-        if let Some(parent) = minimap.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
         if let Some(parent) = archive.parent() {
             std::fs::create_dir_all(parent)?;
         }
         let background = image::open(self.world.background())?;
         let interior = image::open(self.world.interiors())?;
 
-        match minimap.exists() {
-            true => {
-                tracing::info!("Minimap already exists ({})", minimap.display())
+        for minimap in [self.world.minimap(), self.world.hud_minimap()] {
+            if !minimap.is_file() {
+                return Err(CacheError::MinimapNotFound(minimap));
             }
-            false => {
-                // TODO: size in config/args ?
-                let width = self.w.minimap_width_pixels() as f32;
-                let height = self.w.minimap_height_pixels() as f32;
-                tracing::info!(
-                    "Prepare cache for minimap {} ({}x{})",
-                    minimap.display(),
-                    width,
-                    height
-                );
-                let minimap_ = image::imageops::resize(
-                    &background,
-                    width as u32,
-                    height as u32,
-                    FilterType::Gaussian,
-                );
-                minimap_.save(minimap)?;
-            }
-        }
-
-        let hud_minimap = files.fs(files::File::HudMinimap);
-        if hud_minimap.exists() {
-            tracing::info!("Hud minimap already exists ({})", hud_minimap.display());
-        } else {
-            let size = HUD_MINIMAP_SIZE;
-            tracing::info!(
-                "Prepare cache for hud minimap {} ({size}x{size})",
-                hud_minimap.display()
-            );
-            image::imageops::resize(&background, size, size, FilterType::Gaussian)
-                .save(hud_minimap)?;
         }
 
         self.cache_regions(region_width, region_height, &files, &background)?;
@@ -381,6 +347,8 @@ pub enum CacheError {
     RegionBackground(#[from] CacheRegionBackgroundError),
     #[error("Interior: {0}")]
     Interior(String),
+    #[error("Minimap {0} not found")]
+    MinimapNotFound(PathBuf),
     #[error("Map reader: {0}")]
     MapReader(#[from] MapReaderError),
 }
@@ -401,6 +369,8 @@ pub trait WorldPath {
     fn background(&self) -> PathBuf;
     fn interiors(&self) -> PathBuf;
     fn meta(&self) -> PathBuf;
+    fn minimap(&self) -> PathBuf;
+    fn hud_minimap(&self) -> PathBuf;
 }
 
 impl WorldPath for PathBuf {
@@ -414,5 +384,13 @@ impl WorldPath for PathBuf {
 
     fn meta(&self) -> PathBuf {
         self.join("meta.toml")
+    }
+
+    fn minimap(&self) -> PathBuf {
+        self.join(MINIMAP_FILE)
+    }
+
+    fn hud_minimap(&self) -> PathBuf {
+        self.join(HUD_MINIMAP_FILE)
     }
 }
