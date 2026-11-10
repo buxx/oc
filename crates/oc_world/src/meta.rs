@@ -21,6 +21,8 @@ pub struct Meta {
     pub name: String,
     pub revision: u32,
     pub geo_meters_per_z: f32,
+    #[serde(default)]
+    pub address: Option<String>,
 }
 
 #[cfg(feature = "tests")]
@@ -30,6 +32,7 @@ impl Default for Meta {
             name: "TestMeta".to_string(),
             revision: 0,
             geo_meters_per_z: 0.1,
+            address: None,
         }
     }
 }

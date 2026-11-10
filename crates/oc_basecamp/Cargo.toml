@@ -1,0 +1,13 @@
+[package]
+name = "oc_basecamp"
+version.workspace = true
+edition = "2024"
+
+[lints]
+workspace = true
+
+[dependencies]
+eframe = "0.36"
+serde.workspace = true
+ron.workspace = true
+oc_world = { path = "../oc_world" }

@@ -38,6 +38,7 @@ use crate::{
 };
 
 pub mod cache;
+pub mod check;
 pub mod control;
 pub mod crater;
 pub mod decor;
