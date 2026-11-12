@@ -16,10 +16,11 @@ use rkyv::{
     with::{AsUnixTime, Map},
 };
 
+use crate::World;
 use crate::crater::Crater;
 use crate::decor::Decor;
 use crate::smoke::SmokeCloud;
-use crate::spawn::SpawnZoneName;
+use crate::spawn::{SpawnZoneName, owned_spawn_zones};
 use crate::support::{PendingSupport, SupportType, Supports};
 use crate::tile::{AlteredTile, Tile};
 use oc_geo::tile::WorldTileIndex;
@@ -239,6 +240,53 @@ pub struct Persist {
     pub craters: Vec<Crater>,
     pub side_a_spawns: Vec<SpawnZoneName>,
     pub side_b_spawns: Vec<SpawnZoneName>,
+}
+
+impl From<&World> for Persist {
+    fn from(world: &World) -> Self {
+        let spawns = |side| {
+            owned_spawn_zones(
+                &world.spawn_zones,
+                world.spawn_zones(side),
+                &world.flags,
+                side,
+            )
+        };
+
+        Self {
+            altered_tiles: world.altered_tiles.clone(),
+            decor: world.decor.clone(),
+            craters: world.craters.clone(),
+            side_a_spawns: spawns(Side::A),
+            side_b_spawns: spawns(Side::B),
+        }
+    }
+}
+
+impl Persist {
+    // TODO: deserializations can be refactored accord all source code ?
+    pub fn load(path: &PathBuf) -> Result<Self, LoadError> {
+        tracing::info!("Load persist from {}", path.display());
+        let bytes_ = std::fs::read(path);
+        let bytes_ = bytes_.map_err(|e| LoadError::SourceIo(path.clone(), e))?;
+        let mut bytes: rkyv::util::AlignedVec = rkyv::util::AlignedVec::with_capacity(bytes_.len());
+        bytes.extend_from_slice(&bytes_);
+        let persist = rkyv::access::<ArchivedPersist, Error>(&bytes[..]);
+        let persist = persist.map_err(|e| LoadError::Format(path.clone(), e))?;
+        let persist = rkyv::deserialize::<Persist, Error>(persist);
+        let persist = persist.map_err(|e| LoadError::Format(path.clone(), e))?;
+        Ok(persist)
+    }
+
+    // TODO: serializations can be refactored accord all source code ?
+    pub fn save(&self, to: &PathBuf) -> Result<(), SaveError> {
+        tracing::info!("Save persist to {}", to.display());
+        let bytes = rkyv::to_bytes::<Error>(self);
+        let bytes = bytes.map_err(|e| SaveError::Encode(to.clone(), e))?;
+        let write = std::fs::write(to, &bytes);
+        write.map_err(|e| SaveError::Write(to.clone(), e))?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

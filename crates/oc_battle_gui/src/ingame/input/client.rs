@@ -9,7 +9,7 @@ use crate::{
     fx::FxEvent,
     ingame::collision::CollisionEvent,
     ingame::{
-        GameConfigReceived, SetBattlePhase, WorldResumeEvent,
+        EndResumeEvent, GameConfigReceived, SetBattlePhase, WorldResumeEvent,
         individual::ForgotIndividual,
         input::{
             individual::{
@@ -85,6 +85,10 @@ pub fn on_to_client(
         }
         ToClient::WorldResume(resume) => {
             commands.trigger(WorldResumeEvent(resume.clone()));
+        }
+        ToClient::EndResume(resume) => {
+            tracing::debug!("Received EndResume: {resume:?}");
+            commands.trigger(EndResumeEvent(*resume));
         }
         ToClient::Squad(message) => match message {
             Squad::Update(i, update) => {

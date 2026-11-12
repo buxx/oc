@@ -57,6 +57,13 @@ impl Flag {
         }
     }
 
+    pub fn center(&self) -> WorldVec2 {
+        WorldVec2::new(
+            self.start.x + self.width / 2.,
+            self.start.y + self.height / 2.,
+        )
+    }
+
     pub fn shape(&self) -> Shape {
         Shape {
             top_left: self.corners[0].into(),

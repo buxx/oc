@@ -60,6 +60,7 @@ pub enum Update {
     AddSmokeCloud(SmokeCloud),
     UpdateSmoke,
     RemoveDecor(Vec<WorldTileIndex>),
+    End,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -187,6 +188,10 @@ pub fn update<E: Client>(ctx: &Context<E>, update: Update) {
             let mut world = state.world_mut();
             let smoke = world.update_smoke(Instant::now());
             smoke_messages(&world.w, smoke)
+        }
+        Update::End => {
+            ctx.signal(super::Signal::End);
+            vec![]
         }
         Update::RemoveDecor(tiles) => {
             let mut by_region: FxHashMap<WorldRegionIndex, Vec<WorldTileIndex>> =

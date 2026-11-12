@@ -145,6 +145,7 @@ impl Processor<'_> {
 
         let result = self.battle_result();
         updates.push(Update::SetBattlePhase(BattlePhase::End(End::Time(result))));
+        updates.push(Update::End);
 
         (updates, true)
     }
@@ -158,23 +159,26 @@ impl Processor<'_> {
         )
     }
 
-    fn morale_end(&self) -> Option<Update> {
+    fn morale_end(&self) -> Vec<Update> {
         if self.world.phase != BattlePhase::Fight {
-            return None;
+            return vec![];
         }
 
         // A side without any individual (even dead) can't be broken: nothing to measure
         let has_individuals = |side| self.world.individuals().iter().any(|i| i.side == side);
         if !has_individuals(Side::A) || !has_individuals(Side::B) {
-            return None;
+            return vec![];
         }
 
-        let broken = self.broken_side()?;
+        let Some(broken) = self.broken_side() else {
+            return vec![];
+        };
         let result = self.battle_result();
 
-        Some(Update::SetBattlePhase(BattlePhase::End(End::Morale(
-            broken, result,
-        ))))
+        vec![
+            Update::SetBattlePhase(BattlePhase::End(End::Morale(broken, result))),
+            Update::End,
+        ]
     }
 
     fn broken_side(&self) -> Option<Side> {

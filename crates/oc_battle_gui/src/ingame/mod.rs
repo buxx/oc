@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use oc_network::ToServer;
 use oc_root::Wcfg;
 use oc_utils::{let_ok, let_some};
-use oc_world::resume::WorldResume;
+use oc_world::resume::{EndResume, WorldResume};
 
 #[cfg(feature = "debug")]
 use crate::ingame::debug::visibility::ShowVisibility;
@@ -69,6 +69,9 @@ pub struct GameConfigReceived;
 
 #[derive(Debug, Event, Deref)]
 pub struct WorldResumeEvent(pub WorldResume);
+
+#[derive(Debug, Event, Deref)]
+pub struct EndResumeEvent(pub EndResume);
 
 #[derive(Debug, Event)]
 pub struct SwitchToWorldMap;

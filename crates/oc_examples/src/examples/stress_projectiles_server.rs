@@ -79,6 +79,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             tracker,
             #[cfg(feature = "debug")]
             None,
+            oc_world_server::end::EndPolicy::None,
         )
         .run(to_server_rx, ready_tx, stop_rx);
     });

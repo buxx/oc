@@ -15,10 +15,13 @@ use tracing_subscriber::EnvFilter;
 
 #[cfg(feature = "tracker")]
 use crate::tracker::Tracker;
-use crate::{config::ServerConfig, network::NetworkConfig, runner::Runner, static_::Static};
+use crate::{
+    config::ServerConfig, end::EndPolicy, network::NetworkConfig, runner::Runner, static_::Static,
+};
 
 mod bridge;
 mod config;
+mod end;
 mod index;
 mod individual;
 mod network;
@@ -68,6 +71,10 @@ pub struct Args {
 
     #[clap(long, default_value = ".cache")]
     pub cache: PathBuf,
+
+    /// What to do when battle ends: `none` or `save-map-persist-to:<path>`
+    #[clap(long, default_value = "none")]
+    pub end: EndPolicy,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -94,6 +101,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (ready, _) = channel();
     let (stop_tx, stop_rx) = channel();
+    let end = args.end.clone();
     std::thread::spawn(move || {
         Runner::new(
             config,
@@ -103,6 +111,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             tracker,
             #[cfg(feature = "debug")]
             None,
+            end,
         )
         .run(input, ready, stop_rx);
     });

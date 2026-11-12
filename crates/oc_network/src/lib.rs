@@ -27,7 +27,7 @@ use oc_world::{
     flag::Flags,
     meta::Meta,
     morale::Morale,
-    resume::WorldResume,
+    resume::{EndResume, WorldResume},
     support::SupportType,
     tile::{AlteredTile, Tile},
     visibility::Visibility,
@@ -39,6 +39,7 @@ use rkyv::{Archive, Deserialize, Serialize};
 pub enum ToClient {
     GameConfig(Box<GameConfig>),
     WorldResume(WorldResume),
+    EndResume(EndResume),
     Individual(Individual),
     Squad(Squad),
     Projectile(Projectile),

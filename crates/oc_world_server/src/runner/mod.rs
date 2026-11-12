@@ -1,23 +1,24 @@
 use std::{
     sync::{
         Arc,
-        mpsc::{Receiver, Sender},
+        atomic::{AtomicBool, Ordering},
+        mpsc::{Receiver, Sender, channel},
     },
+    thread::JoinHandle,
     time::{Duration, Instant},
 };
 
-use derive_more::Constructor;
 use oc_individual::{IndividualIndex, squad::SquadIndex};
 use oc_network::{GameConfig, ToClient};
-#[cfg(feature = "debug")]
 use oc_root::side::Side;
 use oc_root::{Client, battle::BattlePhase};
+use oc_world::{resume::EndResume, snapshot::Persist};
 
 #[cfg(feature = "tracker")]
 use crate::tracker::Tracker;
 use crate::{
-    bridge::Event, config::ServerConfig, individual, physics, runner::input::Dealer, squad,
-    state::State, utils::context::Context,
+    bridge::Event, config::ServerConfig, end::EndPolicy, individual, physics, routing::Listening,
+    runner::input::Dealer, squad, state::State, utils::context::Context,
 };
 
 const WORLD_INTERVAL: Duration = Duration::from_secs(5);
@@ -34,7 +35,15 @@ pub mod input;
 pub mod support;
 pub mod update;
 
-#[derive(Constructor)]
+/// Signals received by runner main loop
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Signal {
+    /// Stop requested from outside (like SIGINT)
+    Stop,
+    /// Battle ended
+    End,
+}
+
 pub struct Runner<E: Client> {
     config: ServerConfig,
     state: Arc<State<E>>,
@@ -44,9 +53,36 @@ pub struct Runner<E: Client> {
     #[cfg(feature = "debug")]
     /// When set, avoid listening filter when broadcast (to ensure vent receive in e2e tests)
     direct: Option<(E, Side)>,
+    end: EndPolicy,
+    /// Shared with all runner threads: when set, they stop
+    stopped: Arc<AtomicBool>,
+    /// Runner react (SIGHINT or end of game)
+    signal: (Sender<Signal>, Receiver<Signal>),
 }
 
 impl<E: Client> Runner<E> {
+    pub fn new(
+        config: ServerConfig,
+        state: Arc<State<E>>,
+        output: Sender<(E, ToClient)>,
+        #[cfg(feature = "tracker")] tracker: Tracker,
+        #[cfg(feature = "debug")] direct: Option<(E, Side)>,
+        end: EndPolicy,
+    ) -> Self {
+        Self {
+            config,
+            state,
+            output,
+            #[cfg(feature = "tracker")]
+            tracker,
+            #[cfg(feature = "debug")]
+            direct,
+            end,
+            stopped: Arc::new(AtomicBool::new(false)),
+            signal: channel(),
+        }
+    }
+
     pub fn run(
         &self,
         input: Receiver<Event<E>>,
@@ -54,20 +90,63 @@ impl<E: Client> Runner<E> {
         stop: Receiver<()>,
     ) {
         self.listen_input(input);
-        self.start_physics();
-        self.start_individuals();
-        self.start_visibilities();
-        self.start_squads();
-        self.start_world();
-        self.start_smoke();
-        self.start_scheduler();
+        self.listen_stop(stop);
+
+        let mut threads = vec![];
+        threads.extend(self.start_physics());
+        threads.extend(self.start_individuals());
+        threads.extend(self.start_visibilities());
+        threads.extend(self.start_squads());
+        threads.push(self.start_world());
+        threads.push(self.start_smoke());
+        threads.push(self.start_scheduler());
 
         let _ = ready.send(Ok(()));
         #[cfg(feature = "perfs")]
         self.perfs();
 
-        let _ = stop.recv();
+        match self.signal.1.recv() {
+            Ok(Signal::End) => {
+                tracing::info!("Battle ended, stop runner threads");
+                self.stop(threads);
+                self.end();
+            }
+            Ok(Signal::Stop) | Err(_) => {
+                self.stopped.store(true, Ordering::Relaxed);
+            }
+        }
+
         tracing::debug!("Finished runner");
+    }
+
+    /// Stop all runner threads and wait them to finish their current tick
+    fn stop(&self, threads: Vec<JoinHandle<()>>) {
+        self.stopped.store(true, Ordering::Relaxed);
+        for thread in threads {
+            let _ = thread.join();
+        }
+    }
+
+    /// Battle is ended and runner threads are stopped
+    fn end(&self) {
+        let ctx = self.context();
+        let world = self.state.world();
+        let world: &oc_world::World = &world;
+
+        // Send to each side its battle summary
+        for side in [Side::A, Side::B] {
+            let resume = EndResume::from_world(world, side);
+            ctx.broadcast(Listening::Side(side), vec![ToClient::EndResume(resume)]);
+        }
+
+        match &self.end {
+            EndPolicy::None => {}
+            EndPolicy::SaveMapPersistTo(path) => {
+                if let Err(error) = Persist::from(world).save(path) {
+                    tracing::error!("Save map persist: {error}");
+                }
+            }
+        }
     }
 
     fn context(&self) -> Context<E> {
@@ -78,24 +157,39 @@ impl<E: Client> Runner<E> {
             self.tracker.clone(),
             #[cfg(feature = "debug")]
             self.direct.clone(),
+            self.stopped.clone(),
+            self.signal.0.clone(),
         )
     }
 
-    fn start_physics(&self) {
-        tracing::debug!("Start physics");
-        let ctx = self.context();
-
-        (0..ctx.cpus).for_each(|i| {
-            spawn_ticker(ctx.clone(), Kind::Physics, true, move |ctx| {
-                tracing::trace!(name = "runner-physics", i = i);
-                for update_ in physics::Processor::new(ctx).step(i) {
-                    update::update(ctx, update_);
-                }
-            });
+    /// Forward external stop request to runner main loop
+    fn listen_stop(&self, stop: Receiver<()>) {
+        let signal = self.signal.0.clone();
+        std::thread::spawn(move || {
+            // Err means stop sender dropped: no stop will ever be requested
+            if stop.recv().is_ok() {
+                let _ = signal.send(Signal::Stop);
+            }
         });
     }
 
-    fn start_individuals(&self) {
+    fn start_physics(&self) -> Vec<JoinHandle<()>> {
+        tracing::debug!("Start physics");
+        let ctx = self.context();
+
+        (0..ctx.cpus)
+            .map(|i| {
+                spawn_ticker(ctx.clone(), Kind::Physics, true, move |ctx| {
+                    tracing::trace!(name = "runner-physics", i = i);
+                    for update_ in physics::Processor::new(ctx).step(i) {
+                        update::update(ctx, update_);
+                    }
+                })
+            })
+            .collect()
+    }
+
+    fn start_individuals(&self) -> Vec<JoinHandle<()>> {
         tracing::debug!("Start individuals");
         let ctx = self.context();
         let count = self.state.world().individuals().len();
@@ -111,10 +205,10 @@ impl<E: Client> Runner<E> {
                     individual::Processor::new(world, indexes, i).step()
                 })
                 .collect::<Vec<_>>()
-        });
+        })
     }
 
-    fn start_squads(&self) {
+    fn start_squads(&self) -> Vec<JoinHandle<()>> {
         tracing::debug!("Start squads");
         let ctx = self.context();
         let count = self.state.world().squads().len();
@@ -130,17 +224,17 @@ impl<E: Client> Runner<E> {
                     squad::Processor::new(world, indexes, i).step()
                 })
                 .collect::<Vec<_>>()
-        });
+        })
     }
 
-    fn start_visibilities(&self) {
+    fn start_visibilities(&self) -> Option<JoinHandle<()>> {
         tracing::debug!("Start visibilities");
         let ctx = self.context();
         if self.state.world().individuals().is_empty() {
-            return;
+            return None;
         }
 
-        spawn_ticker(ctx, Kind::Visibilities, false, |ctx| {
+        Some(spawn_ticker(ctx, Kind::Visibilities, false, |ctx| {
             let visibilities = {
                 // Short lock to start: sides individuals
                 let sides = {
@@ -176,10 +270,10 @@ impl<E: Client> Runner<E> {
             };
 
             update::update(ctx, update::Update::UpdateVisibilities(visibilities));
-        });
+        }))
     }
 
-    fn start_world(&self) {
+    fn start_world(&self) -> JoinHandle<()> {
         tracing::debug!("Start world");
 
         spawn_ticker(self.context(), Kind::World, true, |ctx| {
@@ -193,10 +287,10 @@ impl<E: Client> Runner<E> {
             for update in updates {
                 update::update(ctx, update);
             }
-        });
+        })
     }
 
-    fn start_smoke(&self) {
+    fn start_smoke(&self) -> JoinHandle<()> {
         tracing::debug!("Start smoke");
 
         spawn_ticker(self.context(), Kind::Smoke, true, |ctx| {
@@ -205,7 +299,7 @@ impl<E: Client> Runner<E> {
             if has_clouds {
                 update::update(ctx, update::Update::UpdateSmoke);
             }
-        });
+        })
     }
 
     #[cfg(feature = "perfs")]
@@ -252,6 +346,8 @@ impl<E: Client> Runner<E> {
                             .unwrap(); // TODO
                     }
                     Event::Disconnected(endpoint) => state.listeners_mut().remove(&endpoint),
+                    // Battle ended: ignore clients messages
+                    Event::Message(..) if ctx.stopped() => {}
                     Event::Message(endpoint, message) => {
                         for update_ in Dealer::new(&state, &mod_, &output, endpoint).deal(message) {
                             update::update(&ctx, update_);
@@ -262,12 +358,12 @@ impl<E: Client> Runner<E> {
         });
     }
 
-    fn start_scheduler(&self) {
+    fn start_scheduler(&self) -> JoinHandle<()> {
         tracing::debug!("Start scheduler");
         let ctx = self.context();
 
         std::thread::spawn(move || {
-            loop {
+            while !ctx.stopped() {
                 let now = Instant::now();
                 // Take all tasks at once: lock must be released before run updates
                 let tasks = std::mem::take(&mut *ctx.state.scheduled());
@@ -281,7 +377,7 @@ impl<E: Client> Runner<E> {
                 // TODO: This is a very basic system of scheduler ...
                 std::thread::sleep(ctx.state.w.scheduler_tick().interval());
             }
-        });
+        })
     }
 }
 
@@ -326,13 +422,13 @@ impl Kind {
 }
 
 /// Spawn a thread calling `tick` once per `kind` interval. When `skip_ended` is set, ticks are
-/// skipped once the battle is ended.
+/// skipped once the battle is ended. Thread finishes when runner is stopped.
 fn spawn_ticker<E: Client>(
     ctx: Context<E>,
     kind: Kind,
     skip_ended: bool,
     mut tick: impl FnMut(&Context<E>) + Send + 'static,
-) {
+) -> JoinHandle<()> {
     std::thread::spawn(move || {
         let mut last = Instant::now();
 
@@ -345,13 +441,17 @@ fn spawn_ticker<E: Client>(
             std::thread::sleep(wait);
             last = Instant::now();
 
+            if ctx.stopped() {
+                break;
+            }
+
             if skip_ended && ended(&ctx) {
                 continue;
             }
 
             tick(&ctx);
         }
-    });
+    })
 }
 
 /// Split `0..count` between one ticker thread by cpu. Each tick, `step` is called on batches of
@@ -361,20 +461,24 @@ fn spawn_chunked<E: Client>(
     kind: Kind,
     count: usize,
     step: impl Fn(&Context<E>, &[usize]) -> Vec<update::Update> + Clone + Send + 'static,
-) {
+) -> Vec<JoinHandle<()>> {
     let size = (count as f32 / ctx.cpus as f32).ceil() as usize;
     if size == 0 {
-        return;
+        return vec![];
     }
 
-    for indexes in (0..count).collect::<Vec<usize>>().chunks(size) {
-        let indexes = indexes.to_vec();
-        let step = step.clone();
+    (0..count)
+        .collect::<Vec<usize>>()
+        .chunks(size)
+        .map(|indexes| {
+            let indexes = indexes.to_vec();
+            let step = step.clone();
 
-        spawn_ticker(ctx.clone(), kind, true, move |ctx| {
-            for batch in indexes.chunks(STEP_BATCH) {
-                update::update_all(ctx, step(ctx, batch));
-            }
-        });
-    }
+            spawn_ticker(ctx.clone(), kind, true, move |ctx| {
+                for batch in indexes.chunks(STEP_BATCH) {
+                    update::update_all(ctx, step(ctx, batch));
+                }
+            })
+        })
+        .collect()
 }

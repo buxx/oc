@@ -464,6 +464,7 @@ impl<'a> WithIds<IndividualIndex, &'a Individual> for &'a [Individual] {
 #[rkyv(compare(PartialEq), derive(Debug))]
 pub enum Status {
     Operational,
+    // FIXME: will lost/not apply real status
     Stunned(Stun),
     Dead,
 }

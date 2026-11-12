@@ -1,4 +1,8 @@
-use std::sync::{Arc, mpsc::Sender};
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+    mpsc::Sender,
+};
 
 use oc_network::ToClient;
 use oc_root::Client;
@@ -7,7 +11,7 @@ use oc_root::side::Side;
 
 #[cfg(feature = "tracker")]
 use crate::tracker::Tracker;
-use crate::{routing::Listening, state::State};
+use crate::{routing::Listening, runner::Signal, state::State};
 
 #[derive(Clone)]
 pub struct Context<E: Client> {
@@ -18,6 +22,10 @@ pub struct Context<E: Client> {
     pub tracker: Tracker,
     #[cfg(feature = "debug")]
     direct: Option<(E, Side)>,
+    /// When set, runner threads must stop
+    stopped: Arc<AtomicBool>,
+    /// Signals to runner (like battle end)
+    signal: Sender<Signal>,
 }
 
 impl<E: Client> Context<E> {
@@ -26,6 +34,8 @@ impl<E: Client> Context<E> {
         output: Sender<(E, ToClient)>,
         #[cfg(feature = "tracker")] tracker: Tracker,
         #[cfg(feature = "debug")] direct: Option<(E, Side)>,
+        stopped: Arc<AtomicBool>,
+        signal: Sender<Signal>,
     ) -> Self {
         let cpus = num_cpus::get();
 
@@ -37,7 +47,17 @@ impl<E: Client> Context<E> {
             tracker,
             #[cfg(feature = "debug")]
             direct,
+            stopped,
+            signal,
         }
+    }
+
+    pub fn stopped(&self) -> bool {
+        self.stopped.load(Ordering::Relaxed)
+    }
+
+    pub fn signal(&self, signal: Signal) {
+        let _ = self.signal.send(signal);
     }
 
     pub fn broadcast<T>(&self, filter: Listening, messages: Vec<T>)

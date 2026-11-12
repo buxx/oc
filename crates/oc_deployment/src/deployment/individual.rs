@@ -11,6 +11,27 @@ pub struct Individual {
     pub xp: u8,
     pub weapons: Weapons,
     pub magazines: Vec<Magazine>,
+    #[serde(default)]
+    pub status: Status,
+}
+
+/// Individual status kept between battles
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+pub enum Status {
+    #[default]
+    Operational,
+    Dead,
+}
+
+impl From<&oc_individual::Status> for Status {
+    fn from(value: &oc_individual::Status) -> Self {
+        match value {
+            oc_individual::Status::Operational | oc_individual::Status::Stunned(_) => {
+                Status::Operational
+            }
+            oc_individual::Status::Dead => Status::Dead,
+        }
+    }
 }
 
 impl Default for Individual {
@@ -27,6 +48,7 @@ impl Individual {
             xp: default_xp(),
             weapons: Weapons::empty(),
             magazines: vec![],
+            status: Status::default(),
         }
     }
 }

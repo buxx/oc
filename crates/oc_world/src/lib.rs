@@ -73,6 +73,7 @@ pub struct World {
     pub start: Option<Instant>,
     pub side_a_spawn_zones: Vec<crate::spawn::SpawnZone>,
     pub side_b_spawn_zones: Vec<crate::spawn::SpawnZone>,
+    pub spawn_zones: Vec<crate::spawn::SpawnZone>,
     pub flags: Flags,
     pub supports: Supports,
     pub pending_supports: Vec<PendingSupport>,
@@ -349,6 +350,8 @@ mod tests {
             1,
             "A".to_string(),
             "B".to_string(),
+            [0, 0, 0],
+            [0, 0, 0],
             vec![],
             Default::default(),
             vec![],
@@ -363,7 +366,7 @@ mod tests {
             Default::default(),
             1.5,
         );
-        let meta = Meta::new("MyWorld".to_string(), 0, w.geo_meters_per_z().0);
+        let meta = Meta::new("MyWorld".to_string(), 0, w.geo_meters_per_z().0, None);
         let tiles: Vec<Tile> = (0..w.tiles_count())
             .map(|i| Tile::new(WorldTileIndex(i), NatureIndex(0), 0, Traversability::all()))
             .collect();
@@ -376,6 +379,7 @@ mod tests {
             BattlePhase::Fight,
             DEFAULT_FIGHT_DURATION,
             Some(Instant::now()),
+            vec![],
             vec![],
             vec![],
             Flags::default(),
@@ -421,7 +425,7 @@ mod tests {
         let grass = mod_.nature_index("ShortGrass").unwrap();
         let rock = mod_.nature_index("BigRock").unwrap();
         let w = WorldConfig::new(10, 10).with_geo_pixels_per_tile(5);
-        let meta = Meta::new("MyWorld".to_string(), 0, w.geo_meters_per_z().0);
+        let meta = Meta::new("MyWorld".to_string(), 0, w.geo_meters_per_z().0, None);
         let allow = mod_.nature(grass).traversability.clone();
         let tiles: Vec<Tile> = (0..w.tiles_count())
             .map(|i| Tile::new(WorldTileIndex(i), grass, 0, allow.clone()))
@@ -436,6 +440,7 @@ mod tests {
             BattlePhase::Fight,
             DEFAULT_FIGHT_DURATION,
             Some(Instant::now()),
+            vec![],
             vec![],
             vec![],
             Flags::default(),

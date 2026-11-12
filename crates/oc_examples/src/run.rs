@@ -9,9 +9,9 @@ use bon::Builder;
 use oc_root::side::Side;
 use oc_root::{files::Roots, static_::StaticSource};
 use oc_world::{load::WorldPath, meta::Meta};
-use oc_world_server::config::ServerConfig;
 #[cfg(feature = "test")]
 use oc_world_server::tracker::Tracker;
+use oc_world_server::{config::ServerConfig, end::EndPolicy};
 
 use crate::bridge;
 
@@ -105,6 +105,7 @@ impl Example {
                     tracker,
                     #[cfg(feature = "debug")]
                     Some(((), side)),
+                    EndPolicy::None,
                 )
                 .run(to_server_rx, ready_tx, stop_rx);
             });

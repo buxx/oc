@@ -128,6 +128,7 @@ impl WorldLoader {
             start,
             a_spawns_,
             b_spawns_,
+            spawn_zones,
             flags,
             supports,
             pending_supports,
