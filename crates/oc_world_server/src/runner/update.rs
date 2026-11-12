@@ -58,7 +58,6 @@ pub enum Update {
     AlterTiles(Vec<AlteredTile>),
     AddCrater(Crater),
     AddSmokeCloud(SmokeCloud),
-    /// Fade smoke clouds and forget expired ones
     UpdateSmoke,
     RemoveDecor(Vec<WorldTileIndex>),
 }
