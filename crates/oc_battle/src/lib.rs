@@ -16,6 +16,8 @@ pub use scenario::Scenario;
 pub struct Battle {
     name: String,
     description: String,
+    /// Map folder name
+    map: String,
     #[builder(default)]
     scenarios: Vec<Scenario>,
 }
@@ -35,6 +37,7 @@ pub enum Error {
 struct BattleRaw {
     name: String,
     description: String,
+    map: String,
     scenarios: Vec<String>,
 }
 
@@ -58,6 +61,10 @@ impl Battle {
         &self.description
     }
 
+    pub fn map(&self) -> &str {
+        &self.map
+    }
+
     pub fn scenarios(&self) -> &[Scenario] {
         &self.scenarios
     }
@@ -76,6 +83,7 @@ impl Battle {
         Ok(Self {
             name: raw.name,
             description: raw.description,
+            map: raw.map,
             scenarios,
         })
     }

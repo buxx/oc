@@ -15,6 +15,10 @@ pub struct Scenario {
     deploy_b: Profile,
     a_start_spawn_zones: Vec<SpawnZoneName>,
     b_start_spawn_zones: Vec<SpawnZoneName>,
+    a_squad_count: usize,
+    b_squad_count: usize,
+    a_default: Vec<String>,
+    b_default: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -25,6 +29,10 @@ struct ScenarioRaw {
     deploy_b: String,
     a_start_spawn_zones: Vec<SpawnZoneName>,
     b_start_spawn_zones: Vec<SpawnZoneName>,
+    a_squad_count: usize,
+    b_squad_count: usize,
+    a_default: Vec<String>,
+    b_default: Vec<String>,
 }
 
 impl Scenario {
@@ -52,6 +60,22 @@ impl Scenario {
         &self.b_start_spawn_zones
     }
 
+    pub fn a_squad_count(&self) -> usize {
+        self.a_squad_count
+    }
+
+    pub fn b_squad_count(&self) -> usize {
+        self.b_squad_count
+    }
+
+    pub fn a_default(&self) -> &[String] {
+        &self.a_default
+    }
+
+    pub fn b_default(&self) -> &[String] {
+        &self.b_default
+    }
+
     pub fn from_ron_file(path: impl AsRef<Path>) -> Result<Self, Error> {
         let path = path.as_ref();
         let dir = path.parent().unwrap_or(Path::new("."));
@@ -64,6 +88,10 @@ impl Scenario {
             deploy_b: read_ron(&dir.join(raw.deploy_b))?,
             a_start_spawn_zones: raw.a_start_spawn_zones,
             b_start_spawn_zones: raw.b_start_spawn_zones,
+            a_squad_count: raw.a_squad_count,
+            b_squad_count: raw.b_squad_count,
+            a_default: raw.a_default,
+            b_default: raw.b_default,
         })
     }
 }

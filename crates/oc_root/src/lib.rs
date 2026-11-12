@@ -58,6 +58,12 @@ pub const TILE_SALT_ROTATION: u64 = 0;
 pub const TILE_SALT_ALTER_SPRITE: u64 = 1;
 pub const TILE_SALT_INTERIOR_DESTRUCTION: u64 = 2;
 
+/// Name of the official default mod
+pub const DEFAULT_MOD: &str = "std1";
+
+pub const SPAWN_ZONE_NONE_OPACITY: f32 = 0.75;
+pub const SPAWN_ZONE_ENEMY_OPACITY: f32 = 0.95;
+
 #[derive(
     Debug, Clone, Archive, Deserialize, Serialize, PartialEq, WithSetters, Getters, CopyGetters,
 )]

@@ -7,6 +7,9 @@ pub enum Page {
     Multiplayer,
     Campaign,
     Battle,
+    NewBattle,
+    PrepareBattle,
+    ChooseSquads,
 }
 
 impl Page {
@@ -17,6 +20,9 @@ impl Page {
             Page::Multiplayer => "Multiplayer",
             Page::Campaign => "Campaign",
             Page::Battle => "Battle",
+            Page::NewBattle => "New Battle",
+            Page::PrepareBattle => "Prepare Battle",
+            Page::ChooseSquads => "Choose Squads",
         }
     }
 
@@ -25,6 +31,18 @@ impl Page {
             Page::Home => vec![Page::Home],
             Page::Solo | Page::Multiplayer => vec![Page::Home, *self],
             Page::Campaign | Page::Battle => vec![Page::Home, Page::Solo, *self],
+            Page::NewBattle => vec![Page::Home, Page::Solo, Page::Battle, *self],
+            Page::PrepareBattle => {
+                vec![Page::Home, Page::Solo, Page::Battle, Page::NewBattle, *self]
+            }
+            Page::ChooseSquads => vec![
+                Page::Home,
+                Page::Solo,
+                Page::Battle,
+                Page::NewBattle,
+                Page::PrepareBattle,
+                *self,
+            ],
         }
     }
 
@@ -36,6 +54,9 @@ impl Page {
             Page::Multiplayer => pages::multiplayer::show(ui),
             Page::Campaign => pages::campaign::show(ui),
             Page::Battle => pages::battle::show(ui, ctx),
+            Page::NewBattle => pages::new_battle::show(ui, ctx),
+            Page::PrepareBattle => pages::prepare_battle::show(ui, ctx),
+            Page::ChooseSquads => pages::choose_squads::show(ui, ctx),
         }
     }
 }

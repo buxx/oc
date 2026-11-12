@@ -3,9 +3,11 @@
   description: "Hello world",
   deploy_a: "deploy_a.ron",
   deploy_b: "deploy_b.ron",
+  a_squad_count: 8,
+  b_squad_count: 7,
   a_start_spawn_zones: [
-      "SouthEast",
-      "South"
+    "SouthEast",
+    "South"
   ],
   b_start_spawn_zones: [
     "North",
@@ -15,5 +17,24 @@
     "WestTown",
     "EstTown",
     "SouthWest",
+  ],
+  a_default: [
+    "Riffle",
+    "Riffle",
+    "Riffle",
+    "Riffle",
+    "Riffle",
+    "Riffle",
+    "Bren",
+    "Bren",
+  ],
+  b_default: [
+    "Riffle",
+    "Riffle",
+    "Riffle",
+    "Riffle",
+    "Riffle",
+    "Mg34",
+    "Mg34",
   ],
 )

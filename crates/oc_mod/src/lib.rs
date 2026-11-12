@@ -62,6 +62,10 @@ pub const DEFAULT_HUMAN_DEFAULT_STAND_UP_FIRE_METERS: Meters = Meters(1.5);
 pub struct Mod {
     name: String,
     version: u32,
+    a_name: String,
+    b_name: String,
+    a_color: [u8; 3],
+    b_color: [u8; 3],
     #[serde(skip, default)]
     pub natures: Vec<nature::IndexedNature>,
     /// Matching NatureIndex of `Alter`
@@ -118,6 +122,14 @@ impl Mod {
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn a_name(&self) -> &str {
+        &self.a_name
+    }
+
+    pub fn b_name(&self) -> &str {
+        &self.b_name
     }
 
     pub fn canonical(&self) -> String {

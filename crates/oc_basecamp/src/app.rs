@@ -1,49 +1,72 @@
+use std::path::PathBuf;
+
 use eframe::egui;
+use oc_deployment::deployment::Deployment;
+use oc_game::Game;
+use oc_root::{DEFAULT_MOD, side::Side};
 
 use crate::{
     about,
     battle::{self, Battle},
     errors,
     map::{self, Map},
-    mods,
+    minimap,
+    mods::{self, ModInfo},
     page::Page,
     pages::PageContext,
 };
 
 pub struct App {
+    /// Application folder in user home (games, cache)
+    app_dir: PathBuf,
     loading: bool,
     page: Page,
-    mods: Vec<String>,
-    selected_mod: Option<String>,
+    mods: Vec<ModInfo>,
+    selected_mod: String,
     show_about: bool,
     battles: Vec<Battle>,
     maps: Vec<Map>,
+    games: Vec<Game>,
+    current_game: Option<Game>,
     selected_battle: Option<usize>,
     selected_scenario: Option<usize>,
     show_all_battles: bool,
+    selected_side: Option<Side>,
+    deployment: Option<Deployment>,
+    squad_slots: Vec<Option<usize>>,
     errors: Vec<String>,
     show_errors: bool,
 }
 
 impl App {
-    pub fn new() -> Self {
-        let mods = mods::list();
-        let selected_mod = mods.first().cloned();
+    /// Fails if the application folder can't be determined
+    pub fn new() -> Result<Self, oc_game::Error> {
+        let app_dir = oc_game::app_dir()?;
+        let (mods, mut errors) = mods::list();
+        if !mods.iter().any(|m| m.name == DEFAULT_MOD) {
+            errors.push(format!("Default mod '{DEFAULT_MOD}' not found"));
+        }
 
-        Self {
+        Ok(Self {
+            app_dir,
             page: Page::Home,
             mods,
-            selected_mod,
+            selected_mod: DEFAULT_MOD.to_string(),
             show_about: false,
             battles: vec![],
             maps: vec![],
+            games: vec![],
+            current_game: None,
             selected_battle: None,
             selected_scenario: None,
             show_all_battles: false,
+            selected_side: None,
+            deployment: None,
+            squad_slots: vec![],
             loading: true,
-            errors: vec![],
+            errors,
             show_errors: false,
-        }
+        })
     }
 
     fn menu_bar(&mut self, ui: &mut egui::Ui) {
@@ -72,15 +95,16 @@ impl App {
 
     fn mods(&mut self, ui: &mut egui::Ui) {
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            let selected_text = self.selected_mod.clone().unwrap_or_else(|| "(none)".into());
+            let selected_text = self.selected_mod.clone();
 
             // Mod can only be changed from the Home page
             ui.add_enabled_ui(self.page == Page::Home, |ui| {
                 egui::ComboBox::from_id_salt("mod_select")
                     .selected_text(selected_text)
                     .show_ui(ui, |ui| {
-                        for name in &self.mods {
-                            ui.selectable_value(&mut self.selected_mod, Some(name.clone()), name);
+                        for mod_ in &self.mods {
+                            let value = mod_.name.clone();
+                            ui.selectable_value(&mut self.selected_mod, value, &mod_.name);
                         }
                     });
             });
@@ -126,9 +150,14 @@ impl App {
         let (battles, errors) = battle::load_all();
         self.battles = battles;
         self.errors.extend(errors);
+        minimap::generate_all(&self.app_dir, &self.battles, &self.mods, &mut self.errors);
 
-        let (maps, errors) = map::load_all();
+        let (maps, errors) = map::load_all(&self.mods);
         self.maps = maps;
+        self.errors.extend(errors);
+
+        let (games, errors) = oc_game::load_all(&self.app_dir);
+        self.games = games;
         self.errors.extend(errors);
 
         self.loading = false;
@@ -139,12 +168,21 @@ impl App {
         egui::Panel::top("navigation").show(ui, |ui| self.navigation(ui));
         egui::CentralPanel::default().show(ui, |ui| {
             let mut ctx = PageContext {
+                app_dir: &self.app_dir,
                 battles: &self.battles,
                 maps: &self.maps,
+                games: &mut self.games,
+                current_game: &mut self.current_game,
+                errors: &mut self.errors,
+                show_errors: &mut self.show_errors,
                 selected_battle: &mut self.selected_battle,
                 selected_scenario: &mut self.selected_scenario,
                 show_all_battles: &mut self.show_all_battles,
-                selected_mod: self.selected_mod.as_deref(),
+                selected_side: &mut self.selected_side,
+                deployment: &mut self.deployment,
+                squad_slots: &mut self.squad_slots,
+                mods: &self.mods,
+                selected_mod: &self.selected_mod,
             };
             if let Some(next) = self.page.show(ui, &mut ctx) {
                 self.page = next;

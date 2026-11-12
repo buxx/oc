@@ -4,7 +4,7 @@ use bevy::{
     prelude::*,
 };
 use geo::TriangulateEarcut;
-use oc_root::WorldConfig;
+use oc_root::{SPAWN_ZONE_ENEMY_OPACITY, SPAWN_ZONE_NONE_OPACITY, WorldConfig};
 use oc_utils::let_some;
 use oc_world::spawn::{SpawnZone, SpawnZoneName};
 
@@ -99,9 +99,9 @@ pub fn on_show_spawn_zones(
             commands.entity(entity).insert(OwnSpawnZone);
             (Visibility::Hidden, 0.)
         } else if is_their {
-            (Visibility::Visible, 0.95)
+            (Visibility::Visible, SPAWN_ZONE_ENEMY_OPACITY)
         } else {
-            (Visibility::Visible, 0.75)
+            (Visibility::Visible, SPAWN_ZONE_NONE_OPACITY)
         };
 
         *visibility = visibility_;

@@ -347,6 +347,8 @@ mod tests {
         let mod_ = Mod::new(
             "MyMod".to_string(),
             1,
+            "A".to_string(),
+            "B".to_string(),
             vec![],
             Default::default(),
             vec![],

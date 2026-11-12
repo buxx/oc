@@ -1,6 +1,10 @@
 Mod (
   name: "std1",
   version: 1,
+  a_name: "Allied",
+  b_name: "Axis",
+  a_color: (60, 120, 255),
+  b_color: (255, 70, 70),
   human_default_stand_up_fire_meters: 1.5,
   sound_groups: (
     die: [

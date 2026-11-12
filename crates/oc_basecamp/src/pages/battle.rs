@@ -1,10 +1,18 @@
+use std::path::Path;
+
 use eframe::egui;
 
-use crate::{battle::Battle, map::Map, page::Page};
+use oc_game::Game;
+
+use crate::{
+    battle::{Battle, Scenario},
+    map::Map,
+    map_view, minimap,
+    page::Page,
+};
 
 use super::PageContext;
 
-/// Same height for list headers and the name row facing them
 const HEADER_HEIGHT: f32 = 28.0;
 
 pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
@@ -31,7 +39,7 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
                     }
 
                     if ui
-                        .selectable_label(*ctx.selected_battle == Some(i), &battle.name)
+                        .selectable_label(*ctx.selected_battle == Some(i), battle.name())
                         .clicked()
                     {
                         *ctx.selected_battle = Some(i);
@@ -41,6 +49,7 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
             });
         });
 
+    let mut next = None;
     egui::CentralPanel::default()
         .frame(central_frame(ui))
         .show(ui, |ui| {
@@ -53,20 +62,30 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
                     let errors = mod_errors(battle, ctx.maps, ctx.selected_mod);
                     ui.horizontal(|ui| {
                         ui.set_min_height(HEADER_HEIGHT);
-                        ui.strong(&battle.name);
+                        ui.strong(battle.name());
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if let Some(errors) = &errors {
-                                compatibility(ui, errors);
-                            }
+                            compatibility(ui, &errors);
+                            map_view::button(
+                                ui,
+                                "battle",
+                                &minimap::battle_path(ctx.app_dir, battle),
+                            );
                         });
                     });
 
                     ui.separator();
 
-                    ui.label(&battle.description);
+                    ui.label(battle.description());
 
                     ui.add_space(8.0);
-                    scenarios(ui, battle, ctx.selected_scenario);
+                    next = scenarios(
+                        ui,
+                        ctx.app_dir,
+                        battle,
+                        ctx.selected_scenario,
+                        ctx.games,
+                        ctx.selected_mod,
+                    );
                 }
                 None => {
                     ui.label("Select a battle");
@@ -74,31 +93,39 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
             }
         });
 
-    None
+    next
 }
 
 /// Battle is listed if all are shown, or if its map has no error with the selected mod.
 fn is_listed(ctx: &PageContext, battle: &Battle) -> bool {
-    *ctx.show_all_battles
-        || mod_errors(battle, ctx.maps, ctx.selected_mod).is_none_or(|e| e.is_empty())
+    *ctx.show_all_battles || is_compatible(battle, ctx.maps, ctx.selected_mod)
+}
+
+fn is_compatible(battle: &Battle, maps: &[Map], selected_mod: &str) -> bool {
+    maps.iter()
+        .find(|m| m.name == battle.map())
+        .and_then(|map| {
+            map.compatibility
+                .iter()
+                .find(|c| c.mod_name == selected_mod)
+        })
+        .is_some_and(|compat| compat.is_compatible())
 }
 
 /// Errors of the battle map with the selected mod.
-fn mod_errors(battle: &Battle, maps: &[Map], selected_mod: Option<&str>) -> Option<Vec<String>> {
-    let selected_mod = selected_mod?;
-
-    let Some(map) = maps.iter().find(|m| m.name == battle.map) else {
-        return Some(vec![format!("Map '{}' not found", battle.map)]);
+fn mod_errors(battle: &Battle, maps: &[Map], selected_mod: &str) -> Vec<String> {
+    let Some(map) = maps.iter().find(|m| m.name == battle.map()) else {
+        return vec![format!("Map '{}' not found", battle.map())];
     };
     let Some(compat) = map
         .compatibility
         .iter()
         .find(|c| c.mod_name == selected_mod)
     else {
-        return Some(vec![format!("Mod '{selected_mod}' not checked")]);
+        return vec![format!("Mod '{selected_mod}' not checked")];
     };
 
-    Some(compat.errors.clone())
+    compat.errors.clone()
 }
 
 /// Error icon button opening a popin listing errors, when errors.
@@ -140,8 +167,14 @@ fn compatibility(ui: &mut egui::Ui, errors: &[String]) {
     ui.data_mut(|d| d.insert_temp(open_id, open));
 }
 
-/// Scenarios list (left) and selected scenario details (right).
-fn scenarios(ui: &mut egui::Ui, battle: &Battle, selected: &mut Option<usize>) {
+fn scenarios(
+    ui: &mut egui::Ui,
+    app_dir: &Path,
+    battle: &Battle,
+    selected: &mut Option<usize>,
+    games: &[Game],
+    selected_mod: &str,
+) -> Option<Page> {
     egui::Panel::left("scenarios_list")
         .resizable(true)
         .default_size(200.0)
@@ -153,9 +186,9 @@ fn scenarios(ui: &mut egui::Ui, battle: &Battle, selected: &mut Option<usize>) {
             ui.separator();
 
             egui::ScrollArea::vertical().show(ui, |ui| {
-                for (i, scenario) in battle.scenarios.iter().enumerate() {
+                for (i, scenario) in battle.scenarios().iter().enumerate() {
                     if ui
-                        .selectable_label(*selected == Some(i), &scenario.name)
+                        .selectable_label(*selected == Some(i), scenario.name())
                         .clicked()
                     {
                         *selected = Some(i);
@@ -164,23 +197,75 @@ fn scenarios(ui: &mut egui::Ui, battle: &Battle, selected: &mut Option<usize>) {
             });
         });
 
+    let mut next = None;
     egui::CentralPanel::default()
         .frame(central_frame(ui))
         .show(ui, |ui| {
-            match selected.and_then(|i| battle.scenarios.get(i)) {
+            match selected.and_then(|i| battle.scenarios().get(i)) {
                 Some(scenario) => {
                     ui.horizontal(|ui| {
                         ui.set_min_height(HEADER_HEIGHT);
-                        ui.strong(&scenario.name);
+                        ui.strong(scenario.name());
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            let path =
+                                minimap::scenario_path(app_dir, battle, scenario, selected_mod);
+                            map_view::button(ui, "scenario", &path);
+                        });
                     });
+
                     ui.separator();
-                    ui.label(&scenario.description);
+
+                    ui.label(scenario.description());
+                    ui.add_space(8.0);
+
+                    next = games_section(ui, battle, scenario, games, selected_mod);
                 }
                 None => {
                     ui.label("Select a scenario");
                 }
             }
         });
+
+    next
+}
+
+fn games_section(
+    ui: &mut egui::Ui,
+    battle: &Battle,
+    scenario: &Scenario,
+    games: &[Game],
+    selected_mod: &str,
+) -> Option<Page> {
+    let mut next = None;
+
+    ui.horizontal(|ui| {
+        ui.strong("Games");
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if ui.button("New game").clicked() {
+                next = Some(Page::NewBattle);
+            }
+        });
+    });
+
+    ui.separator();
+
+    let scenario_games = games.iter().map(|Game::Battle(game)| game).filter(|game| {
+        game.mod_name == selected_mod
+            && game.battle_name == battle.name()
+            && game.scenario_name == scenario.name()
+    });
+
+    let mut any = false;
+    for game in scenario_games {
+        any = true;
+        let modified = game.modified.with_timezone(&chrono::Local);
+        ui.label(modified.format("%Y-%m-%d %H:%M").to_string());
+    }
+    if !any {
+        ui.weak("No games");
+    }
+
+    next
 }
 
 /// Central panel frame with the same vertical margins as side panels, so headers of both align.

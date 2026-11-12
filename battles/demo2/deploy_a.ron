@@ -1,7 +1,7 @@
 (
   squads: [
     (
-      count: 5,
+      count: 10,
       label: "Riffle",
       illustration: "default",
       individuals: [
@@ -18,7 +18,7 @@
       ],
     ),
     (
-      count: 4,
+      count: 5,
       label: "Bren",
       illustration: "BrenMark2Squad",
       individuals: [

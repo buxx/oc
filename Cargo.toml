@@ -44,6 +44,7 @@ clap = { version = "4", features = ["derive"] }
 line_drawing = "1"
 image = "0.25"
 uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
 toml = "1"
 serde = { version = "1.0", features = ["serde_derive"] }
 serde_json = "1.0"
@@ -63,6 +64,7 @@ glam = "0.33"  # version stucked by polyanya requirements
 fastrand = "2"
 bon = "3.9"
 fs_extra = "1"
+glob = "0.3"
 tempfile = "3"
 tiled = "0.16"
 geo = "0.33"

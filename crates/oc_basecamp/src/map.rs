@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use oc_world::check::check_map;
 
-use crate::mods::{self, MODS_FOLDER};
+use crate::mods::{MODS_FOLDER, ModInfo};
 
 const MAPS_FOLDER: &str = "maps";
 
@@ -24,13 +24,12 @@ pub struct Map {
     pub compatibility: Vec<ModCompatibility>,
 }
 
-pub fn load_all() -> (Vec<Map>, Vec<String>) {
+pub fn load_all(mods: &[ModInfo]) -> (Vec<Map>, Vec<String>) {
     let mut maps = vec![];
     let mut errors = vec![];
-    let mods = mods::list();
 
     for path in map_folders(Path::new(MAPS_FOLDER), &mut errors) {
-        match load(&path, &mods) {
+        match load(&path, mods) {
             Ok(map) => maps.push(map),
             Err(error) => errors.push(error),
         }
@@ -56,7 +55,7 @@ fn map_folders(folder: &Path, errors: &mut Vec<String>) -> Vec<PathBuf> {
     paths
 }
 
-fn load(path: &Path, mods: &[String]) -> Result<Map, String> {
+fn load(path: &Path, mods: &[ModInfo]) -> Result<Map, String> {
     let name = path
         .file_name()
         .and_then(|n| n.to_str())
@@ -65,14 +64,14 @@ fn load(path: &Path, mods: &[String]) -> Result<Map, String> {
 
     let compatibility = mods
         .iter()
-        .map(|mod_name| {
-            let mod_path = Path::new(MODS_FOLDER).join(mod_name);
+        .map(|mod_| {
+            let mod_path = Path::new(MODS_FOLDER).join(&mod_.name);
             let errors = check_map(&mod_path, path)
                 .iter()
                 .map(ToString::to_string)
                 .collect();
             ModCompatibility {
-                mod_name: mod_name.clone(),
+                mod_name: mod_.name.clone(),
                 errors,
             }
         })
