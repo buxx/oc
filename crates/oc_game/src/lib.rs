@@ -34,7 +34,6 @@ pub enum Game {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BattleGame {
     pub id: Uuid,
-    /// Name of the mod (its folder name) the game is played with
     pub mod_name: String,
     pub battle_name: String,
     pub scenario_name: String,

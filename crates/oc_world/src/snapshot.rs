@@ -231,6 +231,16 @@ impl Snapshot {
     }
 }
 
+#[derive(Debug, Archive, Deserialize, Serialize, Constructor)]
+#[allow(clippy::too_many_arguments)]
+pub struct Persist {
+    pub altered_tiles: Vec<Option<AlteredTile>>,
+    pub decor: Vec<Option<Decor>>,
+    pub craters: Vec<Crater>,
+    pub side_a_spawns: Vec<SpawnZoneName>,
+    pub side_b_spawns: Vec<SpawnZoneName>,
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum LoadError {
     #[error("Load snapshot file '{0}' io error: {1}")]
