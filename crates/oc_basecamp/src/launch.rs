@@ -184,6 +184,10 @@ pub fn apply_world_state(app_dir: &Path, game: &Game) -> Result<(), String> {
                 .individuals
                 .retain(|individual| individual.status != Status::Dead);
         }
+        // Squads where all individuals are dead
+        deployment
+            .squads
+            .retain(|squad| !squad.individuals.is_empty());
 
         write_deployment(&dir.join(new_battle::deployment_file(side)), &deployment)?;
     }
