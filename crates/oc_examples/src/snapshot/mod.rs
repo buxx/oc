@@ -110,6 +110,7 @@ where
             supports: self.supports.clone(),
             pending_supports: vec![],
             support_realized: vec![],
+            uuids: Default::default(),
         };
         snapshot.save(&snapshot_path)?;
 

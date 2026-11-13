@@ -6569,6 +6569,7 @@ dependencies = [
  "oc_battle",
  "oc_deployment",
  "oc_game",
+ "oc_individual",
  "oc_mod",
  "oc_root",
  "oc_world",

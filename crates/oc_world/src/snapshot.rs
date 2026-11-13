@@ -3,18 +3,20 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime};
 
 use derive_more::Constructor;
-use oc_individual::Individual;
 use oc_individual::squad::Squad;
+use oc_individual::{Individual, Status, Weapons};
 use oc_projectile::Projectile;
 use oc_root::WorldConfig;
 use oc_root::battle::BattlePhase;
 use oc_root::geo::WorldVec2;
 use oc_root::side::Side;
+use oc_root::uuids::Uuids;
 use rkyv::rancor::Error;
 use rkyv::{
     Archive, Deserialize, Serialize,
     with::{AsUnixTime, Map},
 };
+use uuid::Uuid;
 
 use crate::World;
 use crate::crater::Crater;
@@ -48,6 +50,7 @@ pub struct Snapshot {
     pub supports: Supports,
     pub pending_supports: Vec<SnapshotPendingSupport>,
     pub support_realized: Vec<SnapshotSupportRealized>,
+    pub uuids: Uuids,
 }
 
 /// Persistable form of a support request time (Instant can't be persisted)
@@ -169,6 +172,7 @@ impl Snapshot {
             supports: Supports::default(),
             pending_supports: vec![],
             support_realized: vec![],
+            uuids: Uuids::default(),
         }
     }
 
@@ -234,15 +238,24 @@ impl Snapshot {
 
 #[derive(Debug, Archive, Deserialize, Serialize, Constructor)]
 #[allow(clippy::too_many_arguments)]
-pub struct Persist {
+pub struct State {
     pub altered_tiles: Vec<Option<AlteredTile>>,
     pub decor: Vec<Option<Decor>>,
     pub craters: Vec<Crater>,
     pub side_a_spawns: Vec<SpawnZoneName>,
     pub side_b_spawns: Vec<SpawnZoneName>,
+    pub individuals: Vec<IndividualState>,
 }
 
-impl From<&World> for Persist {
+/// Individual state kept between battles
+#[derive(Debug, Clone, Archive, Deserialize, Serialize, Constructor)]
+pub struct IndividualState {
+    pub uuid: Uuid,
+    pub status: Status,
+    pub weapons: Weapons,
+}
+
+impl From<&World> for State {
     fn from(world: &World) -> Self {
         let spawns = |side| {
             owned_spawn_zones(
@@ -259,28 +272,44 @@ impl From<&World> for Persist {
             craters: world.craters.clone(),
             side_a_spawns: spawns(Side::A),
             side_b_spawns: spawns(Side::B),
+            individuals: individuals_states(world),
         }
     }
 }
 
-impl Persist {
+fn individuals_states(world: &World) -> Vec<IndividualState> {
+    world
+        .individuals
+        .iter()
+        .enumerate()
+        .map(|(i, individual)| {
+            IndividualState::new(
+                *world.uuids.individual(i),
+                individual.status,
+                individual.weapons.clone(),
+            )
+        })
+        .collect()
+}
+
+impl State {
     // TODO: deserializations can be refactored accord all source code ?
     pub fn load(path: &PathBuf) -> Result<Self, LoadError> {
-        tracing::info!("Load persist from {}", path.display());
+        tracing::info!("Load state from {}", path.display());
         let bytes_ = std::fs::read(path);
         let bytes_ = bytes_.map_err(|e| LoadError::SourceIo(path.clone(), e))?;
         let mut bytes: rkyv::util::AlignedVec = rkyv::util::AlignedVec::with_capacity(bytes_.len());
         bytes.extend_from_slice(&bytes_);
-        let persist = rkyv::access::<ArchivedPersist, Error>(&bytes[..]);
-        let persist = persist.map_err(|e| LoadError::Format(path.clone(), e))?;
-        let persist = rkyv::deserialize::<Persist, Error>(persist);
-        let persist = persist.map_err(|e| LoadError::Format(path.clone(), e))?;
-        Ok(persist)
+        let state = rkyv::access::<ArchivedState, Error>(&bytes[..]);
+        let state = state.map_err(|e| LoadError::Format(path.clone(), e))?;
+        let state = rkyv::deserialize::<State, Error>(state);
+        let state = state.map_err(|e| LoadError::Format(path.clone(), e))?;
+        Ok(state)
     }
 
     // TODO: serializations can be refactored accord all source code ?
     pub fn save(&self, to: &PathBuf) -> Result<(), SaveError> {
-        tracing::info!("Save persist to {}", to.display());
+        tracing::info!("Save state to {}", to.display());
         let bytes = rkyv::to_bytes::<Error>(self);
         let bytes = bytes.map_err(|e| SaveError::Encode(to.clone(), e))?;
         let write = std::fs::write(to, &bytes);

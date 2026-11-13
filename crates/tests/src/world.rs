@@ -114,6 +114,7 @@ impl TestWorld {
             pending_supports: vec![],
             support_realized: Default::default(),
             interiors: self.interiors,
+            uuids: Default::default(),
         }
     }
 }

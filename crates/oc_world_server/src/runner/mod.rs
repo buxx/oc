@@ -12,7 +12,7 @@ use oc_individual::{IndividualIndex, squad::SquadIndex};
 use oc_network::{GameConfig, ToClient};
 use oc_root::side::Side;
 use oc_root::{Client, battle::BattlePhase};
-use oc_world::{resume::EndResume, snapshot::Persist};
+use oc_world::{resume::EndResume, snapshot};
 
 #[cfg(feature = "tracker")]
 use crate::tracker::Tracker;
@@ -163,7 +163,7 @@ impl<E: Client> Runner<E> {
         match &self.end {
             EndPolicy::None => {}
             EndPolicy::SaveMapPersistTo(path) => {
-                if let Err(error) = Persist::from(world).save(path) {
+                if let Err(error) = snapshot::State::from(world).save(path) {
                     tracing::error!("Save map persist: {error}");
                 }
             }

@@ -4,8 +4,13 @@ use std::{
     process::{Child, Command},
 };
 
-use oc_deployment::deployment::Deployment;
+use std::collections::HashMap;
+
+use oc_deployment::deployment::{Deployment, individual::Status, weapon::Weapons};
+use oc_game::Game;
+use oc_mod::Mod;
 use oc_root::side::Side;
+use oc_world::snapshot::{IndividualState, State};
 
 use crate::{
     battle::{MAPS_FOLDER, Scenario},
@@ -13,7 +18,8 @@ use crate::{
     pages::{PageContext, new_battle},
 };
 
-pub const MAP_PERSIST_FILE: &str = "map.persist";
+/// Open Combat World State: world state saved by battle at its end
+pub const WORLD_STATE_FILE: &str = "world.ocws";
 const BATTLE_GUI_BIN: &str = "oc_battle_gui";
 const SERVER_CACHE_FOLDER: &str = "server";
 
@@ -68,7 +74,7 @@ pub fn start(ctx: &PageContext) -> Result<Child, String> {
         write_battle_deployment(&dir, side, &slots)?;
     }
 
-    // FIXME BS NOW: must use map.persist spawn zones if map.persist exist
+    // FIXME BS NOW: must use world.ocws spawn zones if world.ocws exist
     let spawns = |side: Side| {
         match side {
             Side::A => scenario.a_start_spawn_zones(),
@@ -85,7 +91,7 @@ pub fn start(ctx: &PageContext) -> Result<Child, String> {
     };
     let cwd = std::env::current_dir().map_err(|e| format!("Current folder: {e}"))?;
     let cache = oc_game::cache_dir(ctx.app_dir).join(SERVER_CACHE_FOLDER);
-    let persist = dir.join(MAP_PERSIST_FILE);
+    let state = dir.join(WORLD_STATE_FILE);
 
     let mut command = Command::new(battle_gui_bin());
     command
@@ -100,7 +106,7 @@ pub fn start(ctx: &PageContext) -> Result<Child, String> {
         .args(["--spawns-b", &spawns(Side::B)])
         .arg("--cache")
         .arg(cache)
-        .arg(format!("--end=save-map-persist-to:{}", persist.display()))
+        .arg(format!("--end=save-map-persist-to:{}", state.display()))
         // Gui assets are in the `assets` folder of current folder (like mods, maps, etc.)
         .env("BEVY_ASSET_ROOT", cwd);
 
@@ -154,6 +160,57 @@ pub fn load_deployment(dir: &Path, side: Side) -> Result<Deployment, String> {
     Deployment::from_file(&path).map_err(|e| format!("{e:#}"))
 }
 
+/// Update side A and B deployments files with world state
+pub fn apply_world_state(app_dir: &Path, game: &Game) -> Result<(), String> {
+    let Game::Battle(battle) = game;
+    let dir = game.dir(app_dir);
+    let state = State::load(&dir.join(WORLD_STATE_FILE)).map_err(|e| e.to_string())?;
+    let mod_ = Mod::load(&Path::new(MODS_FOLDER).join(&battle.mod_name), None)
+        .map_err(|e| format!("Load mod '{}': {e}", battle.mod_name))?;
+    let states: HashMap<_, &IndividualState> =
+        state.individuals.iter().map(|i| (i.uuid, i)).collect();
+
+    for side in [Side::A, Side::B] {
+        let mut deployment = load_deployment(&dir, side)?;
+
+        for squad in &mut deployment.squads {
+            for individual in &mut squad.individuals {
+                if let Some(state) = states.get(&individual.uuid) {
+                    individual.status = Status::from(&state.status);
+                    individual.weapons = weapons(&mod_, &state.weapons);
+                }
+            }
+            squad
+                .individuals
+                .retain(|individual| individual.status != Status::Dead);
+        }
+
+        write_deployment(&dir.join(new_battle::deployment_file(side)), &deployment)?;
+    }
+
+    Ok(())
+}
+
+/// Deployment (mod names) form of world individual weapons (mod indexes)
+fn weapons(mod_: &Mod, weapons: &oc_individual::Weapons) -> Weapons {
+    Weapons {
+        main: weapons
+            .primary
+            .as_ref()
+            .map(|weapon| mod_.weapon(weapon.i).name().to_string()),
+        grenades: weapons
+            .grenades
+            .iter()
+            .map(|grenade| mod_.grenade(*grenade).name.clone())
+            .collect(),
+    }
+}
+
+fn write_deployment(path: &Path, deployment: &Deployment) -> Result<(), String> {
+    let yaml = serde_yaml::to_string(deployment).map_err(|e| format!("{}: {e}", path.display()))?;
+    std::fs::write(path, yaml).map_err(|e| format!("Write '{}': {e}", path.display()))
+}
+
 /// Write side deployment restricted to `slots` squads
 fn write_battle_deployment(dir: &Path, side: Side, slots: &[Option<usize>]) -> Result<(), String> {
     let deployment = load_deployment(dir, side)?;
@@ -168,8 +225,5 @@ fn write_battle_deployment(dir: &Path, side: Side, slots: &[Option<usize>]) -> R
         spawns: vec![],
     };
 
-    let path = dir.join(battle_deployment_file(side));
-    let yaml =
-        serde_yaml::to_string(&deployment).map_err(|e| format!("{}: {e}", path.display()))?;
-    std::fs::write(&path, yaml).map_err(|e| format!("Write '{}': {e}", path.display()))
+    write_deployment(&dir.join(battle_deployment_file(side)), &deployment)
 }

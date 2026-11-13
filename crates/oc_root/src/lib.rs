@@ -35,6 +35,7 @@ pub mod side;
 pub mod sprites;
 pub mod static_;
 pub mod utils;
+pub mod uuids;
 pub mod y;
 
 pub const HUD_MINIMAP_SIZE: u32 = 400;

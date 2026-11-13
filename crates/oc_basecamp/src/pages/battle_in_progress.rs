@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use eframe::egui;
 
-use crate::page::Page;
+use crate::{launch, page::Page};
 
 use super::PageContext;
 
@@ -30,6 +30,7 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
         Ok(Some(status)) => {
             *ctx.battle_process = None;
             if status.success() {
+                update_deployments(ctx);
                 Some(Page::Battle)
             } else {
                 ctx.errors
@@ -45,4 +46,18 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
             Some(Page::ChooseSquads)
         }
     }
+}
+
+fn update_deployments(ctx: &mut PageContext) {
+    let Some(game) = ctx.current_game.as_ref() else {
+        return;
+    };
+
+    if let Err(error) = launch::apply_world_state(ctx.app_dir, game) {
+        ctx.errors.push(format!("Update deployments: {error}"));
+        *ctx.show_errors = true;
+    }
+
+    // Deployments changed: they must be reloaded
+    *ctx.deployment = None;
 }

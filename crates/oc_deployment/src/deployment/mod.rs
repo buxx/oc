@@ -71,6 +71,7 @@ impl Deployments {
     ) -> Result<(), anyhow::Error> {
         snapshot.squads.clear();
         snapshot.individuals.clear();
+        snapshot.uuids.individuals.clear();
         let mut i: u64 = 0;
 
         let mut fill_with = |deployment: &Deployment, side: Side| -> Result<(), anyhow::Error> {
@@ -120,6 +121,7 @@ impl Deployments {
             let individual = self.fill_individual(w, mod_, i, side, indiv, position_, tiles)?;
             individuals.push(IndividualIndex(*i));
             snapshot.individuals.push(individual);
+            snapshot.uuids.individuals.push(indiv.uuid);
             *i += 1;
         }
 

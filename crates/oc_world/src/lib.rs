@@ -17,7 +17,7 @@ use oc_mod::Mod;
 use oc_projectile::{Projectile, ProjectileId};
 use oc_root::{
     WcfgInto, WorldConfig, battle::BattlePhase, identity::Identity, material::MaterialKind,
-    side::Side,
+    side::Side, uuids::Uuids,
 };
 use oc_utils::{d2::Xy, let_some};
 use rustc_hash::FxHashMap;
@@ -90,6 +90,7 @@ pub struct World {
     pub squads: Vec<Squad>,
     pub projectiles: FxHashMap<ProjectileId, Projectile>,
     pub interiors: Vec<Interior>,
+    pub uuids: Uuids,
 }
 
 impl World {
@@ -398,6 +399,7 @@ mod tests {
             vec![],
             HashMap::default(),
             vec![],
+            Uuids::default(),
         );
 
         // When
@@ -459,6 +461,7 @@ mod tests {
             vec![],
             HashMap::default(),
             vec![],
+            Uuids::default(),
         );
         let wall = WorldTileIndex(0);
         let other = WorldTileIndex(w.tiles_count() - 1);
