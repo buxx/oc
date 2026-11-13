@@ -25,3 +25,7 @@ oc_root = { path = "../oc_root" }
 oc_individual = { path = "../oc_individual" }
 image.workspace = true
 egui_extras = { version = "0.36", features = ["image", "file"] }
+
+[dev-dependencies]
+egui_kittest = { version = "0.36", features = ["eframe"] }
+tempfile.workspace = true

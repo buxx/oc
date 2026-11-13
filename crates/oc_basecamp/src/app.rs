@@ -42,13 +42,17 @@ pub struct App {
 impl App {
     /// Fails if the application folder can't be determined
     pub fn new() -> Result<Self, oc_game::Error> {
-        let app_dir = oc_game::app_dir()?;
+        Ok(Self::with_app_dir(oc_game::app_dir()?))
+    }
+
+    /// Build the application using `app_dir` as application folder (games, cache).
+    pub fn with_app_dir(app_dir: PathBuf) -> Self {
         let (mods, mut errors) = mods::list();
         if !mods.iter().any(|m| m.name == DEFAULT_MOD) {
             errors.push(format!("Default mod '{DEFAULT_MOD}' not found"));
         }
 
-        Ok(Self {
+        Self {
             app_dir,
             page: Page::Home,
             mods,
@@ -68,7 +72,19 @@ impl App {
             loading: true,
             errors,
             show_errors: false,
-        })
+        }
+    }
+
+    pub fn page(&self) -> Page {
+        self.page
+    }
+
+    pub fn is_loading(&self) -> bool {
+        self.loading
+    }
+
+    pub fn error_messages(&self) -> &[String] {
+        &self.errors
     }
 
     fn menu_bar(&mut self, ui: &mut egui::Ui) {

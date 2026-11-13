@@ -1,18 +1,6 @@
 use eframe::egui;
 
-mod about;
-mod app;
-mod battle;
-mod errors;
-mod launch;
-mod map;
-mod map_view;
-mod minimap;
-mod mods;
-mod page;
-mod pages;
-
-const UI_ZOOM: f32 = 1.25;
+use oc_basecamp::{UI_ZOOM, app};
 
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
