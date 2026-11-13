@@ -7,7 +7,7 @@ edition = "2024"
 workspace = true
 
 [features]
-debug =  []
+debug =  []  # Run debug compiled battle gui
 test =  []
 
 [dependencies]

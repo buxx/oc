@@ -87,7 +87,13 @@ impl Plugin for WindowPlugin {
 
         #[cfg(feature = "debug")]
         {
-            app.add_plugins(debug::battle::DebugBattleWindowPlugin);
+            app.add_plugins(debug::battle::DebugBattleWindowPlugin)
+                .add_systems(
+                    EguiPrimaryContextPass,
+                    debug::end_battle::show
+                        .run_if(in_state(crate::states::AppState::InGame))
+                        .run_if(not(in_state(crate::ingame::BattlePhase::End))),
+                );
         }
     }
 }

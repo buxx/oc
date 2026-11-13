@@ -150,6 +150,19 @@ impl Processor<'_> {
         (updates, true)
     }
 
+    #[cfg(feature = "debug")]
+    pub fn force_end(&self) -> Vec<Update> {
+        if matches!(self.world.phase, BattlePhase::End(_)) {
+            return vec![];
+        }
+
+        let result = self.battle_result();
+        vec![
+            Update::SetBattlePhase(BattlePhase::End(End::Time(result))),
+            Update::End,
+        ]
+    }
+
     fn battle_result(&self) -> oc_root::battle::Result {
         let morale = self.compute_morale();
         oc_root::battle::Result::from_morale(

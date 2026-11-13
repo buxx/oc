@@ -87,6 +87,8 @@ pub enum ToServer {
     DebugExplosion(oc_mod::shell::ShellIndex, WorldVec2),
     #[cfg(feature = "debug")]
     DebugRequestSupport(oc_root::side::Side, SupportType, WorldVec2),
+    #[cfg(feature = "debug")]
+    DebugEndBattle,
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq, Constructor)]

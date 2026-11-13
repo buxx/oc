@@ -110,12 +110,34 @@ pub fn start(ctx: &PageContext) -> Result<Child, String> {
 }
 
 /// Battle gui binary: next to current executable, elsewhere from PATH
+#[cfg(not(feature = "debug"))]
 fn battle_gui_bin() -> PathBuf {
     let name = format!("{BATTLE_GUI_BIN}{}", std::env::consts::EXE_SUFFIX);
     std::env::current_exe()
         .ok()
         .map(|exe| exe.with_file_name(&name))
         .filter(|path| path.exists())
+        .unwrap_or_else(|| PathBuf::from(name))
+}
+
+/// Debug battle gui binary: searched in `target/debug` of current executable, current folder
+/// or sources ancestors
+#[cfg(feature = "debug")]
+fn battle_gui_bin() -> PathBuf {
+    let name = format!("{BATTLE_GUI_BIN}{}", std::env::consts::EXE_SUFFIX);
+    let starts = [
+        std::env::current_exe().ok(),
+        std::env::current_dir().ok(),
+        Some(PathBuf::from(env!("CARGO_MANIFEST_DIR"))),
+    ];
+
+    starts
+        .iter()
+        .flatten()
+        .flat_map(|start| start.ancestors())
+        .flat_map(|dir| [dir.join("target"), dir.to_path_buf()])
+        .map(|target| target.join("debug").join(&name))
+        .find(|path| path.is_file())
         .unwrap_or_else(|| PathBuf::from(name))
 }
 

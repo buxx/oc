@@ -58,6 +58,10 @@ impl<'a, E: Client> Dealer<'a, E> {
                     std::time::Duration::ZERO,
                 ))]
             }
+            #[cfg(feature = "debug")]
+            ToServer::DebugEndBattle => {
+                crate::world::Processor::new(&self.state.world()).force_end()
+            }
         }
     }
 
