@@ -7,11 +7,12 @@ edition = "2024"
 workspace = true
 
 [features]
-debug = ["bevy/bevy_dev_tools", "bevy/render_dev_tools", "oc_network/debug", "oc_physics/debug"]
+debug = ["bevy/bevy_dev_tools", "bevy/render_dev_tools", "oc_network/debug", "oc_physics/debug", "oc_world_server/debug"]
 
 [dependencies]
 oc_root = { path = "../oc_root", features = ["bevy", "clap"] }
 oc_network = { path = "../oc_network" }
+oc_world_server = { path = "../oc_world_server" }
 oc_utils = { path = "../oc_utils", features = ["bevy"] }
 oc_mod = { path = "../oc_mod" }
 oc_geo = { path = "../oc_geo" }
@@ -27,6 +28,7 @@ bevy.workspace = true
 bevy_spritesheet_animation.workspace = true
 bevy_hanabi.workspace = true
 tracing.workspace = true
+anyhow.workspace = true
 tracing-subscriber.workspace = true
 clap.workspace = true
 message-io.workspace = true

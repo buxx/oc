@@ -4,6 +4,7 @@ mod about;
 mod app;
 mod battle;
 mod errors;
+mod launch;
 mod map;
 mod map_view;
 mod minimap;

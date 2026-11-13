@@ -37,7 +37,7 @@ impl Window {
         match self {
             Window::BattleMenu(window) => window.show(contexts, commands, mod_, w)?,
             Window::Fight(window) => window.show(contexts, commands, mod_, w)?,
-            Window::BattleEnd(window) => window.show(contexts)?,
+            Window::BattleEnd(window) => window.show(contexts, commands)?,
             #[cfg(feature = "debug")]
             Window::BattleDebug(window) => {
                 window.show(contexts, commands, mod_, w, world, ingame)?

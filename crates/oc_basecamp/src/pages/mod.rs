@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, process::Child};
 
 use eframe::egui;
 
@@ -7,6 +7,7 @@ use oc_game::Game;
 use oc_root::side::Side;
 
 pub mod battle;
+pub mod battle_in_progress;
 pub mod campaign;
 pub mod choose_squads;
 pub mod home;
@@ -23,14 +24,12 @@ use crate::{
 };
 
 pub struct PageContext<'a> {
-    /// Application folder in user home
     pub app_dir: &'a Path,
     pub battles: &'a [Battle],
     pub maps: &'a [Map],
     pub selected_battle: &'a mut Option<usize>,
     pub selected_scenario: &'a mut Option<usize>,
     pub games: &'a mut Vec<Game>,
-    /// Game currently played (created or resumed)
     pub current_game: &'a mut Option<Game>,
     pub errors: &'a mut Vec<String>,
     pub show_errors: &'a mut bool,
@@ -38,9 +37,9 @@ pub struct PageContext<'a> {
     pub mods: &'a [ModInfo],
     pub selected_mod: &'a str,
     pub selected_side: &'a mut Option<Side>,
-    /// Deployment of selected side, loaded from current game deployment file
     pub deployment: &'a mut Option<Deployment>,
     pub squad_slots: &'a mut Vec<Option<usize>>,
+    pub battle_process: &'a mut Option<Child>,
 }
 
 impl<'a> PageContext<'a> {

@@ -3,9 +3,9 @@ use oc_root::side::Side;
 
 use oc_deployment::deployment::Deployment;
 
-use crate::{map_view, minimap, page::Page};
+use crate::{launch, map_view, minimap, page::Page};
 
-use super::{PageContext, new_battle};
+use super::PageContext;
 
 pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
     let Some((battle, scenario)) = ctx.selected() else {
@@ -37,7 +37,16 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
         }
     });
 
+    // If chosen, prepare battle files
     let side = chosen?;
+    prepare_battle(ctx, scenario, side)
+}
+
+fn prepare_battle(
+    ctx: &mut PageContext<'_>,
+    scenario: &oc_battle::Scenario,
+    side: Side,
+) -> Option<Page> {
     let deployment = match load_deployment(ctx, side) {
         Ok(deployment) => deployment,
         Err(error) => {
@@ -53,23 +62,10 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
         Side::A => (scenario.a_squad_count(), scenario.a_default()),
         Side::B => (scenario.b_squad_count(), scenario.b_default()),
     };
-    let mut slots = vec![None; count];
-    if let Some(deployment) = ctx.deployment.as_ref() {
-        let mut taken = vec![false; deployment.squads.len()];
-        for (slot, name) in slots.iter_mut().zip(defaults) {
-            // First not yet placed squad with this name
-            let found = deployment
-                .squads
-                .iter()
-                .enumerate()
-                .position(|(i, squad)| !taken[i] && squad.label == *name);
-            if let Some(index) = found {
-                taken[index] = true;
-                *slot = Some(index);
-            }
-        }
-    }
-    *ctx.squad_slots = slots;
+    *ctx.squad_slots = match ctx.deployment.as_ref() {
+        Some(deployment) => launch::default_slots(deployment, defaults, count),
+        None => vec![None; count],
+    };
 
     Some(Page::ChooseSquads)
 }
@@ -77,8 +73,5 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
 /// Read deployment file of given side from current game folder
 fn load_deployment(ctx: &PageContext, side: Side) -> Result<Deployment, String> {
     let game = ctx.current_game.as_ref().ok_or("No current game")?;
-    let path = game
-        .dir(ctx.app_dir)
-        .join(new_battle::deployment_file(side));
-    Deployment::from_file(&path).map_err(|e| format!("{e:#}"))
+    launch::load_deployment(&game.dir(ctx.app_dir), side)
 }

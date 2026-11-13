@@ -1,9 +1,11 @@
 // derive_more::Constructor triggers a false positive
 #![allow(clippy::redundant_field_names)]
 
+pub mod args;
 pub mod bridge;
 pub mod config;
 pub mod end;
+pub mod generate;
 pub mod index;
 pub mod individual;
 pub mod network;

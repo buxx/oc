@@ -1,6 +1,6 @@
 use eframe::egui;
 
-use crate::{map_view, minimap, page::Page};
+use crate::{launch, map_view, minimap, page::Page};
 
 use super::PageContext;
 
@@ -47,6 +47,18 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
             });
         });
 
+    let mut start = false;
+    egui::Panel::bottom("choose_squads_actions").show(ui, |ui| {
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            let ready = ctx.squad_slots.iter().any(Option::is_some);
+            let button = egui::Button::new(egui::RichText::new("Start battle").size(20.0));
+            let response = ui
+                .add_enabled(ready, button)
+                .on_disabled_hover_text("Choose at least one squad");
+            start = response.clicked();
+        });
+    });
+
     egui::CentralPanel::default().show(ui, |ui| {
         ui.strong("Slots");
         ui.separator();
@@ -69,5 +81,19 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
         }
     });
 
-    None
+    if !start {
+        return None;
+    }
+
+    match launch::start(ctx) {
+        Ok(child) => {
+            *ctx.battle_process = Some(child);
+            Some(Page::BattleInProgress)
+        }
+        Err(error) => {
+            ctx.errors.push(format!("Start battle: {error}"));
+            *ctx.show_errors = true;
+            None
+        }
+    }
 }

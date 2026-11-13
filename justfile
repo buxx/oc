@@ -18,14 +18,14 @@ make-caches:
 
 serve-minidblue:
     cargo run --bin oc_world_server --features debug -- \
-      ./mods/std1 ./examples/minidblue ./examples/minidblue.snapshot
+      ./mods/std1 ./examples/minidblue --snapshot ./examples/minidblue.snapshot
 
 serve-world1:
     cargo run --bin oc_world_server --features debug -- \
-      ./mods/std1 ./examples/world1 ./examples/world1.snapshot
+      ./mods/std1 ./examples/world1 --snapshot ./examples/world1.snapshot
 
 gui *args:
-    cargo run --bin oc_battle_gui {{ args }} -- --autoconnect 127.0.0.1:6589
+    cargo run --bin oc_battle_gui {{ args }} -- network 127.0.0.1:6589
 
 example-world1 *args:
     cargo run --bin oc_example --features debug -- world1 {{ args }}

@@ -204,8 +204,16 @@ impl WorldLoader {
         tracing::info!("Check cache for {}", self.world.display());
         let files = files::Files::derived_only(self.cache.clone(), "", &meta.canonical());
         let archive = files.fs(files::File::WorldArchive);
-        if let Some(parent) = archive.parent() {
-            std::fs::create_dir_all(parent)?;
+        // Regions and interiors are written in the world derived folder
+        let region = files.fs(files::File::Region {
+            index: 0,
+            width: region_width,
+            height: region_height,
+        });
+        for path in [&archive, &region] {
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
         }
         let background = image::open(self.world.background())?;
         let interior = image::open(self.world.interiors())?;

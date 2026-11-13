@@ -5,6 +5,7 @@ pub mod config;
 #[cfg(feature = "debug")]
 pub mod debug;
 pub mod downloading;
+pub mod embedded;
 pub mod entity;
 pub mod error;
 pub mod fx;

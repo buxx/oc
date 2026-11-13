@@ -6597,6 +6597,7 @@ dependencies = [
 name = "oc_battle_gui"
 version = "0.1.1"
 dependencies = [
+ "anyhow",
  "bevy",
  "bevy_egui",
  "bevy_hanabi",
@@ -6624,6 +6625,7 @@ dependencies = [
  "oc_root",
  "oc_utils",
  "oc_world",
+ "oc_world_server",
  "polyanya",
  "reqwest",
  "rkyv",

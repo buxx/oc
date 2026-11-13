@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, process::Child};
 
 use eframe::egui;
 use oc_deployment::deployment::Deployment;
@@ -34,6 +34,7 @@ pub struct App {
     selected_side: Option<Side>,
     deployment: Option<Deployment>,
     squad_slots: Vec<Option<usize>>,
+    battle_process: Option<Child>,
     errors: Vec<String>,
     show_errors: bool,
 }
@@ -63,6 +64,7 @@ impl App {
             selected_side: None,
             deployment: None,
             squad_slots: vec![],
+            battle_process: None,
             loading: true,
             errors,
             show_errors: false,
@@ -119,6 +121,9 @@ impl App {
         for (i, page) in path.iter().enumerate() {
             if i == last {
                 ui.strong(page.title());
+            } else if self.page == Page::BattleInProgress {
+                ui.label(page.title());
+                ui.label(">");
             } else {
                 if ui.link(page.title()).clicked() {
                     self.page = *page;
@@ -181,6 +186,7 @@ impl App {
                 selected_side: &mut self.selected_side,
                 deployment: &mut self.deployment,
                 squad_slots: &mut self.squad_slots,
+                battle_process: &mut self.battle_process,
                 mods: &self.mods,
                 selected_mod: &self.selected_mod,
             };

@@ -1,0 +1,161 @@
+use std::path::{Path, PathBuf};
+
+use anyhow::Context;
+use bon::Builder;
+use oc_deployment::deployment::{
+    Deployment, Deployments,
+    place::{OrderPolicy, Placer},
+};
+use oc_mod::Mod;
+use oc_root::{WorldConfig, battle::BattlePhase, geo::WorldVec2, physics::Meters, side::Side};
+use oc_world::{
+    load::WorldPath, meta::Meta, reader::MapReader, snapshot::Snapshot, spawn::SpawnZone,
+    support::Supports,
+};
+use uuid::Uuid;
+
+#[derive(Debug, Clone)]
+pub enum SnapshotSource {
+    /// Use an existing snapshot file
+    File(PathBuf),
+    /// Build snapshot from world, deployments, placements and supports
+    Generate(Generate),
+}
+
+/// Initial order given to squads of a side
+#[derive(Debug, Clone, Copy, PartialEq, clap::ValueEnum)]
+pub enum InitialOrder {
+    None,
+    Hide,
+    Defend,
+}
+
+impl From<InitialOrder> for OrderPolicy {
+    fn from(value: InitialOrder) -> Self {
+        match value {
+            InitialOrder::None => OrderPolicy::None,
+            InitialOrder::Hide => OrderPolicy::Hide,
+            InitialOrder::Defend => OrderPolicy::Defend,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Builder)]
+pub struct Generate {
+    /// Deployment file of side A
+    deployment_a: PathBuf,
+    /// Deployment file of side B
+    deployment_b: PathBuf,
+    /// Map spawn zone names owned by side A at start
+    spawns_a: Vec<String>,
+    /// Map spawn zone names owned by side B at start
+    spawns_b: Vec<String>,
+    /// Squad (by deployment uuid) to place at map place (by name).
+    #[builder(default)]
+    places: Vec<(Uuid, String)>,
+    #[builder(default)]
+    supports: Supports,
+    /// Initial order of side A squads (default: see [`Generate::snapshot`])
+    order_a: Option<InitialOrder>,
+    /// Initial order of side B squads (default: see [`Generate::snapshot`])
+    order_b: Option<InitialOrder>,
+}
+
+impl Generate {
+    /// Build snapshot in deployment phase. Without explicit initial orders: when `player` side is
+    /// known (server embedded in a client) its squads hide and others defend, elsewhere all hide.
+    pub fn snapshot(
+        &self,
+        mod_: &Path,
+        world: &Path,
+        map: &MapReader,
+        player: Option<Side>,
+    ) -> anyhow::Result<Snapshot> {
+        let mod_ =
+            Mod::load(&mod_.to_path_buf(), None).context(format!("Load mod {}", mod_.display()))?;
+        let meta_path = world.to_path_buf().meta();
+        let meta =
+            Meta::from_file(&meta_path).context(format!("Read file {}", meta_path.display()))?;
+        let w = WorldConfig::new(
+            map.width().context("Read map width")? as u64,
+            map.height().context("Read map height")? as u64,
+        )
+        .with_geo_meters_per_z(Meters(meta.geo_meters_per_z));
+
+        let zones = map.spawn_zones().context("Read map spawn zones")?;
+        let spawns = |names: &[String], side: Side| -> anyhow::Result<Vec<SpawnZone>> {
+            if names.is_empty() {
+                anyhow::bail!("Side {side:?} must own at least one spawn zone");
+            }
+            names
+                .iter()
+                .map(|name| {
+                    zones
+                        .iter()
+                        .find(|z| &z.name.0 == name)
+                        .cloned()
+                        .context(format!("Spawn zone '{name}' not found in map"))
+                })
+                .collect()
+        };
+        let (spawns_a, spawns_b) = (
+            spawns(&self.spawns_a, Side::A)?,
+            spawns(&self.spawns_b, Side::B)?,
+        );
+
+        let deployments = Deployments {
+            side_a: Deployment::from_file(&self.deployment_a)?,
+            side_b: Deployment::from_file(&self.deployment_b)?,
+        }
+        .with_spawns(spawns_a, spawns_b);
+
+        let map_ = map.build().context("Build map")?;
+        let places = map_.places();
+        let place = |name: &str| -> anyhow::Result<WorldVec2> {
+            places
+                .iter()
+                .find(|p| p.name.0 == name)
+                .map(|p| WorldVec2::new(p.x, p.y))
+                .context(format!("Place '{name}' not found in map"))
+        };
+        let assigned = self
+            .places
+            .iter()
+            .map(|(uuid, name)| Ok((*uuid, place(name)?)))
+            .collect::<anyhow::Result<Vec<_>>>()?;
+        let placer = Placer::new(places.iter().map(|p| WorldVec2::new(p.x, p.y)).collect())
+            .with_assigned(assigned);
+        let default = |side: Side| match player {
+            Some(player) if player != side => InitialOrder::Defend,
+            _ => InitialOrder::Hide,
+        };
+        let placer = placer
+            .with_a_order(self.order_a.unwrap_or_else(|| default(Side::A)).into())
+            .with_b_order(self.order_b.unwrap_or_else(|| default(Side::B)).into());
+
+        let tiles = map.tiles(&w, &mod_).context("Read map tiles")?;
+        let mut snapshot = Snapshot::empty(w.clone())
+            .with_tiles(tiles.clone())
+            .with_decor(map.decor().context("Read map decor")?)
+            .with_supports(self.supports.clone())
+            .with_phase(BattlePhase::Deployment);
+        snapshot.side_a_spawns = deployments
+            .side_a
+            .spawns
+            .iter()
+            .map(|s| s.name.clone())
+            .collect();
+        snapshot.side_b_spawns = deployments
+            .side_b
+            .spawns
+            .iter()
+            .map(|s| s.name.clone())
+            .collect();
+
+        deployments
+            .mobilize(&w, &mod_, &mut snapshot, &placer, &tiles)
+            .context("Mobilize deployments")?;
+
+        Ok(snapshot)
+    }
+}

@@ -1,0 +1,153 @@
+//! Start a battle: run `oc_battle_gui` (embedded server mode) on current game
+use std::{
+    path::{Path, PathBuf},
+    process::{Child, Command},
+};
+
+use oc_deployment::deployment::Deployment;
+use oc_root::side::Side;
+
+use crate::{
+    battle::{MAPS_FOLDER, Scenario},
+    mods::MODS_FOLDER,
+    pages::{PageContext, new_battle},
+};
+
+pub const MAP_PERSIST_FILE: &str = "map.persist";
+const BATTLE_GUI_BIN: &str = "oc_battle_gui";
+const SERVER_CACHE_FOLDER: &str = "server";
+
+/// Deployment file name (in game folder) of the squads engaged in battle by given side
+pub fn battle_deployment_file(side: Side) -> &'static str {
+    match side {
+        Side::A => "a_battle_deployment.yml",
+        Side::B => "b_battle_deployment.yml",
+    }
+}
+
+/// Slots (deployment squad indexes) filled with first not yet taken squads matching `defaults` labels
+pub fn default_slots(
+    deployment: &Deployment,
+    defaults: &[String],
+    count: usize,
+) -> Vec<Option<usize>> {
+    let mut slots = vec![None; count];
+    let mut taken = vec![false; deployment.squads.len()];
+
+    for (slot, name) in slots.iter_mut().zip(defaults) {
+        let found = deployment
+            .squads
+            .iter()
+            .enumerate()
+            .position(|(i, squad)| !taken[i] && squad.label == *name);
+        if let Some(index) = found {
+            taken[index] = true;
+            *slot = Some(index);
+        }
+    }
+
+    slots
+}
+
+pub fn start(ctx: &PageContext) -> Result<Child, String> {
+    let game = ctx.current_game.as_ref().ok_or("No current game")?;
+    let (battle, scenario) = ctx.selected().ok_or("No scenario selected")?;
+    let player = (*ctx.selected_side).ok_or("No side selected")?;
+    let dir = game.dir(ctx.app_dir);
+
+    for side in [Side::A, Side::B] {
+        let slots = if side == player {
+            ctx.squad_slots.clone()
+        } else {
+            let deployment = load_deployment(&dir, side)?;
+            let (count, defaults) = side_defaults(scenario, side);
+            // FIXME BS NOW: defaults can don't match with available squads: must fill with random
+            default_slots(&deployment, defaults, count)
+        };
+
+        write_battle_deployment(&dir, side, &slots)?;
+    }
+
+    // FIXME BS NOW: must use map.persist spawn zones if map.persist exist
+    let spawns = |side: Side| {
+        match side {
+            Side::A => scenario.a_start_spawn_zones(),
+            Side::B => scenario.b_start_spawn_zones(),
+        }
+        .iter()
+        .map(|zone| zone.0.as_str())
+        .collect::<Vec<_>>()
+        .join(",")
+    };
+    let side = match player {
+        Side::A => "a",
+        Side::B => "b",
+    };
+    let cwd = std::env::current_dir().map_err(|e| format!("Current folder: {e}"))?;
+    let cache = oc_game::cache_dir(ctx.app_dir).join(SERVER_CACHE_FOLDER);
+    let persist = dir.join(MAP_PERSIST_FILE);
+
+    let mut command = Command::new(battle_gui_bin());
+    command
+        .args(["--side", side, "embedded"])
+        .arg(Path::new(MODS_FOLDER).join(ctx.selected_mod))
+        .arg(Path::new(MAPS_FOLDER).join(battle.map()))
+        .arg("--deployment-a")
+        .arg(dir.join(battle_deployment_file(Side::A)))
+        .arg("--deployment-b")
+        .arg(dir.join(battle_deployment_file(Side::B)))
+        .args(["--spawns-a", &spawns(Side::A)])
+        .args(["--spawns-b", &spawns(Side::B)])
+        .arg("--cache")
+        .arg(cache)
+        .arg(format!("--end=save-map-persist-to:{}", persist.display()))
+        // Gui assets are in the `assets` folder of current folder (like mods, maps, etc.)
+        .env("BEVY_ASSET_ROOT", cwd);
+
+    command
+        .spawn()
+        .map_err(|e| format!("Start {}: {e}", command.get_program().display()))
+}
+
+/// Battle gui binary: next to current executable, elsewhere from PATH
+fn battle_gui_bin() -> PathBuf {
+    let name = format!("{BATTLE_GUI_BIN}{}", std::env::consts::EXE_SUFFIX);
+    std::env::current_exe()
+        .ok()
+        .map(|exe| exe.with_file_name(&name))
+        .filter(|path| path.exists())
+        .unwrap_or_else(|| PathBuf::from(name))
+}
+
+fn side_defaults(scenario: &Scenario, side: Side) -> (usize, &[String]) {
+    match side {
+        Side::A => (scenario.a_squad_count(), scenario.a_default()),
+        Side::B => (scenario.b_squad_count(), scenario.b_default()),
+    }
+}
+
+/// Side deployment (all available squads) from game folder
+pub fn load_deployment(dir: &Path, side: Side) -> Result<Deployment, String> {
+    let path = dir.join(new_battle::deployment_file(side));
+    Deployment::from_file(&path).map_err(|e| format!("{e:#}"))
+}
+
+/// Write side deployment restricted to `slots` squads
+fn write_battle_deployment(dir: &Path, side: Side, slots: &[Option<usize>]) -> Result<(), String> {
+    let deployment = load_deployment(dir, side)?;
+    let mut squads: Vec<_> = deployment.squads.into_iter().map(Some).collect();
+    let squads = slots
+        .iter()
+        .flatten()
+        .filter_map(|index| squads.get_mut(*index).and_then(Option::take))
+        .collect();
+    let deployment = Deployment {
+        squads,
+        spawns: vec![],
+    };
+
+    let path = dir.join(battle_deployment_file(side));
+    let yaml =
+        serde_yaml::to_string(&deployment).map_err(|e| format!("{}: {e}", path.display()))?;
+    std::fs::write(&path, yaml).map_err(|e| format!("Write '{}': {e}", path.display()))
+}
