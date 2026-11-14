@@ -17,6 +17,9 @@ pub struct Args {
     /// Side to play when connect auto
     #[clap(long, value_enum, default_value = "a", global = true)]
     pub side: Side,
+    #[cfg(feature = "debug")]
+    #[clap(long, global = true)]
+    pub debug_auto_end: bool,
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -59,10 +62,21 @@ impl Args {
 }
 
 fn main() -> anyhow::Result<()> {
-    let config = Args::parse().config()?;
+    let args = Args::parse();
 
+    #[cfg(feature = "debug")]
+    let install = args.debug_auto_end.then(|| -> run::InstallFn {
+        Box::new(|app| {
+            app.add_plugins(oc_battle_gui::auto_end::AutoEndPlugin);
+        })
+    });
+    #[cfg(not(feature = "debug"))]
+    let install = None;
+
+    let config = args.config()?;
     run::run()
         .config(config)
+        .maybe_install(install)
         .logging(std::env::var("RUST_LOG").is_ok())
         .call();
 

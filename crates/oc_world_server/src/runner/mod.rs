@@ -154,12 +154,7 @@ impl<E: Client> Runner<E> {
         let world = self.state.world();
         let world: &oc_world::World = &world;
 
-        // Send to each side its battle summary
-        for side in [Side::A, Side::B] {
-            let resume = EndResume::from_world(world, side);
-            ctx.broadcast(Listening::Side(side), vec![ToClient::EndResume(resume)]);
-        }
-
+        // Persist before announcing the end: clients may exit as soon as they receive it
         match &self.end {
             EndPolicy::None => {}
             EndPolicy::SaveMapPersistTo(path) => {
@@ -167,6 +162,12 @@ impl<E: Client> Runner<E> {
                     tracing::error!("Save map persist: {error}");
                 }
             }
+        }
+
+        // Send to each side its battle summary
+        for side in [Side::A, Side::B] {
+            let resume = EndResume::from_world(world, side);
+            ctx.broadcast(Listening::Side(side), vec![ToClient::EndResume(resume)]);
         }
     }
 

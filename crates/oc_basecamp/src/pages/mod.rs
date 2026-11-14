@@ -40,6 +40,7 @@ pub struct PageContext<'a> {
     pub deployment: &'a mut Option<Deployment>,
     pub squad_slots: &'a mut Vec<Option<usize>>,
     pub battle_process: &'a mut Option<Child>,
+    pub battle_args: &'a [String],
 }
 
 impl<'a> PageContext<'a> {

@@ -95,7 +95,9 @@ pub fn start(ctx: &PageContext) -> Result<Child, String> {
 
     let mut command = Command::new(battle_gui_bin());
     command
-        .args(["--side", side, "embedded"])
+        .args(["--side", side])
+        .args(ctx.battle_args)
+        .arg("embedded")
         .arg(Path::new(MODS_FOLDER).join(ctx.selected_mod))
         .arg(Path::new(MAPS_FOLDER).join(battle.map()))
         .arg("--deployment-a")

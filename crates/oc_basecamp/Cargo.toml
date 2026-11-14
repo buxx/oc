@@ -9,6 +9,7 @@ workspace = true
 [features]
 debug =  []  # Run debug compiled battle gui
 test =  []
+e2e =  ["debug"]  # Run end-to-end tests (needs a display and debug battle gui built)
 
 [dependencies]
 eframe = "0.36"

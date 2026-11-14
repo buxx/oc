@@ -144,9 +144,11 @@ test-e2e speed="" jobs="4":
         test-world-end-morale
         test-world-explosion-alter-wall
         test-world-smoke-grenade
+        test-basecamp-battle-test1
     )
     # Build once, so parallel runs below don't compete on cargo build lock
     cargo build --bins --features test || exit 1
+    just build-basecamp-e2e || exit 1
     logs=$(mktemp -d)
     trap 'rm -rf "$logs"' EXIT
     run() {
@@ -347,6 +349,13 @@ test-world-explosion-alter-wall:
 
 test-world-smoke-grenade:
     RUST_LOG=ERROR cargo run --bin oc_example --features test -- world smoke-grenade --test
+
+build-basecamp-e2e:
+    cargo build -p oc_battle_gui --features debug
+    cargo test -p oc_basecamp --features e2e --test battle --no-run
+
+test-basecamp-battle-test1: build-basecamp-e2e
+    RUST_LOG=ERROR cargo test -p oc_basecamp --features e2e --test battle
 
 test-all:
     just test

@@ -35,6 +35,8 @@ pub struct App {
     deployment: Option<Deployment>,
     squad_slots: Vec<Option<usize>>,
     battle_process: Option<Child>,
+    /// Extra arguments given to battle gui (like debug ones)
+    battle_args: Vec<String>,
     errors: Vec<String>,
     show_errors: bool,
 }
@@ -69,10 +71,16 @@ impl App {
             deployment: None,
             squad_slots: vec![],
             battle_process: None,
+            battle_args: vec![],
             loading: true,
             errors,
             show_errors: false,
         }
+    }
+
+    pub fn with_battle_args(mut self, args: Vec<String>) -> Self {
+        self.battle_args = args;
+        self
     }
 
     pub fn page(&self) -> Page {
@@ -203,6 +211,7 @@ impl App {
                 deployment: &mut self.deployment,
                 squad_slots: &mut self.squad_slots,
                 battle_process: &mut self.battle_process,
+                battle_args: &self.battle_args,
                 mods: &self.mods,
                 selected_mod: &self.selected_mod,
             };

@@ -24,8 +24,15 @@ pub struct Basecamp {
 }
 
 /// Start basecamp and run frames until the initial loading is done.
+#[allow(dead_code)] // Not used by every test binary
 pub fn start() -> Basecamp {
+    start_with(|app| app)
+}
+
+/// Like [`start`], with `configure` applied to the application before it runs.
+pub fn start_with(configure: impl FnOnce(App) -> App + 'static) -> Basecamp {
     enter_workspace_root();
+
     let app_dir = TempDir::new().expect("create temporary app dir");
     let path = app_dir.path().to_path_buf();
 
@@ -34,7 +41,7 @@ pub fn start() -> Basecamp {
         .build_eframe(move |cc| {
             cc.egui_ctx.set_zoom_factor(UI_ZOOM);
             egui_extras::install_image_loaders(&cc.egui_ctx);
-            App::with_app_dir(path)
+            configure(App::with_app_dir(path))
         });
     harness.run();
     assert!(!harness.state().is_loading(), "basecamp still loading");

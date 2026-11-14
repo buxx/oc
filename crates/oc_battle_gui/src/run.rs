@@ -25,7 +25,7 @@ use crate::{ingame, setup, states, window};
 /// audio.
 const AUDIO_SCALE: f32 = 1. / 100.0;
 
-type InstallFn = Box<dyn Fn(&mut App)>;
+pub type InstallFn = Box<dyn Fn(&mut App)>;
 
 #[cfg(feature = "debug")]
 use debug::DebugPlugin;

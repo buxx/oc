@@ -1,6 +1,8 @@
 // derive_more::Constructor triggers a false positive
 #![allow(clippy::redundant_field_names)]
 
+#[cfg(feature = "debug")]
+pub mod auto_end;
 pub mod config;
 #[cfg(feature = "debug")]
 pub mod debug;
