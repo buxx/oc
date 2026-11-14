@@ -11,6 +11,7 @@ pub enum Page {
     PrepareBattle,
     ChooseSquads,
     BattleInProgress,
+    BattleFinished,
 }
 
 impl Page {
@@ -25,6 +26,7 @@ impl Page {
             Page::PrepareBattle => "Prepare Battle",
             Page::ChooseSquads => "Choose Squads",
             Page::BattleInProgress => "Battle in progress",
+            Page::BattleFinished => "Battle finished",
         }
     }
 
@@ -37,7 +39,7 @@ impl Page {
             Page::PrepareBattle => {
                 vec![Page::Home, Page::Solo, Page::Battle, Page::NewBattle, *self]
             }
-            Page::ChooseSquads => vec![
+            Page::ChooseSquads | Page::BattleFinished => vec![
                 Page::Home,
                 Page::Solo,
                 Page::Battle,
@@ -69,6 +71,7 @@ impl Page {
             Page::PrepareBattle => pages::prepare_battle::show(ui, ctx),
             Page::ChooseSquads => pages::choose_squads::show(ui, ctx),
             Page::BattleInProgress => pages::battle_in_progress::show(ui, ctx),
+            Page::BattleFinished => pages::battle_finished::show(ui, ctx),
         }
     }
 }

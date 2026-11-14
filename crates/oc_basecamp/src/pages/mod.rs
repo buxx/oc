@@ -7,6 +7,7 @@ use oc_game::Game;
 use oc_root::side::Side;
 
 pub mod battle;
+pub mod battle_finished;
 pub mod battle_in_progress;
 pub mod campaign;
 pub mod choose_squads;

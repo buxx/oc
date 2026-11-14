@@ -41,6 +41,34 @@ pub struct BattleGame {
     pub side: Side,
     pub created: DateTime<Utc>,
     pub modified: DateTime<Utc>,
+    #[serde(default)]
+    pub status: BattleStatus,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BattleStatus {
+    /// No fight played yet
+    #[default]
+    Fresh,
+    /// Number of fights already played
+    InProgress(usize),
+    Finished(BattleResult),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BattleResult {
+    Victory,
+    Defeat,
+}
+
+impl BattleStatus {
+    /// Number of fights already played (unknown, so 0, when finished)
+    pub fn fights(&self) -> usize {
+        match self {
+            BattleStatus::Fresh | BattleStatus::Finished(_) => 0,
+            BattleStatus::InProgress(fights) => *fights,
+        }
+    }
 }
 
 impl BattleGame {
@@ -59,7 +87,24 @@ impl BattleGame {
             side,
             created: now,
             modified: now,
+            status: BattleStatus::Fresh,
         }
+    }
+
+    /// Update status after a fight from flags owners (`None` when owned by nobody or both
+    /// sides): victory when all flags are owned by player side, defeat when all are owned by
+    /// opposite side, else one more fight is counted.
+    pub fn update_status(&mut self, flags: impl IntoIterator<Item = Option<Side>>) {
+        let flags: Vec<_> = flags.into_iter().collect();
+        let all_owned_by = |side| !flags.is_empty() && flags.iter().all(|f| *f == Some(side));
+
+        self.status = if all_owned_by(self.side) {
+            BattleStatus::Finished(BattleResult::Victory)
+        } else if all_owned_by(self.side.opposite()) {
+            BattleStatus::Finished(BattleResult::Defeat)
+        } else {
+            BattleStatus::InProgress(self.status.fights() + 1)
+        };
     }
 }
 
@@ -233,6 +278,43 @@ mod tests {
         let (games, _) = load_all(dir.path());
         assert_eq!(games.last(), Some(&Game::Battle(old)));
         assert_eq!(games.first(), Some(&new));
+    }
+
+    #[test]
+    fn update_status() {
+        let mut game = BattleGame::new("std1", "Demo2", "Scenario 1", Side::A);
+        assert_eq!(game.status, BattleStatus::Fresh);
+
+        game.update_status([Some(Side::A), None, Some(Side::B)]);
+        assert_eq!(game.status, BattleStatus::InProgress(1));
+        game.update_status([]);
+        assert_eq!(game.status, BattleStatus::InProgress(2));
+
+        game.update_status([Some(Side::A), Some(Side::A)]);
+        assert_eq!(game.status, BattleStatus::Finished(BattleResult::Victory));
+
+        game.status = BattleStatus::InProgress(3);
+        game.update_status([Some(Side::B)]);
+        assert_eq!(game.status, BattleStatus::Finished(BattleResult::Defeat));
+    }
+
+    #[test]
+    fn missing_status_is_fresh() {
+        let dir = tempfile::tempdir().unwrap();
+        let game = game();
+        let path = game.save(dir.path()).unwrap();
+        let content = fs::read_to_string(&path).unwrap();
+        let content: String = content
+            .lines()
+            .filter(|line| !line.contains("status"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        fs::write(&path, content).unwrap();
+
+        let (games, errors) = load_all(dir.path());
+        assert!(errors.is_empty(), "{errors:?}");
+        let Game::Battle(loaded) = &games[0];
+        assert_eq!(loaded.status, BattleStatus::Fresh);
     }
 
     #[test]

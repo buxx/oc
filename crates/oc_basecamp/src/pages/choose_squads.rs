@@ -1,5 +1,7 @@
 use eframe::egui;
 
+use oc_game::{BattleStatus, Game};
+
 use crate::{game, launch, map_view, page::Page};
 
 use super::PageContext;
@@ -14,6 +16,11 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
         ui.label("No current game");
         return None;
     };
+    let Game::Battle(battle_game) = current;
+    if let BattleStatus::Finished(_) = battle_game.status {
+        return Some(Page::BattleFinished);
+    }
+    let fights = battle_game.status.fights();
     let map_path = game::minimap_path(ctx.app_dir, current);
 
     // Label and soldiers count of each squad
@@ -65,6 +72,9 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
     });
 
     egui::CentralPanel::default().show(ui, |ui| {
+        ui.label(format!("Fights played: {fights}"));
+        ui.separator();
+
         ui.strong("Slots");
         ui.separator();
 

@@ -21,6 +21,7 @@ use uuid::Uuid;
 use crate::World;
 use crate::crater::Crater;
 use crate::decor::Decor;
+use crate::flag::Flags;
 use crate::smoke::SmokeCloud;
 use crate::spawn::{SpawnZoneName, owned_spawn_zones};
 use crate::support::{PendingSupport, SupportType, Supports};
@@ -245,6 +246,7 @@ pub struct State {
     pub side_a_spawns: Vec<SpawnZoneName>,
     pub side_b_spawns: Vec<SpawnZoneName>,
     pub individuals: Vec<IndividualState>,
+    pub flags: Flags,
 }
 
 /// Individual state kept between battles
@@ -273,6 +275,7 @@ impl From<&World> for State {
             side_a_spawns: spawns(Side::A),
             side_b_spawns: spawns(Side::B),
             individuals: individuals_states(world),
+            flags: world.flags.clone(),
         }
     }
 }

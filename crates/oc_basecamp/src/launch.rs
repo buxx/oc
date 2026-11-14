@@ -10,7 +10,10 @@ use oc_deployment::deployment::{Deployment, individual::Status, weapon::Weapons}
 use oc_game::Game;
 use oc_mod::Mod;
 use oc_root::side::Side;
-use oc_world::snapshot::{IndividualState, State};
+use oc_world::{
+    flag::Ownership,
+    snapshot::{IndividualState, State},
+};
 
 use crate::{
     battle::{MAPS_FOLDER, Scenario},
@@ -162,10 +165,10 @@ pub fn load_deployment(dir: &Path, side: Side) -> Result<Deployment, String> {
     Deployment::from_file(&path).map_err(|e| format!("{e:#}"))
 }
 
-/// Update side A and B deployments files with world state
-pub fn apply_world_state(app_dir: &Path, game: &Game, state: &State) -> Result<(), String> {
-    let Game::Battle(battle) = game;
+/// Update side A and B deployments files and game status with world state
+pub fn apply_world_state(app_dir: &Path, game: &mut Game, state: &State) -> Result<(), String> {
     let dir = game.dir(app_dir);
+    let Game::Battle(battle) = game;
     let mod_ = Mod::load(&Path::new(MODS_FOLDER).join(&battle.mod_name), None)
         .map_err(|e| format!("Load mod '{}': {e}", battle.mod_name))?;
     let states: HashMap<_, &IndividualState> =
@@ -192,6 +195,12 @@ pub fn apply_world_state(app_dir: &Path, game: &Game, state: &State) -> Result<(
 
         write_deployment(&dir.join(new_battle::deployment_file(side)), &deployment)?;
     }
+
+    battle.update_status(state.flags.iter().map(|(_, ownership)| match ownership {
+        Ownership::A => Some(Side::A),
+        Ownership::B => Some(Side::B),
+        Ownership::Nobody | Ownership::Both => None,
+    }));
 
     Ok(())
 }
