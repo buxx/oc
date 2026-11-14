@@ -20,10 +20,17 @@ pub fn button(ui: &mut egui::Ui, id_salt: &str, path: &Path) {
             .resizable(false)
             .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
             .show(ui.ctx(), |ui| {
-                let uri = format!("file://{}", path.display());
-                ui.add(egui::Image::new(uri).max_size(egui::Vec2::splat(MAX_SIZE)));
+                ui.add(egui::Image::new(uri(path)).max_size(egui::Vec2::splat(MAX_SIZE)));
             });
     }
 
     ui.data_mut(|d| d.insert_temp(open_id, open));
+}
+
+fn uri(path: &Path) -> String {
+    format!("file://{}", path.display())
+}
+
+pub fn forget(ctx: &egui::Context, path: &Path) {
+    ctx.forget_image(&uri(path));
 }

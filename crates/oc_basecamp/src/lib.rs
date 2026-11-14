@@ -1,10 +1,8 @@
-//! Basecamp: the launcher application (mods, battles, deployments).
-//! Exposed as a library so end-to-end tests can drive [`app::App`].
-
 mod about;
 pub mod app;
 mod battle;
 mod errors;
+mod game;
 mod launch;
 mod map;
 mod map_view;

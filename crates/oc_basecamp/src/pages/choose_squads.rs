@@ -1,6 +1,6 @@
 use eframe::egui;
 
-use crate::{launch, map_view, minimap, page::Page};
+use crate::{game, launch, map_view, page::Page};
 
 use super::PageContext;
 
@@ -10,16 +10,17 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
         return None;
     };
 
-    let Some((battle, scenario)) = ctx.selected() else {
-        ui.label("No scenario selected");
+    let Some(current) = ctx.current_game.as_ref() else {
+        ui.label("No current game");
         return None;
     };
-    let map_path = minimap::scenario_path(ctx.app_dir, battle, scenario, ctx.selected_mod);
+    let map_path = game::minimap_path(ctx.app_dir, current);
 
-    let squads: Vec<&str> = deployment
+    // Label and soldiers count of each squad
+    let squads: Vec<(&str, usize)> = deployment
         .squads
         .iter()
-        .map(|squad| squad.label.as_str())
+        .map(|squad| (squad.label.as_str(), squad.individuals.len()))
         .collect();
 
     egui::Panel::left("squads_list")
@@ -35,14 +36,18 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
             ui.separator();
 
             egui::ScrollArea::vertical().show(ui, |ui| {
-                for (index, label) in squads.iter().enumerate() {
+                for (index, (label, soldiers)) in squads.iter().enumerate() {
                     let placed = ctx.squad_slots.contains(&Some(index));
-                    let response = ui.add_enabled(!placed, egui::Button::selectable(false, *label));
-                    if response.clicked()
-                        && let Some(slot) = ctx.squad_slots.iter_mut().find(|s| s.is_none())
-                    {
-                        *slot = Some(index);
-                    }
+                    ui.horizontal(|ui| {
+                        let button = egui::Button::selectable(false, *label);
+                        let response = ui.add_enabled(!placed, button);
+                        ui.label(soldiers_text(*soldiers));
+                        if response.clicked()
+                            && let Some(slot) = ctx.squad_slots.iter_mut().find(|s| s.is_none())
+                        {
+                            *slot = Some(index);
+                        }
+                    });
                 }
             });
         });
@@ -67,8 +72,9 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
             ui.horizontal(|ui| {
                 ui.label(format!("{}.", number + 1));
                 match slot.and_then(|index| squads.get(index)) {
-                    Some(label) => {
+                    Some((label, soldiers)) => {
                         ui.label(*label);
+                        ui.label(soldiers_text(*soldiers));
                         if ui.button("Remove").clicked() {
                             *slot = None;
                         }
@@ -96,4 +102,9 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
             None
         }
     }
+}
+
+/// One "o" by soldier
+fn soldiers_text(soldiers: usize) -> String {
+    "o".repeat(soldiers)
 }

@@ -3,11 +3,14 @@ use std::path::Path;
 use eframe::egui;
 
 use oc_game::Game;
+use oc_root::side::Side;
 
 use crate::{
     battle::{Battle, Scenario},
+    game,
     map::Map,
     map_view, minimap,
+    mods::ModInfo,
     page::Page,
 };
 
@@ -84,6 +87,7 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
                         battle,
                         ctx.selected_scenario,
                         ctx.games,
+                        ctx.selected_mod_info(),
                         ctx.selected_mod,
                     );
                 }
@@ -93,7 +97,28 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
             }
         });
 
-    next
+    match next? {
+        Action::Go(page) => Some(page),
+        Action::Open(game) => open(ctx, game),
+    }
+}
+
+enum Action {
+    Go(Page),
+    Open(Game),
+}
+
+fn open(ctx: &mut PageContext, game: Game) -> Option<Page> {
+    let (_, scenario) = ctx.selected()?;
+
+    match game::open(ctx, scenario, game) {
+        Ok(()) => Some(Page::ChooseSquads),
+        Err(error) => {
+            ctx.errors.push(format!("Open game: {error}"));
+            *ctx.show_errors = true;
+            None
+        }
+    }
 }
 
 /// Battle is listed if all are shown, or if its map has no error with the selected mod.
@@ -173,8 +198,9 @@ fn scenarios(
     battle: &Battle,
     selected: &mut Option<usize>,
     games: &[Game],
+    mod_info: Option<&ModInfo>,
     selected_mod: &str,
-) -> Option<Page> {
+) -> Option<Action> {
     egui::Panel::left("scenarios_list")
         .resizable(true)
         .default_size(200.0)
@@ -218,7 +244,7 @@ fn scenarios(
                     ui.label(scenario.description());
                     ui.add_space(8.0);
 
-                    next = games_section(ui, battle, scenario, games, selected_mod);
+                    next = games_section(ui, battle, scenario, games, mod_info, selected_mod);
                 }
                 None => {
                     ui.label("Select a scenario");
@@ -234,22 +260,23 @@ fn games_section(
     battle: &Battle,
     scenario: &Scenario,
     games: &[Game],
+    mod_info: Option<&ModInfo>,
     selected_mod: &str,
-) -> Option<Page> {
+) -> Option<Action> {
     let mut next = None;
 
     ui.horizontal(|ui| {
         ui.strong("Games");
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             if ui.button("New game").clicked() {
-                next = Some(Page::NewBattle);
+                next = Some(Action::Go(Page::NewBattle));
             }
         });
     });
 
     ui.separator();
 
-    let scenario_games = games.iter().map(|Game::Battle(game)| game).filter(|game| {
+    let scenario_games = games.iter().filter(|Game::Battle(game)| {
         game.mod_name == selected_mod
             && game.battle_name == battle.name()
             && game.scenario_name == scenario.name()
@@ -258,8 +285,22 @@ fn games_section(
     let mut any = false;
     for game in scenario_games {
         any = true;
-        let modified = game.modified.with_timezone(&chrono::Local);
-        ui.label(modified.format("%Y-%m-%d %H:%M").to_string());
+        let Game::Battle(battle_game) = game;
+        let modified = battle_game.modified.with_timezone(&chrono::Local);
+        let side = mod_info
+            .map(|m| match battle_game.side {
+                Side::A => m.a_name.clone(),
+                Side::B => m.b_name.clone(),
+            })
+            .unwrap_or_else(|| battle_game.side.letter().to_string());
+        let label = format!("{} ({side})", modified.format("%Y-%m-%d %H:%M"));
+        if ui
+            .add(egui::Button::selectable(false, label))
+            .on_hover_text("Continue this game")
+            .clicked()
+        {
+            next = Some(Action::Open(game.clone()));
+        }
     }
     if !any {
         ui.weak("No games");

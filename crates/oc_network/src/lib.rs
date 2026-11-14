@@ -89,6 +89,8 @@ pub enum ToServer {
     DebugRequestSupport(oc_root::side::Side, SupportType, WorldVec2),
     #[cfg(feature = "debug")]
     DebugEndBattle,
+    #[cfg(feature = "debug")]
+    DebugKillSquad(oc_root::side::Side, u32),
 }
 
 #[derive(Debug, Clone, Archive, Deserialize, Serialize, PartialEq, Constructor)]

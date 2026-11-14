@@ -20,6 +20,11 @@ pub struct Args {
     #[cfg(feature = "debug")]
     #[clap(long, global = true)]
     pub debug_auto_end: bool,
+    /// With --debug-auto-end, kill given squad before ending (like `a:0` for first squad of side
+    /// A). Can be repeated.
+    #[cfg(feature = "debug")]
+    #[clap(long, global = true, value_parser = oc_battle_gui::auto_end::parse_kill_squad)]
+    pub debug_kill_squad: Vec<(Side, u32)>,
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -66,8 +71,11 @@ fn main() -> anyhow::Result<()> {
 
     #[cfg(feature = "debug")]
     let install = args.debug_auto_end.then(|| -> run::InstallFn {
-        Box::new(|app| {
-            app.add_plugins(oc_battle_gui::auto_end::AutoEndPlugin);
+        let plugin = oc_battle_gui::auto_end::AutoEndPlugin {
+            kill_squads: args.debug_kill_squad.clone(),
+        };
+        Box::new(move |app| {
+            app.add_plugins(plugin.clone());
         })
     });
     #[cfg(not(feature = "debug"))]

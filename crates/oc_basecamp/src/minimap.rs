@@ -3,7 +3,10 @@ use std::path::{Path, PathBuf};
 use image::{Rgba, RgbaImage, imageops::FilterType};
 use oc_game::folder_name;
 use oc_root::SPAWN_ZONE_NONE_OPACITY;
-use oc_world::{reader::MapReader, spawn::SpawnZone};
+use oc_world::{
+    reader::MapReader,
+    spawn::{SpawnZone, SpawnZoneName},
+};
 
 use crate::{
     battle::{Battle, MAPS_FOLDER, Scenario},
@@ -43,18 +46,7 @@ pub fn generate_all(
 }
 
 fn generate(app_dir: &Path, battle: &Battle, mods: &[ModInfo]) -> Result<(), String> {
-    let battle_path = battle_path(app_dir, battle);
-    if !battle_path.is_file() {
-        let source = Path::new(MAPS_FOLDER).join(battle.map()).join(MINIMAP_FILE);
-        let image =
-            image::open(&source).map_err(|e| format!("Open '{}': {e}", source.display()))?;
-        save(
-            &image
-                .resize_exact(SIZE, SIZE, FilterType::Triangle)
-                .to_rgba8(),
-            &battle_path,
-        )?;
-    }
+    let base = base(app_dir, battle)?;
 
     let missing: Vec<(&Scenario, &ModInfo, PathBuf)> = mods
         .iter()
@@ -66,29 +58,82 @@ fn generate(app_dir: &Path, battle: &Battle, mods: &[ModInfo]) -> Result<(), Str
         return Ok(());
     }
 
-    let base = image::open(&battle_path)
-        .map_err(|e| format!("Open '{}': {e}", battle_path.display()))?
-        .to_rgba8();
-    let map_path = Path::new(MAPS_FOLDER).join(battle.map());
-    let map = MapReader::new(&map_path).map_err(|e| e.to_string())?;
-    let zones = map.spawn_zones().map_err(|e| e.to_string())?;
-    let size_pixels = map.size_pixels();
-
+    let zones = MapZones::read(battle)?;
     for (scenario, mod_, path) in missing {
-        let mut image = base.clone();
-        let sides = [
-            (scenario.a_start_spawn_zones(), mod_.a_color),
-            (scenario.b_start_spawn_zones(), mod_.b_color),
-        ];
-        for (names, color) in sides {
-            for zone in zones.iter().filter(|z| names.contains(&z.name)) {
-                fill_zone(&mut image, zone, size_pixels, color);
-            }
-        }
+        let image = zones.paint(
+            &base,
+            [
+                (scenario.a_start_spawn_zones(), mod_.a_color),
+                (scenario.b_start_spawn_zones(), mod_.b_color),
+            ],
+        );
         save(&image, &path)?;
     }
 
     Ok(())
+}
+
+/// Generate (or regenerate) the minimap at `path` with given side A and B spawn zones
+pub fn generate_with_zones(
+    app_dir: &Path,
+    battle: &Battle,
+    mod_: &ModInfo,
+    a_zones: &[SpawnZoneName],
+    b_zones: &[SpawnZoneName],
+    path: &Path,
+) -> Result<(), String> {
+    let base = base(app_dir, battle)?;
+    let image = MapZones::read(battle)?;
+    let image = image.paint(&base, [(a_zones, mod_.a_color), (b_zones, mod_.b_color)]);
+
+    save(&image, path)
+}
+
+/// Battle map minimap (without spawn zones), generated in cache if missing
+fn base(app_dir: &Path, battle: &Battle) -> Result<RgbaImage, String> {
+    let battle_path = battle_path(app_dir, battle);
+    if !battle_path.is_file() {
+        let source = Path::new(MAPS_FOLDER).join(battle.map()).join(MINIMAP_FILE);
+        let image =
+            image::open(&source).map_err(|e| format!("Open '{}': {e}", source.display()))?;
+        let image = image
+            .resize_exact(SIZE, SIZE, FilterType::Triangle)
+            .to_rgba8();
+        save(&image, &battle_path)?;
+        return Ok(image);
+    }
+
+    Ok(image::open(&battle_path)
+        .map_err(|e| format!("Open '{}': {e}", battle_path.display()))?
+        .to_rgba8())
+}
+
+struct MapZones {
+    zones: Vec<SpawnZone>,
+    size_pixels: (f32, f32),
+}
+
+impl MapZones {
+    fn read(battle: &Battle) -> Result<Self, String> {
+        let map_path = Path::new(MAPS_FOLDER).join(battle.map());
+        let map = MapReader::new(&map_path).map_err(|e| e.to_string())?;
+
+        Ok(Self {
+            zones: map.spawn_zones().map_err(|e| e.to_string())?,
+            size_pixels: map.size_pixels(),
+        })
+    }
+
+    fn paint(&self, base: &RgbaImage, sides: [(&[SpawnZoneName], [u8; 3]); 2]) -> RgbaImage {
+        let mut image = base.clone();
+        for (names, color) in sides {
+            for zone in self.zones.iter().filter(|z| names.contains(&z.name)) {
+                fill_zone(&mut image, zone, self.size_pixels, color);
+            }
+        }
+
+        image
+    }
 }
 
 fn save(image: &RgbaImage, path: &Path) -> Result<(), String> {

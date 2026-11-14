@@ -5,6 +5,7 @@ use std::{
 
 use chrono::{DateTime, Utc};
 use directories::UserDirs;
+use oc_root::side::Side;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
@@ -37,6 +38,7 @@ pub struct BattleGame {
     pub mod_name: String,
     pub battle_name: String,
     pub scenario_name: String,
+    pub side: Side,
     pub created: DateTime<Utc>,
     pub modified: DateTime<Utc>,
 }
@@ -46,6 +48,7 @@ impl BattleGame {
         mod_name: impl Into<String>,
         battle_name: impl Into<String>,
         scenario_name: impl Into<String>,
+        side: Side,
     ) -> Self {
         let now = Utc::now();
         Self {
@@ -53,6 +56,7 @@ impl BattleGame {
             mod_name: mod_name.into(),
             battle_name: battle_name.into(),
             scenario_name: scenario_name.into(),
+            side,
             created: now,
             modified: now,
         }
@@ -76,6 +80,12 @@ pub fn cache_dir(app_dir: &Path) -> PathBuf {
 }
 
 impl Game {
+    pub fn id(&self) -> Uuid {
+        match self {
+            Game::Battle(game) => game.id,
+        }
+    }
+
     /// Game file path.
     /// Example: `<app_dir>/Games/Battle/std1/Demo2/Scenario 1/<uuid>/game.ron`
     pub fn path(&self, app_dir: &Path) -> PathBuf {
@@ -181,7 +191,7 @@ mod tests {
     use super::*;
 
     fn game() -> Game {
-        Game::Battle(BattleGame::new("std1", "Demo2", "Scenario 1"))
+        Game::Battle(BattleGame::new("std1", "Demo2", "Scenario 1", Side::A))
     }
 
     #[test]
@@ -212,7 +222,10 @@ mod tests {
     #[test]
     fn games_sorted_by_modified_desc() {
         let dir = tempfile::tempdir().unwrap();
-        let (mut old, new) = (BattleGame::new("std1", "Demo2", "Scenario 1"), game());
+        let (mut old, new) = (
+            BattleGame::new("std1", "Demo2", "Scenario 1", Side::A),
+            game(),
+        );
         old.modified -= chrono::Duration::days(1);
         new.save(dir.path()).unwrap();
         Game::Battle(old.clone()).save(dir.path()).unwrap();

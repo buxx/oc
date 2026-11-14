@@ -62,7 +62,29 @@ impl<'a, E: Client> Dealer<'a, E> {
             ToServer::DebugEndBattle => {
                 crate::world::Processor::new(&self.state.world()).force_end()
             }
+            #[cfg(feature = "debug")]
+            ToServer::DebugKillSquad(side, nth) => self.kill_squad(side, nth),
         }
+    }
+
+    #[cfg(feature = "debug")]
+    fn kill_squad(&self, side: oc_root::side::Side, nth: u32) -> Vec<Update> {
+        let world = self.state.world();
+        let Some(squad) = world
+            .squads()
+            .iter()
+            .filter(|s| s.side == side)
+            .nth(nth as usize)
+        else {
+            tracing::warn!(name="runner-input-kill-squad-not-found", side=?side, nth=?nth);
+            return vec![];
+        };
+
+        squad
+            .members
+            .iter()
+            .flat_map(|i| crate::individual::death::die(&world, self._mod, *i))
+            .collect()
     }
 
     fn init(&self, identity: Identity) -> Vec<Update> {

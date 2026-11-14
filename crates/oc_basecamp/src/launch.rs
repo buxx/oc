@@ -163,10 +163,9 @@ pub fn load_deployment(dir: &Path, side: Side) -> Result<Deployment, String> {
 }
 
 /// Update side A and B deployments files with world state
-pub fn apply_world_state(app_dir: &Path, game: &Game) -> Result<(), String> {
+pub fn apply_world_state(app_dir: &Path, game: &Game, state: &State) -> Result<(), String> {
     let Game::Battle(battle) = game;
     let dir = game.dir(app_dir);
-    let state = State::load(&dir.join(WORLD_STATE_FILE)).map_err(|e| e.to_string())?;
     let mod_ = Mod::load(&Path::new(MODS_FOLDER).join(&battle.mod_name), None)
         .map_err(|e| format!("Load mod '{}': {e}", battle.mod_name))?;
     let states: HashMap<_, &IndividualState> =

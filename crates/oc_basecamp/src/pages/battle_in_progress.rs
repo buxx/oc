@@ -2,7 +2,9 @@ use std::time::Duration;
 
 use eframe::egui;
 
-use crate::{launch, page::Page};
+use oc_game::Game;
+
+use crate::{game, map_view, page::Page};
 
 use super::PageContext;
 
@@ -30,8 +32,8 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
         Ok(Some(status)) => {
             *ctx.battle_process = None;
             if status.success() {
-                update_deployments(ctx);
-                Some(Page::Battle)
+                update_deployments(ui, ctx);
+                Some(Page::ChooseSquads)
             } else {
                 ctx.errors
                     .push(format!("Battle exited with error ({status})"));
@@ -48,16 +50,51 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
     }
 }
 
-fn update_deployments(ctx: &mut PageContext) {
-    let Some(game) = ctx.current_game.as_ref() else {
+fn update_deployments(ui: &egui::Ui, ctx: &mut PageContext) {
+    let Some(mut current) = ctx.current_game.take() else {
         return;
     };
 
-    if let Err(error) = launch::apply_world_state(ctx.app_dir, game) {
-        ctx.errors.push(format!("Update deployments: {error}"));
+    let Game::Battle(battle_game) = &current;
+    let battle = ctx
+        .battles
+        .iter()
+        .find(|battle| battle.name() == battle_game.battle_name);
+    let mod_ = ctx.mods.iter().find(|m| m.name == battle_game.mod_name);
+    let result = match (battle, mod_) {
+        (Some(battle), Some(mod_)) => game::after_battle(ctx.app_dir, &mut current, battle, mod_),
+        (None, _) => Err(format!("Battle '{}' not found", battle_game.battle_name)),
+        (_, None) => Err(format!("Mod '{}' not found", battle_game.mod_name)),
+    };
+    if let Err(error) = result {
+        ctx.errors
+            .push(format!("Update game after battle: {error}"));
         *ctx.show_errors = true;
     }
 
-    // Deployments changed: they must be reloaded
+    // Minimap file changed (spawn zones): it must be reloaded
+    map_view::forget(ui.ctx(), &game::minimap_path(ctx.app_dir, &current));
+
+    // Keep games list up to date (modification date) and sorted
+    if let Some(listed) = ctx.games.iter_mut().find(|g| g.id() == current.id()) {
+        *listed = current.clone();
+    }
+    ctx.games
+        .sort_by_key(|Game::Battle(game)| std::cmp::Reverse(game.modified));
+
+    // Deployments changed: reopen the game to reload them (and reset slots)
     *ctx.deployment = None;
+    *ctx.squad_slots = vec![];
+    let reopened = match ctx.selected() {
+        Some((_, scenario)) => game::open(ctx, scenario, current),
+        None => {
+            *ctx.current_game = Some(current);
+            Err("No scenario selected".to_string())
+        }
+    };
+    if let Err(error) = reopened {
+        ctx.errors
+            .push(format!("Reopen game after battle: {error}"));
+        *ctx.show_errors = true;
+    }
 }

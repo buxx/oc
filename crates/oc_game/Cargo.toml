@@ -7,6 +7,7 @@ edition = "2024"
 workspace = true
 
 [dependencies]
+oc_root = { path = "../oc_root" }
 serde = { workspace = true, features = ["derive"] }
 ron.workspace = true
 directories.workspace = true
