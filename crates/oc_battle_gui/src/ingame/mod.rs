@@ -169,6 +169,7 @@ impl Plugin for IngamePlugin {
             .add_plugins(TilePlugin)
             .init_resource::<DisplayPaths>()
             .add_observer(on_game_config_received)
+            .add_observer(on_end_resume)
             .add_observer(on_update_battle_square)
             .add_observer(on_spawn_minimap)
             .add_observer(on_adjust_minimap)
@@ -365,9 +366,24 @@ fn on_set_battle_phase(
             crate::fx::play_phase_start(&mut commands, &g, BattlePhase::Fight);
         }
         BattlePhase::End => {
+            // Keep end window state if battle summary was already received
+            if !matches!(window.0, Some(crate::window::Window::BattleEnd(_))) {
+                window.0 = Some(crate::window::Window::BattleEnd(
+                    crate::window::battle::end::Window::default(),
+                ));
+            }
+        }
+    }
+}
+
+/// Battle summary is sent by server once battle end is persisted: closing is now safe
+fn on_end_resume(_: On<EndResumeEvent>, mut window: ResMut<crate::states::Window>) {
+    match &mut window.0 {
+        Some(crate::window::Window::BattleEnd(end)) => end.resumed = true,
+        _ => {
             window.0 = Some(crate::window::Window::BattleEnd(
-                crate::window::battle::end::Window,
-            ));
+                crate::window::battle::end::Window { resumed: true },
+            ))
         }
     }
 }
