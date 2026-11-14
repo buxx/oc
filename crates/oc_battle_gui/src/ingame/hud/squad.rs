@@ -169,27 +169,38 @@ pub fn spawn_rows(
     }
 }
 
+type StatusTexts<'w, 's> = Query<
+    'w,
+    's,
+    (&'static IndividualStatusText, &'static mut Text),
+    (
+        Without<IndividualRoundsText>,
+        Without<IndividualGrenadesText>,
+    ),
+>;
+type RoundsTexts<'w, 's> = Query<
+    'w,
+    's,
+    (&'static IndividualRoundsText, &'static mut Text),
+    (
+        Without<IndividualStatusText>,
+        Without<IndividualGrenadesText>,
+    ),
+>;
+type GrenadesTexts<'w, 's> = Query<
+    'w,
+    's,
+    (&'static IndividualGrenadesText, &'static mut Text),
+    (Without<IndividualStatusText>, Without<IndividualRoundsText>),
+>;
+
+#[allow(clippy::too_many_arguments)]
 pub fn update_rows(
     world: Res<World>,
     g: Res<GameConfig>,
-    mut texts: Query<
-        (&IndividualStatusText, &mut Text),
-        (
-            Without<IndividualRoundsText>,
-            Without<IndividualGrenadesText>,
-        ),
-    >,
-    mut rounds: Query<
-        (&IndividualRoundsText, &mut Text),
-        (
-            Without<IndividualStatusText>,
-            Without<IndividualGrenadesText>,
-        ),
-    >,
-    mut grenades: Query<
-        (&IndividualGrenadesText, &mut Text),
-        (Without<IndividualStatusText>, Without<IndividualRoundsText>),
-    >,
+    mut texts: StatusTexts,
+    mut rounds: RoundsTexts,
+    mut grenades: GrenadesTexts,
     mut names: Query<(&IndividualNameText, &mut BackgroundColor)>,
     mut kias: Query<(&IndividualKiaText, &mut Visibility)>,
     time: Res<Time>,

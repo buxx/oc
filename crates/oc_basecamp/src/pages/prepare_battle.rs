@@ -10,12 +10,9 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
         ui.label("No scenario selected");
         return None;
     };
-    let Some((a_name, b_name)) = ctx
+    let (a_name, b_name) = ctx
         .selected_mod_info()
-        .map(|m| (m.a_name.as_str(), m.b_name.as_str()))
-    else {
-        return None;
-    };
+        .map(|m| (m.a_name.as_str(), m.b_name.as_str()))?;
 
     map_view::button(
         ui,

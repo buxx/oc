@@ -105,8 +105,11 @@ impl<'a, E: Client> Dealer<'a, E> {
 
     fn listen_region(&self, region: WorldRegionIndex) -> Vec<Update> {
         tracing::trace!(name="dealer-listen-region", endpoint=?self.endpoint, region=?region);
-        let mut listeners = self.state.listeners_mut();
-        listeners.listen_region(&self.endpoint, region);
+        // Listeners lock must be released before refresh (which locks world): updates lock world
+        // then listeners (to broadcast), so holding it here makes a deadlock.
+        self.state
+            .listeners_mut()
+            .listen_region(&self.endpoint, region);
         self.refresh_region(region);
         vec![]
     }

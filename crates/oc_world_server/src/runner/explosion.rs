@@ -71,7 +71,7 @@ impl<E: Client> super::State<E> {
                 .max(shrapnel_rayon)
                 .max(suppress_rayon);
             let largest_visual_rayon = explosion.largest_rayon();
-            let is_smoke = origin.is_smoke(&mod_);
+            let is_smoke = origin.is_smoke(mod_);
             let mut smoke_fx = None;
 
             // Tiles concerned by largest rayon

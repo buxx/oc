@@ -332,17 +332,15 @@ fn install(app: &mut bevy::app::App) {
             app.init_resource::<ExplosionProtectedTest>()
                 .add_systems(Update, explosion_protected_test);
         }
-
-        return;
-    }
-
-    #[cfg(feature = "test")]
-    if args.test {
-        let state = State {
-            start: Instant::now(),
-        };
-        app.insert_resource(state)
-            .add_systems(Update, test_interior_visibility);
+    } else {
+        #[cfg(feature = "test")]
+        if args.test {
+            let state = State {
+                start: Instant::now(),
+            };
+            app.insert_resource(state)
+                .add_systems(Update, test_interior_visibility);
+        }
     }
 }
 

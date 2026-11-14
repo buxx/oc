@@ -2,6 +2,7 @@ use bevy::asset::io::AssetSourceBuilder;
 use bevy::audio::{AudioPlugin, SpatialScale};
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
+use bevy::render::RenderPlugin;
 use bevy::sprite_render::Wireframe2dPlugin;
 use bevy_egui::EguiPlugin;
 use bevy_spritesheet_animation::plugin::SpritesheetAnimationPlugin;
@@ -60,7 +61,13 @@ pub fn run(
             default_spatial_scale: SpatialScale::new_2d(AUDIO_SCALE),
             ..default()
         })
-        .set(ImagePlugin::default_nearest());
+        .set(ImagePlugin::default_nearest())
+        // Use synchronous to prevent segfault on exit (visible during e2e tests).
+        // But can produce render glitch.
+        .set(RenderPlugin {
+            synchronous_pipeline_compilation: true,
+            ..default()
+        });
 
     let default = match logging {
         true => default,

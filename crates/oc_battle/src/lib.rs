@@ -29,7 +29,7 @@ pub enum Error {
     #[error("Format of {path}: {source}")]
     Format {
         path: PathBuf,
-        source: ron::de::SpannedError,
+        source: Box<ron::de::SpannedError>,
     },
 }
 
@@ -48,7 +48,7 @@ pub fn read_ron<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T, Error>
     })?;
     ron::from_str(&content).map_err(|source| Error::Format {
         path: path.to_path_buf(),
-        source,
+        source: Box::new(source),
     })
 }
 

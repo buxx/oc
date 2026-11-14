@@ -9,7 +9,7 @@ use std::{
 };
 
 use oc_individual::{IndividualIndex, squad::SquadIndex};
-use oc_network::{GameConfig, ToClient};
+use oc_network::{GameConfig, ToClient, ToServer};
 use oc_root::side::Side;
 use oc_root::{Client, battle::BattlePhase};
 use oc_world::{resume::EndResume, snapshot};
@@ -368,8 +368,9 @@ impl<E: Client> Runner<E> {
                             .unwrap(); // TODO
                     }
                     Event::Disconnected(endpoint) => state.listeners_mut().remove(&endpoint),
-                    // Battle ended: ignore clients messages
-                    Event::Message(..) if ctx.stopped() => {}
+                    // Battle ended: ignore clients messages which would alter the world, but keep
+                    // answering others so clients can still display the final state
+                    Event::Message(_, message) if ctx.stopped() && !read_only(&message) => {}
                     Event::Message(endpoint, message) => {
                         for update_ in Dealer::new(&state, &mod_, &output, endpoint).deal(message) {
                             update::update(&ctx, update_);
@@ -401,6 +402,17 @@ impl<E: Client> Runner<E> {
             }
         })
     }
+}
+
+/// Client messages which don't alter the world
+fn read_only(message: &ToServer) -> bool {
+    matches!(
+        message,
+        ToServer::RequestInit(_)
+            | ToServer::ListenRegion(_)
+            | ToServer::ForgotRegion(_)
+            | ToServer::Refresh
+    )
 }
 
 fn ended<E: Client>(ctx: &Context<E>) -> bool {
