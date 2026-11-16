@@ -23,6 +23,8 @@ use crate::{
 };
 
 const WORLD_INTERVAL: Duration = Duration::from_secs(5);
+/// AI decisions frequency
+const AI_INTERVAL: Duration = Duration::from_millis(2755);
 /// Smoke clouds fading precision
 const SMOKE_INTERVAL: Duration = Duration::from_millis(250);
 const SMOKE_MIN_INTERVAL: Duration = Duration::from_millis(20); // For e2e tests purposes
@@ -57,6 +59,8 @@ pub struct Runner<E: Client> {
     end: EndPolicy,
     /// Shared with all runner threads: when set, they stop
     stopped: Arc<AtomicBool>,
+    /// Sides played by an AI (zero, one or both sides)
+    ais: Vec<crate::ai::AiConfig>,
     /// Runner react (SIGHINT or end of game)
     signal: (Sender<Signal>, Receiver<Signal>),
 }
@@ -101,8 +105,21 @@ impl<E: Client> Runner<E> {
             direct,
             end,
             stopped: Arc::new(AtomicBool::new(false)),
+            ais: vec![],
             signal: channel(),
         }
+    }
+
+    /// Add an AI playing a side (if any)
+    pub fn with_ai(mut self, ai: Option<crate::ai::AiConfig>) -> Self {
+        self.ais.extend(ai);
+        self
+    }
+
+    /// Add AIs, each playing a side (like both sides for AI versus AI battles)
+    pub fn with_ais(mut self, ais: impl IntoIterator<Item = crate::ai::AiConfig>) -> Self {
+        self.ais.extend(ais);
+        self
     }
 
     pub fn run(
@@ -121,6 +138,7 @@ impl<E: Client> Runner<E> {
         threads.extend(self.start_squads());
         threads.push(self.start_world());
         threads.push(self.start_smoke());
+        threads.extend(self.start_ai());
         threads.push(self.start_scheduler());
 
         let _ = ready.send(Ok(()));
@@ -313,6 +331,30 @@ impl<E: Client> Runner<E> {
         })
     }
 
+    fn start_ai(&self) -> Vec<JoinHandle<()>> {
+        self.ais
+            .iter()
+            .cloned()
+            .map(|config| self.start_ai_(config))
+            .collect()
+    }
+
+    fn start_ai_(&self, config: crate::ai::AiConfig) -> JoinHandle<()> {
+        tracing::info!(name="runner-start-ai", config=?config);
+        let mut ai = crate::ai::Ai::from_config(config);
+
+        spawn_ticker(self.context(), Kind::Ai, true, move |ctx| {
+            // World lock is released while AI decides
+            let perception = ai.perceive(&ctx.state.world());
+            let commands = ai.decide(&perception);
+            if commands.is_empty() {
+                return;
+            }
+            let updates = ai.updates(&ctx.state.world(), commands);
+            update::update_all(ctx, updates);
+        })
+    }
+
     fn start_smoke(&self) -> JoinHandle<()> {
         tracing::debug!("Start smoke");
 
@@ -429,6 +471,7 @@ enum Kind {
     Visibilities,
     World,
     Smoke,
+    Ai,
 }
 
 impl Kind {
@@ -441,6 +484,7 @@ impl Kind {
             Kind::Visibilities => w.visibilities_tick().interval(),
             Kind::World => WORLD_INTERVAL.div_f32(w.speed()),
             Kind::Smoke => SMOKE_INTERVAL.div_f32(w.speed()).max(SMOKE_MIN_INTERVAL),
+            Kind::Ai => AI_INTERVAL.div_f32(w.speed()),
         }
     }
 
@@ -451,7 +495,7 @@ impl Kind {
             Kind::Individuals => &perf.individuals,
             Kind::Squads => &perf.squads,
             Kind::Visibilities => &perf.visibilities,
-            Kind::World | Kind::Smoke => &perf.world,
+            Kind::World | Kind::Smoke | Kind::Ai => &perf.world,
         }
     }
 }

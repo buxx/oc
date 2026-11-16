@@ -68,6 +68,16 @@ pub fn show(ui: &mut egui::Ui, ctx: &mut PageContext) -> Option<Page> {
                 .add_enabled(ready, button)
                 .on_disabled_hover_text("Choose at least one squad");
             start = response.clicked();
+
+            ui.separator();
+            egui::ComboBox::from_id_salt("opponent_ai")
+                .selected_text(ctx.selected_ai.label())
+                .show_ui(ui, |ui| {
+                    for kind in oc_ai::AiKind::ALL {
+                        ui.selectable_value(&mut *ctx.selected_ai, kind, kind.label());
+                    }
+                });
+            ui.label("Opponent AI");
         });
     });
 

@@ -93,6 +93,7 @@ pub fn open(ctx: &mut PageContext, scenario: &Scenario, game: Game) -> Result<()
     *ctx.squad_slots = launch::default_slots(&deployment, defaults, count);
     *ctx.deployment = Some(deployment);
     *ctx.selected_side = Some(side);
+    *ctx.selected_ai = scenario.side(side.opposite()).ia_default;
     *ctx.current_game = Some(game);
 
     Ok(())

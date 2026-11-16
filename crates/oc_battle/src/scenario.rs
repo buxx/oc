@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use bon::Builder;
+use oc_ai::AiKind;
 use oc_deployment::{deployment::place::OrderPolicy, generator::profile::Profile};
 use oc_root::side::{BySide, Side};
 use oc_world::{
@@ -30,6 +31,9 @@ pub struct ScenarioSide {
     #[builder(default)]
     pub places: Vec<SquadPlace>,
     pub order: Option<OrderPolicy>,
+    /// AI behavior when this side is played by the computer
+    #[builder(default)]
+    pub ia_default: AiKind,
 }
 
 /// Squad (by its label, like `"Mg34"`) to place at a map place (by its name, like `"50"`)
@@ -76,6 +80,12 @@ struct ScenarioRaw {
     /// Side B squads initial order, like `Hide` (default: decided by battle gui)
     #[serde(default)]
     b_order: Option<OrderPolicy>,
+    /// Side A AI behavior when played by computer, like `Offensive` (default: `Defensive`)
+    #[serde(default)]
+    a_ia_default: AiKind,
+    /// Side B AI behavior when played by computer, like `Offensive` (default: `Defensive`)
+    #[serde(default)]
+    b_ia_default: AiKind,
 }
 
 impl Scenario {
@@ -112,6 +122,7 @@ impl Scenario {
                     supports: Support(raw.a_supports),
                     places: raw.a_places,
                     order: raw.a_order,
+                    ia_default: raw.a_ia_default,
                 },
                 ScenarioSide {
                     deploy: read_ron(&dir.join(raw.deploy_b))?,
@@ -121,6 +132,7 @@ impl Scenario {
                     supports: Support(raw.b_supports),
                     places: raw.b_places,
                     order: raw.b_order,
+                    ia_default: raw.b_ia_default,
                 },
             ),
         })
@@ -165,5 +177,30 @@ mod tests {
         let artillery = SupportType::new("Artillery");
         assert_eq!(landing.side(Side::A).supports.count(&naval), 3);
         assert_eq!(orchard.side(Side::A).supports.count(&artillery), 1);
+    }
+
+    #[test]
+    fn scenarios_ia_default() {
+        let battles = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../battles");
+        for path in [
+            "Mini_D_day/Landing.ron",
+            "Mini_D_day/Take_the_town.ron",
+            "Orchard_battle/Allied_push.ron",
+        ] {
+            let scenario = Scenario::from_ron_file(battles.join(path)).unwrap();
+            assert_eq!(
+                scenario.side(Side::A).ia_default,
+                AiKind::Offensive,
+                "{path}"
+            );
+            assert_eq!(
+                scenario.side(Side::B).ia_default,
+                AiKind::Defensive,
+                "{path}"
+            );
+        }
+
+        let test = Scenario::from_ron_file(battles.join("Test1/scenario_1.ron")).unwrap();
+        assert_eq!(test.side(Side::A).ia_default, AiKind::Defensive);
     }
 }

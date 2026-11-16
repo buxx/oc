@@ -522,7 +522,7 @@ impl BodyGesture {
             BodyGesture::StandUp(_) | BodyGesture::Walking(_) | BodyGesture::Running(_) => {
                 Meters(1.5)
             }
-            BodyGesture::Crawling(_) | BodyGesture::Prone(_) => Meters(0.35),
+            BodyGesture::Crawling(_) | BodyGesture::Prone(_) => Meters(0.70),
         }
     }
 

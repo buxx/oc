@@ -33,4 +33,6 @@
   ],
   a_order: Defend,
   b_order: Defend,
+  a_ia_default: Offensive,
+  b_ia_default: Defensive,
 )

@@ -149,22 +149,22 @@ fn deploy_south_est(
             // // B
             // (
             //     // Mg34
-            //     Uuid::parse_str("53f27839-4f3f-486e-bb47-420f382be19c").unwrap(),
+            //     "53f27839-4f3f-486e-bb47-420f382be19c".parse::<SquadUuid>().unwrap(),
             //     *places.get(&"50".into()).unwrap(),
             // ),
             // (
             //     // Mg34
-            //     Uuid::parse_str("03f99100-deff-4bd6-9b24-d3a4e1b3bbf6").unwrap(),
+            //     "03f99100-deff-4bd6-9b24-d3a4e1b3bbf6".parse::<SquadUuid>().unwrap(),
             //     *places.get(&"56".into()).unwrap(),
             // ),
             // (
             //     // Rifle
-            //     Uuid::parse_str("04f4eec9-fc48-4bf9-a2cd-4d072656e4a7").unwrap(),
+            //     "04f4eec9-fc48-4bf9-a2cd-4d072656e4a7".parse::<SquadUuid>().unwrap(),
             //     *places.get(&"42".into()).unwrap(),
             // ),
             // (
             //     // Rifle
-            //     Uuid::parse_str("578150d7-4cd9-448f-82cb-44c70e1da22b").unwrap(),
+            //     "578150d7-4cd9-448f-82cb-44c70e1da22b".parse::<SquadUuid>().unwrap(),
             //     *places.get(&"49".into()).unwrap(),
             // ),
         ],

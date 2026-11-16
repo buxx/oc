@@ -17,6 +17,7 @@ oc_mod = { path = "../oc_mod" }
 oc_individual = { path = "../oc_individual" }
 oc_world = { path = "../oc_world" }
 oc_battle = { path = "../oc_battle" }
+oc_ai = { path = "../oc_ai" }
 oc_game = { path = "../oc_game" }
 oc_deployment = { path = "../oc_deployment" }
 eframe = "0.36"

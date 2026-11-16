@@ -38,6 +38,7 @@ pub struct PageContext<'a> {
     pub mods: &'a [ModInfo],
     pub selected_mod: &'a str,
     pub selected_side: &'a mut Option<Side>,
+    pub selected_ai: &'a mut oc_ai::AiKind,
     pub deployment: &'a mut Option<Deployment>,
     pub squad_slots: &'a mut Vec<Option<usize>>,
     pub battle_process: &'a mut Option<Child>,
